@@ -1,0 +1,14 @@
+{
+  "seed": 11,
+  "max_rounds": 20,
+  "attacker": {
+    "swordsman": 100,
+    "archer": 60,
+    "gyrocopter": 10
+  },
+  "defender": {
+    "hoplite": 110,
+    "slinger": 55,
+    "gyrocopter": 15
+  }
+}
