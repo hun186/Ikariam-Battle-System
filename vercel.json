@@ -1,8 +1,9 @@
 {
   "version": 2,
-  "routes": [
-    { "src": "^/api/simulate$", "dest": "/api/simulate.py" },
-    { "src": "^/$", "dest": "/public/index.html" },
-    { "src": "^/(.*)$", "dest": "/public/$1" }
+  "rewrites": [
+    { "source": "/api/simulate", "destination": "/api/simulate.py" },
+    { "source": "/api/simulate/", "destination": "/api/simulate.py" },
+    { "source": "/", "destination": "/public/index.html" },
+    { "source": "/(.*)", "destination": "/public/$1" }
   ]
 }
