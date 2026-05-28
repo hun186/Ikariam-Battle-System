@@ -10,3 +10,10 @@ requires-python = ">=3.11"
 
 [tool.vercel]
 entrypoint = "web_simulator:handler"
+
+[tool.setuptools]
+py-modules = ["web_simulator", "simulator", "pdf_extract"]
+
+[tool.setuptools.packages.find]
+include = ["api*"]
+exclude = ["public*"]
