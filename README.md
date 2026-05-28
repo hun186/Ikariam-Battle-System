@@ -19,6 +19,29 @@ python simulator.py --scenario sample_scenario.json
 pytest -q
 ```
 
+
+## Local web deployment with Uvicorn
+
+Run the same static UI and simulation API locally with Uvicorn:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install -e .
+uvicorn asgi:application --host 127.0.0.1 --port 8000
+```
+
+Then open <http://127.0.0.1:8000>. The ASGI app serves `index.html` and handles `POST /api/simulate`.
+
+Quick API smoke test:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/simulate \
+  -H 'Content-Type: application/json' \
+  --data @sample_scenario.json
+```
+
 ## Deploy to Vercel
 
 1. Push this repository to GitHub.

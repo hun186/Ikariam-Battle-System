@@ -12,7 +12,7 @@ requires-python = ">=3.11"
 entrypoint = "web_simulator:handler"
 
 [tool.setuptools]
-py-modules = ["web_simulator", "simulator", "pdf_extract"]
+py-modules = ["web_simulator", "asgi", "simulator", "pdf_extract"]
 
 [tool.setuptools.packages.find]
 include = ["api*"]

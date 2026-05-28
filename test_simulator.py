@@ -52,3 +52,56 @@ def test_vercel_routes_serve_root_index():
         {"handle": "filesystem"},
         {"src": "/.*", "dest": "/index.html"},
     ]
+
+
+def test_asgi_app_serves_index_and_api():
+    import asyncio
+    import json
+
+    from asgi import application
+
+    async def request(method, path, body=b""):
+        events = [
+            {
+                "type": "http.request",
+                "body": body,
+                "more_body": False,
+            }
+        ]
+        sent = []
+
+        async def receive():
+            return events.pop(0)
+
+        async def send(message):
+            sent.append(message)
+
+        await application(
+            {
+                "type": "http",
+                "method": method,
+                "path": path,
+            },
+            receive,
+            send,
+        )
+        return sent
+
+    index_response = asyncio.run(request("GET", "/"))
+    assert index_response[0]["status"] == 200
+    assert b"Ikariam Battle Simulator" in index_response[1]["body"]
+
+    payload = json.dumps(
+        {
+            "seed": 11,
+            "max_rounds": 20,
+            "attacker": {"swordsman": 100, "archer": 60, "gyrocopter": 10},
+            "defender": {"hoplite": 110, "slinger": 55, "gyrocopter": 15},
+        }
+    ).encode("utf-8")
+    api_response = asyncio.run(request("POST", "/api/simulate", payload))
+    data = json.loads(api_response[1]["body"].decode("utf-8"))
+
+    assert api_response[0]["status"] == 200
+    assert data["winner"] == "Attacker"
+    assert "logs" in data
