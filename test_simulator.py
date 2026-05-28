@@ -23,6 +23,23 @@ def test_no_negative_units_after_battle():
     assert all(s.count >= 0 for s in d.stacks)
 
 
+def test_battle_records_round_snapshots_for_visualization():
+    a = Army("A", [Stack(UNIT_TYPES["swordsman"], 25), Stack(UNIT_TYPES["archer"], 5)])
+    d = Army("D", [Stack(UNIT_TYPES["hoplite"], 25), Stack(UNIT_TYPES["slinger"], 5)])
+    simulator = BattleSimulator(a, d, seed=3)
+
+    simulator.run(max_rounds=3)
+
+    assert simulator.rounds[0]["label"] == "Initial deployment"
+    assert simulator.rounds[0]["attacker"]["lines"] == {"front": 25, "back": 5, "air": 0}
+    assert simulator.rounds[-1]["defender"]["morale"] <= 1.1
+    assert all(
+        "units" in side
+        for round_state in simulator.rounds
+        for side in (round_state["attacker"], round_state["defender"])
+    )
+
+
 def test_load_battle_from_json(tmp_path: Path):
     scenario = tmp_path / "scenario.json"
     scenario.write_text(
@@ -104,3 +121,4 @@ def test_asgi_app_serves_index_and_api():
     assert api_response[0]["status"] == 200
     assert data["winner"] == "Attacker"
     assert "logs" in data
+    assert data["rounds"][0]["attacker"]["units"]["swordsman"] == 100

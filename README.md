@@ -54,7 +54,9 @@ curl -X POST http://127.0.0.1:8000/api/simulate \
 - One-click simulation
 - Winner/remaining-unit summary
 - Full battle log viewer
-- Round-by-round playback
+- Ikariam-style battlefield visualization with front/back/air lines
+- Round-by-round battlefield playback and casualty deltas
+- Text log playback
 - Download battle report as JSON
 
 ## API
