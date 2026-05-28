@@ -4,7 +4,7 @@ This repository contains:
 - battle simulator core in `simulator.py`,
 - PDF extraction helper in `pdf_extract.py`,
 - tests in `test_simulator.py`,
-- Vercel web UI in `public/index.html` + `api/simulate.py`.
+- Vercel web UI in root `index.html` (mirrored at `public/index.html`) + `api/simulate.py`.
 
 ## Local CLI usage
 
@@ -23,7 +23,7 @@ pytest -q
 
 1. Push this repository to GitHub.
 2. Import project in Vercel.
-3. Deploy (Python runtime will serve `api/simulate.py`, static UI from `public/`).
+3. Deploy (Python runtime will serve `api/simulate.py`, static UI from root `index.html`).
 
 ### UI features
 - JSON scenario editor

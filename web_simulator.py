@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from http.server import BaseHTTPRequestHandler
 import json
+from urllib.parse import urlparse
 
-from simulator import BattleSimulator, load_battle_from_json
+from simulator import BattleSimulator
 
 
 def run_battle(payload: dict) -> dict:
@@ -32,7 +33,8 @@ def load_battle_from_json_from_payload(payload: dict):
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path == "/api/simulate":
+        path = urlparse(self.path).path.rstrip("/") or "/"
+        if path == "/api/simulate":
             output = json.dumps(
                 {
                     "message": "Use POST /api/simulate to run battle simulation.",
@@ -52,7 +54,8 @@ class handler(BaseHTTPRequestHandler):
         self.wfile.write(b"Not found")
 
     def do_POST(self):
-        if self.path != "/api/simulate":
+        path = urlparse(self.path).path.rstrip("/") or "/"
+        if path != "/api/simulate":
             self.send_response(404)
             self.end_headers()
             self.wfile.write(b"Not found")
