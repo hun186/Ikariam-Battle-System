@@ -7,6 +7,9 @@ from urllib.parse import urlparse
 from simulator import BattleSimulator
 
 
+API_SIMULATE_PATHS = {"/api/simulate", "/api/simulate.py"}
+
+
 def run_battle(payload: dict) -> dict:
     attacker, defender, seed, max_rounds = load_battle_from_json_from_payload(payload)
     winner, logs = BattleSimulator(attacker, defender, seed=seed).run(max_rounds=max_rounds)
@@ -34,7 +37,7 @@ def load_battle_from_json_from_payload(payload: dict):
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = urlparse(self.path).path.rstrip("/") or "/"
-        if path == "/api/simulate":
+        if path in API_SIMULATE_PATHS:
             output = json.dumps(
                 {
                     "message": "Use POST /api/simulate to run battle simulation.",
@@ -55,7 +58,7 @@ class handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path.rstrip("/") or "/"
-        if path != "/api/simulate":
+        if path not in API_SIMULATE_PATHS:
             self.send_response(404)
             self.end_headers()
             self.wfile.write(b"Not found")

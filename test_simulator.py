@@ -37,7 +37,7 @@ def test_load_battle_from_json(tmp_path: Path):
     assert max_rounds == 7
 
 
-def test_vercel_routes_serve_root_index():
+def test_vercel_rewrites_serve_root_index():
     import json
 
     config = json.loads(Path("vercel.json").read_text(encoding="utf-8"))
@@ -47,10 +47,9 @@ def test_vercel_routes_serve_root_index():
     assert Path("index.html").is_file()
     assert index_html == Path("public/index.html").read_text(encoding="utf-8")
     assert "fetch('/api/simulate'" in index_html
-    assert config["routes"] == [
-        {"src": "/api/simulate/?", "dest": "/api/simulate.py"},
-        {"handle": "filesystem"},
-        {"src": "/.*", "dest": "/index.html"},
+    assert config["rewrites"] == [
+        {"source": "/api/simulate", "destination": "/api/simulate.py"},
+        {"source": "/(.*)", "destination": "/index.html"},
     ]
 
 
