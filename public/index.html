@@ -5,22 +5,70 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Ikariam Battle Simulator</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
-    .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
-    .card { background: #111827; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    :root {
+      color-scheme: dark;
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-soft: #172033;
+      --border: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --attacker: #38bdf8;
+      --defender: #fb7185;
+      --front: #f59e0b;
+      --back: #22c55e;
+      --air: #a78bfa;
+    }
+    body { font-family: Arial, sans-serif; margin: 0; background: radial-gradient(circle at top, #1e293b 0, var(--bg) 42%); color: var(--text); }
+    .container { max-width: 1180px; margin: 0 auto; padding: 24px; }
+    .card { background: rgba(17, 24, 39, 0.94); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18); }
     h1 { margin-top: 0; }
-    textarea, input { width: 100%; background: #020617; color: #e2e8f0; border: 1px solid #334155; border-radius: 8px; padding: 10px; box-sizing: border-box; }
+    h3 { margin: 0 0 12px; }
+    textarea, input { width: 100%; background: #020617; color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 10px; box-sizing: border-box; }
     textarea { min-height: 220px; }
     button { background: #22c55e; border: none; color: #052e16; font-weight: bold; padding: 10px 16px; border-radius: 8px; cursor: pointer; }
-    .btn-muted { background: #334155; color: #e2e8f0; margin-left: 8px; }
-    pre { white-space: pre-wrap; background: #020617; border: 1px solid #334155; border-radius: 8px; padding: 10px; max-height: 380px; overflow: auto; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-muted { background: #334155; color: var(--text); margin-left: 8px; }
+    pre { white-space: pre-wrap; background: #020617; border: 1px solid var(--border); border-radius: 8px; padding: 10px; max-height: 380px; overflow: auto; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
     .tabs { display: flex; gap: 8px; margin-bottom: 10px; }
-    .tab { padding: 8px 12px; border: 1px solid #334155; border-radius: 8px; cursor: pointer; }
+    .tab { padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; }
     .tab.active { background: #1d4ed8; border-color: #1d4ed8; }
     .hidden { display: none; }
-    @media (max-width: 800px) { .row, .row-3 { grid-template-columns: 1fr; } }
+    .battle-header { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+    .round-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .round-controls input[type="range"] { width: 240px; padding: 0; accent-color: #38bdf8; }
+    .battlefield { position: relative; overflow: hidden; border: 1px solid #475569; border-radius: 16px; padding: 16px; background: linear-gradient(180deg, rgba(127, 29, 29, 0.22), rgba(30, 41, 59, 0.88) 48%, rgba(8, 47, 73, 0.30)), repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.08) 0 1px, transparent 1px 96px); }
+    .battlefield::before { content: ""; position: absolute; inset: 50% 16px auto; border-top: 2px dashed rgba(226, 232, 240, 0.25); }
+    .army-label { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-weight: 700; margin: 4px 0 10px; }
+    .army-label .side { display: inline-flex; align-items: center; gap: 8px; }
+    .side-dot { display: inline-block; width: 10px; height: 10px; border-radius: 999px; }
+    .side-dot.attacker { background: var(--attacker); }
+    .side-dot.defender { background: var(--defender); }
+    .morale { color: var(--muted); font-size: 0.92rem; }
+    .field-lines { display: grid; gap: 10px; margin-bottom: 18px; position: relative; z-index: 1; }
+    .field-lines.attacker-lines { margin-top: 18px; margin-bottom: 0; }
+    .line-row { display: grid; grid-template-columns: 86px 1fr; gap: 10px; align-items: stretch; }
+    .line-title { border-radius: 10px; padding: 10px 8px; display: flex; align-items: center; justify-content: center; text-align: center; background: rgba(15, 23, 42, 0.76); border: 1px solid rgba(148, 163, 184, 0.26); color: var(--muted); font-weight: 700; }
+    .line-slots { min-height: 86px; border-radius: 12px; padding: 10px; background: rgba(2, 6, 23, 0.52); border: 1px solid rgba(148, 163, 184, 0.20); display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+    .unit-card { border-radius: 12px; border: 1px solid rgba(148, 163, 184, 0.24); background: linear-gradient(180deg, rgba(30, 41, 59, 0.94), rgba(15, 23, 42, 0.94)); padding: 10px; min-height: 64px; }
+    .unit-card.attacker { box-shadow: inset 4px 0 0 var(--attacker); }
+    .unit-card.defender { box-shadow: inset 4px 0 0 var(--defender); }
+    .unit-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+    .unit-name { font-weight: 700; text-transform: capitalize; }
+    .unit-count { font-size: 1.2rem; font-weight: 800; }
+    .unit-delta { color: #fca5a5; font-size: 0.86rem; min-height: 18px; }
+    .bar { height: 8px; border-radius: 999px; background: #020617; overflow: hidden; margin-top: 8px; }
+    .bar-fill { height: 100%; border-radius: inherit; transition: width 180ms ease; }
+    .attacker .bar-fill { background: var(--attacker); }
+    .defender .bar-fill { background: var(--defender); }
+    .empty-slot { color: #64748b; display: flex; align-items: center; justify-content: center; min-height: 64px; border: 1px dashed rgba(148, 163, 184, 0.2); border-radius: 10px; }
+    .legend { display: flex; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size: 0.9rem; margin-top: 10px; }
+    .pill { border: 1px solid rgba(148, 163, 184, 0.28); border-radius: 999px; padding: 4px 8px; background: rgba(15, 23, 42, 0.72); }
+    .round-events { margin-top: 12px; color: var(--muted); }
+    .round-events ul { margin: 6px 0 0; padding-left: 20px; }
+    @media (max-width: 800px) { .row, .row-3 { grid-template-columns: 1fr; } .line-row { grid-template-columns: 1fr; } .round-controls input[type="range"] { width: 100%; } }
   </style>
 </head>
 <body>
@@ -64,6 +112,30 @@
       </div>
     </div>
 
+    <div class="card">
+      <div class="battle-header">
+        <div>
+          <h3>Ikariam 戰場圖</h3>
+          <div id="roundLabel" class="morale">尚未模擬</div>
+        </div>
+        <div class="round-controls">
+          <button class="btn-muted" id="prevRoundBtn">上一回合</button>
+          <input id="roundSlider" type="range" min="0" max="0" value="0" disabled>
+          <button class="btn-muted" id="nextRoundBtn">下一回合</button>
+          <button class="btn-muted" id="playRoundsBtn">播放戰場</button>
+        </div>
+      </div>
+      <div id="battlefield" class="battlefield">
+        <div class="empty-slot">按下 Simulate 後，這裡會用 Ikariam 前排／後排／空軍格線顯示每回合戰況。</div>
+      </div>
+      <div class="legend">
+        <span class="pill">Front：近戰前排</span>
+        <span class="pill">Back：遠程後排</span>
+        <span class="pill">Air：空軍</span>
+        <span class="pill">紅字為本回合損失</span>
+      </div>
+    </div>
+
     <div class="row">
       <div class="card">
         <h3>Summary</h3>
@@ -84,13 +156,24 @@ const defaultScenario = {
   attacker: { swordsman: 100, archer: 60, gyrocopter: 10 },
   defender: { hoplite: 110, slinger: 55, gyrocopter: 15 }
 };
+const unitLines = {
+  front: ['swordsman', 'hoplite'],
+  back: ['archer', 'slinger'],
+  air: ['gyrocopter']
+};
+const lineLabels = { air: 'Air 空軍', back: 'Back 後排', front: 'Front 前排' };
 let lastResult = null;
 let lastLogs = [];
+let currentRoundIndex = 0;
 let isJsonMode = true;
+let battlefieldTimer = null;
 
 const scenarioEl = document.getElementById('scenario');
 const summaryEl = document.getElementById('summary');
 const logsEl = document.getElementById('logs');
+const battlefieldEl = document.getElementById('battlefield');
+const roundLabelEl = document.getElementById('roundLabel');
+const roundSliderEl = document.getElementById('roundSlider');
 scenarioEl.value = JSON.stringify(defaultScenario, null, 2);
 
 function setMode(jsonMode) {
@@ -121,10 +204,96 @@ function fromForm() {
   };
 }
 
+function escapeHtml(value) {
+  return String(value).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+}
+
+function roundEvents(roundNo) {
+  if (!lastLogs.length || roundNo === 0) return [];
+  return lastLogs.filter(line => line.startsWith(`R${roundNo} `)).slice(0, 8);
+}
+
+function unitDelta(side, unitName, index) {
+  if (index <= 0 || !lastResult?.rounds?.[index - 1]) return '';
+  const previous = lastResult.rounds[index - 1][side].units[unitName] || 0;
+  const current = lastResult.rounds[index][side].units[unitName] || 0;
+  const diff = current - previous;
+  return diff < 0 ? `${diff} 本回合` : '';
+}
+
+function maxInitialCount(side, unitName) {
+  const initial = lastResult?.rounds?.[0]?.[side]?.units?.[unitName] || 0;
+  return Math.max(1, initial);
+}
+
+function renderUnitCard(side, unitName, count, index) {
+  const pct = Math.max(0, Math.min(100, (count / maxInitialCount(side, unitName)) * 100));
+  const delta = unitDelta(side, unitName, index);
+  return `
+    <div class="unit-card ${side}">
+      <div class="unit-top">
+        <span class="unit-name">${escapeHtml(unitName)}</span>
+        <span class="unit-count">${count}</span>
+      </div>
+      <div class="unit-delta">${escapeHtml(delta)}</div>
+      <div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div>
+    </div>`;
+}
+
+function renderLine(side, snapshot, line, index) {
+  const availableUnits = unitLines[line].filter(unit => Object.prototype.hasOwnProperty.call(snapshot.units, unit));
+  const cards = availableUnits
+    .map(unit => renderUnitCard(side, unit, snapshot.units[unit] || 0, index))
+    .join('') || '<div class="empty-slot">無單位</div>';
+  return `
+    <div class="line-row">
+      <div class="line-title">${lineLabels[line]}</div>
+      <div class="line-slots">${cards}</div>
+    </div>`;
+}
+
+function renderArmy(side, snapshot, lineOrder, index) {
+  const dotClass = side === 'attacker' ? 'attacker' : 'defender';
+  return `
+    <div class="army-label">
+      <span class="side"><span class="side-dot ${dotClass}"></span>${escapeHtml(snapshot.name)}</span>
+      <span class="morale">總兵力 ${snapshot.total_units}｜士氣 ${snapshot.morale.toFixed(2)}</span>
+    </div>
+    <div class="field-lines ${side}-lines">
+      ${lineOrder.map(line => renderLine(side, snapshot, line, index)).join('')}
+    </div>`;
+}
+
+function renderBattlefield(index) {
+  const rounds = lastResult?.rounds || [];
+  if (!rounds.length) return;
+  currentRoundIndex = Math.max(0, Math.min(index, rounds.length - 1));
+  const round = rounds[currentRoundIndex];
+  roundSliderEl.value = String(currentRoundIndex);
+  roundLabelEl.textContent = `${round.label}（${currentRoundIndex + 1}/${rounds.length}）`;
+  const events = roundEvents(round.round);
+  battlefieldEl.innerHTML = `
+    ${renderArmy('defender', round.defender, ['air', 'back', 'front'], currentRoundIndex)}
+    ${renderArmy('attacker', round.attacker, ['front', 'back', 'air'], currentRoundIndex)}
+    <div class="round-events">
+      <strong>本回合事件</strong>
+      ${events.length ? `<ul>${events.map(event => `<li>${escapeHtml(event)}</li>`).join('')}</ul>` : '<div>初始佈陣，尚未交戰。</div>'}
+    </div>`;
+}
+
+function setupRoundControls() {
+  const rounds = lastResult?.rounds || [];
+  roundSliderEl.disabled = rounds.length === 0;
+  roundSliderEl.max = String(Math.max(0, rounds.length - 1));
+  roundSliderEl.value = '0';
+  renderBattlefield(0);
+}
+
 async function simulate() {
   const payload = isJsonMode ? JSON.parse(scenarioEl.value) : fromForm();
   summaryEl.textContent = 'Running...';
   logsEl.textContent = '';
+  battlefieldEl.innerHTML = '<div class="empty-slot">模擬中...</div>';
   const res = await fetch('/api/simulate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -140,9 +309,11 @@ async function simulate() {
     `seed: ${data.seed}`,
     `max_rounds: ${data.max_rounds}`,
     `remaining attacker units: ${data.attacker_units}`,
-    `remaining defender units: ${data.defender_units}`
+    `remaining defender units: ${data.defender_units}`,
+    `visual rounds: ${(data.rounds || []).length}`
   ].join('\n');
   logsEl.textContent = lastLogs.join('\n');
+  setupRoundControls();
 }
 
 document.getElementById('runBtn').addEventListener('click', async () => {
@@ -151,6 +322,24 @@ document.getElementById('runBtn').addEventListener('click', async () => {
   } catch (e) {
     summaryEl.textContent = `Error: ${e.message}`;
   }
+});
+
+document.getElementById('prevRoundBtn').addEventListener('click', () => renderBattlefield(currentRoundIndex - 1));
+document.getElementById('nextRoundBtn').addEventListener('click', () => renderBattlefield(currentRoundIndex + 1));
+roundSliderEl.addEventListener('input', () => renderBattlefield(Number(roundSliderEl.value)));
+
+document.getElementById('playRoundsBtn').addEventListener('click', async () => {
+  const rounds = lastResult?.rounds || [];
+  if (!rounds.length) return;
+  if (battlefieldTimer) {
+    clearTimeout(battlefieldTimer);
+    battlefieldTimer = null;
+  }
+  for (let i = currentRoundIndex; i < rounds.length; i++) {
+    renderBattlefield(i);
+    await new Promise(resolve => { battlefieldTimer = setTimeout(resolve, 700); });
+  }
+  battlefieldTimer = null;
 });
 
 document.getElementById('playBtn').addEventListener('click', async () => {

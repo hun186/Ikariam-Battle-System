@@ -12,7 +12,8 @@ API_SIMULATE_PATHS = {"/api/simulate", "/api/simulate.py"}
 
 def run_battle(payload: dict) -> dict:
     attacker, defender, seed, max_rounds = load_battle_from_json_from_payload(payload)
-    winner, logs = BattleSimulator(attacker, defender, seed=seed).run(max_rounds=max_rounds)
+    simulator = BattleSimulator(attacker, defender, seed=seed)
+    winner, logs = simulator.run(max_rounds=max_rounds)
     return {
         "winner": winner,
         "seed": seed,
@@ -20,6 +21,7 @@ def run_battle(payload: dict) -> dict:
         "attacker_units": attacker.total_units(),
         "defender_units": defender.total_units(),
         "logs": logs,
+        "rounds": simulator.rounds,
     }
 
 

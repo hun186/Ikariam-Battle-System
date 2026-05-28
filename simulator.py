@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Any
 import argparse
 import json
 import random
@@ -57,6 +57,7 @@ class BattleSimulator:
         self.d = defender
         self.rng = random.Random(seed)
         self.log: List[str] = []
+        self.rounds: List[dict[str, Any]] = []
 
     def _target(self, enemy: Army, attacker_stack: Stack) -> Stack | None:
         alive = enemy.alive_stacks()
@@ -108,8 +109,33 @@ class BattleSimulator:
         ratio = army.total_units() / max(1, initial)
         army.morale = max(0.50, min(1.10, 0.50 + ratio * 0.60))
 
+    def _army_snapshot(self, army: Army) -> dict[str, Any]:
+        units = {stack.unit.name: stack.count for stack in army.stacks}
+        lines: dict[str, int] = {"front": 0, "back": 0, "air": 0}
+        for stack in army.stacks:
+            lines[stack.unit.line] += stack.count
+
+        return {
+            "name": army.name,
+            "morale": round(army.morale, 2),
+            "total_units": army.total_units(),
+            "units": units,
+            "lines": lines,
+        }
+
+    def _record_round(self, round_no: int, label: str) -> None:
+        self.rounds.append(
+            {
+                "round": round_no,
+                "label": label,
+                "attacker": self._army_snapshot(self.a),
+                "defender": self._army_snapshot(self.d),
+            }
+        )
+
     def run(self, max_rounds: int = 30) -> Tuple[str, List[str]]:
         init_a, init_d = self.a.total_units(), self.d.total_units()
+        self._record_round(0, "Initial deployment")
         for r in range(1, max_rounds + 1):
             if self.a.total_units() == 0 or self.d.total_units() == 0:
                 break
@@ -120,6 +146,7 @@ class BattleSimulator:
             self._update_morale(self.d, init_d)
 
             self.log.append(f"R{r} morale {self.a.name}={self.a.morale:.2f}, {self.d.name}={self.d.morale:.2f}")
+            self._record_round(r, f"After round {r}")
             if self.a.morale <= 0.55 or self.d.morale <= 0.55:
                 self.log.append(f"R{r} retreat trigger by morale")
                 break
