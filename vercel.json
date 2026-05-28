@@ -1,8 +1,7 @@
 {
-  "version": 2,
-  "routes": [
-    { "src": "/api/simulate/?", "dest": "/api/simulate.py" },
-    { "handle": "filesystem" },
-    { "src": "/.*", "dest": "/index.html" }
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/api/simulate", "destination": "/api/simulate.py" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
