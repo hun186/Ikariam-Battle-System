@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ikariam-battle-system"
+version = "0.1.0"
+description = "Ikariam battle simulator with Vercel deploy target"
+requires-python = ">=3.11"
+
+[tool.vercel]
+entrypoint = "web_simulator:handler"
