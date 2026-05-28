@@ -31,6 +31,26 @@ def load_battle_from_json_from_payload(payload: dict):
 
 
 class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == "/api/simulate":
+            output = json.dumps(
+                {
+                    "message": "Use POST /api/simulate to run battle simulation.",
+                    "docs": "Send JSON with attacker/defender, optional seed and max_rounds.",
+                }
+            ).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(output)
+            return
+
+        self.send_response(404)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(b"Not found")
+
     def do_POST(self):
         if self.path != "/api/simulate":
             self.send_response(404)
@@ -60,6 +80,6 @@ class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
