@@ -1,65 +1,47 @@
 # Mechanics and current-data evidence register
 
-The simulator combines **legacy empirical mechanics** with **current numerical profiles**, subject to calibration. The repository PDF is a-posteriori research, not Gameforge source code. Current values supplied by PR review remain explicitly network-unverified.
+The simulator combines empirical mechanics with current numerical profiles; it is not Gameforge source code. Evidence classes remain separate: `OFFICIAL_CHANGELOG`, `GAMEFORGE_FORUM_PLAYER_TEST`, `COMMUNITY_PTS_TESTED`, `COMMUNITY_REFERENCE_CURRENT`, `EMPIRICAL_PAPER`, `DERIVED`, `HYPOTHESIS`, and `UNKNOWN`. Sources verified by the reviewer are marked `REVIEWER_WEB_VERIFIED`, not `CODEX_NETWORK_VERIFIED`.
 
-## Evidence classes
+## Versioned profiles and source matrix
 
-`OFFICIAL_CHANGELOG`, `OFFICIAL_FORUM_TEST_REPORT`, `COMMUNITY_TESTED`, `COMMUNITY_REFERENCE`, `EMPIRICAL_PAPER`, `REVIEW_SUPPLIED`, `DERIVED`, `HYPOTHESIS`, and `UNKNOWN` are distinct. `REVIEW_SUPPLIED_OFFICIAL_CHANGELOG_CLAIM` records what review says an official changelog contains; it is not upgraded to `OFFICIAL_CHANGELOG` until the source is retrieved.
-
-## Profile bundle
-
-| Profile | Responsibility | Verification |
+| Profile/feature | Evidence | Status |
 | --- | --- | --- |
-| `battle-system-paper-2020` | formation labels, Am, RR, observational SR/IR/kill taxonomy | `EMPIRICAL_PAPER`; current applicability requires calibration |
-| `infinite-horizons-current` | HP, damage, armor, ammo, weapon/domain/role metadata | review-supplied target through 17.5.0 / 2026-09; network unverified |
-| `v14-workshop` | land +5 and naval +10 per level | exact increments review-supplied community/PTS-tested |
-| `v14-hephaistos` | forge level effects | exact table review-supplied community/PTS-tested |
-| `v17-support-healing` | legacy 200, official-claim ×20, derived 4000 | absolute current capacity `DERIVED`; allocation `UNKNOWN` |
+| `battle-system-paper-2020`: Am, physical renumbering, RR | EMPIRICAL_PAPER | implemented; current calibration required |
+| SR, IR, partial chronology | EMPIRICAL_PAPER | observed; triggers/generalization UNKNOWN |
+| Kill selection, non-standard renumbering | UNKNOWN | strict stops |
+| `infinite-horizons-current` complete land/sea values | COMMUNITY_REFERENCE_CURRENT | reviewer web verified 2026-09-24 |
+| Naval raw values | COMMUNITY_REFERENCE_CURRENT + GAMEFORGE_FORUM_PLAYER_TEST, *Workshop Tests: Ship Technology*, 2025-06-04 | reviewer web verified |
+| v14 Workshop ×5 and Forge direction change | OFFICIAL_CHANGELOG, v14.0.0, 2025-05-21 | reviewer web verified |
+| Workshop exact land +5 / naval +10 | COMMUNITY_PTS_TESTED | not promoted to official |
+| Forge exact levels 0–5 | COMMUNITY_PTS_TESTED | not promoted to official |
+| Doctor/Tender healing ×20 | OFFICIAL_CHANGELOG, v17.0.0, 2026-04-16 | reviewer web verified |
+| legacy healing 200 → current 4000 | legacy community/paper + DERIVED | allocation UNKNOWN |
+| Cook/Doctor/Tender garrison exclusion | OFFICIAL_CHANGELOG, v17.4.0, 2026-08-11 | applies only to these support units |
+| verified-through release | OFFICIAL_CHANGELOG, v17.5.0, 2026-09-08 | no later military/profile change reported |
+| `legacy-community-land-targeting` | COMMUNITY_REFERENCE | experimental/calibration policy |
 
-## Source matrix
+## Workshop and Forge ownership
 
-| Feature | Source class | Simulator treatment |
-| --- | --- | --- |
-| Am, standard renumbering, RR | EMPIRICAL_PAPER | implemented and regression tested |
-| SR, IR, partial line chronology | EMPIRICAL_PAPER | observed, trigger/generalization unknown |
-| Kill-type selection | UNKNOWN | strict stops; experimental `EXP-I-KILL-001` |
-| Infinite Horizons candidate stats | REVIEW_SUPPLIED | field-level provenance; cross-check required |
-| v14 Workshop factor ×5 | REVIEW_SUPPLIED_OFFICIAL_CHANGELOG_CLAIM | metadata only |
-| Workshop land +5 / naval +10 | REVIEW_SUPPLIED_COMMUNITY_PTS_TESTED | versioned profile |
-| v14 Forge changed damage/armor | REVIEW_SUPPLIED_OFFICIAL_CHANGELOG_CLAIM | metadata only |
-| Forge exact levels | REVIEW_SUPPLIED_COMMUNITY_PTS_TESTED | versioned profile |
-| v17 Doctor/Tender ×20 | REVIEW_SUPPLIED_OFFICIAL_CHANGELOG_CLAIM | versioned multiplier |
-| legacy Doctor/Tender 200 | LEGACY_COMMUNITY_AND_EMPIRICAL_PAPER | retained as legacy input |
-| current support 4000 | DERIVED (`200 × 20`) | capacity metadata only |
-| v17.4 support garrison exclusion | REVIEW_SUPPLIED_OFFICIAL_CHANGELOG_CLAIM | metadata; not casualty logic |
+Workshop levels belong to a player’s **unit type**, not the whole army. Every `ArmyUnit` has `attack_upgrade` and `armor_upgrade`; all rows/waves of the same `unit_id` on one side must agree. Duplicate rows aggregate only when unit, wave, and upgrades agree. Forge remains side-wide at level 0–5.
 
-## Formation semantics
+## Battlefield geometry
 
-A slot has a stable `slot_id`, `line`, `physical_position`, and `damage_position`. For a full first/second line, physical left-to-right labels are `[6,4,2,1,3,5,7]`; damage and deployment priority are ascending `[1,2,3,4,5,6,7]`. Third `[5,3,1,2,4]`, flank halves `[6,4,2]` and `[1,3,5]`, balloons `[1,2]`, and anti-balloon `[2,1]` are physical layouts—not priority lists. Am mathematics targets damage positions; vector export alone uses physical order. RR integer remainder also follows damage priority.
+`land-mini` means Town Hall 1–4/minimum. It has front 3, long-range 3, flank 0, artillery 1, bomber 1, and anti-air 1 slots. Other stable IDs (`land-small`, `land-medium`, `land-large`, `land-max`) are reserved and rejected until profiles are supplied.
 
-Only the smallest first-line three-slot fact has direct paper support. Other `small-land` line counts/capacities are review-supplied calibration geometry and must not be described as documented. The registry stores unit `size`; it does not treat worked-example slot capacity as a unit stat. Until authoritative sizes/slot sizes are available, geometry owns calibration capacities.
+A line stores `slot_space`, not a unit capacity. Deployment uses `floor(slot_space / unit.size)`. With slot space 30 this yields Hoplite 30, Steam Giant 10, Carabineer 7, and Catapult 6. Slots retain physical position and damage position separately. Am targets ascending damage positions; only vector export uses physical order. RR remainder follows damage priority and preserves deployed + reserve wave damage.
 
-## Implemented and unresolved mechanics
+## Ammunition, targeting, accuracy, and support boundaries
 
-| Rule | Confidence | Behavior |
-| --- | --- | --- |
-| Am row modulo target damage positions | EMPIRICAL_PAPER | implemented; steam `[0,7,7,7,7,7,0]`, catapult `[7,7,7,14,7,7,7]` |
-| RR `ds=D/N*s`, per wave | EMPIRICAL_PAPER | implemented; deployed + reserve damage conserved |
-| Damage components | profile data | fully traced before explicit rounding |
-| General rounding selector | UNKNOWN | strict stops; experimental floor is named |
-| Casualty/kill selector | UNKNOWN | strict stops; experimental pooled I-kill named |
-| Full chronology | UNKNOWN | strict stops; experimental simultaneous phase-start snapshot named |
-| Ammo | profile data | primary ammo consumed once/round; after exhaustion no silent primary/secondary fire |
-| Secondary-weapon trigger | UNKNOWN | weapon is represented but never silently selected |
-| Mixed-unit Am rows | UNKNOWN | rejected as inconclusive; input ordering is never a rule |
-| Slot/line retargeting | UNKNOWN | experimental no-retarget assumption; no `next()`-based transfer |
-| Healing allocation/timing/eligibility | UNKNOWN | support never enters Am; strict stops, experimental applies no healing and declares it |
-| Accuracy, non-standard renumbering, duration intervals | HYPOTHESIS/UNKNOWN | not fabricated |
+Finite ammunition is a wave shot pool initialized as `wave quantity × ammo per unit`. Each firing unit consumes one shot. A final partial volley uses named `EXP-AMMO-PARTIAL-ORDER-001`; an exhausted primary does not silently switch weapon.
 
-## Experimental policies
+Experimental targeting uses versioned priorities and `EXP-TARGET-LEGACY-001`: artillery front→flank; long-range front→flank→long-range; front front→long-range→artillery→flank; flank flank→long-range→artillery→front; anti-air bomber→anti-air; bomber artillery→long-range→front→flank. Transfer remains calibration-dependent. In particular, a Swordsman selects enemy flank before front.
 
-Every experimental response emits applicable IDs in `assumptions` and `assumption_applied` events: `EXP-I-KILL-001`, `EXP-ROUND-FLOOR-001`, `EXP-CHRONOLOGY-001`, `EXP-RETARGET-NONE-001`, `EXP-RR-ROUND-NEAREST-001`, `EXP-AMMO-STOP-001`, and, when support is present, `EXP-HEAL-NONE-001`.
+Accuracy is stored per weapon, including different secondary accuracy. No complete accuracy algorithm is known: strict emits `UNKNOWN-ACCURACY`; experimental emits `EXP-ACCURACY-IGNORED-001` rather than silently claiming 100% accuracy.
 
-## Calibration fixtures
+Support effects are distinct: Doctor/Tender are `healing`, Cook is `morale`. Strict uses `UNKNOWN-HEALING-ALLOCATION` and `UNKNOWN-MORALE-SUPPORT`; experimental uses separate `EXP-HEAL-NONE-001` and `EXP-MORALE-NONE-001`. Support never enters Am.
 
-`ikariam_battle.calibration.BattleReportFixture` accepts game version, complete scenario/profile controls, round number, and observed slot casualties, damage percentage, and life percentage. Damage-percent observations map to integer intervals because displayed damage rounds up; life percentages can be retained separately for later inverse calibration. Fixtures compare replay with observations—they do not hard-code a winner.
+## Other experimental policies and remaining unknowns
+
+Named policies include pooled I-kill, floor rounding, phase-start simultaneous chronology, no within-phase retarget, RR deployed-total rounding, ammo stop/partial ordering, legacy targeting, ignored accuracy, and separate no-healing/no-morale effects. Responses and events expose IDs. Remaining unknowns include kill selection, rounding selector, SR/IR triggers, complete chronology, target transfer after destruction, mixed-unit/multi-wave Am, secondary weapon trigger, healing/morale allocation, accuracy, non-standard renumbering, naval geometry, and long-duration intervals.
+
+`BattleReportFixture` retains game version, complete scenario, round, casualties, damage%, and life%; damage display percentages can be converted to integer intervals rather than hard-coding a winner.

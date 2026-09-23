@@ -9,7 +9,7 @@ from .battlefield import battlefield, deploy
 from .damage import RoundingPolicy, calculate_damage
 from .events import Event
 from .models import Policy, Scenario, Wave
-from .profiles import ForgeProfile, SupportProfile, WorkshopProfile
+from .profiles import ForgeProfile, TargetingProfile, WorkshopProfile
 from .redistribution import SlotShare, reserve_redistribution
 from .units import UnitRegistry
 
@@ -21,6 +21,9 @@ EXPERIMENTAL_ASSUMPTIONS = {
     "EXP-RETARGET-NONE-001": "Do not retarget shots after a slot/line is destroyed within a phase.",
     "EXP-RR-ROUND-NEAREST-001": "Round the total deployed RR share, then assign remainder by damage priority.",
     "EXP-AMMO-STOP-001": "After primary ammunition is exhausted, do not silently switch to an unverified secondary weapon.",
+    "EXP-AMMO-PARTIAL-ORDER-001": "Allocate a partial ammunition pool by source-slot damage priority.",
+    "EXP-TARGET-LEGACY-001": "Use the versioned legacy/community class target priorities.",
+    "EXP-ACCURACY-IGNORED-001": "Do not reduce Am hits by weapon accuracy because its algorithm is unresolved.",
 }
 
 
@@ -36,7 +39,7 @@ def _snapshot(waves: list[Wave], registry: UnitRegistry) -> dict[str, Any]:
         slots.extend({"slot_id": s.slot_id, "line": s.line, "physical_position": s.physical_position,
                       "damage_position": s.damage_position, "unit_id": s.unit_id, "wave_id": s.wave_id,
                       "units": s.units, "capacity": s.capacity, "damage": s.damage,
-                      "ammo_remaining": wave.ammo_remaining} for s in wave.slots)
+                      "ammo_pool_shots": wave.ammo_pool_shots} for s in wave.slots)
     slots.sort(key=lambda s: (s["line"], s["physical_position"], s["unit_id"], s["wave_id"]))
     return {"remaining": dict(units), "reserve": dict(reserve), "slots": slots, "total": sum(units.values())}
 
@@ -57,7 +60,8 @@ def _preflight(waves: list[Wave], registry: UnitRegistry) -> list[str]:
     line_waves: dict[str, int] = defaultdict(int)
     for wave in waves:
         unit = registry.get(wave.unit.unit_id)
-        if unit.role == "support": blockers.append("UNKNOWN-HEALING-ALLOCATION")
+        if unit.support_effect == "healing": blockers.append("UNKNOWN-HEALING-ALLOCATION")
+        elif unit.support_effect == "morale": blockers.append("UNKNOWN-MORALE-SUPPORT")
         else:
             line_types[unit.battlefield_class].add(unit.id)
             line_waves[unit.battlefield_class] += 1
@@ -93,44 +97,57 @@ def _combat_waves(waves: list[Wave], registry: UnitRegistry) -> list[Wave]:
                   key=lambda w: (registry.get(w.unit.unit_id).battlefield_class, w.unit.unit_id, w.unit.wave_id))
 
 
-def _target(source: Wave, targets: list[Wave], registry: UnitRegistry) -> Wave | None:
-    # Narrow MVP: same battlefield class only. Transfers and multiple target
-    # types are rejected by preflight rather than decided by Python list order.
+def _target(source: Wave, targets: list[Wave], registry: UnitRegistry,
+            targeting: TargetingProfile) -> tuple[Wave | None, str | None]:
     source_line = registry.get(source.unit.unit_id).battlefield_class
-    line = {"second":"first", "third":"first", "flank":"first", "balloon":"third",
-            "anti-balloon":"balloon"}.get(source_line, source_line)
-    choices = [w for w in _combat_waves(targets, registry)
-               if registry.get(w.unit.unit_id).battlefield_class == line and w.alive]
-    return choices[0] if len(choices) == 1 else None
+    for target_line in targeting.priorities[source_line]:
+        choices = [w for w in _combat_waves(targets, registry)
+                   if registry.get(w.unit.unit_id).battlefield_class == target_line and w.alive]
+        if len(choices) == 1: return choices[0], target_line
+        if len(choices) > 1: return None, target_line
+    return None, None
 
 
 def _plan_fire(source: list[Wave], target: list[Wave], registry: UnitRegistry, workshop: WorkshopProfile,
-               forge: ForgeProfile, events: list[Event], number: int, side: str,
+               forge: ForgeProfile, targeting: TargetingProfile, events: list[Event], number: int, side: str,
                source_army, target_army) -> list[dict[str, Any]]:
     plans = []
     for wave in _combat_waves(source, registry):
         if not wave.slots or not wave.alive: continue
         unit = registry.get(wave.unit.unit_id)
-        if wave.ammo_remaining == 0:
+        if wave.ammo_pool_shots == 0:
             _event(events, number, "fire", "ammo_exhausted", side, unit_id=unit.id,
                    assumption_id="EXP-AMMO-STOP-001", action="no_primary_fire_no_secondary_switch")
             continue
-        enemy = _target(wave, target, registry)
+        enemy, target_class = _target(wave, target, registry, targeting)
         if enemy is None: continue
         active = [slot for slot in enemy.slots if slot.units]
-        trace = from_slot_counts([slot.units for slot in wave.slots], [slot.damage_position for slot in active])
-        damage = calculate_damage(unit, registry.get(enemy.unit.unit_id), source_army.workshop.attack_level,
-                                  target_army.workshop.armor_level, source_army.forge_level,
+        deployed = sorted(wave.slots, key=lambda slot: slot.damage_position)
+        firing_counts = [slot.units for slot in deployed]
+        total_firing = sum(firing_counts)
+        if wave.ammo_pool_shots is not None and wave.ammo_pool_shots < total_firing:
+            remaining = wave.ammo_pool_shots
+            firing_counts = []
+            for slot in deployed:
+                count = min(slot.units, remaining); firing_counts.append(count); remaining -= count
+            _event(events, number, "fire", "partial_ammunition", side, unit_id=unit.id,
+                   assumption_id="EXP-AMMO-PARTIAL-ORDER-001", firing_counts=firing_counts)
+        shots = sum(firing_counts)
+        if shots == 0: continue
+        trace = from_slot_counts(firing_counts, [slot.damage_position for slot in active])
+        damage = calculate_damage(unit, registry.get(enemy.unit.unit_id), wave.unit.attack_upgrade,
+                                  enemy.unit.armor_upgrade, source_army.forge_level,
                                   target_army.forge_level, workshop, forge, RoundingPolicy.FLOOR)
         _event(events, number, "fire", "attacking_matrix", side, unit_id=unit.id,
-               target_unit_id=enemy.unit.unit_id, trace=trace.as_dict())
+               target_unit_id=enemy.unit.unit_id, target_class=target_class,
+               targeting_assumption="EXP-TARGET-LEGACY-001", trace=trace.as_dict())
         _event(events, number, "fire", "damage_calculation", side, source_unit_id=unit.id,
                target_unit_id=enemy.unit.unit_id, **damage.as_dict())
         for slot in active:
             plans.append({"target_unit": enemy.unit.unit_id, "target_wave": enemy.unit.wave_id,
                           "slot_id": slot.slot_id, "hits": trace.hits_by_damage_position[slot.damage_position],
                           "damage_per_hit": damage.final_damage, "source_unit": unit.id, "side": side})
-        if wave.ammo_remaining is not None: wave.ammo_remaining -= 1
+        if wave.ammo_pool_shots is not None: wave.ammo_pool_shots -= shots
     return plans
 
 
@@ -166,16 +183,20 @@ def simulate(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     warnings = ["Legacy empirical mechanics are being applied to review-supplied current numeric profiles; calibration is required."]
     blockers = sorted(set(_preflight(attacker, registry) + _preflight(defender, registry)))
     if scenario.policy is Policy.STRICT:
-        blockers += ["UNKNOWN-KILL-SELECTION", "UNKNOWN-ROUNDING-SELECTOR", "UNKNOWN-COMPLETE-CHRONOLOGY"]
+        blockers += ["UNKNOWN-KILL-SELECTION", "UNKNOWN-ROUNDING-SELECTOR", "UNKNOWN-COMPLETE-CHRONOLOGY",
+                     "UNKNOWN-ACCURACY", "UNKNOWN-TARGET-TRANSFER"]
         return _unsupported(scenario, events, initial, sorted(set(blockers)), warnings)
     if {"UNKNOWN-MIXED-UNIT-AM-ROWS", "UNKNOWN-MULTIPLE-TARGET-WAVES"} & set(blockers):
         return _unsupported(scenario, events, initial, blockers, warnings)
     assumptions = [{"id": key, "description": value} for key, value in EXPERIMENTAL_ASSUMPTIONS.items()]
     if "UNKNOWN-HEALING-ALLOCATION" in blockers:
         assumptions.append({"id":"EXP-HEAL-NONE-001", "description":"Support healing is not applied because allocation is unknown."})
+    if "UNKNOWN-MORALE-SUPPORT" in blockers:
+        assumptions.append({"id":"EXP-MORALE-NONE-001", "description":"Cook morale is not applied because the current morale algorithm is unresolved."})
     for assumption in assumptions:
         _event(events, 0, "preflight", "assumption_applied", None, **assumption)
     workshop, forge = WorkshopProfile.load(scenario.profiles.workshop), ForgeProfile.load(scenario.profiles.forge)
+    targeting = TargetingProfile.load(scenario.profiles.targeting)
     total = {"attacker": defaultdict(int), "defender": defaultdict(int)}
     rounds = [{"round":0, **deepcopy(initial), "casualties":{"attacker":{},"defender":{}}}]
     completed = 0
@@ -183,8 +204,8 @@ def simulate(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         _redistribute(attacker, events, number, "attacker"); _redistribute(defender, events, number, "defender")
         _refill(attacker, events, number, "attacker"); _refill(defender, events, number, "defender")
         # Both plans are made before either is applied: no hidden attacker-first bias.
-        a_plan = _plan_fire(attacker, deepcopy(defender), registry, workshop, forge, events, number, "attacker", scenario.attacker, scenario.defender)
-        d_plan = _plan_fire(defender, deepcopy(attacker), registry, workshop, forge, events, number, "defender", scenario.defender, scenario.attacker)
+        a_plan = _plan_fire(attacker, deepcopy(defender), registry, workshop, forge, targeting, events, number, "attacker", scenario.attacker, scenario.defender)
+        d_plan = _plan_fire(defender, deepcopy(attacker), registry, workshop, forge, targeting, events, number, "defender", scenario.defender, scenario.attacker)
         a_dead, d_dead = defaultdict(int), defaultdict(int)
         _apply(a_plan, defender, registry, events, number, d_dead); _apply(d_plan, attacker, registry, events, number, a_dead)
         for k,v in a_dead.items(): total["attacker"][k] += v

@@ -34,6 +34,8 @@ class ArmyUnit:
     unit_id: str
     quantity: int
     wave_id: str = "wave-1"
+    attack_upgrade: int = 0
+    armor_upgrade: int = 0
 
     @classmethod
     def from_dict(cls, value: Any) -> "ArmyUnit":
@@ -43,25 +45,14 @@ class ArmyUnit:
         wave_id = row.get("wave_id", "wave-1")
         if not isinstance(wave_id, str) or not wave_id:
             raise ScenarioError("wave_id must be a non-empty string")
-        return cls(row["unit_id"], _integer(row.get("quantity"), "quantity"), wave_id)
-
-
-@dataclass(frozen=True)
-class Workshop:
-    attack_level: int = 0
-    armor_level: int = 0
-
-    @classmethod
-    def from_dict(cls, value: Any) -> "Workshop":
-        data = _object(value, "workshop")
-        return cls(_integer(data.get("attack_level", 0), "workshop.attack_level"),
-                   _integer(data.get("armor_level", 0), "workshop.armor_level"))
+        return cls(row["unit_id"], _integer(row.get("quantity"), "quantity"), wave_id,
+                   _integer(row.get("attack_upgrade", 0), "attack_upgrade"),
+                   _integer(row.get("armor_upgrade", 0), "armor_upgrade"))
 
 
 @dataclass(frozen=True)
 class Army:
     units: tuple[ArmyUnit, ...]
-    workshop: Workshop = Workshop()
     forge_level: int = 0
 
     @classmethod
@@ -73,15 +64,21 @@ class Army:
         parsed = [ArmyUnit.from_dict(item) for item in raw]
         if not any(item.quantity for item in parsed):
             raise ScenarioError("an army must contain at least one unit")
+        upgrades: dict[str, tuple[int, int]] = {}
+        for item in parsed:
+            pair = (item.attack_upgrade, item.armor_upgrade)
+            if item.unit_id in upgrades and upgrades[item.unit_id] != pair:
+                raise ScenarioError(f"conflicting Workshop upgrades for {item.unit_id}")
+            upgrades[item.unit_id] = pair
         # A wave is identified by (unit_id, wave_id); duplicate UI/API rows are
         # presentation only and cannot change mechanics.
-        totals: dict[tuple[str, str], int] = {}
+        totals: dict[tuple[str, str, int, int], int] = {}
         for item in parsed:
-            key = (item.unit_id, item.wave_id)
+            key = (item.unit_id, item.wave_id, item.attack_upgrade, item.armor_upgrade)
             totals[key] = totals.get(key, 0) + item.quantity
-        units = tuple(ArmyUnit(unit, quantity, wave) for (unit, wave), quantity in sorted(totals.items()))
-        return cls(units, Workshop.from_dict(data.get("workshop", {})),
-                   _integer(data.get("forge_level", 0), "forge_level", 0, 5))
+        units = tuple(ArmyUnit(unit, quantity, wave, attack, armor)
+                      for (unit, wave, attack, armor), quantity in sorted(totals.items()))
+        return cls(units, _integer(data.get("forge_level", 0), "forge_level", 0, 5))
 
 
 @dataclass(frozen=True)
@@ -91,13 +88,14 @@ class Profiles:
     workshop: str = "v14-workshop"
     forge: str = "v14-hephaistos"
     support: str = "v17-support-healing"
+    targeting: str = "legacy-community-land-targeting"
 
     @classmethod
     def from_dict(cls, value: Any) -> "Profiles":
         data = _object(value, "profiles")
         result = cls(str(data.get("mechanics", cls.mechanics)), str(data.get("unit_stats", cls.unit_stats)),
                      str(data.get("workshop", cls.workshop)), str(data.get("forge", cls.forge)),
-                     str(data.get("support", cls.support)))
+                     str(data.get("support", cls.support)), str(data.get("targeting", cls.targeting)))
         expected = cls()
         if result != expected:
             raise ScenarioError(f"only the current profile bundle is supported: {expected}")
@@ -110,7 +108,7 @@ class Scenario:
     defender: Army
     profiles: Profiles = Profiles()
     policy: Policy = Policy.STRICT
-    battlefield: str = "small-land"
+    battlefield: str = "land-mini"
     max_rounds: int = 10
 
     @classmethod
@@ -120,9 +118,9 @@ class Scenario:
             policy = Policy(data.get("policy", "strict"))
         except ValueError as exc:
             raise ScenarioError("policy must be strict or experimental") from exc
-        battlefield = data.get("battlefield", "small-land")
-        if not isinstance(battlefield, str) or battlefield not in {"small-land", "small-naval"}:
-            raise ScenarioError("battlefield must be small-land or small-naval")
+        battlefield = data.get("battlefield", "land-mini")
+        if not isinstance(battlefield, str) or battlefield not in {"land-mini", "land-small", "land-medium", "land-large", "land-max", "naval-mini"}:
+            raise ScenarioError("unsupported battlefield id")
         try:
             return cls(Army.from_dict(data["attacker"]), Army.from_dict(data["defender"]),
                        Profiles.from_dict(data.get("profiles", {})), policy, battlefield,
@@ -150,7 +148,7 @@ class Wave:
     reserve: int
     slots: list[Slot] = field(default_factory=list)
     reserve_damage: int = 0
-    ammo_remaining: int | None = None
+    ammo_pool_shots: int | None = None
 
     @property
     def alive(self) -> int:

@@ -20,7 +20,7 @@ assert UnitRegistry.load().get('hoplite').hit_points==1120
 assert WorkshopProfile.load().bonus('land',12)==60
 assert str(ForgeProfile.load().effect(5).damage_multiplier)=='1.15'
 assert SupportProfile.load().derived_capacity==4000
-s={'policy':'strict','battlefield':'small-land','attacker':{'units':[{'unit_id':'hoplite','quantity':1}]},'defender':{'units':[{'unit_id':'hoplite','quantity':1}]}}
+s={'policy':'strict','battlefield':'land-mini','attacker':{'units':[{'unit_id':'hoplite','quantity':1}]},'defender':{'units':[{'unit_id':'hoplite','quantity':1}]}}
 assert simulate(s)['status']=='inconclusive'
 """
     subprocess.run([str(python),'-c',code],cwd=outside,check=True)

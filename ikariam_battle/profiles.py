@@ -50,3 +50,13 @@ class SupportProfile:
     def load(cls, name: str = "v17-support-healing") -> "SupportProfile": return cls(_load("rules", name))
     @property
     def derived_capacity(self) -> int: return self.raw["legacy_capacity"] * self.raw["healing_capacity_multiplier"]
+
+
+class TargetingProfile:
+    def __init__(self, raw: dict):
+        self.metadata = raw["metadata"]
+        self.priorities = {line: tuple(targets) for line, targets in raw["priorities"].items()}
+
+    @classmethod
+    def load(cls, name: str = "legacy-community-land-targeting") -> "TargetingProfile":
+        return cls(_load("rules", name))

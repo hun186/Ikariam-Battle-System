@@ -1,16 +1,13 @@
 # Project Memory
 
 ## Current Focus
-- Current numbers and legacy empirical mechanics are separate profile axes.
-- Strict mode is the evidence-safe oracle; experimental responses are assumption-bearing research output.
-- Physical layout, damage priority, and deployment priority are distinct.
-- UI is land-only and metadata-driven; naval geometry is unsupported.
-- Public Function B extension point remains `ikariam_battle.simulate()`.
-
-## Recent Outcomes
-- Corrected Am vectors/RR priority, side-level Workshop and Forge, current candidate stats/provenance, support scaling metadata, ammo, simultaneous phase plans, wave normalization and domain isolation.
-- Added packaged resources and battle-report calibration schema.
+- Authoritative review baseline is hosted PR #14 head `26b7047a4489fcac0d61c7e17753ddd20df37ebf`.
+- Workshop upgrades are per unit type; Forge is side-wide.
+- `land-mini` uses line slot counts and slot-space/unit-size capacity.
+- Complete reviewer-verified current data is distinct from empirical mechanics.
+- Ammo is a pooled shot count; targeting and ignored accuracy are named experimental policies.
+- Doctor/Tender healing and Cook morale are separate unknowns.
+- Function B must later call `simulate()` without duplicating rules.
 
 ## Open Handoffs
-- Function B remains accepted only after Phase A calibration.
-- Current official/community URLs and unsupported geometry/mechanics require future verified evidence.
+Larger land and naval geometry, accuracy, target transfer, mixed rows, healing/morale, kill/rounding/SR/IR chronology and secondary triggers require calibration.

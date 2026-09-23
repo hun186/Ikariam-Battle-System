@@ -1,27 +1,24 @@
 # Ikariam Battle Simulator — evidence-aware Phase A
 
-A browser-operated deterministic simulator using **current numerical data profiles with empirically reconstructed battle mechanics**. It is not official Gameforge source code, and unresolved mechanics are never silently promoted to facts.
+A deterministic browser simulator combining current Infinite Horizons numerical profiles with empirically reconstructed battle mechanics. It is not official Gameforge source code; strict mode refuses unresolved mechanics and experimental mode exposes every named assumption.
 
-## Versioned evidence layers
+## Current profiles
 
-- Infinite Horizons candidate unit stats (`infinite-horizons-current`).
-- v14 Workshop increments (`v14-workshop`): land +5 and naval +10 per level.
-- v14 Hephaistos Forge table (`v14-hephaistos`), levels 0–5.
-- v17 Doctor/Tender healing scaling (`v17-support-healing`): review-supplied changelog multiplier ×20; 4000 is explicitly derived from legacy 200.
-- Legacy mechanics (`battle-system-paper-2020`): formation labels, Am and RR plus observational/open SR, IR, kill, chronology and retargeting research.
+- Complete land and naval HP, damage, armor, accuracy, ammunition, size, and primary/secondary weapons from a reviewer-verified current community reference; naval values also carry Gameforge forum player-test corroboration.
+- v14 Workshop: unit-type-specific upgrades, land +5 and naval +10 per level. Levels are non-negative integers and can differ between Hoplites, Swordsmen, and other unit types on the same side.
+- v14 Forge: side-wide levels 0–5.
+- v17 support: Doctor/Tender healing ×20; 4000 is derived from legacy 200. Cook morale and healing allocation remain unknown.
+- Legacy empirical mechanics profile for formation labels, Am, and RR, with SR/IR/kill/chronology limitations retained.
 
-Network verification was unavailable during this correction, so current numeric/changelog claims remain review-supplied and marked for community/official cross-check in field-level provenance. See [the complete evidence register](docs/mechanics-spec.md).
+Official changelog claims and exact community/PTS tables are not conflated. The reviewer verified sources through v17.5.0 with retrieval date 2026-09-24; this environment did not independently open those URLs. See [the evidence register](docs/mechanics-spec.md).
 
-## Safety modes
+## Operational scope
 
-- **Strict** refuses casualty simulation when kill selection, rounding, chronology, healing, mixed-unit rows, retargeting, or another result-affecting rule is unsupported. It returns `inconclusive` plus machine-readable events.
-- **Experimental** exists for calibration and end-to-end research. Every invented policy has an `EXP-*` identifier in response assumptions and event traces.
+The implemented battlefield is explicitly `land-mini` (Town Hall 1–4): front 3, long-range 3, no flank, artillery 1, bomber 1, anti-air 1. Capacity is `slot_space / unit size`, not a unit constant. Larger land IDs and naval geometry are exposed/reserved but rejected until implemented.
 
-The UI currently enables supported **land** numeric records only. Naval records exist in the registry, but naval battlefield geometry is rejected until it can be calibrated. Land/naval mixing is invalid. Support units never fire through Am; healing capacity is shown while allocation remains unresolved.
+Ammunition is pooled as shots across deployed and reserve units of a wave. Target priorities use a versioned legacy/community experimental profile. Accuracy is per weapon but its algorithm is unresolved, so it is an explicit experimental assumption and a strict blocker. Doctor/Tender healing and Cook morale have separate boundaries.
 
-## Run
-
-Python 3.11+:
+## Run and verify
 
 ```bash
 python -m venv .venv
@@ -32,18 +29,11 @@ pytest -q
 uvicorn asgi:application --host 127.0.0.1 --port 8000
 ```
 
-Open <http://127.0.0.1:8000>. Unit options/profile metadata come from `GET /api/simulate`, not a second JavaScript registry. Workshop is player-side and accepts any non-negative integer; Forge is 0–5.
+The browser obtains profiles, battlefields, Forge effects, and units from `GET /api/simulate`. Each unit row has quantity, wave, attack upgrade, and armor upgrade; Forge stays side-wide.
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/simulate -H 'Content-Type: application/json' --data @sample_scenario.json
 python simulator.py --scenario sample_scenario.json
 ```
 
-## Architecture
-
-- `ikariam_battle/`: pure callable domain engine, profiles, rules, and calibration schema.
-- `ikariam_battle/data/`: packaged mechanics/unit/workshop/forge/support resources.
-- `tests/`: semantic PDF regressions, current-profile/provenance boundaries, API and packaging checks.
-- `index.html`, `asgi.py`, `web_simulator.py`: metadata-driven browser/API adapters.
-
-Future Function B (minimum winning army) is deferred until Phase A is sufficiently calibrated. It must repeatedly call `ikariam_battle.simulate()`, never duplicate rules, and distinguish completed outcomes from inconclusive/assumption-bearing results.
+Future Function B remains deferred. It must call `ikariam_battle.simulate()` and distinguish completed outcomes from inconclusive or assumption-bearing results.

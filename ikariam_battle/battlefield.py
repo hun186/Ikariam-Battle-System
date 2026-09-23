@@ -12,7 +12,7 @@ from .units import UnitRegistry
 class LineGeometry:
     name: str
     physical_order: tuple[int, ...]  # left-to-right damage-position labels
-    capacity: int
+    slot_space: int
 
     @property
     def damage_priority(self) -> tuple[int, ...]:
@@ -36,21 +36,20 @@ def _mechanics_physical() -> dict[str, tuple[int, ...]]:
 
 
 _PHYSICAL = _mechanics_physical()
-# Only first-line three-slot geometry is directly discussed by the paper. Other
-# small-field line counts/capacities remain calibration geometry, not mechanics truth.
-SMALL_LAND = Battlefield("small-land", "land", {
+# Town Hall 1–4 geometry is current community-reference data; damage-position
+# labels remain sourced from the empirical mechanics profile.
+LAND_MINI = Battlefield("land-mini", "land", {
     "first": LineGeometry("first", (2, 1, 3), 30),
-    "second": LineGeometry("second", (2, 1, 3), 14),
-    "third": LineGeometry("third", (3, 1, 2), 5),
-    "flank": LineGeometry("flank", (2, 1, 3), 40),
-    "anti-balloon": LineGeometry("anti-balloon", (2, 1), 30),
-    "balloon": LineGeometry("balloon", (1, 2), 15),
-}, "EMPIRICAL_PAPER_FIRST_LINE_PLUS_REVIEW_SUPPLIED_CALIBRATION_GEOMETRY")
+    "second": LineGeometry("second", (2, 1, 3), 30),
+    "third": LineGeometry("third", (1,), 30),
+    "anti-balloon": LineGeometry("anti-balloon", (1,), 30),
+    "balloon": LineGeometry("balloon", (1,), 30),
+}, "REVIEWER_WEB_VERIFIED_COMMUNITY_REFERENCE_TOWN_HALL_1_TO_4")
 
 
 def battlefield(name: str) -> Battlefield:
-    if name == "small-land": return SMALL_LAND
-    raise ScenarioError("small-naval is reserved but its geometry is unsupported")
+    if name == "land-mini": return LAND_MINI
+    raise ScenarioError(f"{name} is reserved but its geometry is unsupported")
 
 
 def deploy(army: Army, registry: UnitRegistry, field: Battlefield) -> list[Wave]:
@@ -67,18 +66,24 @@ def deploy(army: Army, registry: UnitRegistry, field: Battlefield) -> list[Wave]
             raise ScenarioError(f"{unit.id} has unverified numerical fields and cannot be simulated")
         line_name = "flank" if unit.battlefield_class.startswith("flank") else unit.battlefield_class
         if line_name not in field.lines:
-            raise ScenarioError(f"{field.id} does not support line {line_name}")
+            # A valid unit can remain in reserve when the battlefield has no
+            # slots for its class (notably flank in land-mini).
+            ammo = None if unit.primary_weapon.ammunition is None else item.quantity * unit.primary_weapon.ammunition
+            waves.append(Wave(item, item.quantity, [], 0, ammo))
+            continue
         geometry = field.lines[line_name]
+        assert unit.size is not None and unit.size > 0
+        unit_capacity = geometry.slot_space // unit.size
         remaining, slots = item.quantity, []
         used = occupied.setdefault(line_name, set())
         # Deployment follows damage priority, never physical left-to-right order.
         for damage_position in geometry.damage_priority:
             if damage_position in used or remaining == 0: continue
-            count = min(remaining, geometry.capacity)
+            count = min(remaining, unit_capacity)
             slots.append(Slot(f"{line_name}-{damage_position}", line_name,
                               geometry.physical_position(damage_position), damage_position,
-                              item.unit_id, item.wave_id, count, geometry.capacity))
+                              item.unit_id, item.wave_id, count, unit_capacity))
             used.add(damage_position); remaining -= count
-        ammo = unit.primary_weapon.ammunition
+        ammo = None if unit.primary_weapon.ammunition is None else item.quantity * unit.primary_weapon.ammunition
         waves.append(Wave(item, remaining, slots, 0, ammo))
     return waves

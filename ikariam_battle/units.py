@@ -14,6 +14,7 @@ class Weapon:
     damage: int | None
     ammunition: int | None
     trigger: str
+    accuracy: int | None
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,7 @@ class UnitDefinition:
     display_name: str
     domain: str
     role: str
+    support_effect: str | None
     battlefield_class: str
     hit_points: int | None
     base_armor: int | None
@@ -52,9 +54,9 @@ class UnitRegistry:
         definitions = {}
         for row in raw["units"]:
             definitions[row["id"]] = UnitDefinition(
-                row["id"], row["display_name"], row["domain"], row["role"], row["battlefield_class"],
+                row["id"], row["display_name"], row["domain"], row["role"], row.get("support_effect"), row["battlefield_class"],
                 row.get("hp"), row.get("base_armor"), row.get("accuracy"), row.get("size"),
-                tuple(Weapon(w["id"], w.get("damage"), w.get("ammunition"), w.get("trigger", "primary")) for w in row.get("weapons", [])),
+                tuple(Weapon(w["id"], w.get("damage"), w.get("ammunition"), w.get("trigger", "primary"), w.get("accuracy")) for w in row.get("weapons", [])),
                 row.get("counts_toward_garrison_limit", True), row["provenance"])
         return cls(definitions, raw["metadata"])
 
@@ -69,5 +71,5 @@ class UnitRegistry:
 
     def public(self) -> list[dict[str, Any]]:
         return [{"id": u.id, "display_name": u.display_name, "domain": u.domain, "role": u.role,
-                 "battlefield_class": u.battlefield_class, "numerically_supported": u.numerically_supported,
+                 "support_effect":u.support_effect, "battlefield_class": u.battlefield_class, "numerically_supported": u.numerically_supported,
                  "counts_toward_garrison_limit": u.counts_toward_garrison_limit} for u in self.all()]

@@ -93,7 +93,13 @@ async def _api_simulate(scope, receive, send) -> None:
         registry = UnitRegistry.load()
         await _json_response(send, HTTPStatus.OK, {"message":"POST a typed scenario to /api/simulate",
             "profiles":{"mechanics":"battle-system-paper-2020","unit_stats":"infinite-horizons-current",
-                        "workshop":"v14-workshop","forge":"v14-hephaistos","support":"v17-support-healing"},
+                        "workshop":"v14-workshop","forge":"v14-hephaistos","support":"v17-support-healing",
+                        "targeting":"legacy-community-land-targeting"},
+            "battlefields":[{"id":"land-mini","display_name":"Land mini / Town Hall 1–4","supported":True},
+                            {"id":"land-small","display_name":"Land small","supported":False},
+                            {"id":"land-medium","display_name":"Land medium","supported":False},
+                            {"id":"land-large","display_name":"Land large","supported":False},
+                            {"id":"land-max","display_name":"Land max","supported":False}],
             "profile_metadata":registry.metadata,"units":registry.public(),
             "forge_levels":{str(k):{"damage_multiplier":str(v.damage_multiplier),"armor_bonus":v.armor_bonus}
                             for k,v in ForgeProfile.load().levels.items()},

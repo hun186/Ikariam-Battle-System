@@ -1,12 +1,6 @@
 # Technical Decisions
 
-| ID | Decision | Status |
-| --- | --- | --- |
-| ADR-0001 | Evidence-aware strict/experimental execution | Accepted |
-| ADR-0002 | Separate empirical mechanics from current numerical/rule profiles | Accepted |
-
-## ADR-0001
-Strict refuses result-affecting unknowns. Experimental research uses stable, response-visible `EXP-*` policies; it is never game truth.
-
-## ADR-0002
-Mechanics, units, Workshop, Forge, and support healing are independently versioned packaged resources. Current target values retain review-supplied status until online sources are retrieved. This prevents legacy PDF scaling and current Infinite Horizons values from mixing invisibly.
+- **ADR-0001 Accepted:** strict refuses result-affecting unknowns; experimental policies use stable response-visible IDs.
+- **ADR-0002 Accepted:** empirical mechanics, current units, Workshop, Forge, support, and targeting are independent packaged profiles.
+- **ADR-0003 Accepted:** Workshop ownership is per unit type; Forge ownership is per side. Conflicting same-unit levels are invalid.
+- **ADR-0004 Accepted:** battlefield lines store slot space, units store size, and deployment derives capacity; unsupported geometry rejects.

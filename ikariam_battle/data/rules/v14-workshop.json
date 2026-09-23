@@ -1,4 +1,4 @@
 {
-  "metadata": {"profile":"v14-workshop","verified_through_game_version":"17.5.0","verified_through_date":"2026-09","verification_status":"REVIEW_SUPPLIED_TARGET_NETWORK_UNVERIFIED","factor_change":{"value":5,"source_type":"REVIEW_SUPPLIED_OFFICIAL_CHANGELOG_CLAIM"},"exact_increments":{"source_type":"REVIEW_SUPPLIED_COMMUNITY_PTS_TESTED"}},
-  "increments": {"land":5,"naval":10}
+  "metadata":{"profile":"v14-workshop","verified_through_game_version":"17.5.0","verified_through_date":"2026-09","retrieval_date":"2026-09-24","verification_status":"REVIEWER_WEB_VERIFIED","factor_change":{"value":5,"source_type":"OFFICIAL_CHANGELOG","source_title":"Gameforge v14.0.0 changelog","release_date":"2025-05-21"},"exact_increments":{"source_type":"COMMUNITY_PTS_TESTED"}},
+  "increments":{"land":5,"naval":10}
 }

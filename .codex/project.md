@@ -1,15 +1,7 @@
 # Project Profile
 
-- Status: `INITIALIZED`; verified locally 2026-09-23 against PR-correction workspace.
-- Purpose: browser-operated, deterministic, evidence-aware Ikariam Phase A simulator using current numeric profiles with empirically reconstructed mechanics.
-- Inputs: profile bundle, land battlefield, strict/experimental policy, side-level Workshop/Forge, units/waves.
-- Outputs: completed/inconclusive outcome, formation/reserve/ammo/damage, casualties, events, assumptions/warnings.
-- Non-goal: Function B solver and claims of official/current mechanics completeness.
+Initialized evidence-aware Phase A Ikariam browser simulator. Python 3.11+, pure `ikariam_battle.simulate()`, no-framework ASGI/Vercel, vanilla UI, packaged profiles under `ikariam_battle/data/`.
 
-## Technology and map
+Inputs are profile bundle, explicit battlefield ID, strict/experimental policy, side-wide Forge, unit-specific Workshop levels, units/waves. Outputs include positioned slots, reserve, ammo-pool shots, damage/casualties, events and assumptions. Function B is excluded.
 
-Python 3.11+; pure `ikariam_battle.simulate()` domain package; no-framework ASGI/Vercel adapter; vanilla HTML/CSS/JS. Packaged JSON resources live under `ikariam_battle/data/{mechanics,units,rules}`. Tests are under `tests/`; evidence details are in `docs/mechanics-spec.md`.
-
-## Truth and invariants
-
-Executable code/tests and per-field profile provenance outrank prose. The PDF is empirical mechanics evidence. Current numeric targets are review-supplied/network-unverified. Domain does not import Web code; land/naval cannot mix; duplicate same-unit/wave rows normalize; input order is not a combat rule; damage is conserved; finite ammo cannot fire primary forever; unknown result-affecting behavior is explicit/inconclusive or named experimental policy.
+Facts: reviewer-web-verified current data through 17.5.0 is distinct from empirical PDF mechanics. `land-mini` is operational; larger land/naval geometry is rejected. Duplicate same unit/wave/upgrades normalize; contradictory same-unit upgrades reject; input ordering is not a rule; ammo is pooled shots; support healing and morale are distinct; unknowns never silently produce exact strict outcomes.
