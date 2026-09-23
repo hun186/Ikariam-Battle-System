@@ -1,14 +1,9 @@
 {
-  "seed": 11,
-  "max_rounds": 20,
-  "attacker": {
-    "swordsman": 100,
-    "archer": 60,
-    "gyrocopter": 10
-  },
-  "defender": {
-    "hoplite": 110,
-    "slinger": 55,
-    "gyrocopter": 15
-  }
+  "ruleset": "paper-2020",
+  "policy": "experimental",
+  "battlefield": "small-land",
+  "max_rounds": 3,
+  "effects": {"attacker_hephaistos": false, "defender_hephaistos": false},
+  "attacker": {"units": [{"unit_id": "sulphur_carabineer", "quantity": 42, "attack_upgrade": 3, "defense_upgrade": 0}]},
+  "defender": {"units": [{"unit_id": "hoplite", "quantity": 90, "attack_upgrade": 0, "defense_upgrade": 3}]}
 }

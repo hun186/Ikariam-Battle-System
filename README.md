@@ -1,75 +1,49 @@
-# Ikariam Battle Simulator (Prototype)
+# Ikariam Battle Simulator — Phase A
 
-This repository contains:
-- battle simulator core in `simulator.py`,
-- PDF extraction helper in `pdf_extract.py`,
-- tests in `test_simulator.py`,
-- Vercel web UI in root `index.html` (mirrored at `public/index.html`) + `api/simulate.py`.
+This browser-operated simulation workbench researches Ikariam battle mechanics. It replaces the former random toy with an evidence-aware domain engine. The bundled `paper-2020` ruleset comes from the repository’s empirical PDF and **is not current official Gameforge data**.
 
-## Local CLI usage
+## What works
 
-```bash
-python simulator.py
-python simulator.py --scenario sample_scenario.json
-```
+- Side-by-side armies with quantity and attack/armor upgrades.
+- Strict mode returns `inconclusive` rather than inventing unknown mechanics.
+- Experimental mode discloses its pooled I-kill/floor-rounding assumption.
+- Formation slots, capacity, reserves/waves, persistent damage, attacking-matrix traces, RR, casualties, and round events.
+- Typed `POST /api/simulate` and pure Python `ikariam_battle.simulate()`.
 
-## Run tests
+See [the mechanics evidence register](docs/mechanics-spec.md) for documented, empirical, hypothetical, and unknown rules. Force Solver / Minimum Winning Army is deferred.
 
-```bash
-pytest -q
-```
+## Install and verify
 
-
-## Local web deployment with Uvicorn
-
-Run the same static UI and simulation API locally with Uvicorn:
+Python 3.11+ is declared in `pyproject.toml`.
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
+pytest -q
+```
+
+## Browser and API
+
+```bash
 uvicorn asgi:application --host 127.0.0.1 --port 8000
 ```
 
-Then open <http://127.0.0.1:8000>. The ASGI app serves `index.html` and handles `POST /api/simulate`.
-
-Quick API smoke test:
+Open <http://127.0.0.1:8000>, configure both sides, select strict or experimental, and simulate. The result shows status/outcome, uncertainty, slots, damage, casualties, and expandable events.
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/simulate \
-  -H 'Content-Type: application/json' \
-  --data @sample_scenario.json
+  -H 'Content-Type: application/json' --data @sample_scenario.json
+python simulator.py --scenario sample_scenario.json
 ```
 
-## Deploy to Vercel
+## Layout
 
-1. Push this repository to GitHub.
-2. Import project in Vercel.
-3. Deploy (Python runtime will serve `api/simulate.py`, static UI from root `index.html`).
+- `ikariam_battle/` — framework-independent engine/public API.
+- `data/units/paper-2020.json` — versioned, provenance-bearing supported subset.
+- `tests/` — PDF regressions, invariants, API, and UI smoke tests.
+- `index.html`, `asgi.py`, `web_simulator.py`, `api/` — browser/deployment adapters.
+- `ikariam battle system.pdf`, `docs/mechanics-spec.md` — empirical reference/evidence register.
 
-### UI features
-- JSON scenario editor
-- Form-based scenario editor (no need to hand-write JSON)
-- One-click simulation
-- Winner/remaining-unit summary
-- Full battle log viewer
-- Ikariam-style battlefield visualization with front/back/air lines
-- Round-by-round battlefield playback and casualty deltas
-- Text log playback
-- Download battle report as JSON
-
-## API
-
-`POST /api/simulate`
-
-Body example:
-
-```json
-{
-  "seed": 11,
-  "max_rounds": 20,
-  "attacker": {"swordsman": 100, "archer": 60, "gyrocopter": 10},
-  "defender": {"hoplite": 110, "slinger": 55, "gyrocopter": 15}
-}
-```
+The Vercel `/api/simulate` path remains available; `public/index.html` mirrors the root UI.

@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.parse import unquote
 
 from web_simulator import run_battle
+from ikariam_battle import ScenarioError, UnitRegistry
 
 ROOT = Path(__file__).resolve().parent
 INDEX_FILE = ROOT / "index.html"
@@ -92,7 +93,8 @@ async def _api_simulate(scope, receive, send) -> None:
             HTTPStatus.OK,
             {
                 "message": "Use POST /api/simulate to run battle simulation.",
-                "docs": "Send JSON with attacker/defender, optional seed and max_rounds.",
+                "docs": "Send a typed scenario with attacker.units and defender.units.",
+                "units": UnitRegistry.load().public(),
             },
         )
         return
@@ -104,7 +106,7 @@ async def _api_simulate(scope, receive, send) -> None:
     try:
         payload = json.loads((await _read_request_body(receive)).decode("utf-8"))
         await _json_response(send, HTTPStatus.OK, run_battle(payload))
-    except Exception as exc:
+    except (ScenarioError, ValueError, json.JSONDecodeError) as exc:
         await _json_response(send, HTTPStatus.BAD_REQUEST, {"error": str(exc)})
 
 

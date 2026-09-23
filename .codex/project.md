@@ -1,86 +1,34 @@
 # Project Profile
 
-> 類型：Current state。只描述目前有效的專案身份與範圍，不保存工作流水帳。
-
 ## Metadata
-
-- 初始化狀態：`UNINITIALIZED`
-- 最後查證日期：`待初始化`
-- 查證基準：`待初始化，例如 commit / branch / workspace 狀態`
-- 維護責任：`待確認`
+- 初始化狀態：`INITIALIZED`
+- 最後查證日期：`2026-09-23`
+- 查證基準：`codex/rewrite-battle-engine-phase-a` from local/declared baseline `b1e3ec9a65447584e842772ca98226a990e14f7a`
 
 ## 一句話目的
+以 browser 操作可解釋、可重現且誠實揭露未知規則的 Ikariam Phase A 戰鬥模擬器。
 
-`待初始化：用一個可觀察、可驗證的句子說明此專案解決什麼問題。`
+## 使用者、輸入與輸出
+- 使用者設定雙方 unit rows、數量、攻防升級、ruleset、policy、Hephaistos 與 rounds。
+- 輸出 status/outcome、formation/reserve/damage、casualties、逐 round state、events、assumptions/warnings。
+- `paper-2020` 是 empirical PDF ruleset，不代表目前官方遊戲資料。
 
-## 使用者與使用情境
+## 目標與非目標
+- 目標：domain engine 與 Web 分離；documented mechanics 有回歸測試；未知規則可回報 inconclusive。
+- 非目標：本階段不做 Force Solver；不宣稱完整/current Ikariam correctness。
 
-- 主要使用者：`待初始化`
-- 主要使用情境：`待初始化`
-- 主要輸入：`待初始化`
-- 主要輸出：`待初始化`
+## 技術與入口
+| 面向 | 狀態／證據 |
+| --- | --- |
+| Runtime | Python >=3.11，`pyproject.toml` |
+| Domain | `ikariam_battle/`; public `simulate()` |
+| Web | vanilla UI `index.html`; ASGI `asgi:application`; Vercel handler `api/simulate.py` |
+| Data | `data/units/paper-2020.json` |
+| Tests | `pytest -q`, `tests/` |
 
-## 目標
+## 事實來源與邊界
+1. Executable code/tests and typed scenario parser.
+2. `docs/mechanics-spec.md` confidence/evidence register.
+3. Repository PDF as empirical source, never an official complete specification.
 
-- `待初始化`
-
-## 非目標
-
-- `待初始化；若沒有已證實的非目標，寫「目前未明確定義」。`
-
-## 技術與執行環境
-
-| 面向 | 目前狀態 | 證據位置 |
-| --- | --- | --- |
-| 主要語言 | 待初始化 | 待初始化 |
-| Framework / runtime | 待初始化 | 待初始化 |
-| 套件與 lockfile | 待初始化 | 待初始化 |
-| 儲存與外部服務 | 待初始化 | 待初始化 |
-| 支援平台 | 待初始化 | 待初始化 |
-
-## Repository 地圖
-
-只列會影響任務路由的主要位置，不完整列出整棵目錄樹。
-
-| 路徑 | 責任 | 何時優先查看 |
-| --- | --- | --- |
-| `待初始化` | 待初始化 | 待初始化 |
-
-## 主要入口
-
-| 入口類型 | 路徑／命令 | 用途 | 狀態 |
-| --- | --- | --- | --- |
-| 待初始化 | 待初始化 | 待初始化 | 待確認 |
-
-## 事實來源
-
-按此專案的實際情況排列，例如 schema、migration、OpenAPI、測試、設定、資料字典或產物 manifest。
-
-1. `待初始化`
-
-## 資料、模型與產物邊界
-
-- 應提交 Git：`待初始化`
-- 不應提交 Git：`待初始化`
-- 可供測試的最小 fixture：`待初始化`
-- 大型／敏感資料位置：只描述規則，不記錄秘密或個資；`待初始化`
-
-## 外部系統與相鄰專案
-
-| 系統／專案 | 本專案依賴方式 | 交接契約 | 可用性／限制 |
-| --- | --- | --- | --- |
-| 目前未確認 | — | — | — |
-
-## 重要限制與不變條件
-
-- `待初始化`
-
-## 待確認事項
-
-- [ ] `初始化時無法由 repository 證實、且可能影響後續工作的問題。`
-
-## 維護規則
-
-- 專案目的、範圍、主要技術、入口或 repository 地圖改變時原地更新。
-- 不追加日期型變更紀錄；變更結果寫入 `memory.md`，重大取捨寫入 `decisions.md`。
-- 任何「待確認」在取得證據後應改成事實或刪除，不要永久保留模糊占位符。
+Commit source/data/docs; ignore caches, virtual environments, extracted PDF files, screenshots, and secrets. Unit counts/damage cannot be negative; capacities hold; deterministic inputs reproduce; unsupported rules never silently become exact victories.

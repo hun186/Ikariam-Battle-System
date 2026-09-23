@@ -4,16 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ikariam-battle-system"
-version = "0.1.0"
-description = "Ikariam battle simulator with Vercel deploy target"
+version = "0.2.0"
+description = "Evidence-aware, deterministic Ikariam battle simulation engine"
 requires-python = ">=3.11"
 
 [tool.vercel]
 entrypoint = "web_simulator:handler"
 
 [tool.setuptools]
-py-modules = ["web_simulator", "asgi", "simulator", "pdf_extract"]
+py-modules = ["web_simulator", "asgi", "simulator"]
 
 [tool.setuptools.packages.find]
-include = ["api*"]
-exclude = ["public*"]
+include = ["api*", "ikariam_battle*"]
+exclude = ["public*", "tests*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
