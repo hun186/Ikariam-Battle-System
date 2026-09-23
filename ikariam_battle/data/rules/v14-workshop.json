@@ -1,0 +1,4 @@
+{
+  "metadata": {"profile":"v14-workshop","verified_through_game_version":"17.5.0","verified_through_date":"2026-09","verification_status":"REVIEW_SUPPLIED_TARGET_NETWORK_UNVERIFIED","factor_change":{"value":5,"source_type":"REVIEW_SUPPLIED_OFFICIAL_CHANGELOG_CLAIM"},"exact_increments":{"source_type":"REVIEW_SUPPLIED_COMMUNITY_PTS_TESTED"}},
+  "increments": {"land":5,"naval":10}
+}

@@ -1,0 +1,1434 @@
+{
+  "metadata": {
+    "profile": "infinite-horizons-current",
+    "verified_through_game_version": "17.5.0",
+    "verified_through_date": "2026-09",
+    "verification_status": "REVIEW_SUPPLIED_TARGET_NETWORK_UNVERIFIED",
+    "notice": "Numeric candidates supplied by PR review; online cross-check required."
+  },
+  "units": [
+    {
+      "id": "archer",
+      "display_name": "Archer",
+      "domain": "land",
+      "role": "combat",
+      "battlefield_class": "second",
+      "hp": null,
+      "base_armor": null,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": null,
+          "ammunition": null,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "ballista_ship",
+      "display_name": "Ballista Ship",
+      "domain": "naval",
+      "role": "combat",
+      "battlefield_class": "second",
+      "hp": null,
+      "base_armor": null,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": null,
+          "ammunition": null,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "balloon_carrier",
+      "display_name": "Balloon Carrier",
+      "domain": "naval",
+      "role": "combat",
+      "battlefield_class": "balloon",
+      "hp": null,
+      "base_armor": null,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": null,
+          "ammunition": null,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "battering_ram",
+      "display_name": "Battering Ram",
+      "domain": "land",
+      "role": "combat",
+      "battlefield_class": "third",
+      "hp": null,
+      "base_armor": null,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": null,
+          "ammunition": null,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "bombardier",
+      "display_name": "Bombardier",
+      "domain": "land",
+      "role": "combat",
+      "battlefield_class": "balloon",
+      "hp": null,
+      "base_armor": null,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": null,
+          "ammunition": null,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "catapult",
+      "display_name": "Catapult",
+      "domain": "land",
+      "role": "combat",
+      "battlefield_class": "third",
+      "hp": null,
+      "base_armor": null,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": null,
+          "ammunition": null,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "catapult_ship",
+      "display_name": "Catapult Ship",
+      "domain": "naval",
+      "role": "combat",
+      "battlefield_class": "second",
+      "hp": null,
+      "base_armor": null,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": null,
+          "ammunition": null,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "cook",
+      "display_name": "Cook",
+      "domain": "land",
+      "role": "support",
+      "battlefield_class": "support",
+      "hp": null,
+      "base_armor": null,
+      "accuracy": null,
+      "size": null,
+      "weapons": [],
+      "counts_toward_garrison_limit": false,
+      "provenance": {
+        "hp": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "diving_boat",
+      "display_name": "Diving Boat",
+      "domain": "naval",
+      "role": "combat",
+      "battlefield_class": "flank",
+      "hp": null,
+      "base_armor": null,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": null,
+          "ammunition": null,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "doctor",
+      "display_name": "Doctor",
+      "domain": "land",
+      "role": "support",
+      "battlefield_class": "support",
+      "hp": null,
+      "base_armor": null,
+      "accuracy": null,
+      "size": null,
+      "weapons": [],
+      "counts_toward_garrison_limit": false,
+      "provenance": {
+        "hp": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "fire_ship",
+      "display_name": "Fire Ship",
+      "domain": "naval",
+      "role": "combat",
+      "battlefield_class": "first",
+      "hp": null,
+      "base_armor": null,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": null,
+          "ammunition": null,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "gyrocopter",
+      "display_name": "Gyrocopter",
+      "domain": "land",
+      "role": "combat",
+      "battlefield_class": "anti-balloon",
+      "hp": null,
+      "base_armor": null,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": null,
+          "ammunition": null,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "hoplite",
+      "display_name": "Hoplite",
+      "domain": "land",
+      "role": "combat",
+      "battlefield_class": "first",
+      "hp": 1120,
+      "base_armor": 20,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": 360,
+          "ammunition": null,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review"
+          ],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review"
+          ],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review"
+          ],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "mortar",
+      "display_name": "Mortar",
+      "domain": "land",
+      "role": "combat",
+      "battlefield_class": "third",
+      "hp": null,
+      "base_armor": null,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": null,
+          "ammunition": null,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "mortar_ship",
+      "display_name": "Mortar Ship",
+      "domain": "naval",
+      "role": "combat",
+      "battlefield_class": "second",
+      "hp": null,
+      "base_armor": null,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": null,
+          "ammunition": null,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "paddle_speedboat",
+      "display_name": "Paddle Speedboat",
+      "domain": "naval",
+      "role": "combat",
+      "battlefield_class": "anti-balloon",
+      "hp": null,
+      "base_armor": null,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": null,
+          "ammunition": null,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "ram_ship",
+      "display_name": "Ram Ship",
+      "domain": "naval",
+      "role": "combat",
+      "battlefield_class": "first",
+      "hp": null,
+      "base_armor": null,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": null,
+          "ammunition": null,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "rocket_ship",
+      "display_name": "Rocket Ship",
+      "domain": "naval",
+      "role": "combat",
+      "battlefield_class": "third",
+      "hp": 1300,
+      "base_armor": 120,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": 7600,
+          "ammunition": 2,
+          "trigger": "primary"
+        },
+        {
+          "id": "hull",
+          "damage": 400,
+          "ammunition": null,
+          "trigger": "UNKNOWN_AFTER_PRIMARY"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review"
+          ],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review"
+          ],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review"
+          ],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review"
+          ],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "slinger",
+      "display_name": "Slinger",
+      "domain": "land",
+      "role": "combat",
+      "battlefield_class": "second",
+      "hp": null,
+      "base_armor": null,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": null,
+          "ammunition": null,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "spartan",
+      "display_name": "Spartan",
+      "domain": "land",
+      "role": "combat",
+      "battlefield_class": "first",
+      "hp": null,
+      "base_armor": null,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": null,
+          "ammunition": null,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "spearman",
+      "display_name": "Spearman",
+      "domain": "land",
+      "role": "combat",
+      "battlefield_class": "first",
+      "hp": null,
+      "base_armor": null,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": null,
+          "ammunition": null,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "steam_giant",
+      "display_name": "Steam Giant",
+      "domain": "land",
+      "role": "combat",
+      "battlefield_class": "first",
+      "hp": null,
+      "base_armor": null,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": null,
+          "ammunition": null,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "steam_ram",
+      "display_name": "Steam Ram",
+      "domain": "naval",
+      "role": "combat",
+      "battlefield_class": "first",
+      "hp": 11520,
+      "base_armor": 320,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": 3320,
+          "ammunition": null,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review"
+          ],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review"
+          ],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review"
+          ],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "sulphur_carabineer",
+      "display_name": "Sulphur Carabineer",
+      "domain": "land",
+      "role": "combat",
+      "battlefield_class": "second",
+      "hp": 240,
+      "base_armor": 0,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": 580,
+          "ammunition": 3,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review"
+          ],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review"
+          ],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review"
+          ],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review"
+          ],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "swordsman",
+      "display_name": "Swordsman",
+      "domain": "land",
+      "role": "combat",
+      "battlefield_class": "flank",
+      "hp": 360,
+      "base_armor": 0,
+      "accuracy": null,
+      "size": null,
+      "weapons": [
+        {
+          "id": "primary",
+          "damage": 200,
+          "ammunition": null,
+          "trigger": "primary"
+        }
+      ],
+      "counts_toward_garrison_limit": true,
+      "provenance": {
+        "hp": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review"
+          ],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review"
+          ],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review"
+          ],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    },
+    {
+      "id": "tender",
+      "display_name": "Tender",
+      "domain": "naval",
+      "role": "support",
+      "battlefield_class": "support",
+      "hp": null,
+      "base_armor": null,
+      "accuracy": null,
+      "size": null,
+      "weapons": [],
+      "counts_toward_garrison_limit": false,
+      "provenance": {
+        "hp": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_damage": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "base_armor": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "ammunition": {
+          "confidence": "UNKNOWN",
+          "source_type": "UNKNOWN",
+          "sources": [],
+          "community_crosscheck_needed": true
+        },
+        "garrison_limit": {
+          "confidence": "REVIEW_SUPPLIED",
+          "source_type": "REVIEW_SUPPLIED",
+          "sources": [
+            "PR #14 correctness review: v17.4 change"
+          ],
+          "community_crosscheck_needed": true
+        }
+      }
+    }
+  ]
+}

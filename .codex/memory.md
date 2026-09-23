@@ -1,16 +1,16 @@
 # Project Memory
 
 ## Current Focus
-- Phase A rules-based browser simulator is initialized.
-- Strict mode intentionally becomes inconclusive at unknown kill selection.
-- Experimental policy is deterministic and disclosed, not game truth.
-- `paper-2020` is a narrow empirical ruleset, not current official data.
-- Public extension point for future solver is `ikariam_battle.simulate()`.
+- Current numbers and legacy empirical mechanics are separate profile axes.
+- Strict mode is the evidence-safe oracle; experimental responses are assumption-bearing research output.
+- Physical layout, damage priority, and deployment priority are distinct.
+- UI is land-only and metadata-driven; naval geometry is unsupported.
+- Public Function B extension point remains `ikariam_battle.simulate()`.
 
 ## Recent Outcomes
-- Replaced random prototype with domain-separated formation, Am, damage, RR, events, and typed API.
-- Added form UI and PDF-focused regression/integration suite.
-- Reviewed all 61 PDF pages; categorized implemented/open mechanics in `docs/mechanics-spec.md`.
+- Corrected Am vectors/RR priority, side-level Workshop and Forge, current candidate stats/provenance, support scaling metadata, ammo, simultaneous phase plans, wave normalization and domain isolation.
+- Added packaged resources and battle-report calibration schema.
 
 ## Open Handoffs
-- Function B is accepted in `.codex/backlog.md`, after Phase A calibration expands confidence.
+- Function B remains accepted only after Phase A calibration.
+- Current official/community URLs and unsupported geometry/mechanics require future verified evidence.

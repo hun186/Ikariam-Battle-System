@@ -1,9 +1,12 @@
 # Technical Decisions
 
-## Active Decision Index
-| ID | Decision | Status | Date |
-| --- | --- | --- | --- |
-| ADR-0001 | Separate evidence confidence and strict/experimental execution | Accepted | 2026-09-23 |
+| ID | Decision | Status |
+| --- | --- | --- |
+| ADR-0001 | Evidence-aware strict/experimental execution | Accepted |
+| ADR-0002 | Separate empirical mechanics from current numerical/rule profiles | Accepted |
 
 ## ADR-0001
-The PDF is empirical and contains explicit open problems. Strict execution returns `inconclusive` at unknown kill selection; a separately named experimental pooled-I-kill policy enables an end-to-end MVP and always appears in assumptions. Domain rules remain independent of HTTP/UI, and unit data is versioned with provenance. This trades broad “winner” output for non-fabricated, calibratable behavior.
+Strict refuses result-affecting unknowns. Experimental research uses stable, response-visible `EXP-*` policies; it is never game truth.
+
+## ADR-0002
+Mechanics, units, Workshop, Forge, and support healing are independently versioned packaged resources. Current target values retain review-supplied status until online sources are retrieved. This prevents legacy PDF scaling and current Infinite Horizons values from mixing invisibly.

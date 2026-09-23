@@ -1,0 +1,4 @@
+{
+  "metadata": {"profile":"v14-hephaistos","verified_through_game_version":"17.5.0","verified_through_date":"2026-09","verification_status":"REVIEW_SUPPLIED_TARGET_NETWORK_UNVERIFIED","general_change":{"source_type":"REVIEW_SUPPLIED_OFFICIAL_CHANGELOG_CLAIM"},"exact_table":{"source_type":"REVIEW_SUPPLIED_COMMUNITY_PTS_TESTED"}},
+  "levels": {"0":{"damage_multiplier":1,"armor_bonus":0},"1":{"damage_multiplier":1.075,"armor_bonus":0},"2":{"damage_multiplier":1.075,"armor_bonus":10},"3":{"damage_multiplier":1.10,"armor_bonus":10},"4":{"damage_multiplier":1.125,"armor_bonus":20},"5":{"damage_multiplier":1.15,"armor_bonus":20}}
+}

@@ -1,51 +1,65 @@
-# Mechanics evidence register (`paper-2020`)
+# Mechanics and current-data evidence register
 
-The repository PDF, *Ikariam battle system* (61 pages), is empirical/a-posteriori research—not an official or complete specification. Page numbers below are PDF pages. `DOCUMENTED` means explicit in the paper, not Gameforge-confirmed or current.
+The simulator combines **legacy empirical mechanics** with **current numerical profiles**, subject to calibration. The repository PDF is a-posteriori research, not Gameforge source code. Current values supplied by PR review remain explicitly network-unverified.
 
-## Confidence
+## Evidence classes
 
-- **DOCUMENTED** — clear formula or repeatable worked observation in the paper.
-- **EMPIRICAL** — reports support it, but it is not established generally.
-- **HYPOTHESIS** — proposed explanation with competing possibilities.
-- **UNKNOWN** — explicitly open/very open, or insufficient for an a-priori algorithm.
+`OFFICIAL_CHANGELOG`, `OFFICIAL_FORUM_TEST_REPORT`, `COMMUNITY_TESTED`, `COMMUNITY_REFERENCE`, `EMPIRICAL_PAPER`, `REVIEW_SUPPLIED`, `DERIVED`, `HYPOTHESIS`, and `UNKNOWN` are distinct. `REVIEW_SUPPLIED_OFFICIAL_CHANGELOG_CLAIM` records what review says an official changelog contains; it is not upgraded to `OFFICIAL_CHANGELOG` until the source is retrieved.
 
-## Rule register
+## Profile bundle
 
-| Rule ID | Description | PDF section/page | Confidence | Implemented? | Regression test? | Unresolved assumptions |
-| --- | --- | --- | --- | --- | --- | --- |
-| FORM-STD-001 | First/second order `[6,4,2,1,3,5,7]`; third `[5,3,1,2,4]`; flanks `[6,4,2;1,3,5]`; balloons `[1,2]`; anti-balloon `[2,1]`. | §1.2 p.3; §2.2 pp.8–9 | DOCUMENTED | Yes | Yes | Further battlefield sizes are not encoded. |
-| FORM-NONSTD-001 | Non-standard renumbering occurs and is inferred a posteriori. | §2.3 pp.10–11 | UNKNOWN | No; strict stops | Yes | No a-priori selector. |
-| AM-ROW-001 | A firing line is an `n × m` attacking matrix, one firing unit per populated cell. | §2.1 pp.4–6 | DOCUMENTED | Yes | Yes | Mixed-unit rows are open (p.60). |
-| AM-MOD-002 | Row `i` targets damage-position `i mod q`; zero means `q`. | §2.1 pp.5–6 | DOCUMENTED | Yes | Yes | Retargeting after destruction is open. |
-| AM-VECTOR-003 | Matrix rows sum to a target-hit vector in standard-renumbering order. | §2.4 pp.11–12 | DOCUMENTED | Yes, sparse trace | Yes, steam-ram/catapult examples | Column permutation only has the paper’s stated scope. |
-| DEPLOY-001 | Slots fill in standard order; capacity and reserve are distinct. | §2.2 p.9; §4.3 pp.19–20 | DOCUMENTED | Yes | Yes | Multiple unit types sharing a line are unresolved. |
-| DMG-INT-001 | `d=(A+u)-(a+v)`; level-5 attacker ×1.2; level-5 defender +2 armor. | §3.1 pp.15–16 | DOCUMENTED | Yes | Yes | Other Hephaistos levels unsupported. |
-| DMG-ROUND-002 | “Appropriate approximation” varies (13.6→14; 15.6→15). | §3.1 p.16 | UNKNOWN | Explicit policies; experimental uses floor | Yes | No general selector. |
-| RR-001 | Between rounds, same-wave `ds=D/N*s`; waves remain separate. | §4.3–4.3.1 pp.18–20 | DOCUMENTED | Yes | Yes | General fractional allocation unknown. |
-| RR-INT-002 | Sub-unit integer damage follows standard order until represented. | §4.3.1 p.20 | EMPIRICAL | Deterministic remainder policy | Yes | General upper/lower rounding unknown. |
-| SR-001 | Damage can redistribute within each target slot after one line, before the next. | §4.4–4.5 pp.21–25 | EMPIRICAL | Phase/event reserved; not applied | Strict boundary | Paper shows cases where SR does not occur. |
-| IR-001 | Damage can redistribute after each shot; rocket/steam-ram example uses 439. | §4.6 p.25 | EMPIRICAL | No | Strict boundary | Trigger/rounding not generalized. |
-| KILL-TYPES-001 | 1-, D-, P-, I-, IR/PIR-, M-kill are a-posteriori categories. | §5 pp.26–27 | EMPIRICAL | Experimental I-kill event only | Yes | Author conventions, not official mechanics. |
-| KILL-SELECT-002 | Kill type cannot be predicted generally. | §5.2 onward, pp.29–46 | UNKNOWN | Strict returns `inconclusive` | Yes | Core blocker to exact simulation. |
-| CHRONOLOGY-001 | Demonstrated order includes third→SR→second→SR→first. | §4.5 p.24 | EMPIRICAL | Not generalized | Documentation only | SR is conditional; full chronology unknown. |
-| TARGET-PRIORITY-001 | Rocket derivation uses priority order; third line does not fire at second. | §2.5 pp.12–15; §20 p.60 | EMPIRICAL | Minimal compatible-line data | Matrix tests | Complete priorities/transfers unknown. |
-| WAVES-001 | RR is isolated by arrival wave even when displayed reserve aggregates it. | §4.3 pp.19–20 | DOCUMENTED | `wave_id`, per-wave state | Engine tests | Multiple-wave deployment needs more evidence. |
-| HEAL-001 | Tender cures 200 life/round; doctors cannot handle steam giants. | §4.3 p.19; §20 p.60 | EMPIRICAL | No | No | Doctor amount/selection/chronology incomplete. |
-| DURATION-001 | Damage intervals compound in long battles. | §17 pp.56–59 | UNKNOWN | No | Strict boundary | Paper says data/analysis are insufficient. |
-| ACCURACY-001 | Accuracy may affect IR, D-kill columns, or Am formation. | §18 p.60 | HYPOTHESIS | No | Strict boundary | Counterexamples exist; effect unknown. |
-| RETARGET-SLOT-001 | Redistribution after a target slot is destroyed. | §13, §19 pp.47,60 | UNKNOWN | No | Strict boundary | No reliable algorithm. |
-| RETARGET-LINE-002 | Transfer after a target line is destroyed. | §13, §19 pp.47,60 | UNKNOWN | No | Strict boundary | No reliable algorithm. |
+| Profile | Responsibility | Verification |
+| --- | --- | --- |
+| `battle-system-paper-2020` | formation labels, Am, RR, observational SR/IR/kill taxonomy | `EMPIRICAL_PAPER`; current applicability requires calibration |
+| `infinite-horizons-current` | HP, damage, armor, ammo, weapon/domain/role metadata | review-supplied target through 17.5.0 / 2026-09; network unverified |
+| `v14-workshop` | land +5 and naval +10 per level | exact increments review-supplied community/PTS-tested |
+| `v14-hephaistos` | forge level effects | exact table review-supplied community/PTS-tested |
+| `v17-support-healing` | legacy 200, official-claim ×20, derived 4000 | absolute current capacity `DERIVED`; allocation `UNKNOWN` |
 
-## Phase A implemented scope
+## Source matrix
 
-The engine implements deterministic deployment, capacity/reserve/wave state, standard Am targeting, decomposed integer damage, persistent slot damage, RR, and machine-readable events. Strict mode stops before casualty calculation because `KILL-SELECT-002` affects every supported matchup, returning deployment plus an `unsupported_mechanic` event.
+| Feature | Source class | Simulator treatment |
+| --- | --- | --- |
+| Am, standard renumbering, RR | EMPIRICAL_PAPER | implemented and regression tested |
+| SR, IR, partial line chronology | EMPIRICAL_PAPER | observed, trigger/generalization unknown |
+| Kill-type selection | UNKNOWN | strict stops; experimental `EXP-I-KILL-001` |
+| Infinite Horizons candidate stats | REVIEW_SUPPLIED | field-level provenance; cross-check required |
+| v14 Workshop factor ×5 | REVIEW_SUPPLIED_OFFICIAL_CHANGELOG_CLAIM | metadata only |
+| Workshop land +5 / naval +10 | REVIEW_SUPPLIED_COMMUNITY_PTS_TESTED | versioned profile |
+| v14 Forge changed damage/armor | REVIEW_SUPPLIED_OFFICIAL_CHANGELOG_CLAIM | metadata only |
+| Forge exact levels | REVIEW_SUPPLIED_COMMUNITY_PTS_TESTED | versioned profile |
+| v17 Doctor/Tender ×20 | REVIEW_SUPPLIED_OFFICIAL_CHANGELOG_CLAIM | versioned multiplier |
+| legacy Doctor/Tender 200 | LEGACY_COMMUNITY_AND_EMPIRICAL_PAPER | retained as legacy input |
+| current support 4000 | DERIVED (`200 × 20`) | capacity metadata only |
+| v17.4 support garrison exclusion | REVIEW_SUPPLIED_OFFICIAL_CHANGELOG_CLAIM | metadata; not casualty logic |
 
-The versioned unit subset is sulphur carabineer, hoplite, swordsman, barbarian knifeman, rocket ship, and steam ram. Values are tied to PDF examples and are **not 2026/current game data**.
+## Formation semantics
 
-### Explicit experimental policy
+A slot has a stable `slot_id`, `line`, `physical_position`, and `damage_position`. For a full first/second line, physical left-to-right labels are `[6,4,2,1,3,5,7]`; damage and deployment priority are ascending `[1,2,3,4,5,6,7]`. Third `[5,3,1,2,4]`, flank halves `[6,4,2]` and `[1,3,5]`, balloons `[1,2]`, and anti-balloon `[2,1]` are physical layouts—not priority lists. Am mathematics targets damage positions; vector export alone uses physical order. RR integer remainder also follows damage priority.
 
-`EXP-I-KILL-001` pools each slot’s damage, floor-rounds per-hit damage, kills `total // hit_points`, and preserves the remainder. Every such response lists the assumption. This exercises the complete engine/API/UI; it does not claim Ikariam chose I-kill.
+Only the smallest first-line three-slot fact has direct paper support. Other `small-land` line counts/capacities are review-supplied calibration geometry and must not be described as documented. The registry stores unit `size`; it does not treat worked-example slot capacity as a unit stat. Until authoritative sizes/slot sizes are available, geometry owns calibration capacities.
 
-## Review coverage
+## Implemented and unresolved mechanics
 
-Text was extracted from all 61 pages for navigation. Figures accompanying Am/deployment (pp.4–15), RR (pp.18–21), SR (pp.22–25), IR (p.25), kill examples (p.26 onward), very-open problems (pp.47–59), and the open-question summary (p.60) were reviewed. Tests encode stated formulas/vectors rather than image pixels.
+| Rule | Confidence | Behavior |
+| --- | --- | --- |
+| Am row modulo target damage positions | EMPIRICAL_PAPER | implemented; steam `[0,7,7,7,7,7,0]`, catapult `[7,7,7,14,7,7,7]` |
+| RR `ds=D/N*s`, per wave | EMPIRICAL_PAPER | implemented; deployed + reserve damage conserved |
+| Damage components | profile data | fully traced before explicit rounding |
+| General rounding selector | UNKNOWN | strict stops; experimental floor is named |
+| Casualty/kill selector | UNKNOWN | strict stops; experimental pooled I-kill named |
+| Full chronology | UNKNOWN | strict stops; experimental simultaneous phase-start snapshot named |
+| Ammo | profile data | primary ammo consumed once/round; after exhaustion no silent primary/secondary fire |
+| Secondary-weapon trigger | UNKNOWN | weapon is represented but never silently selected |
+| Mixed-unit Am rows | UNKNOWN | rejected as inconclusive; input ordering is never a rule |
+| Slot/line retargeting | UNKNOWN | experimental no-retarget assumption; no `next()`-based transfer |
+| Healing allocation/timing/eligibility | UNKNOWN | support never enters Am; strict stops, experimental applies no healing and declares it |
+| Accuracy, non-standard renumbering, duration intervals | HYPOTHESIS/UNKNOWN | not fabricated |
+
+## Experimental policies
+
+Every experimental response emits applicable IDs in `assumptions` and `assumption_applied` events: `EXP-I-KILL-001`, `EXP-ROUND-FLOOR-001`, `EXP-CHRONOLOGY-001`, `EXP-RETARGET-NONE-001`, `EXP-RR-ROUND-NEAREST-001`, `EXP-AMMO-STOP-001`, and, when support is present, `EXP-HEAL-NONE-001`.
+
+## Calibration fixtures
+
+`ikariam_battle.calibration.BattleReportFixture` accepts game version, complete scenario/profile controls, round number, and observed slot casualties, damage percentage, and life percentage. Damage-percent observations map to integer intervals because displayed damage rounds up; life percentages can be retained separately for later inverse calibration. Fixtures compare replay with observations—they do not hard-code a winner.

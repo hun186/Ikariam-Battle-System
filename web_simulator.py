@@ -5,6 +5,7 @@ import json
 from urllib.parse import urlparse
 
 from ikariam_battle import ScenarioError, UnitRegistry, simulate
+from ikariam_battle.profiles import ForgeProfile, SupportProfile, WorkshopProfile
 
 
 API_SIMULATE_PATHS = {"/api/simulate", "/api/simulate.py"}
@@ -22,7 +23,14 @@ class handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if urlparse(self.path).path.rstrip("/") in API_SIMULATE_PATHS:
-            self._json(200, {"message": "POST a typed scenario to /api/simulate", "units": UnitRegistry.load().public()})
+            registry = UnitRegistry.load()
+            self._json(200, {"message": "POST a typed scenario to /api/simulate",
+                "profiles": {"mechanics":"battle-system-paper-2020","unit_stats":"infinite-horizons-current",
+                             "workshop":"v14-workshop","forge":"v14-hephaistos","support":"v17-support-healing"},
+                "profile_metadata": registry.metadata, "units": registry.public(),
+                "forge_levels": {str(k): {"damage_multiplier":str(v.damage_multiplier),"armor_bonus":v.armor_bonus}
+                                 for k,v in ForgeProfile.load().levels.items()},
+                "support_capacity": SupportProfile.load().derived_capacity})
         else:
             self._json(404, {"error": "not found"})
 

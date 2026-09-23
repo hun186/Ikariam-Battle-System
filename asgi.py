@@ -7,7 +7,7 @@ from pathlib import Path
 from urllib.parse import unquote
 
 from web_simulator import run_battle
-from ikariam_battle import ScenarioError, UnitRegistry
+from ikariam_battle import ScenarioError
 
 ROOT = Path(__file__).resolve().parent
 INDEX_FILE = ROOT / "index.html"
@@ -88,15 +88,16 @@ async def _api_simulate(scope, receive, send) -> None:
         return
 
     if method == "GET":
-        await _json_response(
-            send,
-            HTTPStatus.OK,
-            {
-                "message": "Use POST /api/simulate to run battle simulation.",
-                "docs": "Send a typed scenario with attacker.units and defender.units.",
-                "units": UnitRegistry.load().public(),
-            },
-        )
+        from ikariam_battle import UnitRegistry
+        from ikariam_battle.profiles import ForgeProfile, SupportProfile
+        registry = UnitRegistry.load()
+        await _json_response(send, HTTPStatus.OK, {"message":"POST a typed scenario to /api/simulate",
+            "profiles":{"mechanics":"battle-system-paper-2020","unit_stats":"infinite-horizons-current",
+                        "workshop":"v14-workshop","forge":"v14-hephaistos","support":"v17-support-healing"},
+            "profile_metadata":registry.metadata,"units":registry.public(),
+            "forge_levels":{str(k):{"damage_multiplier":str(v.damage_multiplier),"armor_bonus":v.armor_bonus}
+                            for k,v in ForgeProfile.load().levels.items()},
+            "support_capacity":SupportProfile.load().derived_capacity})
         return
 
     if method != "POST":

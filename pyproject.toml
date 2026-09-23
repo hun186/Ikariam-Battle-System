@@ -1,6 +1,7 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = []
+build-backend = "build_backend"
+backend-path = ["."]
 
 [project]
 name = "ikariam-battle-system"
@@ -17,6 +18,11 @@ py-modules = ["web_simulator", "asgi", "simulator"]
 [tool.setuptools.packages.find]
 include = ["api*", "ikariam_battle*"]
 exclude = ["public*", "tests*"]
+
+[tool.setuptools.package-data]
+"ikariam_battle.data.units" = ["*.json"]
+"ikariam_battle.data.rules" = ["*.json"]
+"ikariam_battle.data.mechanics" = ["*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,9 +1,22 @@
 {
-  "ruleset": "paper-2020",
+  "profiles": {
+    "mechanics": "battle-system-paper-2020",
+    "unit_stats": "infinite-horizons-current",
+    "workshop": "v14-workshop",
+    "forge": "v14-hephaistos",
+    "support": "v17-support-healing"
+  },
   "policy": "experimental",
   "battlefield": "small-land",
   "max_rounds": 3,
-  "effects": {"attacker_hephaistos": false, "defender_hephaistos": false},
-  "attacker": {"units": [{"unit_id": "sulphur_carabineer", "quantity": 42, "attack_upgrade": 3, "defense_upgrade": 0}]},
-  "defender": {"units": [{"unit_id": "hoplite", "quantity": 90, "attack_upgrade": 0, "defense_upgrade": 3}]}
+  "attacker": {
+    "workshop": {"attack_level": 12, "armor_level": 12},
+    "forge_level": 5,
+    "units": [{"unit_id": "hoplite", "quantity": 60, "wave_id": "wave-1"}]
+  },
+  "defender": {
+    "workshop": {"attack_level": 12, "armor_level": 12},
+    "forge_level": 0,
+    "units": [{"unit_id": "hoplite", "quantity": 60, "wave_id": "wave-1"}]
+  }
 }
