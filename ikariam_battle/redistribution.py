@@ -17,7 +17,11 @@ def reserve_redistribution(total_damage: int, alive_wave_units: int, deployed: l
     ordered = sorted(deployed, key=lambda share: share.damage_position)
     exact = {s.damage_position: Fraction(total_damage * s.deployed_units, alive_wave_units) for s in ordered}
     allocated = {position: int(value) for position, value in exact.items()}
-    deployed_target = min(total_damage, round(sum(exact.values())))
+    total_exact = sum(exact.values(), Fraction(0))
+    # Explicit experimental half-up for non-negative fractions; never defer a
+    # battle rule to Python's runtime-specific ties-to-even round().
+    deployed_target = min(total_damage, (2 * total_exact.numerator + total_exact.denominator) //
+                          (2 * total_exact.denominator))
     index = 0
     while sum(allocated.values()) < deployed_target and ordered:
         allocated[ordered[index % len(ordered)].damage_position] += 1

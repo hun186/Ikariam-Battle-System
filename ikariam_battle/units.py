@@ -15,6 +15,7 @@ class Weapon:
     ammunition: int | None
     trigger: str
     accuracy: int | None
+    provenance: dict[str, Any]
 
 
 @dataclass(frozen=True)
@@ -56,7 +57,8 @@ class UnitRegistry:
             definitions[row["id"]] = UnitDefinition(
                 row["id"], row["display_name"], row["domain"], row["role"], row.get("support_effect"), row["battlefield_class"],
                 row.get("hp"), row.get("base_armor"), row.get("accuracy"), row.get("size"),
-                tuple(Weapon(w["id"], w.get("damage"), w.get("ammunition"), w.get("trigger", "primary"), w.get("accuracy")) for w in row.get("weapons", [])),
+                tuple(Weapon(w["id"], w.get("damage"), w.get("ammunition"), w.get("trigger", "primary"),
+                             w.get("accuracy"), w.get("provenance", {})) for w in row.get("weapons", [])),
                 row.get("counts_toward_garrison_limit", True), row["provenance"])
         return cls(definitions, raw["metadata"])
 

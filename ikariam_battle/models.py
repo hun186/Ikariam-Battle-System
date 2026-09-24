@@ -149,7 +149,8 @@ class Wave:
     slots: list[Slot] = field(default_factory=list)
     reserve_damage: int = 0
     ammo_pool_shots: int | None = None
+    support_units: int = 0
 
     @property
     def alive(self) -> int:
-        return self.reserve + sum(slot.units for slot in self.slots)
+        return self.reserve + self.support_units + sum(slot.units for slot in self.slots)

@@ -32,7 +32,42 @@
           "damage": 80,
           "accuracy": 70,
           "ammunition": null,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -127,7 +162,42 @@
           "damage": 200,
           "accuracy": 90,
           "ammunition": null,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -222,7 +292,60 @@
           "damage": 360,
           "accuracy": 90,
           "ammunition": null,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Gameforge forum Infinite Horizons Hoplite discussion",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Gameforge forum Infinite Horizons Hoplite discussion",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Gameforge forum Infinite Horizons Hoplite discussion",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -353,7 +476,42 @@
           "damage": 560,
           "accuracy": 100,
           "ammunition": null,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -448,7 +606,42 @@
           "damage": 840,
           "accuracy": 80,
           "ammunition": null,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -543,14 +736,84 @@
           "damage": 60,
           "accuracy": 20,
           "ammunition": 5,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         },
         {
           "id": "secondary",
           "damage": 40,
           "accuracy": 60,
           "ammunition": null,
-          "trigger": "UNKNOWN_AFTER_PRIMARY"
+          "trigger": "UNKNOWN_AFTER_PRIMARY",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -645,14 +908,84 @@
           "damage": 100,
           "accuracy": 40,
           "ammunition": 3,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         },
         {
           "id": "secondary",
           "damage": 100,
           "accuracy": 60,
           "ammunition": null,
-          "trigger": "UNKNOWN_AFTER_PRIMARY"
+          "trigger": "UNKNOWN_AFTER_PRIMARY",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -747,14 +1080,84 @@
           "damage": 580,
           "accuracy": 70,
           "ammunition": 3,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         },
         {
           "id": "secondary",
           "damage": 60,
           "accuracy": 60,
           "ammunition": null,
-          "trigger": "UNKNOWN_AFTER_PRIMARY"
+          "trigger": "UNKNOWN_AFTER_PRIMARY",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -849,14 +1252,84 @@
           "damage": 1600,
           "accuracy": 10,
           "ammunition": null,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         },
         {
           "id": "secondary",
           "damage": 240,
           "accuracy": 70,
           "ammunition": null,
-          "trigger": "UNKNOWN_AFTER_PRIMARY"
+          "trigger": "UNKNOWN_AFTER_PRIMARY",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -951,14 +1424,84 @@
           "damage": 2660,
           "accuracy": 10,
           "ammunition": 5,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         },
         {
           "id": "secondary",
           "damage": 80,
           "accuracy": 20,
           "ammunition": null,
-          "trigger": "UNKNOWN_AFTER_PRIMARY"
+          "trigger": "UNKNOWN_AFTER_PRIMARY",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -1053,14 +1596,84 @@
           "damage": 5400,
           "accuracy": 10,
           "ammunition": 3,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         },
         {
           "id": "secondary",
           "damage": 200,
           "accuracy": 20,
           "ammunition": null,
-          "trigger": "UNKNOWN_AFTER_PRIMARY"
+          "trigger": "UNKNOWN_AFTER_PRIMARY",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -1155,7 +1768,42 @@
           "damage": 340,
           "accuracy": 80,
           "ammunition": 4,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -1250,7 +1898,42 @@
           "damage": 960,
           "accuracy": 20,
           "ammunition": 2,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -1345,7 +2028,42 @@
           "damage": 160,
           "accuracy": 30,
           "ammunition": null,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": false,
@@ -1447,7 +2165,42 @@
           "damage": 400,
           "accuracy": 50,
           "ammunition": null,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": false,
@@ -1549,7 +2302,49 @@
           "damage": 3320,
           "accuracy": 90,
           "ammunition": null,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -1616,13 +2411,6 @@
               "verification": "REVIEWER_WEB_VERIFIED",
               "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
-            },
-            {
-              "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
-              "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Workshop Tests: Ship Technology",
-              "source_date": "2025-06-04",
-              "retrieved": "2026-09-24"
             }
           ]
         },
@@ -1633,13 +2421,6 @@
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
               "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
-              "retrieved": "2026-09-24"
-            },
-            {
-              "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
-              "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Workshop Tests: Ship Technology",
-              "source_date": "2025-06-04",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1686,7 +2467,49 @@
           "damage": 1640,
           "accuracy": 50,
           "ammunition": null,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -1753,13 +2576,6 @@
               "verification": "REVIEWER_WEB_VERIFIED",
               "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
-            },
-            {
-              "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
-              "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Workshop Tests: Ship Technology",
-              "source_date": "2025-06-04",
-              "retrieved": "2026-09-24"
             }
           ]
         },
@@ -1770,13 +2586,6 @@
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
               "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
-              "retrieved": "2026-09-24"
-            },
-            {
-              "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
-              "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Workshop Tests: Ship Technology",
-              "source_date": "2025-06-04",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1823,7 +2632,49 @@
           "damage": 1500,
           "accuracy": 80,
           "ammunition": null,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -1890,13 +2741,6 @@
               "verification": "REVIEWER_WEB_VERIFIED",
               "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
-            },
-            {
-              "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
-              "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Workshop Tests: Ship Technology",
-              "source_date": "2025-06-04",
-              "retrieved": "2026-09-24"
             }
           ]
         },
@@ -1907,13 +2751,6 @@
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
               "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
-              "retrieved": "2026-09-24"
-            },
-            {
-              "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
-              "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Workshop Tests: Ship Technology",
-              "source_date": "2025-06-04",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1960,14 +2797,105 @@
           "damage": 560,
           "accuracy": 50,
           "ammunition": 7,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         },
         {
           "id": "secondary",
           "damage": 1020,
           "accuracy": 70,
           "ammunition": null,
-          "trigger": "UNKNOWN_AFTER_PRIMARY"
+          "trigger": "UNKNOWN_AFTER_PRIMARY",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -2033,13 +2961,6 @@
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
               "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
-              "retrieved": "2026-09-24"
-            },
-            {
-              "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
-              "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Workshop Tests: Ship Technology",
-              "source_date": "2025-06-04",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2104,14 +3025,105 @@
           "damage": 900,
           "accuracy": 30,
           "ammunition": 6,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         },
         {
           "id": "secondary",
           "damage": 620,
           "accuracy": 70,
           "ammunition": null,
-          "trigger": "UNKNOWN_AFTER_PRIMARY"
+          "trigger": "UNKNOWN_AFTER_PRIMARY",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -2177,13 +3189,6 @@
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
               "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
-              "retrieved": "2026-09-24"
-            },
-            {
-              "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
-              "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Workshop Tests: Ship Technology",
-              "source_date": "2025-06-04",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2248,14 +3253,105 @@
           "damage": 1380,
           "accuracy": 10,
           "ammunition": 5,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         },
         {
           "id": "secondary",
           "damage": 740,
           "accuracy": 50,
           "ammunition": null,
-          "trigger": "UNKNOWN_AFTER_PRIMARY"
+          "trigger": "UNKNOWN_AFTER_PRIMARY",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -2321,13 +3417,6 @@
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
               "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
-              "retrieved": "2026-09-24"
-            },
-            {
-              "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
-              "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Workshop Tests: Ship Technology",
-              "source_date": "2025-06-04",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2392,14 +3481,105 @@
           "damage": 2460,
           "accuracy": 80,
           "ammunition": 4,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         },
         {
           "id": "secondary",
           "damage": 1800,
           "accuracy": 80,
           "ammunition": null,
-          "trigger": "UNKNOWN_AFTER_PRIMARY"
+          "trigger": "UNKNOWN_AFTER_PRIMARY",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -2465,13 +3645,6 @@
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
               "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
-              "retrieved": "2026-09-24"
-            },
-            {
-              "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
-              "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Workshop Tests: Ship Technology",
-              "source_date": "2025-06-04",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2536,14 +3709,105 @@
           "damage": 7600,
           "accuracy": 20,
           "ammunition": 2,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         },
         {
           "id": "secondary",
           "damage": 400,
           "accuracy": 80,
           "ammunition": null,
-          "trigger": "UNKNOWN_AFTER_PRIMARY"
+          "trigger": "UNKNOWN_AFTER_PRIMARY",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -2609,13 +3873,6 @@
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
               "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
-              "retrieved": "2026-09-24"
-            },
-            {
-              "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
-              "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Workshop Tests: Ship Technology",
-              "source_date": "2025-06-04",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2680,7 +3937,56 @@
           "damage": 2000,
           "accuracy": 50,
           "ammunition": 5,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -2746,13 +4052,6 @@
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
               "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
-              "retrieved": "2026-09-24"
-            },
-            {
-              "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
-              "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Workshop Tests: Ship Technology",
-              "source_date": "2025-06-04",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2817,7 +4116,56 @@
           "damage": 240,
           "accuracy": 90,
           "ammunition": 5,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": true,
@@ -2884,13 +4232,6 @@
               "verification": "REVIEWER_WEB_VERIFIED",
               "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
-            },
-            {
-              "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
-              "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Workshop Tests: Ship Technology",
-              "source_date": "2025-06-04",
-              "retrieved": "2026-09-24"
             }
           ]
         },
@@ -2954,7 +4295,49 @@
           "damage": 300,
           "accuracy": 50,
           "ammunition": null,
-          "trigger": "primary"
+          "trigger": "primary",
+          "provenance": {
+            "damage": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                },
+                {
+                  "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Workshop Tests: Ship Technology",
+                  "source_date": "2025-06-04",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "accuracy": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            },
+            "ammunition": {
+              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "sources": [
+                {
+                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
+                  "verification": "REVIEWER_WEB_VERIFIED",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
+                  "retrieved": "2026-09-24"
+                }
+              ]
+            }
+          }
         }
       ],
       "counts_toward_garrison_limit": false,
@@ -3021,13 +4404,6 @@
               "verification": "REVIEWER_WEB_VERIFIED",
               "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
-            },
-            {
-              "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
-              "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Workshop Tests: Ship Technology",
-              "source_date": "2025-06-04",
-              "retrieved": "2026-09-24"
             }
           ]
         },
@@ -3038,13 +4414,6 @@
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
               "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
-              "retrieved": "2026-09-24"
-            },
-            {
-              "source_type": "GAMEFORGE_FORUM_PLAYER_TEST",
-              "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Workshop Tests: Ship Technology",
-              "source_date": "2025-06-04",
               "retrieved": "2026-09-24"
             }
           ]

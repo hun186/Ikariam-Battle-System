@@ -12,3 +12,7 @@ def test_rr_reserve_share_and_wave_calls_are_isolated():
     second = reserve_redistribution(5,50,[SlotShare(1,30)])
     assert first == ({1:6,2:6,3:6},2)
     assert second == ({1:3},2)
+
+
+def test_rr_half_tie_is_explicit_half_up_not_python_ties_even():
+    assert reserve_redistribution(1,2,[SlotShare(1,1)]) == ({1:1},0)

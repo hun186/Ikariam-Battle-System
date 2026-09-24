@@ -22,16 +22,25 @@ def test_physical_layout_and_center_first_deployment():
 
 def test_slot_space_divided_by_unit_size():
  registry=UnitRegistry.load()
- expected={'hoplite':30,'steam_giant':10,'sulphur_carabineer':7,'catapult':6}
+ expected={'hoplite':30,'steam_giant':10,'sulphur_carabineer':7,'catapult':6,
+           'gyrocopter':10,'bombardier':5}
  for unit,capacity in expected.items():
   wave=deploy(army(unit),registry,LAND_MINI)[0]
   assert wave.slots[0].capacity==capacity
   assert wave.slots[0].units==capacity
 
 
-def test_flank_unit_has_no_deployed_slot_on_mini():
+def test_initial_normal_formation_has_no_flank_slot_on_mini():
  wave=deploy(army('swordsman',30),UnitRegistry.load(),LAND_MINI)[0]
  assert wave.slots==[] and wave.reserve==30
+
+
+def test_land_mini_air_deployment_is_capped_at_ten_space():
+ registry=UnitRegistry.load()
+ gyro=deploy(army('gyrocopter',50),registry,LAND_MINI)[0]
+ bomber=deploy(army('bombardier',50),registry,LAND_MINI)[0]
+ assert (gyro.slots[0].units,gyro.reserve)==(10,40)
+ assert (bomber.slots[0].units,bomber.reserve)==(5,45)
 
 
 def test_duplicate_same_wave_rows_normalize():

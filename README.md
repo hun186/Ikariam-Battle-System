@@ -14,9 +14,11 @@ Official changelog claims and exact community/PTS tables are not conflated. The 
 
 ## Operational scope
 
-The implemented battlefield is explicitly `land-mini` (Town Hall 1–4): front 3, long-range 3, no flank, artillery 1, bomber 1, anti-air 1. Capacity is `slot_space / unit size`, not a unit constant. Larger land IDs and naval geometry are exposed/reserved but rejected until implemented.
+The implemented battlefield is explicitly `land-mini` (Town Hall 1–4): front 3 × 30 space, long-range 3 × 30, no flank, artillery 1 × 30, bomber 1 × 10, and anti-air 1 × 10. Capacity is `slot_space / unit size`, not a unit constant. Larger land IDs and naval geometry are exposed/reserved but rejected until implemented. Formation fallback into another line is not yet known: strict mode reports it, while experimental mode explicitly keeps those units reserve-only.
 
-Ammunition is pooled as shots across deployed and reserve units of a wave. Target priorities use a versioned legacy/community experimental profile. Accuracy is per weapon but its algorithm is unresolved, so it is an explicit experimental assumption and a strict blocker. Doctor/Tender healing and Cook morale have separate boundaries.
+Ammunition is pooled as shots across deployed and reserve units of a wave. Target priorities consider deployed slots only and use a versioned legacy/community experimental profile. Accuracy is per weapon but its algorithm is unresolved, so it is an explicit experimental assumption and a strict blocker. Doctor/Tender healing and Cook morale have separate boundaries and are represented as deployed support rather than ordinary reserve.
+
+This remains a **unit-vs-unit Phase A** simulator. Town walls, wall targeting/damage, garrison-limit escalation of battlefield size, and complete city-battle behavior are not implemented.
 
 ## Run and verify
 

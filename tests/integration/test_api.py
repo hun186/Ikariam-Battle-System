@@ -28,6 +28,13 @@ def test_per_unit_workshop_forge_five_mini_api_smoke():
  assert any(c['workshop_attack_level']==3 for c in calculations)
  assert all(c['forge_level']==5 for c in calculations)
 
+def test_land_mini_air_caps_through_api():
+ value=payload('strict')
+ value['attacker']['units']=[{'unit_id':'gyrocopter','quantity':25},{'unit_id':'bombardier','quantity':12}]
+ status,data=post(value); assert status==200
+ slots={s['unit_id']:s for s in data['initial_state']['attacker']['slots']}
+ assert slots['gyrocopter']['units']==10 and slots['bombardier']['units']==5
+
 def test_conflicting_same_unit_upgrades_and_invalid_domain_rejected():
  value=payload(); value['attacker']['units'].append({'unit_id':'hoplite','quantity':1,'wave_id':'w2','attack_upgrade':3})
  assert post(value)[0]==400

@@ -26,9 +26,11 @@ Workshop levels belong to a player’s **unit type**, not the whole army. Every 
 
 ## Battlefield geometry
 
-`land-mini` means Town Hall 1–4/minimum. It has front 3, long-range 3, flank 0, artillery 1, bomber 1, and anti-air 1 slots. Other stable IDs (`land-small`, `land-medium`, `land-large`, `land-max`) are reserved and rejected until profiles are supplied.
+`land-mini` means Town Hall 1–4/minimum. It has front 3 × 30 space, long-range 3 × 30, flank 0, artillery 1 × 30, bomber 1 × 10, and anti-air 1 × 10. Thus Gyrocopter capacity is 10 and Bombardier capacity is 5. Other stable IDs (`land-small`, `land-medium`, `land-large`, `land-max`) are reserved and rejected until profiles are supplied.
 
-A line stores `slot_space`, not a unit capacity. Deployment uses `floor(slot_space / unit.size)`. With slot space 30 this yields Hoplite 30, Steam Giant 10, Carabineer 7, and Catapult 6. Slots retain physical position and damage position separately. Am targets ascending damage positions; only vector export uses physical order. RR remainder follows damage priority and preserves deployed + reserve wave damage.
+A line stores `slot_space`, not a unit capacity. Deployment uses `floor(slot_space / unit.size)`. With slot space 30 this yields Hoplite 30, Steam Giant 10, Carabineer 7, and Catapult 6. Slots retain physical position and damage position separately. Am targets ascending damage positions; only vector export uses physical order. At round start the following-round formation refills before RR computes `D/N*s`. RR uses the explicit experimental half-up tie policy `EXP-RR-ROUND-HALF-UP-001`, follows damage priority, and preserves deployed + reserve wave damage; this is not claimed as Ikariam truth.
+
+Only deployed waves (`any(slot.units > 0)`) are targetable; reserve-only and destroyed waves are skipped. Cross-line formation fallback remains unknown. Strict emits `UNKNOWN-FORMATION-FALLBACK`; experimental uses `EXP-FORMATION-NO-FALLBACK-001` rather than claiming that light/ranged units can never replace front units.
 
 ## Ammunition, targeting, accuracy, and support boundaries
 
@@ -38,10 +40,14 @@ Experimental targeting uses versioned priorities and `EXP-TARGET-LEGACY-001`: ar
 
 Accuracy is stored per weapon, including different secondary accuracy. No complete accuracy algorithm is known: strict emits `UNKNOWN-ACCURACY`; experimental emits `EXP-ACCURACY-IGNORED-001` rather than silently claiming 100% accuracy.
 
-Support effects are distinct: Doctor/Tender are `healing`, Cook is `morale`. Strict uses `UNKNOWN-HEALING-ALLOCATION` and `UNKNOWN-MORALE-SUPPORT`; experimental uses separate `EXP-HEAL-NONE-001` and `EXP-MORALE-NONE-001`. Support never enters Am.
+Support effects are distinct: Doctor/Tender are `healing`, Cook is `morale`. They appear in `deployed_support`, not ordinary reserve or Am slots. Strict uses `UNKNOWN-HEALING-ALLOCATION` and `UNKNOWN-MORALE-SUPPORT`; experimental uses separate `EXP-HEAL-NONE-001` and `EXP-MORALE-NONE-001`. Support never enters Am.
+
+Naval forum corroboration is field-specific: HP, armor, size, damage, shown secondary damage, and explicitly finite munition counts may cite *Workshop Tests: Ship Technology*. Accuracy cites only the current community reference because the forum accuracy fields are blank. Omitted munition does not prove infinity.
 
 ## Other experimental policies and remaining unknowns
 
 Named policies include pooled I-kill, floor rounding, phase-start simultaneous chronology, no within-phase retarget, RR deployed-total rounding, ammo stop/partial ordering, legacy targeting, ignored accuracy, and separate no-healing/no-morale effects. Responses and events expose IDs. Remaining unknowns include kill selection, rounding selector, SR/IR triggers, complete chronology, target transfer after destruction, mixed-unit/multi-wave Am, secondary weapon trigger, healing/morale allocation, accuracy, non-standard renumbering, naval geometry, and long-duration intervals.
 
 `BattleReportFixture` retains game version, complete scenario, round, casualties, damage%, and life%; damage display percentages can be converted to integer intervals rather than hard-coding a winner.
+
+Scope is unit-vs-unit Phase A. Town walls, wall target/damage rules, and garrison-limit-driven battlefield escalation are not implemented.

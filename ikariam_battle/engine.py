@@ -19,11 +19,12 @@ EXPERIMENTAL_ASSUMPTIONS = {
     "EXP-ROUND-FLOOR-001": "Floor non-integer net damage; the general selector is unknown.",
     "EXP-CHRONOLOGY-001": "Both sides plan fire from the same phase-start snapshot.",
     "EXP-RETARGET-NONE-001": "Do not retarget shots after a slot/line is destroyed within a phase.",
-    "EXP-RR-ROUND-NEAREST-001": "Round the total deployed RR share, then assign remainder by damage priority.",
+    "EXP-RR-ROUND-HALF-UP-001": "Round the total deployed RR share half-up, then assign remainder by damage priority.",
     "EXP-AMMO-STOP-001": "After primary ammunition is exhausted, do not silently switch to an unverified secondary weapon.",
     "EXP-AMMO-PARTIAL-ORDER-001": "Allocate a partial ammunition pool by source-slot damage priority.",
     "EXP-TARGET-LEGACY-001": "Use the versioned legacy/community class target priorities.",
     "EXP-ACCURACY-IGNORED-001": "Do not reduce Am hits by weapon accuracy because its algorithm is unresolved.",
+    "EXP-FORMATION-NO-FALLBACK-001": "Do not move reserve light/ranged units into a broken front; fallback triggers are unresolved.",
 }
 
 
@@ -32,16 +33,19 @@ def _event(events: list[Event], round_no: int, phase: str, kind: str, side: str 
 
 
 def _snapshot(waves: list[Wave], registry: UnitRegistry) -> dict[str, Any]:
-    units, reserve, slots = defaultdict(int), defaultdict(int), []
+    units, reserve, support, slots = defaultdict(int), defaultdict(int), defaultdict(int), []
     for wave in waves:
         unit = registry.get(wave.unit.unit_id)
         units[unit.id] += wave.alive; reserve[unit.id] += wave.reserve
+        if wave.support_units:
+            support[unit.id] += wave.support_units
         slots.extend({"slot_id": s.slot_id, "line": s.line, "physical_position": s.physical_position,
                       "damage_position": s.damage_position, "unit_id": s.unit_id, "wave_id": s.wave_id,
                       "units": s.units, "capacity": s.capacity, "damage": s.damage,
                       "ammo_pool_shots": wave.ammo_pool_shots} for s in wave.slots)
     slots.sort(key=lambda s: (s["line"], s["physical_position"], s["unit_id"], s["wave_id"]))
-    return {"remaining": dict(units), "reserve": dict(reserve), "slots": slots, "total": sum(units.values())}
+    return {"remaining": dict(units), "reserve": dict(reserve), "deployed_support": dict(support),
+            "slots": slots, "total": sum(units.values())}
 
 
 def _unsupported(scenario: Scenario, events: list[Event], initial: dict, blockers: list[str], warnings: list[str]) -> dict:
@@ -65,6 +69,8 @@ def _preflight(waves: list[Wave], registry: UnitRegistry) -> list[str]:
         else:
             line_types[unit.battlefield_class].add(unit.id)
             line_waves[unit.battlefield_class] += 1
+            if wave.alive and not any(slot.units > 0 for slot in wave.slots):
+                blockers.append("UNKNOWN-FORMATION-FALLBACK")
     if any(len(types) > 1 for types in line_types.values()): blockers.append("UNKNOWN-MIXED-UNIT-AM-ROWS")
     if any(count > 1 for count in line_waves.values()): blockers.append("UNKNOWN-MULTIPLE-TARGET-WAVES")
     return blockers
@@ -92,6 +98,12 @@ def _refill(waves: list[Wave], events: list[Event], number: int, side: str) -> N
                 _event(events, number, "deploy", "slot_refilled", side, slot_id=slot.slot_id, quantity=moved)
 
 
+def _prepare_round_start(waves: list[Wave], events: list[Event], number: int, side: str) -> None:
+    """Establish the following-round deployment before applying PDF RR."""
+    _refill(waves, events, number, side)
+    _redistribute(waves, events, number, side)
+
+
 def _combat_waves(waves: list[Wave], registry: UnitRegistry) -> list[Wave]:
     return sorted((w for w in waves if registry.get(w.unit.unit_id).role == "combat"),
                   key=lambda w: (registry.get(w.unit.unit_id).battlefield_class, w.unit.unit_id, w.unit.wave_id))
@@ -102,7 +114,8 @@ def _target(source: Wave, targets: list[Wave], registry: UnitRegistry,
     source_line = registry.get(source.unit.unit_id).battlefield_class
     for target_line in targeting.priorities[source_line]:
         choices = [w for w in _combat_waves(targets, registry)
-                   if registry.get(w.unit.unit_id).battlefield_class == target_line and w.alive]
+                   if registry.get(w.unit.unit_id).battlefield_class == target_line
+                   and any(slot.units > 0 for slot in w.slots)]
         if len(choices) == 1: return choices[0], target_line
         if len(choices) > 1: return None, target_line
     return None, None
@@ -193,6 +206,8 @@ def simulate(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         assumptions.append({"id":"EXP-HEAL-NONE-001", "description":"Support healing is not applied because allocation is unknown."})
     if "UNKNOWN-MORALE-SUPPORT" in blockers:
         assumptions.append({"id":"EXP-MORALE-NONE-001", "description":"Cook morale is not applied because the current morale algorithm is unresolved."})
+    if "UNKNOWN-FORMATION-FALLBACK" in blockers:
+        assumptions.append({"id":"EXP-FORMATION-NO-FALLBACK-001", "description":"Reserve-only classes are not redeployed into other lines."})
     for assumption in assumptions:
         _event(events, 0, "preflight", "assumption_applied", None, **assumption)
     workshop, forge = WorkshopProfile.load(scenario.profiles.workshop), ForgeProfile.load(scenario.profiles.forge)
@@ -201,8 +216,7 @@ def simulate(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     rounds = [{"round":0, **deepcopy(initial), "casualties":{"attacker":{},"defender":{}}}]
     completed = 0
     for number in range(1, scenario.max_rounds + 1):
-        _redistribute(attacker, events, number, "attacker"); _redistribute(defender, events, number, "defender")
-        _refill(attacker, events, number, "attacker"); _refill(defender, events, number, "defender")
+        _prepare_round_start(attacker, events, number, "attacker"); _prepare_round_start(defender, events, number, "defender")
         # Both plans are made before either is applied: no hidden attacker-first bias.
         a_plan = _plan_fire(attacker, deepcopy(defender), registry, workshop, forge, targeting, events, number, "attacker", scenario.attacker, scenario.defender)
         d_plan = _plan_fire(defender, deepcopy(attacker), registry, workshop, forge, targeting, events, number, "defender", scenario.defender, scenario.attacker)

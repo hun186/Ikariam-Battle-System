@@ -42,8 +42,8 @@ LAND_MINI = Battlefield("land-mini", "land", {
     "first": LineGeometry("first", (2, 1, 3), 30),
     "second": LineGeometry("second", (2, 1, 3), 30),
     "third": LineGeometry("third", (1,), 30),
-    "anti-balloon": LineGeometry("anti-balloon", (1,), 30),
-    "balloon": LineGeometry("balloon", (1,), 30),
+    "anti-balloon": LineGeometry("anti-balloon", (1,), 10),
+    "balloon": LineGeometry("balloon", (1,), 10),
 }, "REVIEWER_WEB_VERIFIED_COMMUNITY_REFERENCE_TOWN_HALL_1_TO_4")
 
 
@@ -60,7 +60,7 @@ def deploy(army: Army, registry: UnitRegistry, field: Battlefield) -> list[Wave]
         if unit.domain != field.domain:
             raise ScenarioError(f"{unit.id} is {unit.domain} and cannot enter {field.id}")
         if unit.role == "support":
-            waves.append(Wave(item, item.quantity, [], 0, None))
+            waves.append(Wave(item, 0, [], 0, None, item.quantity))
             continue
         if not unit.numerically_supported:
             raise ScenarioError(f"{unit.id} has unverified numerical fields and cannot be simulated")

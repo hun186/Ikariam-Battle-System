@@ -47,6 +47,17 @@ def test_current_provenance_and_v175_status():
  assert r.get('hoplite').provenance['garrison_limit']['confidence']=='LEGACY_DEFAULT'
 
 
+def test_rocket_forum_provenance_excludes_accuracy_and_unlimited_inference():
+ r=UnitRegistry.load(); rocket=r.get('rocket_ship'); forum='GAMEFORGE_FORUM_PLAYER_TEST'
+ assert forum in {s['source_type'] for s in rocket.provenance['hp']['sources']}
+ assert forum in {s['source_type'] for s in rocket.primary_weapon.provenance['damage']['sources']}
+ assert forum in {s['source_type'] for s in rocket.primary_weapon.provenance['ammunition']['sources']}
+ assert forum not in {s['source_type'] for s in rocket.primary_weapon.provenance['accuracy']['sources']}
+ assert forum not in {s['source_type'] for s in rocket.weapons[1].provenance['accuracy']['sources']}
+ steam=r.get('steam_ram')
+ assert forum not in {s['source_type'] for s in steam.primary_weapon.provenance['ammunition']['sources']}
+
+
 def test_workshop_forge_support_and_targeting_profiles():
  w=WorkshopProfile.load(); assert w.bonus('land',12)==60 and w.bonus('naval',12)==120
  f=ForgeProfile.load(); assert [(str(f.effect(i).damage_multiplier),f.effect(i).armor_bonus) for i in range(6)]==[('1',0),('1.075',0),('1.075',10),('1.1',10),('1.125',20),('1.15',20)]
