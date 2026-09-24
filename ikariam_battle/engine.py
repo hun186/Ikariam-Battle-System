@@ -8,7 +8,7 @@ from .attacking_matrix import from_slot_counts
 from .battlefield import battlefield, deploy
 from .damage import RoundingPolicy, calculate_damage
 from .events import Event
-from .models import Policy, Scenario, Wave
+from .models import Policy, Scenario, ScenarioError, Wave
 from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, TargetingProfile, WorkshopProfile
 from .redistribution import SlotShare, reserve_redistribution
 from .units import UnitRegistry
@@ -102,6 +102,8 @@ def _preflight(waves: list[Wave], registry: UnitRegistry) -> list[str]:
     line_types: dict[str, set[str]] = defaultdict(set)
     line_waves: dict[str, int] = defaultdict(int)
     for wave in waves:
+        if len({slot.line for slot in wave.slots}) > 1:
+            blockers.append("UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS")
         unit = registry.get(wave.unit.unit_id)
         if unit.support_effect == "healing": blockers.append("UNKNOWN-HEALING-ALLOCATION")
         elif unit.support_effect == "morale": blockers.append("UNKNOWN-MORALE-SUPPORT")
@@ -113,8 +115,15 @@ def _preflight(waves: list[Wave], registry: UnitRegistry) -> list[str]:
     return blockers
 
 
+def _guard_single_line_waves(waves: list[Wave]) -> None:
+    """Prevent structurally valid, but uncalibrated, multi-line execution."""
+    if any(len({slot.line for slot in wave.slots}) > 1 for wave in waves):
+        raise ScenarioError("UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS")
+
+
 def _redistribute(waves: list[Wave], events: list[Event], number: int, side: str,
                   applied: dict[str, dict[str, str]]) -> None:
+    _guard_single_line_waves(waves)
     for wave in waves:
         total = wave.reserve_damage + sum(slot.damage for slot in wave.slots)
         if not total or not wave.alive: continue
@@ -129,6 +138,7 @@ def _redistribute(waves: list[Wave], events: list[Event], number: int, side: str
 
 
 def _refill(waves: list[Wave], events: list[Event], number: int, side: str) -> None:
+    _guard_single_line_waves(waves)
     for wave in waves:
         for slot in sorted(wave.slots, key=lambda item: item.damage_position):
             moved = min(slot.capacity - slot.units, wave.reserve)
@@ -151,6 +161,7 @@ def _combat_waves(waves: list[Wave], registry: UnitRegistry) -> list[Wave]:
 
 def _target(source: Wave, targets: list[Wave], registry: UnitRegistry,
             targeting: TargetingProfile) -> tuple[Wave | None, str | None]:
+    _guard_single_line_waves([source, *targets])
     source_line = registry.get(source.unit.unit_id).battlefield_class
     for target_line in targeting.priorities[source_line]:
         choices = [w for w in _combat_waves(targets, registry)
@@ -164,6 +175,7 @@ def _target(source: Wave, targets: list[Wave], registry: UnitRegistry,
 def _plan_fire(source: list[Wave], target: list[Wave], registry: UnitRegistry, workshop: WorkshopProfile,
                forge: ForgeProfile, targeting: TargetingProfile, events: list[Event], number: int, side: str,
                source_army, target_army, applied: dict[str, dict[str, str]]) -> list[dict[str, Any]]:
+    _guard_single_line_waves([*source, *target])
     plans = []
     for wave in _combat_waves(source, registry):
         if not wave.slots or not wave.alive: continue
@@ -275,7 +287,8 @@ def simulate(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         blockers += ["UNKNOWN-KILL-SELECTION", "UNKNOWN-ROUNDING-SELECTOR", "UNKNOWN-COMPLETE-CHRONOLOGY",
                      "UNKNOWN-ACCURACY", "UNKNOWN-TARGET-TRANSFER"]
         return _unsupported(scenario, events, initial, sorted(set(blockers)), warnings)
-    if {"UNKNOWN-MIXED-UNIT-AM-ROWS", "UNKNOWN-MULTIPLE-TARGET-WAVES"} & set(blockers):
+    if {"UNKNOWN-MIXED-UNIT-AM-ROWS", "UNKNOWN-MULTIPLE-TARGET-WAVES",
+        "UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS"} & set(blockers):
         return _unsupported(scenario, events, initial, blockers, warnings)
     applied: dict[str, dict[str, str]] = {}
     if "UNKNOWN-HEALING-ALLOCATION" in blockers:

@@ -1,5 +1,8 @@
 from ikariam_battle.battlefield import LAND_MINI, deploy
-from ikariam_battle.models import Army, ArmyUnit, Slot, Wave
+import pytest
+
+from ikariam_battle.engine import _prepare_round_start
+from ikariam_battle.models import Army, ArmyUnit, ScenarioError, Slot, Wave
 from ikariam_battle.units import UnitRegistry
 
 
@@ -66,11 +69,22 @@ def test_different_entry_waves_do_not_share_ammunition():
 
 
 def test_wave_model_can_represent_future_multi_line_slots_without_enabling_fallback():
- wave=Wave(ArmyUnit('sulphur_carabineer',42,'batch-a'),20,[
+ wave=Wave(ArmyUnit('sulphur_carabineer',42,'batch-a'),33,[
   Slot('second-1','second',2,1,'sulphur_carabineer','batch-a',2,7),
-  Slot('first-1','first',2,1,'sulphur_carabineer','batch-a',20,30)],ammo_pool_shots=2,
+  Slot('first-1','first',2,1,'sulphur_carabineer','batch-a',7,7)],ammo_pool_shots=2,
   ammo_capacity_shots=126)
  assert wave.alive==42 and {slot.line for slot in wave.slots}=={'first','second'}
+
+
+def test_multiline_wave_cannot_silently_enter_refill_or_redistribution():
+ wave=Wave(ArmyUnit('sulphur_carabineer',14,'batch-a'),0,[
+  Slot('second-1','second',2,1,'sulphur_carabineer','batch-a',7,7,3),
+  Slot('first-1','first',2,1,'sulphur_carabineer','batch-a',7,7,5)],
+  ammo_pool_shots=2,ammo_capacity_shots=42)
+ before=[(slot.units,slot.damage) for slot in wave.slots]
+ with pytest.raises(ScenarioError,match='UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS'):
+  _prepare_round_start([wave],[],2,'attacker',{})
+ assert [(slot.units,slot.damage) for slot in wave.slots]==before
 
 
 def test_spearman_taxonomy_separates_semantic_class_from_native_line():

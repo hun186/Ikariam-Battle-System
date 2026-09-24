@@ -12,12 +12,17 @@ def test_user_observed_ranged_calibration_case_a_is_not_a_production_rule():
  data=ranged_formation_observations(); case=data['cases'][0]
  assert data['evidence_class']=='USER_PROVIDED_BATTLE_OBSERVATION'
  assert data['implementation_status']=='CALIBRATION_ONLY_UNSUPPORTED_IN_PRODUCTION'
- assert (case['alive'],case['ammo_pool_shots'],case['observed_second_line_deployed'])==(42,2,2)
+ assert 'alive' not in case
+ assert case['surviving_quantity'] is None
+ assert case['surviving_quantity_status']=='unknown_many_surviving_units_observed'
+ assert (case['ammo_pool_shots'],case['observed_second_line_deployed'])==(2,2)
+ assert case['observed_same_batch_additional_units'] is True
+ assert case['observed_non_firing_remainder_in_front'] is True
  assert 'front_weapon' in case['unknowns']
 
 
 def test_user_observed_ranged_calibration_case_b_keeps_remainder_off_field():
  case=ranged_formation_observations()['cases'][1]
  assert (case['alive'],case['ammo_pool_shots'],case['observed_second_line_slots_full'])==(838,282,7)
- assert case['observed_ammo_less_remainder_location']=='reserve_or_off_field'
+ assert case['observed_non_firing_remainder_location']=='reserve_or_off_field'
  assert case['observed_automatic_front_fallback'] is False

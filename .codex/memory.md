@@ -1,7 +1,7 @@
 # Project Memory
 
 ## Current Focus
-- Authoritative baseline for the formation calibration/UI foundation is hosted `main` at `b70a1888f1f65a45b1b374759773d8a76dff4f54` (network re-check attempted; environment returned HTTP 403).
+- PR #15 corrective baseline is hosted head `003141798b1d20f4b212db4b8730a20b1cf9260a` on `main` base `b70a1888f1f65a45b1b374759773d8a76dff4f54`; network re-check was attempted but this environment returned HTTP 403.
 - Workshop upgrades are per unit type; Forge is side-wide.
 - `land-mini` uses line slot counts and slot-space/unit-size capacity.
 - Complete reviewer-verified current data is distinct from empirical mechanics.
