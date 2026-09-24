@@ -31,7 +31,7 @@ Workshop levels belong to a player’s **unit type**, not the whole army. Every 
 
 A line stores `slot_space`, not a unit capacity. Deployment uses `floor(slot_space / unit.size)`. With slot space 30 this yields Hoplite 30, Steam Giant 10, Carabineer 7, and Catapult 6. Slots retain physical position and damage position separately. Am targets ascending damage positions; only vector export uses physical order. At round start the following-round formation refills before RR computes `D/N*s`. RR uses the explicit experimental half-up tie policy `EXP-RR-ROUND-HALF-UP-001`, follows damage priority, and preserves deployed + reserve wave damage; this is not claimed as Ikariam truth.
 
-Only deployed waves (`any(slot.units > 0)`) are targetable; reserve-only and destroyed waves are skipped. Cross-line formation fallback remains unknown. Strict emits `UNKNOWN-FORMATION-FALLBACK`; experimental uses `EXP-FORMATION-NO-FALLBACK-001` rather than claiming that light/ranged units can never replace front units.
+Only deployed waves (`any(slot.units > 0)`) are targetable; reserve-only and destroyed waves are skipped. Cross-line formation fallback remains unknown. If the initial state or a completed round leaves no main-line holder but living light/long-range candidates, both strict and experimental modes stop inconclusive with `UNKNOWN-FORMATION-FALLBACK`; neither continues firing from stale line positions.
 
 ## Ammunition, targeting, accuracy, and support boundaries
 
@@ -51,9 +51,11 @@ Named policies include pooled I-kill, floor rounding, phase-start simultaneous c
 
 ## Battle-end semantics
 
-The versioned legacy/community battle-end profile treats front, long-range, and flank classes as battle-sustaining. Artillery, bomber, anti-air, and support survive in `total` but do not sustain a side alone. Snapshots expose `battle_sustaining_remaining` and `battle_sustaining_total`. After both simultaneous plans are applied, the engine terminates in that same round, emits `battle_termination`, and leaves non-sustaining survivors out of casualties. Both-zero uses the profile's explicit draw policy. Initial timing and completed-round evaluation use `EXP-BATTLE-END-ROUND-BOUNDARY-001`; strict mode reports `UNKNOWN-INITIAL-BATTLE-END-TIMING` for a scenario that starts without a sustaining side.
+The versioned legacy/community battle-end profile separates `main_line_classes` (`first`), `fallback_candidate_classes` (`flank`, `second`), and definitely `non_sustaining_classes` (artillery, bomber, anti-air, support). Snapshots expose main-line and fallback counts plus `sustaining`, `fallback_required`, or `not_sustaining`. After simultaneous plans are applied, a definite one-sided main-line loss terminates in that same round and leaves non-sustaining survivors out of casualties. Fallback-required states stop inconclusive. If both sides are definitely not sustaining, `UNKNOWN-BOTH-SIDES-NO-MAIN-LINE-OUTCOME` replaces the former unqualified draw. Initial definite termination timing uses `EXP-BATTLE-END-ROUND-BOUNDARY-001`; strict reports `UNKNOWN-INITIAL-BATTLE-END-TIMING`.
 
-Experimental results now list only assumptions actually reached. Partial-ammunition and formation-fallback assumptions are conditional, and assumption IDs are unique.
+Battle-end evidence remains `CALIBRATION_REQUIRED`. The packaged profile records reviewer-verified community formation evidence and two Gameforge forum player battle-report evidence classes; these are not official specifications. The review did not supply their URLs and this environment could not retrieve them, so the records preserve titles, evidence class, verification actor, and an explicit missing-URL status rather than inventing links.
+
+Experimental results list only assumptions actually reached. Partial-ammunition assumptions are conditional, assumption IDs are unique, and formation fallback is an unsupported boundary rather than an assumption that permits continued combat.
 
 `BattleReportFixture` retains game version, complete scenario, round, casualties, damage%, and life%; damage display percentages can be converted to integer intervals rather than hard-coding a winner.
 

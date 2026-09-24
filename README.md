@@ -9,19 +9,19 @@ A deterministic browser simulator combining current Infinite Horizons numerical 
 - v14 Forge: side-wide levels 0–5.
 - v17 support: Doctor/Tender healing ×20; 4000 is derived from legacy 200. Cook morale and healing allocation remain unknown.
 - Legacy empirical mechanics profile for formation labels, Am, and RR, with SR/IR/kill/chronology limitations retained.
-- Legacy/community battle-end profile distinguishes sustaining front, long-range, and flank units from surviving artillery, air, and support.
+- Legacy/community battle-end profile distinguishes actual main-line holders, unresolved light/long-range fallback candidates, and definitely non-sustaining artillery, air, and support.
 
 Official changelog claims and exact community/PTS tables are not conflated. The reviewer verified sources through v17.5.0 with retrieval date 2026-09-24; this environment did not independently open those URLs. See [the evidence register](docs/mechanics-spec.md).
 
 ## Operational scope
 
-The implemented battlefield is explicitly `land-mini` (Town Hall 1–4): front 3 × 30 space, long-range 3 × 30, no flank, artillery 1 × 30, bomber 1 × 10, and anti-air 1 × 10. Capacity is `slot_space / unit size`, not a unit constant. Larger land IDs and naval geometry are exposed/reserved but rejected until implemented. Formation fallback into another line is not yet known: strict mode reports it, while experimental mode explicitly keeps those units reserve-only.
+The implemented battlefield is explicitly `land-mini` (Town Hall 1–4): front 3 × 30 space, long-range 3 × 30, no flank, artillery 1 × 30, bomber 1 × 10, and anti-air 1 × 10. Capacity is `slot_space / unit size`, not a unit constant. Larger land IDs and naval geometry are exposed/reserved but rejected until implemented. Formation fallback into another line is not yet known, so both strict and experimental modes stop inconclusive when fallback becomes necessary.
 
 Ammunition is pooled as shots across deployed and reserve units of a wave. Target priorities consider deployed slots only and use a versioned legacy/community experimental profile. Accuracy is per weapon but its algorithm is unresolved, so it is an explicit experimental assumption and a strict blocker. Doctor/Tender healing and Cook morale have separate boundaries and are represented as deployed support rather than ordinary reserve.
 
 This remains a **unit-vs-unit Phase A** simulator. Town walls, wall targeting/damage, garrison-limit escalation of battlefield size, and complete city-battle behavior are not implemented.
 
-Snapshots keep all survivors in `total` and separately expose `battle_sustaining_total`. Artillery, air, and support survivors withdraw/scatter without becoming casualties when the opponent retains a sustaining force. Experimental battle-end timing is evaluated only at the initial and completed-round boundaries and is disclosed by assumption ID.
+Snapshots keep all survivors in `total` and expose `main_line_holding_total`, `fallback_candidate_total`, and `continuation_state`. If the front disappears while light or long-range units remain, both modes stop inconclusive at `fallback_required`; the engine does not fire another round from stale positions. Artillery, air, and support survivors withdraw/scatter without becoming casualties when the opponent retains a main line. A simultaneous both-no-main-line outcome remains unknown rather than being silently called a draw.
 
 ## Run and verify
 

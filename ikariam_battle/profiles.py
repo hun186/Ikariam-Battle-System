@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import Enum
 from decimal import Decimal
 from importlib.resources import files
 import json
@@ -62,15 +63,26 @@ class TargetingProfile:
         return cls(_load("rules", name))
 
 
+class ContinuationState(str, Enum):
+    SUSTAINING = "sustaining"
+    FALLBACK_REQUIRED = "fallback_required"
+    NOT_SUSTAINING = "not_sustaining"
+
+
 class BattleEndProfile:
     def __init__(self, raw: dict):
         self.metadata = raw["metadata"]
-        self.sustaining_classes = frozenset(raw["battle_sustaining_classes"])
-        self.both_zero_outcome = raw["both_zero_outcome"]
+        self.main_line_classes = frozenset(raw["main_line_classes"])
+        self.fallback_candidate_classes = frozenset(raw["fallback_candidate_classes"])
+        self.non_sustaining_classes = frozenset(raw["non_sustaining_classes"])
 
     @classmethod
     def load(cls, name: str = "legacy-community-battle-end") -> "BattleEndProfile":
         return cls(_load("rules", name))
 
-    def is_sustaining(self, battlefield_class: str) -> bool:
-        return battlefield_class in self.sustaining_classes
+    def continuation_state(self, main_line_total: int, fallback_total: int) -> ContinuationState:
+        if main_line_total:
+            return ContinuationState.SUSTAINING
+        if fallback_total:
+            return ContinuationState.FALLBACK_REQUIRED
+        return ContinuationState.NOT_SUSTAINING

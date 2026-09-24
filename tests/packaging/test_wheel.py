@@ -15,12 +15,12 @@ def test_wheel_installs_and_loads_resources_outside_checkout(tmp_path):
     subprocess.run([str(python),'-m','pip','install','--no-deps',str(wheel)],check=True,capture_output=True)
     outside=tmp_path/'outside'; outside.mkdir()
     code="""from ikariam_battle import UnitRegistry,simulate
-from ikariam_battle.profiles import BattleEndProfile,WorkshopProfile,ForgeProfile,SupportProfile
+from ikariam_battle.profiles import BattleEndProfile,ContinuationState,WorkshopProfile,ForgeProfile,SupportProfile
 assert UnitRegistry.load().get('hoplite').hit_points==1120
 assert WorkshopProfile.load().bonus('land',12)==60
 assert str(ForgeProfile.load().effect(5).damage_multiplier)=='1.15'
 assert SupportProfile.load().derived_capacity==4000
-assert BattleEndProfile.load().is_sustaining('second')
+assert BattleEndProfile.load().continuation_state(0,1) is ContinuationState.FALLBACK_REQUIRED
 s={'policy':'strict','battlefield':'land-mini','attacker':{'units':[{'unit_id':'hoplite','quantity':1}]},'defender':{'units':[{'unit_id':'hoplite','quantity':1}]}}
 assert simulate(s)['status']=='inconclusive'
 """

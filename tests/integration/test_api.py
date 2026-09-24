@@ -60,6 +60,26 @@ def test_battle_end_survivors_round_boundary_and_unique_assumptions_api():
     'defender':{'units':[{'unit_id':'hoplite','quantity':1},{'unit_id':survivor,'quantity':quantity}]}}
   status,data=post(value); assert status==200 and data['outcome']=='attacker' and data['rounds_completed']==1
   assert data['final_state']['defender']['remaining'][survivor]==quantity
-  assert data['final_state']['defender']['battle_sustaining_total']==0
+  assert data['final_state']['defender']['main_line_holding_total']==0
+  assert data['final_state']['defender']['continuation_state']=='not_sustaining'
   assert data['casualties']['defender'].get(survivor,0)==0
   ids=[a['id'] for a in data['assumptions']]; assert len(ids)==len(set(ids))
+
+def test_dynamic_fallback_boundary_api_stops_without_stale_round():
+ value={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
+   'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
+   'defender':{'units':[{'unit_id':'hoplite','quantity':1},{'unit_id':'sulphur_carabineer','quantity':7}]}}
+ status,data=post(value); assert status==200
+ assert data['status']=='inconclusive' and data['rounds_completed']==1
+ assert data['final_state']['defender']['continuation_state']=='fallback_required'
+ assert not any(e['type']=='attacking_matrix' and e['side']=='defender' and e['round']>1 for e in data['events'])
+ ids=[a['id'] for a in data['assumptions']]; assert len(ids)==len(set(ids))
+
+def test_front_alive_continuation_state_api():
+ value={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+   'attacker':{'units':[{'unit_id':'hoplite','quantity':1}]},
+   'defender':{'units':[{'unit_id':'hoplite','quantity':90},{'unit_id':'sulphur_carabineer','quantity':7}]}}
+ status,data=post(value); assert status==200
+ state=data['final_state']['defender']
+ assert state['continuation_state']=='sustaining'
+ assert state['main_line_holding_total']>0 and state['fallback_candidate_total']==7

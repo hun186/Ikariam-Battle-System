@@ -1,4 +1,4 @@
-from ikariam_battle.profiles import BattleEndProfile, ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
+from ikariam_battle.profiles import BattleEndProfile, ContinuationState, ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 from ikariam_battle.units import UnitRegistry
 
 LAND={'spearman','swordsman','hoplite','spartan','steam_giant','slinger','archer','sulphur_carabineer','battering_ram','catapult','mortar','gyrocopter','bombardier','doctor','cook'}
@@ -64,4 +64,8 @@ def test_workshop_forge_support_and_targeting_profiles():
  s=SupportProfile.load(); assert s.derived_capacity==4000 and s.raw['multiplier_provenance']['source_type']=='OFFICIAL_CHANGELOG'
  t=TargetingProfile.load(); assert t.priorities['flank'][0]=='flank'
  b=BattleEndProfile.load()
- assert b.sustaining_classes=={'first','second','flank'} and not b.is_sustaining('third')
+ assert b.main_line_classes=={'first'} and b.fallback_candidate_classes=={'flank','second'}
+ assert b.continuation_state(1,7) is ContinuationState.SUSTAINING
+ assert b.continuation_state(0,7) is ContinuationState.FALLBACK_REQUIRED
+ assert b.continuation_state(0,0) is ContinuationState.NOT_SUSTAINING
+ assert {s['source_type'] for s in b.metadata['sources']}=={'COMMUNITY_REFERENCE','GAMEFORGE_FORUM_BATTLE_REPORT'}
