@@ -55,6 +55,12 @@ def test_static_ui_uses_metadata_per_unit_upgrades_and_mini_size():
  assert 'Research mode' in body and 'roundSelect' in body and 'slot-tooltip' in body
  assert 'Hit points:' in body and 'Munition:' in body
 
+
+def test_zero_unit_snapshot_slots_render_as_empty_and_static_copies_match():
+ response=asyncio.run(request('GET','/')); body=response[1]['body'].decode()
+ assert 'state.slots.filter(s=>s.line===line&&s.units>0)' in body
+ assert body==Path('public/index.html').read_text()
+
 def test_battle_end_survivors_round_boundary_and_unique_assumptions_api():
  for survivor,quantity in [('doctor',4),('catapult',6)]:
   value={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
