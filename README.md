@@ -1,75 +1,44 @@
-# Ikariam Battle Simulator (Prototype)
+# Ikariam Battle Simulator — evidence-aware Phase A
 
-This repository contains:
-- battle simulator core in `simulator.py`,
-- PDF extraction helper in `pdf_extract.py`,
-- tests in `test_simulator.py`,
-- Vercel web UI in root `index.html` (mirrored at `public/index.html`) + `api/simulate.py`.
+A deterministic browser simulator combining current Infinite Horizons numerical profiles with empirically reconstructed battle mechanics. It is not official Gameforge source code; strict mode refuses unresolved mechanics and experimental mode exposes every named assumption.
 
-## Local CLI usage
+## Current profiles
 
-```bash
-python simulator.py
-python simulator.py --scenario sample_scenario.json
-```
+- Complete land and naval HP, damage, armor, accuracy, ammunition, size, and primary/secondary weapons from a reviewer-verified current community reference; naval values also carry Gameforge forum player-test corroboration.
+- v14 Workshop: unit-type-specific upgrades, land +5 and naval +10 per level. Levels are non-negative integers and can differ between Hoplites, Swordsmen, and other unit types on the same side.
+- v14 Forge: side-wide levels 0–5.
+- v17 support: Doctor/Tender healing ×20; 4000 is derived from legacy 200. Cook morale and healing allocation remain unknown.
+- Legacy empirical mechanics profile for formation labels, Am, and RR, with SR/IR/kill/chronology limitations retained.
+- Legacy/community battle-end profile distinguishes actual main-line holders, unresolved light/long-range fallback candidates, and definitely non-sustaining artillery, air, and support.
 
-## Run tests
+Official changelog claims and exact community/PTS tables are not conflated. The reviewer verified sources through v17.5.0 with retrieval date 2026-09-24; this environment did not independently open those URLs. See [the evidence register](docs/mechanics-spec.md).
 
-```bash
-pytest -q
-```
+## Operational scope
 
+The implemented battlefield is explicitly `land-mini` (Town Hall 1–4): front 3 × 30 space, long-range 3 × 30, no flank, artillery 1 × 30, bomber 1 × 10, and anti-air 1 × 10. Capacity is `slot_space / unit size`, not a unit constant. Larger land IDs and naval geometry are exposed/reserved but rejected until implemented. Formation fallback into another line is not yet known, so both strict and experimental modes stop inconclusive when fallback becomes necessary.
 
-## Local web deployment with Uvicorn
+Ammunition is pooled as shots across deployed and reserve units of a wave. Target priorities consider deployed slots only and use a versioned legacy/community experimental profile. Accuracy is per weapon but its algorithm is unresolved, so it is an explicit experimental assumption and a strict blocker. Doctor/Tender healing and Cook morale have separate boundaries and are represented as deployed support rather than ordinary reserve.
 
-Run the same static UI and simulation API locally with Uvicorn:
+This remains a **unit-vs-unit Phase A** simulator. Town walls, wall targeting/damage, garrison-limit escalation of battlefield size, and complete city-battle behavior are not implemented.
+
+Snapshots keep all survivors in `total` and expose `main_line_holding_total`, `fallback_candidate_total`, and `continuation_state`. If the front disappears while light or long-range units remain, both modes stop inconclusive at `fallback_required`; the engine does not fire another round from stale positions. Artillery, air, and support survivors withdraw/scatter without becoming casualties when the opponent retains a main line. A simultaneous both-no-main-line outcome remains unknown rather than being silently called a draw.
+
+## Run and verify
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
+pytest -q
 uvicorn asgi:application --host 127.0.0.1 --port 8000
 ```
 
-Then open <http://127.0.0.1:8000>. The ASGI app serves `index.html` and handles `POST /api/simulate`.
-
-Quick API smoke test:
+The browser obtains profiles, battlefields, Forge effects, and units from `GET /api/simulate`. Each unit row has quantity, wave, attack upgrade, and armor upgrade; Forge stays side-wide.
 
 ```bash
-curl -X POST http://127.0.0.1:8000/api/simulate \
-  -H 'Content-Type: application/json' \
-  --data @sample_scenario.json
+curl -X POST http://127.0.0.1:8000/api/simulate -H 'Content-Type: application/json' --data @sample_scenario.json
+python simulator.py --scenario sample_scenario.json
 ```
 
-## Deploy to Vercel
-
-1. Push this repository to GitHub.
-2. Import project in Vercel.
-3. Deploy (Python runtime will serve `api/simulate.py`, static UI from root `index.html`).
-
-### UI features
-- JSON scenario editor
-- Form-based scenario editor (no need to hand-write JSON)
-- One-click simulation
-- Winner/remaining-unit summary
-- Full battle log viewer
-- Ikariam-style battlefield visualization with front/back/air lines
-- Round-by-round battlefield playback and casualty deltas
-- Text log playback
-- Download battle report as JSON
-
-## API
-
-`POST /api/simulate`
-
-Body example:
-
-```json
-{
-  "seed": 11,
-  "max_rounds": 20,
-  "attacker": {"swordsman": 100, "archer": 60, "gyrocopter": 10},
-  "defender": {"hoplite": 110, "slinger": 55, "gyrocopter": 15}
-}
-```
+Future Function B remains deferred. It must call `ikariam_battle.simulate()` and distinguish completed outcomes from inconclusive or assumption-bearing results.

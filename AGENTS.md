@@ -15,11 +15,11 @@
 以下區塊由首次初始化或後續明確的專案級變更維護；一般任務不要重寫其他規則。
 
 <!-- BEGIN CODEX PROJECT QUICKSTART -->
-- 初始化狀態：`UNINITIALIZED`
-- 專案目的：`待初始化`
-- 主要技術：`待初始化`
-- 主要入口：`待初始化`
-- 最快驗證：`待初始化；在確認前禁止猜測或執行`
+- 初始化狀態：`INITIALIZED`
+- 專案目的：以可解釋、可重現的 evidence-aware engine 提供 browser Ikariam Phase A 戰鬥模擬
+- 主要技術：Python 3.11+ domain package、無 framework ASGI／Vercel adapter、vanilla HTML/CSS/JS
+- 主要入口：`ikariam_battle.simulate()`、`POST /api/simulate`、`asgi:application`
+- 最快驗證：`pytest -q`
 <!-- END CODEX PROJECT QUICKSTART -->
 
 若狀態仍為 `UNINITIALIZED`：

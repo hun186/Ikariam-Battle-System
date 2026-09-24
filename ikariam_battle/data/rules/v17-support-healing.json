@@ -1,0 +1,7 @@
+{
+  "metadata":{"profile":"v17-support-healing","verified_through_game_version":"17.5.0","verified_through_date":"2026-09","retrieval_date":"2026-09-24","verification_status":"REVIEWER_WEB_VERIFIED"},
+  "legacy_capacity":200,"legacy_capacity_provenance":{"source_type":"LEGACY_COMMUNITY_AND_EMPIRICAL_PAPER"},
+  "healing_capacity_multiplier":20,"multiplier_provenance":{"source_type":"OFFICIAL_CHANGELOG","source_title":"Gameforge v17.0.0 changelog","release_date":"2026-04-16","verification":"REVIEWER_WEB_VERIFIED"},
+  "derived_current_capacity":4000,"derived_capacity_provenance":{"source_type":"DERIVED","derivation":"legacy_capacity * healing_capacity_multiplier"},
+  "allocation_mechanics":{"confidence":"UNKNOWN"}
+}

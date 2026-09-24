@@ -1,14 +1,25 @@
 {
-  "seed": 11,
-  "max_rounds": 20,
+  "profiles": {
+    "mechanics": "battle-system-paper-2020",
+    "unit_stats": "infinite-horizons-current",
+    "workshop": "v14-workshop",
+    "forge": "v14-hephaistos",
+    "support": "v17-support-healing",
+    "targeting": "legacy-community-land-targeting",
+    "battle_end": "legacy-community-battle-end"
+  },
+  "policy": "experimental",
+  "battlefield": "land-mini",
+  "max_rounds": 3,
   "attacker": {
-    "swordsman": 100,
-    "archer": 60,
-    "gyrocopter": 10
+    "forge_level": 5,
+    "units": [
+      {"unit_id": "hoplite", "quantity": 60, "wave_id": "wave-1", "attack_upgrade": 12, "armor_upgrade": 8},
+      {"unit_id": "sulphur_carabineer", "quantity": 21, "wave_id": "wave-1", "attack_upgrade": 3, "armor_upgrade": 2}
+    ]
   },
   "defender": {
-    "hoplite": 110,
-    "slinger": 55,
-    "gyrocopter": 15
+    "forge_level": 0,
+    "units": [{"unit_id": "hoplite", "quantity": 60, "wave_id": "wave-1", "attack_upgrade": 4, "armor_upgrade": 6}]
   }
 }

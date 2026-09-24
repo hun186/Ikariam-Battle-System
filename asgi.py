@@ -7,6 +7,7 @@ from pathlib import Path
 from urllib.parse import unquote
 
 from web_simulator import run_battle
+from ikariam_battle import ScenarioError
 
 ROOT = Path(__file__).resolve().parent
 INDEX_FILE = ROOT / "index.html"
@@ -87,14 +88,22 @@ async def _api_simulate(scope, receive, send) -> None:
         return
 
     if method == "GET":
-        await _json_response(
-            send,
-            HTTPStatus.OK,
-            {
-                "message": "Use POST /api/simulate to run battle simulation.",
-                "docs": "Send JSON with attacker/defender, optional seed and max_rounds.",
-            },
-        )
+        from ikariam_battle import UnitRegistry
+        from ikariam_battle.profiles import ForgeProfile, SupportProfile
+        registry = UnitRegistry.load()
+        await _json_response(send, HTTPStatus.OK, {"message":"POST a typed scenario to /api/simulate",
+            "profiles":{"mechanics":"battle-system-paper-2020","unit_stats":"infinite-horizons-current",
+                        "workshop":"v14-workshop","forge":"v14-hephaistos","support":"v17-support-healing",
+                        "targeting":"legacy-community-land-targeting","battle_end":"legacy-community-battle-end"},
+            "battlefields":[{"id":"land-mini","display_name":"Land mini / Town Hall 1–4","supported":True},
+                            {"id":"land-small","display_name":"Land small","supported":False},
+                            {"id":"land-medium","display_name":"Land medium","supported":False},
+                            {"id":"land-large","display_name":"Land large","supported":False},
+                            {"id":"land-max","display_name":"Land max","supported":False}],
+            "profile_metadata":registry.metadata,"units":registry.public(),
+            "forge_levels":{str(k):{"damage_multiplier":str(v.damage_multiplier),"armor_bonus":v.armor_bonus}
+                            for k,v in ForgeProfile.load().levels.items()},
+            "support_capacity":SupportProfile.load().derived_capacity})
         return
 
     if method != "POST":
@@ -104,7 +113,7 @@ async def _api_simulate(scope, receive, send) -> None:
     try:
         payload = json.loads((await _read_request_body(receive)).decode("utf-8"))
         await _json_response(send, HTTPStatus.OK, run_battle(payload))
-    except Exception as exc:
+    except (ScenarioError, ValueError, json.JSONDecodeError) as exc:
         await _json_response(send, HTTPStatus.BAD_REQUEST, {"error": str(exc)})
 
 

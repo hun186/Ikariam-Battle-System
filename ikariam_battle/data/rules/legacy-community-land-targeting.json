@@ -1,0 +1,4 @@
+{
+  "metadata":{"profile":"legacy-community-land-targeting","source_type":"COMMUNITY_REFERENCE","verification":"REVIEWER_WEB_VERIFIED","retrieved":"2026-09-24","current_applicability":"CALIBRATION_REQUIRED"},
+  "priorities":{"third":["first","flank"],"second":["first","flank","second"],"first":["first","second","third","flank"],"flank":["flank","second","third","first"],"anti-balloon":["balloon","anti-balloon"],"balloon":["third","second","first","flank"]}
+}

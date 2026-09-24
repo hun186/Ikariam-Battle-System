@@ -1,0 +1,35 @@
+{
+  "metadata": {
+    "profile": "legacy-community-battle-end",
+    "source_type": "COMMUNITY_REFERENCE",
+    "verification": "REVIEWER_WEB_VERIFIED",
+    "retrieved": "2026-09-24",
+    "current_applicability": "CALIBRATION_REQUIRED",
+    "sources": [
+      {
+        "source_type": "COMMUNITY_REFERENCE",
+        "title": "Land battle formation reference: heavy infantry front and light/long-range fallback",
+        "verification": "REVIEWER_WEB_VERIFIED",
+        "url": null,
+        "url_status": "The reviewer verified this source but did not supply its URL; Codex network access was unavailable."
+      },
+      {
+        "source_type": "GAMEFORGE_FORUM_BATTLE_REPORT",
+        "title": "Combat report: no units left to hold the main battle line; remainder withdrew",
+        "verification": "REVIEWER_WEB_VERIFIED",
+        "url": null,
+        "url_status": "The reviewer verified this forum report but did not supply its URL; it is evidence, not an official specification."
+      },
+      {
+        "source_type": "GAMEFORGE_FORUM_BATTLE_REPORT",
+        "title": "Combat report: only flight or artillery remained; they withdrew",
+        "verification": "REVIEWER_WEB_VERIFIED",
+        "url": null,
+        "url_status": "The reviewer verified this forum report but did not supply its URL; it is evidence, not an official specification."
+      }
+    ]
+  },
+  "main_line_classes": ["first"],
+  "fallback_candidate_classes": ["flank", "second"],
+  "non_sustaining_classes": ["third", "balloon", "anti-balloon", "support"]
+}
