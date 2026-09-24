@@ -1,5 +1,8 @@
 from ikariam_battle.battlefield import LAND_MINI, deploy
-from ikariam_battle.models import Army
+import pytest
+
+from ikariam_battle.engine import _prepare_round_start
+from ikariam_battle.models import Army, ArmyUnit, ScenarioError, Slot, Wave
 from ikariam_battle.units import UnitRegistry
 
 
@@ -47,3 +50,44 @@ def test_duplicate_same_wave_rows_normalize():
  one=Army.from_dict({'units':[{'unit_id':'hoplite','quantity':60,'wave_id':'w','attack_upgrade':12,'armor_upgrade':8}]})
  split=Army.from_dict({'units':[{'unit_id':'hoplite','quantity':30,'wave_id':'w','attack_upgrade':12,'armor_upgrade':8},{'unit_id':'hoplite','quantity':30,'wave_id':'w','attack_upgrade':12,'armor_upgrade':8}]})
  assert one==split
+
+
+def test_ammunition_pool_is_scoped_to_entry_wave():
+ waves=deploy(Army.from_dict({'units':[{'unit_id':'sulphur_carabineer','quantity':42,'wave_id':'batch-a'}]}),UnitRegistry.load(),LAND_MINI)
+ assert waves[0].ammo_pool_shots==42*3
+ assert waves[0].ammo_capacity_shots==42*3
+
+
+def test_different_entry_waves_do_not_share_ammunition():
+ registry=UnitRegistry.load()
+ army=Army.from_dict({'units':[{'unit_id':'sulphur_carabineer','quantity':42,'wave_id':'batch-a'},
+                               {'unit_id':'sulphur_carabineer','quantity':21,'wave_id':'batch-b'}]})
+ waves=deploy(army,registry,LAND_MINI)
+ waves[0].ammo_pool_shots=2
+ assert [(w.unit.wave_id,w.ammo_pool_shots,w.ammo_capacity_shots) for w in waves]==[
+  ('batch-a',2,126),('batch-b',63,63)]
+
+
+def test_wave_model_can_represent_future_multi_line_slots_without_enabling_fallback():
+ wave=Wave(ArmyUnit('sulphur_carabineer',42,'batch-a'),33,[
+  Slot('second-1','second',2,1,'sulphur_carabineer','batch-a',2,7),
+  Slot('first-1','first',2,1,'sulphur_carabineer','batch-a',7,7)],ammo_pool_shots=2,
+  ammo_capacity_shots=126)
+ assert wave.alive==42 and {slot.line for slot in wave.slots}=={'first','second'}
+
+
+def test_multiline_wave_cannot_silently_enter_refill_or_redistribution():
+ wave=Wave(ArmyUnit('sulphur_carabineer',14,'batch-a'),0,[
+  Slot('second-1','second',2,1,'sulphur_carabineer','batch-a',7,7,3),
+  Slot('first-1','first',2,1,'sulphur_carabineer','batch-a',7,7,5)],
+  ammo_pool_shots=2,ammo_capacity_shots=42)
+ before=[(slot.units,slot.damage) for slot in wave.slots]
+ with pytest.raises(ScenarioError,match='UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS'):
+  _prepare_round_start([wave],[],2,'attacker',{})
+ assert [(slot.units,slot.damage) for slot in wave.slots]==before
+
+
+def test_spearman_taxonomy_separates_semantic_class_from_native_line():
+ spearman=UnitRegistry.load().get('spearman')
+ assert spearman.semantic_class=='light_infantry'
+ assert spearman.native_line=='first' and spearman.battlefield_class=='first'

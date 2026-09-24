@@ -69,7 +69,7 @@ def deploy(army: Army, registry: UnitRegistry, field: Battlefield) -> list[Wave]
             # A valid unit can remain in reserve when the battlefield has no
             # slots for its class (notably flank in land-mini).
             ammo = None if unit.primary_weapon.ammunition is None else item.quantity * unit.primary_weapon.ammunition
-            waves.append(Wave(item, item.quantity, [], 0, ammo))
+            waves.append(Wave(item, item.quantity, [], 0, ammo, 0, ammo))
             continue
         geometry = field.lines[line_name]
         assert unit.size is not None and unit.size > 0
@@ -85,5 +85,5 @@ def deploy(army: Army, registry: UnitRegistry, field: Battlefield) -> list[Wave]
                               item.unit_id, item.wave_id, count, unit_capacity))
             used.add(damage_position); remaining -= count
         ammo = None if unit.primary_weapon.ammunition is None else item.quantity * unit.primary_weapon.ammunition
-        waves.append(Wave(item, remaining, slots, 0, ammo))
+        waves.append(Wave(item, remaining, slots, 0, ammo, 0, ammo))
     return waves

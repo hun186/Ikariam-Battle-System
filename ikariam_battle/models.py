@@ -152,6 +152,9 @@ class Wave:
     reserve_damage: int = 0
     ammo_pool_shots: int | None = None
     support_units: int = 0
+    # Immutable normal-Phase-A denominator for UI/reporting.  The live pool is
+    # deliberately kept on the wave (entry batch), never on a side or slot.
+    ammo_capacity_shots: int | None = None
 
     @property
     def alive(self) -> int:
