@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from importlib.resources import files
+import json
 from typing import Any
 
 from .models import Scenario, ScenarioError, _integer, _object
@@ -48,3 +50,11 @@ def damage_interval_from_report(percent: int, alive_hit_points: int) -> tuple[in
     lower = ((percent - 1) * alive_hit_points) // 100 + 1
     upper = (percent * alive_hit_points) // 100
     return lower, upper
+
+
+def ranged_formation_observations() -> dict[str, Any]:
+    """Return calibration-only observations without promoting them to rules."""
+    resource = files("ikariam_battle.data.calibration").joinpath(
+        "ranged-formation-user-observations.json"
+    )
+    return json.loads(resource.read_text(encoding="utf-8"))

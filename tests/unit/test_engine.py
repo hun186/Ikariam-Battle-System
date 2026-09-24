@@ -131,6 +131,29 @@ def test_snapshots_preserve_line_positions_and_ammo_pool():
  assert 'ammo_pool_shots' in slot
 
 
+def test_tooltip_hp_is_derived_from_current_survivors_only():
+ from ikariam_battle.engine import _snapshot
+ from ikariam_battle.profiles import BattleEndProfile
+ registry=UnitRegistry.load(); hp=registry.get('hoplite').hit_points
+ wave=Wave(ArmyUnit('hoplite',12,'batch'),0,[Slot('first-1','first',2,1,'hoplite','batch',10,30,2*hp)],
+           ammo_capacity_shots=None)
+ slot=_snapshot([wave],registry,BattleEndProfile.load())['slots'][0]
+ assert slot['hit_points_percent']==80
+
+
+def test_tooltip_ammo_is_shared_wave_derived_state():
+ from ikariam_battle.engine import _snapshot
+ from ikariam_battle.profiles import BattleEndProfile
+ registry=UnitRegistry.load()
+ wave=Wave(ArmyUnit('sulphur_carabineer',14,'batch'),0,[
+  Slot('second-1','second',2,1,'sulphur_carabineer','batch',7,7),
+  Slot('second-2','second',1,2,'sulphur_carabineer','batch',7,7)],
+  ammo_pool_shots=21,ammo_capacity_shots=42)
+ state=_snapshot([wave],registry,BattleEndProfile.load())
+ assert [slot['munition_percent'] for slot in state['slots']]==[50,50]
+ assert state['waves'][0]['munition_percent']==50
+
+
 def test_support_artillery_and_air_survive_but_do_not_sustain_battle():
  cases=[('doctor',4),('catapult',6),('gyrocopter',10)]
  for unit,quantity in cases:

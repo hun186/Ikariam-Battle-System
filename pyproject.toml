@@ -23,6 +23,7 @@ exclude = ["public*", "tests*"]
 "ikariam_battle.data.units" = ["*.json"]
 "ikariam_battle.data.rules" = ["*.json"]
 "ikariam_battle.data.mechanics" = ["*.json"]
+"ikariam_battle.data.calibration" = ["*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

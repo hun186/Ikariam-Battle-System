@@ -46,6 +46,7 @@ def _assume(applied: dict[str, dict[str, str]], events: list[Event], assumption_
 def _snapshot(waves: list[Wave], registry: UnitRegistry, battle_end: BattleEndProfile) -> dict[str, Any]:
     units, main_line, fallback, reserve, support = (defaultdict(int) for _ in range(5))
     slots: list[dict[str, Any]] = []
+    wave_states: list[dict[str, Any]] = []
     for wave in waves:
         unit = registry.get(wave.unit.unit_id)
         units[unit.id] += wave.alive; reserve[unit.id] += wave.reserve
@@ -55,10 +56,26 @@ def _snapshot(waves: list[Wave], registry: UnitRegistry, battle_end: BattleEndPr
             fallback[unit.id] += wave.alive
         if wave.support_units:
             support[unit.id] += wave.support_units
+        ammo_percent = None if wave.ammo_capacity_shots is None else round(
+            100 * (wave.ammo_pool_shots or 0) / wave.ammo_capacity_shots, 2)
+        wave_states.append({"unit_id": unit.id, "wave_id": wave.unit.wave_id,
+                            "entry_batch_id": wave.unit.wave_id, "alive": wave.alive,
+                            "reserve": wave.reserve, "ammo_pool_shots": wave.ammo_pool_shots,
+                            "ammo_capacity_shots": wave.ammo_capacity_shots,
+                            "munition_percent": ammo_percent,
+                            "deployed_lines": sorted({slot.line for slot in wave.slots if slot.units})})
         slots.extend({"slot_id": s.slot_id, "line": s.line, "physical_position": s.physical_position,
                       "damage_position": s.damage_position, "unit_id": s.unit_id, "wave_id": s.wave_id,
                       "units": s.units, "capacity": s.capacity, "damage": s.damage,
-                      "ammo_pool_shots": wave.ammo_pool_shots} for s in wave.slots)
+                      "entry_batch_id": s.wave_id, "display_name": unit.display_name,
+                      "semantic_class": unit.semantic_class, "native_line": unit.native_line,
+                      "attack_upgrade": wave.unit.attack_upgrade,
+                      "armor_upgrade": wave.unit.armor_upgrade,
+                      "hit_points_percent": round(100 * (s.units * unit.hit_points - s.damage) /
+                                                  (s.units * unit.hit_points), 2) if s.units else None,
+                      "ammo_pool_shots": wave.ammo_pool_shots,
+                      "ammo_capacity_shots": wave.ammo_capacity_shots,
+                      "munition_percent": ammo_percent} for s in wave.slots)
     slots.sort(key=lambda s: (s["line"], s["physical_position"], s["unit_id"], s["wave_id"]))
     state = battle_end.continuation_state(sum(main_line.values()), sum(fallback.values()))
     return {"remaining": dict(units), "main_line_holding_remaining": dict(main_line),
@@ -66,7 +83,8 @@ def _snapshot(waves: list[Wave], registry: UnitRegistry, battle_end: BattleEndPr
             "fallback_candidate_remaining": dict(fallback),
             "fallback_candidate_total": sum(fallback.values()), "continuation_state": state.value,
             "reserve": dict(reserve),
-            "deployed_support": dict(support), "slots": slots, "total": sum(units.values())}
+            "deployed_support": dict(support), "waves": wave_states,
+            "slots": slots, "total": sum(units.values())}
 
 
 def _unsupported(scenario: Scenario, events: list[Event], initial: dict, blockers: list[str], warnings: list[str]) -> dict:

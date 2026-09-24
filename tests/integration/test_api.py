@@ -52,6 +52,8 @@ def test_static_ui_uses_metadata_per_unit_upgrades_and_mini_size():
  response=asyncio.run(request('GET','/')); body=response[1]['body'].decode()
  assert response[0]['status']==200 and "fetch('/api/simulate')" in body and 'const units=[' not in body
  assert 'Attack upgrade' in body and 'Armor upgrade' in body and 'Battlefield size' in body
+ assert 'Research mode' in body and 'roundSelect' in body and 'slot-tooltip' in body
+ assert 'Hit points:' in body and 'Munition:' in body
 
 def test_battle_end_survivors_round_boundary_and_unique_assumptions_api():
  for survivor,quantity in [('doctor',4),('catapult',6)]:
@@ -83,3 +85,11 @@ def test_front_alive_continuation_state_api():
  state=data['final_state']['defender']
  assert state['continuation_state']=='sustaining'
  assert state['main_line_holding_total']>0 and state['fallback_candidate_total']==7
+
+
+def test_additive_ui_state_fields_keep_existing_api_contract():
+ value=payload('strict'); status,data=post(value)
+ assert status==200 and {'remaining','reserve','slots','total'} <= data['initial_state']['attacker'].keys()
+ slot=data['initial_state']['attacker']['slots'][0]
+ assert {'entry_batch_id','display_name','hit_points_percent','munition_percent','native_line','semantic_class'} <= slot.keys()
+ assert {'wave_id','entry_batch_id','ammo_capacity_shots','munition_percent','deployed_lines'} <= data['initial_state']['attacker']['waves'][0].keys()

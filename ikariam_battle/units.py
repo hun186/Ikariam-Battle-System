@@ -26,6 +26,8 @@ class UnitDefinition:
     role: str
     support_effect: str | None
     battlefield_class: str
+    semantic_class: str
+    native_line: str
     hit_points: int | None
     base_armor: int | None
     accuracy: int | None
@@ -56,6 +58,7 @@ class UnitRegistry:
         for row in raw["units"]:
             definitions[row["id"]] = UnitDefinition(
                 row["id"], row["display_name"], row["domain"], row["role"], row.get("support_effect"), row["battlefield_class"],
+                row.get("semantic_class", "unknown"), row.get("native_line", row["battlefield_class"]),
                 row.get("hp"), row.get("base_armor"), row.get("accuracy"), row.get("size"),
                 tuple(Weapon(w["id"], w.get("damage"), w.get("ammunition"), w.get("trigger", "primary"),
                              w.get("accuracy"), w.get("provenance", {})) for w in row.get("weapons", [])),
@@ -73,5 +76,7 @@ class UnitRegistry:
 
     def public(self) -> list[dict[str, Any]]:
         return [{"id": u.id, "display_name": u.display_name, "domain": u.domain, "role": u.role,
-                 "support_effect":u.support_effect, "battlefield_class": u.battlefield_class, "numerically_supported": u.numerically_supported,
+                 "support_effect":u.support_effect, "battlefield_class": u.battlefield_class,
+                 "semantic_class":u.semantic_class, "native_line":u.native_line,
+                 "numerically_supported": u.numerically_supported,
                  "counts_toward_garrison_limit": u.counts_toward_garrison_limit} for u in self.all()]

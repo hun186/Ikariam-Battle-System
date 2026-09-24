@@ -143,7 +143,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "light_infantry",
+      "native_line": "first"
     },
     {
       "id": "swordsman",
@@ -273,7 +275,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "light_infantry",
+      "native_line": "flank"
     },
     {
       "id": "hoplite",
@@ -457,7 +461,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "heavy_infantry",
+      "native_line": "first"
     },
     {
       "id": "spartan",
@@ -587,7 +593,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "heavy_infantry",
+      "native_line": "first"
     },
     {
       "id": "steam_giant",
@@ -717,7 +725,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "heavy_infantry",
+      "native_line": "first"
     },
     {
       "id": "slinger",
@@ -889,7 +899,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "long_range",
+      "native_line": "second"
     },
     {
       "id": "archer",
@@ -1061,7 +1073,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "long_range",
+      "native_line": "second"
     },
     {
       "id": "sulphur_carabineer",
@@ -1233,7 +1247,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "long_range",
+      "native_line": "second"
     },
     {
       "id": "battering_ram",
@@ -1405,7 +1421,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "artillery",
+      "native_line": "third"
     },
     {
       "id": "catapult",
@@ -1577,7 +1595,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "artillery",
+      "native_line": "third"
     },
     {
       "id": "mortar",
@@ -1749,7 +1769,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "artillery",
+      "native_line": "third"
     },
     {
       "id": "gyrocopter",
@@ -1879,7 +1901,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "air",
+      "native_line": "anti-balloon"
     },
     {
       "id": "bombardier",
@@ -2009,7 +2033,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "air",
+      "native_line": "balloon"
     },
     {
       "id": "doctor",
@@ -2146,7 +2172,9 @@
             }
           ]
         }
-      }
+      },
+      "semantic_class": "support",
+      "native_line": "support"
     },
     {
       "id": "cook",
@@ -2283,7 +2311,9 @@
             }
           ]
         }
-      }
+      },
+      "semantic_class": "support",
+      "native_line": "support"
     },
     {
       "id": "steam_ram",
@@ -2448,7 +2478,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "heavy_infantry",
+      "native_line": "first"
     },
     {
       "id": "fire_ship",
@@ -2613,7 +2645,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "heavy_infantry",
+      "native_line": "first"
     },
     {
       "id": "ram_ship",
@@ -2778,7 +2812,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "heavy_infantry",
+      "native_line": "first"
     },
     {
       "id": "ballista_ship",
@@ -3006,7 +3042,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "long_range",
+      "native_line": "second"
     },
     {
       "id": "catapult_ship",
@@ -3234,7 +3272,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "long_range",
+      "native_line": "second"
     },
     {
       "id": "mortar_ship",
@@ -3462,7 +3502,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "long_range",
+      "native_line": "second"
     },
     {
       "id": "diving_boat",
@@ -3690,7 +3732,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "light_infantry",
+      "native_line": "flank"
     },
     {
       "id": "rocket_ship",
@@ -3918,7 +3962,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "artillery",
+      "native_line": "third"
     },
     {
       "id": "balloon_carrier",
@@ -4097,7 +4143,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "air",
+      "native_line": "balloon"
     },
     {
       "id": "paddle_speedboat",
@@ -4276,7 +4324,9 @@
           "sources": [],
           "note": "Not inferred from v17.4 support exclusion"
         }
-      }
+      },
+      "semantic_class": "air",
+      "native_line": "anti-balloon"
     },
     {
       "id": "tender",
@@ -4448,7 +4498,9 @@
             }
           ]
         }
-      }
+      },
+      "semantic_class": "support",
+      "native_line": "support"
     }
   ]
 }
