@@ -19,6 +19,7 @@ The simulator combines empirical mechanics with current numerical profiles; it i
 | Cook/Doctor/Tender garrison exclusion | OFFICIAL_CHANGELOG, v17.4.0, 2026-08-11 | applies only to these support units |
 | verified-through release | OFFICIAL_CHANGELOG, v17.5.0, 2026-09-08 | no later military/profile change reported |
 | `legacy-community-land-targeting` | COMMUNITY_REFERENCE | experimental/calibration policy |
+| `legacy-community-battle-end` | COMMUNITY_REFERENCE, REVIEWER_WEB_VERIFIED | sustaining classes and round-boundary termination; calibration required |
 
 ## Workshop and Forge ownership
 
@@ -47,6 +48,12 @@ Naval forum corroboration is field-specific: HP, armor, size, damage, shown seco
 ## Other experimental policies and remaining unknowns
 
 Named policies include pooled I-kill, floor rounding, phase-start simultaneous chronology, no within-phase retarget, RR deployed-total rounding, ammo stop/partial ordering, legacy targeting, ignored accuracy, and separate no-healing/no-morale effects. Responses and events expose IDs. Remaining unknowns include kill selection, rounding selector, SR/IR triggers, complete chronology, target transfer after destruction, mixed-unit/multi-wave Am, secondary weapon trigger, healing/morale allocation, accuracy, non-standard renumbering, naval geometry, and long-duration intervals.
+
+## Battle-end semantics
+
+The versioned legacy/community battle-end profile treats front, long-range, and flank classes as battle-sustaining. Artillery, bomber, anti-air, and support survive in `total` but do not sustain a side alone. Snapshots expose `battle_sustaining_remaining` and `battle_sustaining_total`. After both simultaneous plans are applied, the engine terminates in that same round, emits `battle_termination`, and leaves non-sustaining survivors out of casualties. Both-zero uses the profile's explicit draw policy. Initial timing and completed-round evaluation use `EXP-BATTLE-END-ROUND-BOUNDARY-001`; strict mode reports `UNKNOWN-INITIAL-BATTLE-END-TIMING` for a scenario that starts without a sustaining side.
+
+Experimental results now list only assumptions actually reached. Partial-ammunition and formation-fallback assumptions are conditional, and assumption IDs are unique.
 
 `BattleReportFixture` retains game version, complete scenario, round, casualties, damage%, and life%; damage display percentages can be converted to integer intervals rather than hard-coding a winner.
 

@@ -1,4 +1,4 @@
-from ikariam_battle.profiles import ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
+from ikariam_battle.profiles import BattleEndProfile, ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 from ikariam_battle.units import UnitRegistry
 
 LAND={'spearman','swordsman','hoplite','spartan','steam_giant','slinger','archer','sulphur_carabineer','battering_ram','catapult','mortar','gyrocopter','bombardier','doctor','cook'}
@@ -63,3 +63,5 @@ def test_workshop_forge_support_and_targeting_profiles():
  f=ForgeProfile.load(); assert [(str(f.effect(i).damage_multiplier),f.effect(i).armor_bonus) for i in range(6)]==[('1',0),('1.075',0),('1.075',10),('1.1',10),('1.125',20),('1.15',20)]
  s=SupportProfile.load(); assert s.derived_capacity==4000 and s.raw['multiplier_provenance']['source_type']=='OFFICIAL_CHANGELOG'
  t=TargetingProfile.load(); assert t.priorities['flank'][0]=='flank'
+ b=BattleEndProfile.load()
+ assert b.sustaining_classes=={'first','second','flank'} and not b.is_sustaining('third')

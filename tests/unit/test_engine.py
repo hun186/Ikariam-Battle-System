@@ -23,7 +23,10 @@ def test_strict_refuses_accuracy_targeting_and_other_unknowns():
 def test_experimental_names_accuracy_targeting_and_is_reproducible():
  first=simulate(scenario()); assert first==simulate(scenario())
  ids={a['id'] for a in first['assumptions']}
- assert {'EXP-I-KILL-001','EXP-ACCURACY-IGNORED-001','EXP-TARGET-LEGACY-001','EXP-AMMO-PARTIAL-ORDER-001'} <= ids
+ assert {'EXP-I-KILL-001','EXP-ACCURACY-IGNORED-001','EXP-TARGET-LEGACY-001'} <= ids
+ assert 'EXP-FORMATION-NO-FALLBACK-001' not in ids
+ assert 'EXP-AMMO-PARTIAL-ORDER-001' not in ids
+ assert len(ids)==len(first['assumptions'])
  assert any(e['type']=='damage_calculation' and e['details']['workshop_attack_level']==12 for e in first['events'])
 
 
@@ -38,10 +41,18 @@ def test_carabineer_ammunition_is_pooled_shots_not_round_counter():
  attacker=deploy(attacker_army,registry,LAND_MINI); defender=deploy(defender_army,registry,LAND_MINI); events=[]
  assert attacker[0].ammo_pool_shots==126 and sum(s.units for s in attacker[0].slots)==21
  for round_no in range(1,5):
-  plans=_plan_fire(attacker,deepcopy(defender),registry,WorkshopProfile.load(),ForgeProfile.load(),TargetingProfile.load(),events,round_no,'attacker',attacker_army,defender_army)
+  plans=_plan_fire(attacker,deepcopy(defender),registry,WorkshopProfile.load(),ForgeProfile.load(),TargetingProfile.load(),events,round_no,'attacker',attacker_army,defender_army,{})
   assert plans
  assert attacker[0].ammo_pool_shots==42
  assert not any(e.type=='ammo_exhausted' for e in events)
+
+
+def test_partial_ammo_assumption_is_applied_only_when_partial_volley_occurs():
+ registry=UnitRegistry.load(); attacker_army=Army.from_dict({'units':[{'unit_id':'sulphur_carabineer','quantity':42}]}); defender_army=Army.from_dict({'units':[{'unit_id':'hoplite','quantity':90}]})
+ attacker=deploy(attacker_army,registry,LAND_MINI); defender=deploy(defender_army,registry,LAND_MINI)
+ attacker[0].ammo_pool_shots=5; events=[]; applied={}
+ _plan_fire(attacker,defender,registry,WorkshopProfile.load(),ForgeProfile.load(),TargetingProfile.load(),events,1,'attacker',attacker_army,defender_army,applied)
+ assert list(applied).count('EXP-AMMO-PARTIAL-ORDER-001')==1
 
 
 def target_wave(unit,line,units=10,reserve=0):
@@ -93,16 +104,17 @@ def test_support_is_deployed_separately_not_reported_as_reserve():
 
 
 def test_reserve_only_flank_exposes_fallback_boundary():
- s=scenario('strict'); s['attacker']['units'].append({'unit_id':'swordsman','quantity':10})
+ s=scenario('strict'); s['attacker']['units']=[{'unit_id':'swordsman','quantity':10}]
  strict=simulate(s)
  assert 'UNKNOWN-FORMATION-FALLBACK' in {e['details']['rule_id'] for e in strict['events'] if e['type']=='unsupported_mechanic'}
  s['policy']='experimental'; experimental=simulate(s)
- assert 'EXP-FORMATION-NO-FALLBACK-001' in {a['id'] for a in experimental['assumptions']}
+ ids=[a['id'] for a in experimental['assumptions']]
+ assert ids.count('EXP-FORMATION-NO-FALLBACK-001')==1 and len(ids)==len(set(ids))
 
 
 def test_round_start_refills_before_rr_uses_following_deployment():
  wave=Wave(ArmyUnit('hoplite',40,'w'),20,[Slot('first-1','first',2,1,'hoplite','w',20,30,20)],0,None)
- events=[]; _prepare_round_start([wave],events,2,'attacker')
+ events=[]; _prepare_round_start([wave],events,2,'attacker',{})
  assert (wave.slots[0].units,wave.slots[0].damage,wave.reserve,wave.reserve_damage)==(30,15,10,5)
 
 
@@ -117,3 +129,44 @@ def test_snapshots_preserve_line_positions_and_ammo_pool():
  r=simulate(scenario('strict')); slot=next(s for s in r['initial_state']['attacker']['slots'] if s['damage_position']==1)
  assert (slot['line'],slot['physical_position'])==('first',2)
  assert 'ammo_pool_shots' in slot
+
+
+def test_support_artillery_and_air_survive_but_do_not_sustain_battle():
+ cases=[('doctor',4),('catapult',6),('gyrocopter',10)]
+ for unit,quantity in cases:
+  s={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
+     'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
+     'defender':{'units':[{'unit_id':'hoplite','quantity':1},{'unit_id':unit,'quantity':quantity}]}}
+  result=simulate(s); state=result['final_state']['defender']
+  assert result['outcome']=='attacker' and result['rounds_completed']==1
+  assert state['remaining'][unit]==quantity and state['battle_sustaining_total']==0
+  assert result['casualties']['defender'].get(unit,0)==0
+  event=next(e for e in result['events'] if e['type']=='battle_termination')
+  assert event['details']['surviving_non_sustaining']['defender']=={unit:quantity}
+
+
+def test_long_range_is_sustaining_and_surfaces_formation_fallback():
+ s={'policy':'strict','battlefield':'land-mini','attacker':{'units':[{'unit_id':'hoplite','quantity':30}]},
+    'defender':{'units':[{'unit_id':'sulphur_carabineer','quantity':7}]}}
+ result=simulate(s)
+ assert result['initial_state']['defender']['battle_sustaining_total']==7
+ assert 'UNKNOWN-FORMATION-FALLBACK' in {e['details']['rule_id'] for e in result['events'] if e['type']=='unsupported_mechanic'}
+
+
+def test_final_sustaining_unit_dies_in_round_two_without_empty_round_three():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
+    'attacker':{'units':[{'unit_id':'hoplite','quantity':30}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':10}]}}
+ result=simulate(s)
+ assert result['outcome']=='attacker' and result['rounds_completed']==2
+ assert max(round_state['round'] for round_state in result['rounds'])==2
+
+
+def test_initial_non_sustaining_timing_is_strict_boundary_and_named_experimental_policy():
+ s={'policy':'strict','battlefield':'land-mini','attacker':{'units':[{'unit_id':'hoplite','quantity':30}]},
+    'defender':{'units':[{'unit_id':'doctor','quantity':4}]}}
+ strict=simulate(s)
+ assert 'UNKNOWN-INITIAL-BATTLE-END-TIMING' in {e['details']['rule_id'] for e in strict['events'] if e['type']=='unsupported_mechanic'}
+ s['policy']='experimental'; experimental=simulate(s)
+ assert experimental['outcome']=='attacker' and experimental['rounds_completed']==0
+ assert [a['id'] for a in experimental['assumptions']].count('EXP-BATTLE-END-ROUND-BOUNDARY-001')==1

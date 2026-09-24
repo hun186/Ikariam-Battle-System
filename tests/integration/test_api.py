@@ -17,6 +17,7 @@ def post(value):
 def test_get_metadata_drives_complete_land_ui_and_profiles():
  response=asyncio.run(request('GET','/api/simulate')); data=json.loads(response[1]['body'])
  assert response[0]['status']==200 and data['profiles']['targeting']=='legacy-community-land-targeting'
+ assert data['profiles']['battle_end']=='legacy-community-battle-end'
  assert data['profile_metadata']['verified_through_game_version']=='17.5.0'
  assert next(f for f in data['battlefields'] if f['id']=='land-mini')['supported'] is True
  assert len([u for u in data['units'] if u['domain']=='land' and u['numerically_supported']])==15
@@ -51,3 +52,14 @@ def test_static_ui_uses_metadata_per_unit_upgrades_and_mini_size():
  response=asyncio.run(request('GET','/')); body=response[1]['body'].decode()
  assert response[0]['status']==200 and "fetch('/api/simulate')" in body and 'const units=[' not in body
  assert 'Attack upgrade' in body and 'Armor upgrade' in body and 'Battlefield size' in body
+
+def test_battle_end_survivors_round_boundary_and_unique_assumptions_api():
+ for survivor,quantity in [('doctor',4),('catapult',6)]:
+  value={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
+    'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':1},{'unit_id':survivor,'quantity':quantity}]}}
+  status,data=post(value); assert status==200 and data['outcome']=='attacker' and data['rounds_completed']==1
+  assert data['final_state']['defender']['remaining'][survivor]==quantity
+  assert data['final_state']['defender']['battle_sustaining_total']==0
+  assert data['casualties']['defender'].get(survivor,0)==0
+  ids=[a['id'] for a in data['assumptions']]; assert len(ids)==len(set(ids))

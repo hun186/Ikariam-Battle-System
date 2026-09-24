@@ -60,3 +60,17 @@ class TargetingProfile:
     @classmethod
     def load(cls, name: str = "legacy-community-land-targeting") -> "TargetingProfile":
         return cls(_load("rules", name))
+
+
+class BattleEndProfile:
+    def __init__(self, raw: dict):
+        self.metadata = raw["metadata"]
+        self.sustaining_classes = frozenset(raw["battle_sustaining_classes"])
+        self.both_zero_outcome = raw["both_zero_outcome"]
+
+    @classmethod
+    def load(cls, name: str = "legacy-community-battle-end") -> "BattleEndProfile":
+        return cls(_load("rules", name))
+
+    def is_sustaining(self, battlefield_class: str) -> bool:
+        return battlefield_class in self.sustaining_classes

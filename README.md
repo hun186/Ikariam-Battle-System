@@ -9,6 +9,7 @@ A deterministic browser simulator combining current Infinite Horizons numerical 
 - v14 Forge: side-wide levels 0–5.
 - v17 support: Doctor/Tender healing ×20; 4000 is derived from legacy 200. Cook morale and healing allocation remain unknown.
 - Legacy empirical mechanics profile for formation labels, Am, and RR, with SR/IR/kill/chronology limitations retained.
+- Legacy/community battle-end profile distinguishes sustaining front, long-range, and flank units from surviving artillery, air, and support.
 
 Official changelog claims and exact community/PTS tables are not conflated. The reviewer verified sources through v17.5.0 with retrieval date 2026-09-24; this environment did not independently open those URLs. See [the evidence register](docs/mechanics-spec.md).
 
@@ -19,6 +20,8 @@ The implemented battlefield is explicitly `land-mini` (Town Hall 1–4): front 3
 Ammunition is pooled as shots across deployed and reserve units of a wave. Target priorities consider deployed slots only and use a versioned legacy/community experimental profile. Accuracy is per weapon but its algorithm is unresolved, so it is an explicit experimental assumption and a strict blocker. Doctor/Tender healing and Cook morale have separate boundaries and are represented as deployed support rather than ordinary reserve.
 
 This remains a **unit-vs-unit Phase A** simulator. Town walls, wall targeting/damage, garrison-limit escalation of battlefield size, and complete city-battle behavior are not implemented.
+
+Snapshots keep all survivors in `total` and separately expose `battle_sustaining_total`. Artillery, air, and support survivors withdraw/scatter without becoming casualties when the opponent retains a sustaining force. Experimental battle-end timing is evaluated only at the initial and completed-round boundaries and is disclosed by assumption ID.
 
 ## Run and verify
 

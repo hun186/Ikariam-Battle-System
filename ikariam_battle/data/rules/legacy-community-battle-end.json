@@ -1,0 +1,11 @@
+{
+  "metadata": {
+    "profile": "legacy-community-battle-end",
+    "source_type": "COMMUNITY_REFERENCE",
+    "verification": "REVIEWER_WEB_VERIFIED",
+    "retrieved": "2026-09-24",
+    "current_applicability": "CALIBRATION_REQUIRED"
+  },
+  "battle_sustaining_classes": ["first", "second", "flank"],
+  "both_zero_outcome": "draw"
+}

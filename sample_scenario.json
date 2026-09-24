@@ -5,7 +5,8 @@
     "workshop": "v14-workshop",
     "forge": "v14-hephaistos",
     "support": "v17-support-healing",
-    "targeting": "legacy-community-land-targeting"
+    "targeting": "legacy-community-land-targeting",
+    "battle_end": "legacy-community-battle-end"
   },
   "policy": "experimental",
   "battlefield": "land-mini",

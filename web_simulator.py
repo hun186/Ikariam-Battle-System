@@ -27,7 +27,7 @@ class handler(BaseHTTPRequestHandler):
             self._json(200, {"message": "POST a typed scenario to /api/simulate",
                 "profiles": {"mechanics":"battle-system-paper-2020","unit_stats":"infinite-horizons-current",
                              "workshop":"v14-workshop","forge":"v14-hephaistos","support":"v17-support-healing",
-                             "targeting":"legacy-community-land-targeting"},
+                             "targeting":"legacy-community-land-targeting","battle_end":"legacy-community-battle-end"},
                 "battlefields": [{"id":"land-mini","display_name":"Land mini / Town Hall 1–4","supported":True},
                                  {"id":"land-small","display_name":"Land small","supported":False},
                                  {"id":"land-medium","display_name":"Land medium","supported":False},
