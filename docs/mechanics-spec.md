@@ -34,6 +34,8 @@ Formation legality is not combat knowledge. Separate Heavy and Light slots can c
 
 At round boundary, `_prepare_round_start()` first re-establishes the following round's existing placements through `_rebuild_formation()`, then applies RR using those deployed quantities, and only afterward may fire be planned. Cross-wave replacement after casualties is not silently inferred.
 
+If one combat wave occupies a runtime line while another native-same-line wave is wholly reserve-only, the latter cannot be moved into vacated slots by the current same-wave rebuild. `UNKNOWN-CROSS-WAVE-FORMATION-REBUILD` therefore stops before combat rather than permitting a false termination after the deployed wave dies. A single wave's ordinary reserve refill remains supported; support units are not cross-wave combat candidates.
+
 ## Workshop and Forge ownership
 
 Workshop levels belong to a player’s **unit type**, not the whole army. Every `ArmyUnit` has `attack_upgrade` and `armor_upgrade`; all rows/waves of the same `unit_id` on one side must agree. Duplicate rows aggregate only when unit, wave, and upgrades agree. Forge remains side-wide at level 0–5.

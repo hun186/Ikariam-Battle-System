@@ -17,4 +17,4 @@
 Larger land and naval geometry, accuracy, target transfer, mixed rows, healing/morale, kill/rounding/SR/IR chronology and secondary triggers require calibration.
 
 ## Recent Outcomes
-- Corrected PR #16 so first-line eligibility/fallback fields are executable and validated, geometry is the sole deployment-order authority, and runtime-line targeting is documented as known independently of unknown weapon selection.
+- Corrected PR #16 so reserve-only native-same-line waves stop at `UNKNOWN-CROSS-WAVE-FORMATION-REBUILD`, while same-wave refill remains supported; GET metadata now derives every profile, including formation, from `Profiles()`.

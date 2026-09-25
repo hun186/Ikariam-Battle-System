@@ -122,8 +122,29 @@ def test_reserve_only_flank_exposes_fallback_boundary():
 
 def test_round_start_refills_before_rr_uses_following_deployment():
  wave=Wave(ArmyUnit('hoplite',40,'w'),20,[Slot('first-1','first',2,1,'hoplite','w',20,30,20)],0,None)
+ assert 'UNKNOWN-CROSS-WAVE-FORMATION-REBUILD' not in _preflight([wave],UnitRegistry.load())
  events=[]; _prepare_round_start([wave],events,2,'attacker',{})
  assert (wave.slots[0].units,wave.slots[0].damage,wave.reserve,wave.reserve_damage)==(30,15,10,5)
+
+
+def test_reserve_only_same_line_wave_stops_before_unsafe_cross_wave_rebuild():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
+    'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':90,'wave_id':'wave-a'},
+                         {'unit_id':'hoplite','quantity':90,'wave_id':'wave-b'}]}}
+ result=simulate(s)
+ assert result['status']=='inconclusive' and result['rounds_completed']==0
+ assert result['initial_state']['defender']['reserve']['hoplite']==90
+ assert result['initial_state']['defender']['remaining']['hoplite']==180
+ rules={e['details']['rule_id'] for e in result['events'] if e['type']=='unsupported_mechanic'}
+ assert 'UNKNOWN-CROSS-WAVE-FORMATION-REBUILD' in rules
+ assert not any(e['type']=='attacking_matrix' for e in result['events'])
+
+
+def test_support_only_state_is_not_cross_wave_rebuild_candidate():
+ registry=UnitRegistry.load()
+ waves=deploy(Army.from_dict({'units':[{'unit_id':'doctor','quantity':4}]}),registry,LAND_MINI)
+ assert 'UNKNOWN-CROSS-WAVE-FORMATION-REBUILD' not in _preflight(waves,registry)
 
 
 def test_domain_and_unsupported_geometry_rejections():

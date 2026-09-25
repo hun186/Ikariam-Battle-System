@@ -102,6 +102,7 @@ def _preflight(waves: list[Wave], registry: UnitRegistry) -> list[str]:
     blockers = []
     line_types: dict[str, set[str]] = defaultdict(set)
     line_waves: dict[str, int] = defaultdict(int)
+    deployed_lines = {slot.line for wave in waves for slot in wave.slots if slot.units}
     for wave in waves:
         if len({slot.line for slot in wave.slots}) > 1:
             blockers.append("UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS")
@@ -109,6 +110,9 @@ def _preflight(waves: list[Wave], registry: UnitRegistry) -> list[str]:
         if unit.support_effect == "healing": blockers.append("UNKNOWN-HEALING-ALLOCATION")
         elif unit.support_effect == "morale": blockers.append("UNKNOWN-MORALE-SUPPORT")
         else:
+            if (wave.reserve and not any(slot.units for slot in wave.slots)
+                    and unit.native_line in deployed_lines):
+                blockers.append("UNKNOWN-CROSS-WAVE-FORMATION-REBUILD")
             for runtime_line in {slot.line for slot in wave.slots if slot.units}:
                 line_types[runtime_line].add(unit.id)
                 line_waves[runtime_line] += 1
@@ -308,7 +312,8 @@ def simulate(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         return _unsupported(scenario, events, initial, sorted(set(blockers)), warnings)
     if {"UNKNOWN-MIXED-UNIT-AM-ROWS", "UNKNOWN-MULTIPLE-TARGET-WAVES",
         "UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS",
-        "UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT"} & set(blockers):
+        "UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT",
+        "UNKNOWN-CROSS-WAVE-FORMATION-REBUILD"} & set(blockers):
         return _unsupported(scenario, events, initial, blockers, warnings)
     applied: dict[str, dict[str, str]] = {}
     if "UNKNOWN-HEALING-ALLOCATION" in blockers:
