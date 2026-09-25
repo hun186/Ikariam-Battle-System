@@ -5,7 +5,7 @@ from decimal import Decimal, ROUND_FLOOR, ROUND_HALF_UP
 from enum import Enum
 
 from .profiles import ForgeProfile, WorkshopProfile
-from .units import UnitDefinition
+from .units import UnitDefinition, Weapon
 
 
 class RoundingPolicy(str, Enum):
@@ -15,6 +15,8 @@ class RoundingPolicy(str, Enum):
 
 @dataclass(frozen=True)
 class DamageTrace:
+    weapon_id: str
+    weapon_trigger: str
     base_damage: int
     workshop_attack_level: int
     workshop_damage_bonus: int
@@ -35,10 +37,11 @@ class DamageTrace:
 
 def calculate_damage(attacker: UnitDefinition, target: UnitDefinition, attack_level: int, armor_level: int,
                      attacker_forge: int, defender_forge: int, workshop: WorkshopProfile,
-                     forge: ForgeProfile, rounding: RoundingPolicy) -> DamageTrace:
+                     forge: ForgeProfile, rounding: RoundingPolicy, *, weapon: Weapon | None = None) -> DamageTrace:
     if not attacker.numerically_supported or target.base_armor is None:
         raise ValueError("damage requires verified numerical fields")
-    base = attacker.primary_weapon.damage
+    selected = attacker.primary_weapon if weapon is None else weapon
+    base = selected.damage
     assert base is not None
     workshop_damage = workshop.bonus(attacker.domain, attack_level)
     pre_forge = base + workshop_damage
@@ -48,6 +51,6 @@ def calculate_damage(attacker: UnitDefinition, target: UnitDefinition, attack_le
     net = max(Decimal(0), post_forge - Decimal(target.base_armor + workshop_armor + defense_effect.armor_bonus))
     mode = ROUND_FLOOR if rounding is RoundingPolicy.FLOOR else ROUND_HALF_UP
     final = int(net.quantize(Decimal("1"), rounding=mode))
-    return DamageTrace(base, attack_level, workshop_damage, pre_forge, attacker_forge,
+    return DamageTrace(selected.id, selected.trigger, base, attack_level, workshop_damage, pre_forge, attacker_forge,
                        str(attack_effect.damage_multiplier), str(post_forge), target.base_armor,
                        armor_level, workshop_armor, defense_effect.armor_bonus, str(net), rounding.value, final)

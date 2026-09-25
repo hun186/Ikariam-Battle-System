@@ -1,7 +1,7 @@
 from ikariam_battle.damage import RoundingPolicy, calculate_damage
 from ikariam_battle.models import Army
 from ikariam_battle.profiles import ForgeProfile, WorkshopProfile
-from ikariam_battle.units import UnitRegistry
+from ikariam_battle.units import UnitRegistry, Weapon
 
 
 def test_same_army_unit_specific_levels_drive_different_traces():
@@ -17,3 +17,13 @@ def test_rounding_policies_diverge_without_claiming_truth():
  r=UnitRegistry.load(); w=WorkshopProfile.load(); f=ForgeProfile.load(); args=(r.get('sulphur_carabineer'),r.get('hoplite'),0,0,1,0,w,f)
  assert calculate_damage(*args,RoundingPolicy.FLOOR).final_damage==603
  assert calculate_damage(*args,RoundingPolicy.NEAREST).final_damage==604
+
+
+def test_damage_uses_explicitly_selected_weapon():
+ r=UnitRegistry.load(); w=WorkshopProfile.load(); f=ForgeProfile.load()
+ selected=Weapon('test-selected',100,None,'test',100,{})
+ trace=calculate_damage(r.get('swordsman'),r.get('hoplite'),0,0,0,0,w,f,
+                        RoundingPolicy.FLOOR,weapon=selected)
+ assert trace.weapon_id=='test-selected'
+ assert trace.base_damage==100
+ assert trace.final_damage==80
