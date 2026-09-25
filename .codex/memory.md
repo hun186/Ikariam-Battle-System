@@ -1,7 +1,7 @@
 # Project Memory
 
 ## Current Focus
-- PR #16 is merged; PR #17 focuses on explicit weapon selection and homogeneous single-weapon Light Infantry fallback combat.
+- PR #17 is merged; explicit weapon selection and homogeneous single-weapon Light Infantry fallback combat are the current baseline.
 - Workshop upgrades are per unit type; Forge is side-wide.
 - `land-mini` uses line slot counts and slot-space/unit-size capacity.
 - Complete reviewer-verified current data is distinct from empirical mechanics.
@@ -16,5 +16,6 @@
 Larger land and naval geometry, accuracy, target transfer, mixed rows, healing/morale, kill/rounding/SR/IR chronology and secondary triggers require calibration.
 
 ## Recent Outcomes
+- Battle-report calibration is executable through separate run/evaluate APIs with per-field MATCH/MISMATCH/NOT_ASSESSABLE results; a match does not promote empirical evidence into production truth, and life-percent semantics remain unknown.
 - Explicit weapon selection preserves native primary behavior and enables homogeneous single-weapon Light Infantry in runtime first; runtime target priority remains separate.
 - Mixed-unit Am, cross-wave rebuild, ranged fallback, and secondary-weapon triggers remain guarded or unsupported.
