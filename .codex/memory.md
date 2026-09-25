@@ -1,6 +1,7 @@
 # Project Memory
 
 ## Current Focus
+- PR #16 work is based locally on user-confirmed hosted `main` merge `2ac572063209c6d23a3707d2f8bd246939ff70bb`; hosted re-check returns HTTP 403.
 - PR #15 corrective baseline is hosted head `003141798b1d20f4b212db4b8730a20b1cf9260a` on `main` base `b70a1888f1f65a45b1b374759773d8a76dff4f54`; network re-check was attempted but this environment returned HTTP 403.
 - Workshop upgrades are per unit type; Forge is side-wide.
 - `land-mini` uses line slot counts and slot-space/unit-size capacity.
@@ -14,3 +15,6 @@
 
 ## Open Handoffs
 Larger land and naval geometry, accuracy, target transfer, mixed rows, healing/morale, kill/rounding/SR/IR chronology and secondary triggers require calibration.
+
+## Recent Outcomes
+- Added pure, profile-driven land-mini formation planning with runtime-line-aware targeting/holding and retained fallback/mixed-combat guards.

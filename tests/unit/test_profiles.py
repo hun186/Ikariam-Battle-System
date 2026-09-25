@@ -1,3 +1,4 @@
+from ikariam_battle.formation import FormationRules
 from ikariam_battle.profiles import BattleEndProfile, ContinuationState, ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 from ikariam_battle.units import UnitRegistry
 
@@ -69,3 +70,4 @@ def test_workshop_forge_support_and_targeting_profiles():
  assert b.continuation_state(0,7) is ContinuationState.FALLBACK_REQUIRED
  assert b.continuation_state(0,0) is ContinuationState.NOT_SUSTAINING
  assert {s['source_type'] for s in b.metadata['sources']}=={'COMMUNITY_REFERENCE','GAMEFORGE_FORUM_BATTLE_REPORT'}
+ assert FormationRules.load().metadata['implementation_status']=='LAND_MINI_PLANNER_IMPLEMENTED_COMBAT_GUARDED'

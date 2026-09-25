@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from importlib.resources import files
 import json
 
-from .models import Army, ScenarioError, Slot, Wave
+from .models import Army, ScenarioError, Wave
 from .units import UnitRegistry
 
 
@@ -52,38 +52,13 @@ def battlefield(name: str) -> Battlefield:
     raise ScenarioError(f"{name} is reserved but its geometry is unsupported")
 
 
-def deploy(army: Army, registry: UnitRegistry, field: Battlefield) -> list[Wave]:
-    waves: list[Wave] = []
-    occupied: dict[str, set[int]] = {}
+def deploy(army: Army, registry: UnitRegistry, field: Battlefield,
+           formation_profile: str = "formation-land") -> list[Wave]:
+    from .formation import FormationRules, build_initial_formation
     for item in army.units:
         unit = registry.get(item.unit_id)
         if unit.domain != field.domain:
             raise ScenarioError(f"{unit.id} is {unit.domain} and cannot enter {field.id}")
-        if unit.role == "support":
-            waves.append(Wave(item, 0, [], 0, None, item.quantity))
-            continue
-        if not unit.numerically_supported:
+        if unit.role != "support" and not unit.numerically_supported:
             raise ScenarioError(f"{unit.id} has unverified numerical fields and cannot be simulated")
-        line_name = "flank" if unit.battlefield_class.startswith("flank") else unit.battlefield_class
-        if line_name not in field.lines:
-            # A valid unit can remain in reserve when the battlefield has no
-            # slots for its class (notably flank in land-mini).
-            ammo = None if unit.primary_weapon.ammunition is None else item.quantity * unit.primary_weapon.ammunition
-            waves.append(Wave(item, item.quantity, [], 0, ammo, 0, ammo))
-            continue
-        geometry = field.lines[line_name]
-        assert unit.size is not None and unit.size > 0
-        unit_capacity = geometry.slot_space // unit.size
-        remaining, slots = item.quantity, []
-        used = occupied.setdefault(line_name, set())
-        # Deployment follows damage priority, never physical left-to-right order.
-        for damage_position in geometry.damage_priority:
-            if damage_position in used or remaining == 0: continue
-            count = min(remaining, unit_capacity)
-            slots.append(Slot(f"{line_name}-{damage_position}", line_name,
-                              geometry.physical_position(damage_position), damage_position,
-                              item.unit_id, item.wave_id, count, unit_capacity))
-            used.add(damage_position); remaining -= count
-        ammo = None if unit.primary_weapon.ammunition is None else item.quantity * unit.primary_weapon.ammunition
-        waves.append(Wave(item, remaining, slots, 0, ammo, 0, ammo))
-    return waves
+    return build_initial_formation(army, registry, field, FormationRules.load(formation_profile))

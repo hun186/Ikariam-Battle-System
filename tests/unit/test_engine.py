@@ -77,6 +77,14 @@ def test_swordsman_targets_deployed_flank_before_front():
  assert target_class=='flank' and target is flank
 
 
+def test_target_priority_uses_runtime_line_not_legacy_class():
+ registry=UnitRegistry.load(); targeting=TargetingProfile.load()
+ source=target_wave('swordsman','first')
+ front=target_wave('hoplite','first'); flank=target_wave('swordsman','flank')
+ target,target_class=_target(source,[front,flank],registry,targeting)
+ assert target_class=='first' and target is front
+
+
 def test_destroyed_deployed_wave_is_not_targetable():
  registry=UnitRegistry.load(); targeting=TargetingProfile.load(); source=Wave(ArmyUnit('swordsman',10),10)
  dead_flank=target_wave('swordsman','flank',0); front=target_wave('hoplite','first')
@@ -105,7 +113,7 @@ def test_support_is_deployed_separately_not_reported_as_reserve():
 def test_reserve_only_flank_exposes_fallback_boundary():
  s=scenario('strict'); s['attacker']['units']=[{'unit_id':'swordsman','quantity':10}]
  strict=simulate(s)
- assert 'UNKNOWN-FORMATION-FALLBACK' in {e['details']['rule_id'] for e in strict['events'] if e['type']=='unsupported_mechanic'}
+ assert 'UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT' in {e['details']['rule_id'] for e in strict['events'] if e['type']=='unsupported_mechanic'}
  s['policy']='experimental'; experimental=simulate(s)
  ids=[a['id'] for a in experimental['assumptions']]
  assert experimental['status']=='inconclusive' and experimental['rounds_completed']==0
@@ -207,7 +215,7 @@ def test_front_alive_with_carabineer_is_sustaining():
  assert state['continuation_state']=='sustaining'
 
 
-@pytest.mark.parametrize('fallback_unit,quantity',[('sulphur_carabineer',7),('swordsman',10)])
+@pytest.mark.parametrize('fallback_unit,quantity',[('sulphur_carabineer',7)])
 def test_dynamic_front_collapse_stops_at_fallback_boundary(fallback_unit,quantity):
  s={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
     'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
@@ -219,6 +227,18 @@ def test_dynamic_front_collapse_stops_at_fallback_boundary(fallback_unit,quantit
  boundary=next(e for e in result['events'] if e['type']=='unsupported_mechanic' and e['details']['rule_id']=='UNKNOWN-FORMATION-FALLBACK')
  assert boundary['round']==1
  assert not any(e['type']=='attacking_matrix' and e['side']=='defender' and e['round']>1 for e in result['events'])
+
+
+def test_mixed_runtime_front_is_represented_but_never_fires():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
+    'attacker':{'units':[{'unit_id':'hoplite','quantity':90}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':8},{'unit_id':'swordsman','quantity':30}]}}
+ result=simulate(s); front=result['initial_state']['defender']['slots']
+ assert {(slot['unit_id'],slot['line']) for slot in front}=={('hoplite','first'),('swordsman','first')}
+ rules={e['details']['rule_id'] for e in result['events'] if e['type']=='unsupported_mechanic'}
+ assert {'UNKNOWN-MIXED-UNIT-AM-ROWS','UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT'} <= rules
+ assert result['rounds_completed']==0
+ assert not any(e['type']=='attacking_matrix' for e in result['events'])
 
 
 def test_both_sides_without_main_line_is_not_an_unqualified_draw():
