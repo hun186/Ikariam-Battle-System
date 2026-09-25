@@ -13,6 +13,7 @@ from .models import Policy, Scenario, ScenarioError, Wave
 from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, TargetingProfile, WorkshopProfile
 from .redistribution import SlotShare, reserve_redistribution
 from .units import UnitRegistry
+from .weapon_selection import UnsupportedWeaponSelection, select_active_weapon
 
 
 EXPERIMENTAL_POLICIES = {
@@ -117,8 +118,11 @@ def _preflight(waves: list[Wave], registry: UnitRegistry, rules: FormationRules,
             for runtime_line in {slot.line for slot in wave.slots if slot.units}:
                 line_types[runtime_line].add(unit.id)
                 line_waves[runtime_line] += 1
-                if runtime_line != unit.native_line:
-                    blockers.append("UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT")
+                try:
+                    select_active_weapon(unit, runtime_line)
+                except UnsupportedWeaponSelection:
+                    if unit.semantic_class == "light_infantry":
+                        blockers.append("UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT")
     if any(len(types) > 1 for types in line_types.values()): blockers.append("UNKNOWN-MIXED-UNIT-AM-ROWS")
     if any(count > 1 for count in line_waves.values()): blockers.append("UNKNOWN-MULTIPLE-TARGET-WAVES")
     return blockers
@@ -203,6 +207,8 @@ def _plan_fire(source: list[Wave], target: list[Wave], registry: UnitRegistry, w
     for wave in _combat_waves(source, registry):
         if not wave.slots or not wave.alive: continue
         unit = registry.get(wave.unit.unit_id)
+        runtime_line = _runtime_line(wave, registry)
+        weapon = select_active_weapon(unit, runtime_line)
         if wave.ammo_pool_shots == 0:
             _assume(applied, events, "EXP-AMMO-STOP-001", number, "fire")
             _event(events, number, "fire", "ammo_exhausted", side, unit_id=unit.id,
@@ -230,10 +236,11 @@ def _plan_fire(source: list[Wave], target: list[Wave], registry: UnitRegistry, w
         trace = from_slot_counts(firing_counts, [slot.damage_position for slot in active])
         damage = calculate_damage(unit, registry.get(enemy.unit.unit_id), wave.unit.attack_upgrade,
                                   enemy.unit.armor_upgrade, source_army.forge_level,
-                                  target_army.forge_level, workshop, forge, RoundingPolicy.FLOOR)
+                                  target_army.forge_level, workshop, forge, RoundingPolicy.FLOOR,
+                                  weapon=weapon)
         _event(events, number, "fire", "attacking_matrix", side, unit_id=unit.id,
                target_unit_id=enemy.unit.unit_id, target_class=target_class,
-               targeting_assumption="EXP-TARGET-LEGACY-001", trace=trace.as_dict())
+               weapon_id=weapon.id, targeting_assumption="EXP-TARGET-LEGACY-001", trace=trace.as_dict())
         _event(events, number, "fire", "damage_calculation", side, source_unit_id=unit.id,
                target_unit_id=enemy.unit.unit_id, **damage.as_dict())
         for slot in active:

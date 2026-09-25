@@ -45,6 +45,7 @@ def test_carabineer_ammunition_is_pooled_shots_not_round_counter():
   assert plans
  assert attacker[0].ammo_pool_shots==42
  assert not any(e.type=='ammo_exhausted' for e in events)
+ assert {e.details['weapon_id'] for e in events if e.type=='damage_calculation'}=={'primary'}
 
 
 def test_partial_ammo_assumption_is_applied_only_when_partial_volley_occurs():
@@ -111,14 +112,30 @@ def test_support_is_deployed_separately_not_reported_as_reserve():
  assert state['reserve'].get('doctor',0)==0
 
 
-def test_reserve_only_flank_exposes_fallback_boundary():
- s=scenario('strict'); s['attacker']['units']=[{'unit_id':'swordsman','quantity':10}]
+def test_single_weapon_light_fallback_has_no_specific_strict_blocker():
+ s=scenario('strict'); s['attacker']['units']=[{'unit_id':'swordsman','quantity':30}]
  strict=simulate(s)
- assert 'UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT' in {e['details']['rule_id'] for e in strict['events'] if e['type']=='unsupported_mechanic'}
+ rules={e['details']['rule_id'] for e in strict['events'] if e['type']=='unsupported_mechanic'}
+ assert 'UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT' not in rules
+ assert {'UNKNOWN-KILL-SELECTION','UNKNOWN-ACCURACY','UNKNOWN-TARGET-TRANSFER'} <= rules
  s['policy']='experimental'; experimental=simulate(s)
- ids=[a['id'] for a in experimental['assumptions']]
- assert experimental['status']=='inconclusive' and experimental['rounds_completed']==0
- assert 'EXP-FORMATION-NO-FALLBACK-001' not in ids and len(ids)==len(set(ids))
+ assert any(e['type']=='attacking_matrix' for e in experimental['events'])
+
+
+def test_homogeneous_swordsman_front_fires_primary_at_runtime_first_priority():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+    'attacker':{'units':[{'unit_id':'swordsman','quantity':30}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':30}]}}
+ result=simulate(s)
+ rules={e['details']['rule_id'] for e in result['events'] if e['type']=='unsupported_mechanic'}
+ assert 'UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT' not in rules
+ deployment=next(e for e in result['events'] if e['type']=='deployment' and e['side']=='attacker')
+ assert deployment['details']['line']=='first'
+ matrix=next(e for e in result['events'] if e['type']=='attacking_matrix' and e['side']=='attacker')
+ assert matrix['details']['target_class']=='first'
+ assert matrix['details']['weapon_id']=='primary'
+ damage=next(e for e in result['events'] if e['type']=='damage_calculation' and e['side']=='attacker')
+ assert damage['details']['weapon_id']=='primary'
 
 
 def test_round_start_refills_before_rr_uses_following_deployment():
@@ -281,7 +298,8 @@ def test_mixed_runtime_front_is_represented_but_never_fires():
  result=simulate(s); front=result['initial_state']['defender']['slots']
  assert {(slot['unit_id'],slot['line']) for slot in front}=={('hoplite','first'),('swordsman','first')}
  rules={e['details']['rule_id'] for e in result['events'] if e['type']=='unsupported_mechanic'}
- assert {'UNKNOWN-MIXED-UNIT-AM-ROWS','UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT'} <= rules
+ assert 'UNKNOWN-MIXED-UNIT-AM-ROWS' in rules
+ assert 'UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT' not in rules
  assert result['rounds_completed']==0
  assert not any(e['type']=='attacking_matrix' for e in result['events'])
 
