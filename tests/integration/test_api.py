@@ -22,13 +22,21 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert data['profiles']['formation']=='formation-land'
  assert set(data['profiles'])==set(Profiles().__dict__)
  assert data['profile_metadata']['verified_through_game_version']=='17.5.0'
- assert data['battlefields']==[
-  {'id':'land-mini','display_name':'Land mini / Town Hall 1–4','supported':True},
-  {'id':'land-small','display_name':'Land small / Town Hall 5–9','supported':True},
-  {'id':'land-medium','display_name':'Land medium / Town Hall 10–16','supported':True},
-  {'id':'land-large','display_name':'Land large / Town Hall 17–24','supported':True},
-  {'id':'land-max','display_name':'Land max / Town Hall 25+','supported':True},
+ assert [(f['id'],f['display_name'],f['supported']) for f in data['battlefields']]==[
+  ('land-mini','Land mini / Town Hall 1–4',True),
+  ('land-small','Land small / Town Hall 5–9',True),
+  ('land-medium','Land medium / Town Hall 10–16',True),
+  ('land-large','Land large / Town Hall 17–24',True),
+  ('land-max','Land max / Town Hall 25+',True),
  ]
+ medium=next(f for f in data['battlefields'] if f['id']=='land-medium')
+ assert {line:len(spec['physical_order']) for line,spec in medium['lines'].items()}=={
+  'first':7,'second':7,'flank':4,'third':3,'anti-balloon':1,'balloon':1}
+ maximum=next(f for f in data['battlefields'] if f['id']=='land-max')
+ assert {line:len(spec['physical_order']) for line,spec in maximum['lines'].items()}=={
+  'first':7,'second':7,'flank':6,'third':5,'anti-balloon':2,'balloon':2}
+ assert medium['lines']['flank']['slot_space']==30
+ assert maximum['lines']['first']['slot_space']==50
  assert len([u for u in data['units'] if u['domain']=='land' and u['numerically_supported']])==15
 
 def test_per_unit_workshop_forge_five_mini_api_smoke():
@@ -63,6 +71,9 @@ def test_static_ui_uses_metadata_per_unit_upgrades_and_mini_size():
  assert 'Attack upgrade' in body and 'Armor upgrade' in body and 'Battlefield size' in body
  assert 'Research mode' in body and 'roundSelect' in body and 'slot-tooltip' in body
  assert 'Hit points:' in body and 'Munition:' in body
+ assert "const lineOrder=['balloon','anti-balloon','third','second','flank','first']" in body
+ assert "metadata.battlefields.find(f=>f.id===lastBattlefieldId)?.lines||{}" in body
+ assert "order=geometry[line]?.physical_order||[]" in body
 
 
 def test_zero_unit_snapshot_slots_render_as_empty_and_static_copies_match():

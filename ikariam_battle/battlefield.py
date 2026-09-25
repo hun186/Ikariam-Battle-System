@@ -82,10 +82,23 @@ LAND_BATTLEFIELDS: Mapping[str, Battlefield] = MappingProxyType({
 LAND_MINI = LAND_BATTLEFIELDS["land-mini"]
 
 
-def battlefield_metadata() -> list[dict[str, str | bool]]:
+def battlefield_metadata() -> list[dict[str, object]]:
     """Return canonical public metadata; Town Hall ranges are descriptive only."""
-    return [{"id": field_id, "display_name": display_name, "supported": True}
-            for field_id, (display_name, _) in _LAND_SPECS.items()]
+    return [
+        {
+            "id": field_id,
+            "display_name": display_name,
+            "supported": True,
+            "lines": {
+                name: {
+                    "physical_order": list(line.physical_order),
+                    "slot_space": line.slot_space,
+                }
+                for name, line in LAND_BATTLEFIELDS[field_id].lines.items()
+            },
+        }
+        for field_id, (display_name, _) in _LAND_SPECS.items()
+    ]
 
 
 def battlefield(name: str) -> Battlefield:
