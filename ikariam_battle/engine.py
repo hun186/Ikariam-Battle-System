@@ -245,6 +245,7 @@ def _plan_fire(source: list[Wave], target: list[Wave], registry: UnitRegistry, w
                target_unit_id=enemy.unit.unit_id, **damage.as_dict())
         for slot in active:
             plans.append({"target_unit": enemy.unit.unit_id, "target_wave": enemy.unit.wave_id,
+                          "target_side": "defender" if side == "attacker" else "attacker",
                           "slot_id": slot.slot_id, "hits": trace.hits_by_damage_position[slot.damage_position],
                           "damage_per_hit": damage.final_damage, "source_unit": unit.id, "side": side})
         if wave.ammo_pool_shots is not None: wave.ammo_pool_shots -= shots
@@ -265,7 +266,8 @@ def _apply(plans: list[dict[str, Any]], targets: list[Wave], registry: UnitRegis
         killed = min(slot.units, (prior + dealt) // hp)
         slot.units -= killed; slot.damage = prior + dealt - killed * hp; casualties[slot.unit_id] += killed
         _event(events, number, "fire", "damage", plan["side"], target_slot=slot.slot_id,
-               source_unit_id=plan["source_unit"], target_unit_id=slot.unit_id, firing_units=plan["hits"],
+               target_side=plan["target_side"], target_line=slot.line,
+               target_damage_position=slot.damage_position, source_unit_id=plan["source_unit"], target_unit_id=slot.unit_id, firing_units=plan["hits"],
                damage=dealt, prior_damage=prior, casualties=killed, persistent_damage=slot.damage,
                assumption_ids=["EXP-I-KILL-001", "EXP-RETARGET-NONE-001"])
 
