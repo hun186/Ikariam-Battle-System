@@ -195,6 +195,51 @@ def test_domain_and_unsupported_geometry_rejections():
  with pytest.raises(ScenarioError,match='reserved'): simulate(s)
 
 
+def test_land_medium_homogeneous_combat_uses_seven_front_slots_and_fires():
+ s={'policy':'experimental','battlefield':'land-medium','max_rounds':1,
+    'attacker':{'units':[{'unit_id':'hoplite','quantity':210}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':210}]}}
+ result=simulate(s)
+ assert result['rounds_completed']==1
+ assert len([slot for slot in result['initial_state']['attacker']['slots'] if slot['line']=='first'])==7
+ assert any(event['type']=='attacking_matrix' for event in result['events'])
+ assert 'UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS' not in {
+  event['details'].get('rule_id') for event in result['events']}
+
+
+def test_larger_field_multiline_light_wave_remains_guarded():
+ s={'policy':'experimental','battlefield':'land-small','max_rounds':1,
+    'attacker':{'units':[{'unit_id':'swordsman','quantity':180}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':150}]}}
+ result=simulate(s)
+ assert {slot['line'] for slot in result['initial_state']['attacker']['slots']}=={'first','flank'}
+ assert result['rounds_completed']==0
+ assert 'UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS' in {
+  event['details'].get('rule_id') for event in result['events']}
+
+
+def test_larger_field_mixed_heavy_and_light_front_remains_guarded():
+ s={'policy':'experimental','battlefield':'land-medium','max_rounds':1,
+    'attacker':{'units':[{'unit_id':'hoplite','quantity':30},
+                         {'unit_id':'swordsman','quantity':30}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':210}]}}
+ result=simulate(s)
+ assert result['rounds_completed']==0
+ assert 'UNKNOWN-MIXED-UNIT-AM-ROWS' in {
+  event['details'].get('rule_id') for event in result['events']}
+
+
+def test_larger_field_cross_wave_reserve_candidate_remains_guarded():
+ s={'policy':'experimental','battlefield':'land-small','max_rounds':1,
+    'attacker':{'units':[{'unit_id':'hoplite','quantity':150,'wave_id':'a'},
+                         {'unit_id':'hoplite','quantity':1,'wave_id':'b'}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':150}]}}
+ result=simulate(s)
+ assert result['rounds_completed']==0
+ assert 'UNKNOWN-CROSS-WAVE-FORMATION-REBUILD' in {
+  event['details'].get('rule_id') for event in result['events']}
+
+
 def test_snapshots_preserve_line_positions_and_ammo_pool():
  r=simulate(scenario('strict')); slot=next(s for s in r['initial_state']['attacker']['slots'] if s['damage_position']==1)
  assert (slot['line'],slot['physical_position'])==('first',2)

@@ -1,6 +1,8 @@
 from copy import deepcopy
 
-from ikariam_battle.battlefield import Battlefield, LAND_MINI, LineGeometry, deploy
+from ikariam_battle.battlefield import (
+ LAND_BATTLEFIELDS, Battlefield, LAND_MINI, LineGeometry, battlefield, deploy,
+)
 from ikariam_battle.formation import FormationRules, build_initial_formation, eligible_runtime_lines, plan_initial_formation
 import pytest
 
@@ -17,6 +19,66 @@ def test_land_mini_exact_lines_slots_and_no_flank():
  assert {line:len(g.physical_order) for line,g in LAND_MINI.lines.items()} == {
   'first':3,'second':3,'third':1,'balloon':1,'anti-balloon':1}
  assert 'flank' not in LAND_MINI.lines
+
+
+EXPECTED_GEOMETRY = {
+ 'land-mini': {
+  'first': ((2,1,3),30), 'second': ((2,1,3),30), 'third': ((1,),30),
+  'balloon': ((1,),10), 'anti-balloon': ((1,),10)},
+ 'land-small': {
+  'first': ((4,2,1,3,5),30), 'second': ((4,2,1,3,5),30), 'flank': ((2,1),30),
+  'third': ((1,2),30), 'balloon': ((1,),20), 'anti-balloon': ((1,),20)},
+ 'land-medium': {
+  'first': ((6,4,2,1,3,5,7),30), 'second': ((6,4,2,1,3,5,7),30),
+  'flank': ((4,2,1,3),30), 'third': ((3,1,2),30),
+  'balloon': ((1,),30), 'anti-balloon': ((1,),30)},
+ 'land-large': {
+  'first': ((6,4,2,1,3,5,7),40), 'second': ((6,4,2,1,3,5,7),40),
+  'flank': ((6,4,2,1,3,5),30), 'third': ((3,1,2,4),30),
+  'balloon': ((1,2),20), 'anti-balloon': ((2,1),20)},
+ 'land-max': {
+  'first': ((6,4,2,1,3,5,7),50), 'second': ((6,4,2,1,3,5,7),50),
+  'flank': ((6,4,2,1,3,5),40), 'third': ((5,3,1,2,4),30),
+  'balloon': ((1,2),30), 'anti-balloon': ((2,1),30)},
+}
+
+
+@pytest.mark.parametrize('field_id',EXPECTED_GEOMETRY)
+def test_all_land_fields_have_exact_slot_space_and_physical_order(field_id):
+ field=battlefield(field_id)
+ assert field is LAND_BATTLEFIELDS[field_id]
+ assert {name:(line.physical_order,line.slot_space) for name,line in field.lines.items()} == EXPECTED_GEOMETRY[field_id]
+
+
+@pytest.mark.parametrize(('field_id','expected'),[
+ ('land-small', {'hoplite':30,'steam_giant':10,'swordsman':30,'sulphur_carabineer':7,
+                 'catapult':6,'bombardier':10,'gyrocopter':20}),
+ ('land-medium', {'hoplite':30,'sulphur_carabineer':7,'bombardier':15,'gyrocopter':30}),
+ ('land-large', {'hoplite':40,'steam_giant':13,'swordsman':30,'sulphur_carabineer':10,
+                 'bombardier':10,'gyrocopter':20}),
+ ('land-max', {'hoplite':50,'steam_giant':16,'swordsman':40,'sulphur_carabineer':12,
+               'catapult':6,'bombardier':15,'gyrocopter':30}),
+])
+def test_representative_per_slot_capacity_is_space_divided_by_unit_size(field_id,expected):
+ registry=UnitRegistry.load(); field=battlefield(field_id)
+ line_for={'hoplite':'first','steam_giant':'first','swordsman':'flank',
+           'sulphur_carabineer':'second','catapult':'third',
+           'bombardier':'balloon','gyrocopter':'anti-balloon'}
+ assert {unit:field.lines[line_for[unit]].slot_space // registry.get(unit).size
+         for unit in expected} == expected
+
+
+@pytest.mark.parametrize(('field_id','unit','quantity','line','slot_units'),[
+ ('land-small','bombardier',20,'balloon',[10]),
+ ('land-small','gyrocopter',40,'anti-balloon',[20]),
+ ('land-large','bombardier',30,'balloon',[10,10]),
+ ('land-large','gyrocopter',50,'anti-balloon',[20,20]),
+ ('land-max','bombardier',40,'balloon',[15,15]),
+ ('land-max','gyrocopter',70,'anti-balloon',[30,30]),
+])
+def test_air_units_deploy_to_each_available_slot(field_id,unit,quantity,line,slot_units):
+ wave=deploy(army(unit,quantity),UnitRegistry.load(),battlefield(field_id))[0]
+ assert [slot.units for slot in wave.slots if slot.line==line]==slot_units
 
 
 def test_physical_layout_and_center_first_deployment():

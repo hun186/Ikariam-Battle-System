@@ -22,7 +22,13 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert data['profiles']['formation']=='formation-land'
  assert set(data['profiles'])==set(Profiles().__dict__)
  assert data['profile_metadata']['verified_through_game_version']=='17.5.0'
- assert next(f for f in data['battlefields'] if f['id']=='land-mini')['supported'] is True
+ assert data['battlefields']==[
+  {'id':'land-mini','display_name':'Land mini / Town Hall 1–4','supported':True},
+  {'id':'land-small','display_name':'Land small / Town Hall 5–9','supported':True},
+  {'id':'land-medium','display_name':'Land medium / Town Hall 10–16','supported':True},
+  {'id':'land-large','display_name':'Land large / Town Hall 17–24','supported':True},
+  {'id':'land-max','display_name':'Land max / Town Hall 25+','supported':True},
+ ]
  assert len([u for u in data['units'] if u['domain']=='land' and u['numerically_supported']])==15
 
 def test_per_unit_workshop_forge_five_mini_api_smoke():

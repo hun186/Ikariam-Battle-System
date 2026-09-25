@@ -144,6 +144,16 @@ def test_multiple_observations_and_fields_remain_separate_and_deterministic():
     ]
 
 
+def test_larger_battlefield_slot_is_addressed_by_runtime_line_and_damage_position():
+    scenario = {**SCENARIO, "battlefield": "land-medium",
+                "attacker": {"units": [{"unit_id": "hoplite", "quantity": 210}]},
+                "defender": {"units": [{"unit_id": "hoplite", "quantity": 210}]}}
+    result = run_fixture(fixture([{"side": "defender", "line": "first", "damage_position": 7,
+                                   "casualties": 0}], scenario=scenario))
+    assert result.reached_round == 1
+    assert result.assessments[0].reason == "EXACT-TARGET-SLOT-DAMAGE-EVENTS"
+
+
 @pytest.mark.parametrize("observation", [
     {"side": "other", "line": "first", "damage_position": 1, "casualties": 0},
     {"side": "defender", "line": "unknown", "damage_position": 1, "casualties": 0},

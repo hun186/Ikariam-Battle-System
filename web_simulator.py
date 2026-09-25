@@ -5,6 +5,7 @@ import json
 from urllib.parse import urlparse
 
 from ikariam_battle import ScenarioError, UnitRegistry, simulate
+from ikariam_battle.battlefield import battlefield_metadata
 from ikariam_battle.models import Profiles
 from ikariam_battle.profiles import ForgeProfile, SupportProfile, WorkshopProfile
 
@@ -27,11 +28,7 @@ class handler(BaseHTTPRequestHandler):
             registry = UnitRegistry.load()
             self._json(200, {"message": "POST a typed scenario to /api/simulate",
                 "profiles": Profiles().__dict__,
-                "battlefields": [{"id":"land-mini","display_name":"Land mini / Town Hall 1–4","supported":True},
-                                 {"id":"land-small","display_name":"Land small","supported":False},
-                                 {"id":"land-medium","display_name":"Land medium","supported":False},
-                                 {"id":"land-large","display_name":"Land large","supported":False},
-                                 {"id":"land-max","display_name":"Land max","supported":False}],
+                "battlefields": battlefield_metadata(),
                 "profile_metadata": registry.metadata, "units": registry.public(),
                 "forge_levels": {str(k): {"damage_multiplier":str(v.damage_multiplier),"armor_bonus":v.armor_bonus}
                                  for k,v in ForgeProfile.load().levels.items()},
