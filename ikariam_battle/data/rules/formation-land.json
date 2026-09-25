@@ -15,14 +15,15 @@
       "eligible_semantic_classes": ["heavy_infantry", "light_infantry"],
       "class_precedence": ["heavy_infantry", "light_infantry"],
       "fallback_semantic_classes": ["light_infantry"],
-      "standard_deployment_order": [6, 4, 2, 1, 3, 5, 7],
+      "deployment_order_authority": "battlefield_geometry.damage_priority",
+      "standard_physical_damage_labels_evidence": [6, 4, 2, 1, 3, 5, 7],
       "implementation_status": "IMPLEMENTED_FOR_LAND_MINI"
     },
-    "second": {"eligible_native_lines": ["second"], "standard_deployment_order": [6, 4, 2, 1, 3, 5, 7], "implementation_status": "NATIVE_ONLY"},
-    "third": {"eligible_native_lines": ["third"], "standard_deployment_order": [5, 3, 1, 2, 4], "implementation_status": "NATIVE_ONLY"},
-    "flank": {"eligible_native_lines": ["flank"], "standard_deployment_order": [6, 4, 2, 1, 3, 5], "implementation_status": "NO_LAND_MINI_SLOTS"},
-    "balloon": {"eligible_native_lines": ["balloon"], "standard_deployment_order": [1, 2], "implementation_status": "NATIVE_ONLY"},
-    "anti-balloon": {"eligible_native_lines": ["anti-balloon"], "standard_deployment_order": [2, 1], "implementation_status": "NATIVE_ONLY"}
+    "second": {"eligible_native_lines": ["second"], "deployment_order_authority": "battlefield_geometry.damage_priority", "standard_physical_damage_labels_evidence": [6, 4, 2, 1, 3, 5, 7], "implementation_status": "NATIVE_ONLY"},
+    "third": {"eligible_native_lines": ["third"], "deployment_order_authority": "battlefield_geometry.damage_priority", "standard_physical_damage_labels_evidence": [5, 3, 1, 2, 4], "implementation_status": "NATIVE_ONLY"},
+    "flank": {"eligible_native_lines": ["flank"], "deployment_order_authority": "battlefield_geometry.damage_priority", "standard_physical_damage_labels_evidence": [6, 4, 2, 1, 3, 5], "implementation_status": "NO_LAND_MINI_SLOTS"},
+    "balloon": {"eligible_native_lines": ["balloon"], "deployment_order_authority": "battlefield_geometry.damage_priority", "standard_physical_damage_labels_evidence": [1, 2], "implementation_status": "NATIVE_ONLY"},
+    "anti-balloon": {"eligible_native_lines": ["anti-balloon"], "deployment_order_authority": "battlefield_geometry.damage_priority", "standard_physical_damage_labels_evidence": [2, 1], "implementation_status": "NATIVE_ONLY"}
   },
   "unknowns": ["UNKNOWN-NON-STANDARD-RENUMBERING", "UNKNOWN-MIXED-UNIT-AM-ROWS", "UNKNOWN-FALLBACK-LONG-RANGE-WEAPON", "UNKNOWN-SECONDARY-WEAPON-TRIGGER"]
 }

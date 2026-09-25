@@ -17,4 +17,4 @@
 Larger land and naval geometry, accuracy, target transfer, mixed rows, healing/morale, kill/rounding/SR/IR chronology and secondary triggers require calibration.
 
 ## Recent Outcomes
-- Added pure, profile-driven land-mini formation planning with runtime-line-aware targeting/holding and retained fallback/mixed-combat guards.
+- Corrected PR #16 so first-line eligibility/fallback fields are executable and validated, geometry is the sole deployment-order authority, and runtime-line targeting is documented as known independently of unknown weapon selection.

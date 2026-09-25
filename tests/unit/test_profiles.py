@@ -64,6 +64,8 @@ def test_workshop_forge_support_and_targeting_profiles():
  f=ForgeProfile.load(); assert [(str(f.effect(i).damage_multiplier),f.effect(i).armor_bonus) for i in range(6)]==[('1',0),('1.075',0),('1.075',10),('1.1',10),('1.125',20),('1.15',20)]
  s=SupportProfile.load(); assert s.derived_capacity==4000 and s.raw['multiplier_provenance']['source_type']=='OFFICIAL_CHANGELOG'
  t=TargetingProfile.load(); assert t.priorities['flank'][0]=='flank'
+ assert t.metadata['line_role_contract']['status']=='KNOWN'
+ assert t.metadata['weapon_selection']['status']=='UNKNOWN'
  b=BattleEndProfile.load()
  assert b.main_line_classes=={'first'} and b.fallback_candidate_classes=={'flank','second'}
  assert b.continuation_state(1,7) is ContinuationState.SUSTAINING

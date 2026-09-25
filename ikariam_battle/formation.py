@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from importlib.resources import files
 import json
 
-from .models import Army, Slot, Wave
+from .models import Army, ScenarioError, Slot, Wave
 from .units import UnitRegistry
 
 
@@ -44,6 +44,12 @@ def plan_initial_formation(army: Army, registry: UnitRegistry, field, rules: For
     placements: list[FormationPlacement] = []
     occupied: dict[str, set[int]] = {}
 
+    def placement_order(line_name: str):
+        line_rules = rules.lines[line_name]
+        if line_rules.get("deployment_order_authority") != "battlefield_geometry.damage_priority":
+            raise ScenarioError(f"unsupported deployment order authority for {line_name}")
+        return field.lines[line_name].damage_priority
+
     def place(item, line_name: str) -> None:
         unit = registry.get(item.unit_id)
         geometry = field.lines.get(line_name)
@@ -52,7 +58,7 @@ def plan_initial_formation(army: Army, registry: UnitRegistry, field, rules: For
         capacity = geometry.slot_space // unit.size
         used = occupied.setdefault(line_name, set())
         key = (item.unit_id, item.wave_id)
-        for damage_position in geometry.damage_priority:
+        for damage_position in placement_order(line_name):
             if not remaining[key] or damage_position in used:
                 continue
             quantity = min(remaining[key], capacity)
@@ -64,9 +70,19 @@ def plan_initial_formation(army: Army, registry: UnitRegistry, field, rules: For
     # The first line is planned globally: heavy before light. A partial heavy
     # batch owns its slot; a fallback class is never mixed into that slot.
     first = rules.lines["first"]
+    eligible = tuple(first["eligible_semantic_classes"])
+    precedence = tuple(first["class_precedence"])
+    fallback = frozenset(first["fallback_semantic_classes"])
+    if len(set(precedence)) != len(precedence) or set(precedence) != set(eligible):
+        raise ScenarioError("first-line class_precedence must contain each eligible semantic class exactly once")
+    if not fallback <= set(eligible):
+        raise ScenarioError("first-line fallback classes must be eligible semantic classes")
     for semantic_class in first["class_precedence"]:
         for item in army.units:
-            if registry.get(item.unit_id).semantic_class == semantic_class:
+            unit = registry.get(item.unit_id)
+            if (unit.semantic_class in eligible
+                    and unit.semantic_class == semantic_class
+                    and (unit.native_line == "first" or semantic_class in fallback)):
                 place(item, "first")
 
     # Only after front requirements have consumed light infantry do remaining
@@ -74,8 +90,10 @@ def plan_initial_formation(army: Army, registry: UnitRegistry, field, rules: For
     for line_name in field.lines:
         if line_name == "first":
             continue
+        line_rules = rules.lines[line_name]
+        native_lines = frozenset(line_rules.get("eligible_native_lines", ()))
         for item in army.units:
-            if registry.get(item.unit_id).native_line == line_name:
+            if registry.get(item.unit_id).native_line in native_lines:
                 place(item, line_name)
     return FormationPlan(tuple(placements), remaining)
 
