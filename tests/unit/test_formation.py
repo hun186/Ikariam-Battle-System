@@ -1,4 +1,7 @@
-from ikariam_battle.battlefield import LAND_MINI, deploy
+from copy import deepcopy
+
+from ikariam_battle.battlefield import Battlefield, LAND_MINI, LineGeometry, deploy
+from ikariam_battle.formation import FormationRules, build_initial_formation, eligible_runtime_lines, plan_initial_formation
 import pytest
 
 from ikariam_battle.engine import _prepare_round_start
@@ -33,9 +36,90 @@ def test_slot_space_divided_by_unit_size():
   assert wave.slots[0].units==capacity
 
 
-def test_initial_normal_formation_has_no_flank_slot_on_mini():
+def test_light_infantry_falls_back_to_front_when_no_heavy_is_available():
  wave=deploy(army('swordsman',30),UnitRegistry.load(),LAND_MINI)[0]
- assert wave.slots==[] and wave.reserve==30
+ assert [(slot.line,slot.units) for slot in wave.slots]==[('first',30)] and wave.reserve==0
+ assert UnitRegistry.load().get('swordsman').native_line=='flank'
+
+
+def test_heavy_sufficient_keeps_light_out_of_front():
+ waves=deploy(Army.from_dict({'units':[{'unit_id':'hoplite','quantity':90},
+  {'unit_id':'swordsman','quantity':30}]}),UnitRegistry.load(),LAND_MINI)
+ assert {slot.unit_id for wave in waves for slot in wave.slots if slot.line=='first'}=={'hoplite'}
+ assert next(w for w in waves if w.unit.unit_id=='swordsman').reserve==30
+
+
+def test_partial_heavy_owns_partial_slot_then_light_fills_other_front_slots():
+ waves=deploy(Army.from_dict({'units':[{'unit_id':'hoplite','quantity':8},
+  {'unit_id':'swordsman','quantity':60}]}),UnitRegistry.load(),LAND_MINI)
+ slots=sorted((s for w in waves for s in w.slots if s.line=='first'),key=lambda s:s.damage_position)
+ assert [(s.unit_id,s.units,s.damage_position) for s in slots]==[
+  ('hoplite',8,1),('swordsman',30,2),('swordsman',30,3)]
+
+
+def test_land_mini_front_fallback_consumes_light_and_leaves_reserve_without_flank_slots():
+ waves=deploy(Army.from_dict({'units':[{'unit_id':'hoplite','quantity':30},
+  {'unit_id':'swordsman','quantity':100}]}),UnitRegistry.load(),LAND_MINI)
+ swordsman=next(w for w in waves if w.unit.unit_id=='swordsman')
+ assert sum(s.units for s in swordsman.slots)==60 and swordsman.reserve==40
+
+
+def test_front_before_flank_order_on_narrow_synthetic_geometry():
+ field=Battlefield('test-only','land',{
+  'first':LineGeometry('first',(2,1,3),30),
+  'flank':LineGeometry('flank',(1,),30)},'TEST_ONLY')
+ wave=build_initial_formation(army('swordsman',100),UnitRegistry.load(),field)[0]
+ assert [(s.line,s.units) for s in wave.slots]==[
+  ('first',30),('first',30),('first',30),('flank',10)]
+ assert wave.reserve==0
+
+
+def test_planner_is_pure_and_registry_metadata_is_immutable():
+ registry=UnitRegistry.load(); before=registry.get('swordsman')
+ plan=plan_initial_formation(Army.from_dict({'units':[{'unit_id':'swordsman','quantity':1}]}),registry,LAND_MINI)
+ assert plan.placements[0].runtime_line=='first'
+ assert registry.get('swordsman')==before and before.native_line=='flank'
+
+
+def test_formation_profile_records_standard_order_and_unknown_combat_boundary():
+ rules=FormationRules.load()
+ assert rules.lines['first']['deployment_order_authority']=='battlefield_geometry.damage_priority'
+ assert rules.lines['first']['standard_physical_damage_labels_evidence']==[6,4,2,1,3,5,7]
+ assert rules.lines['first']['class_precedence']==['heavy_infantry','light_infantry']
+ assert 'UNKNOWN-MIXED-UNIT-AM-ROWS' in rules.unknowns
+
+
+def modified_rules(mutator):
+ source=FormationRules.load(); lines=deepcopy(source.lines); mutator(lines)
+ return FormationRules(source.metadata,lines,source.unknowns)
+
+
+def test_first_line_profile_eligibility_is_executable():
+ rules=modified_rules(lambda lines: lines['first'].update(
+  eligible_semantic_classes=['heavy_infantry'],class_precedence=['heavy_infantry'],
+  fallback_semantic_classes=[]))
+ plan=plan_initial_formation(army('swordsman',30),UnitRegistry.load(),LAND_MINI,rules)
+ assert plan.placements==() and plan.reserves[('swordsman','wave-1')]==30
+
+
+def test_first_line_fallback_eligibility_is_executable_but_native_light_remains_eligible():
+ rules=modified_rules(lambda lines: lines['first'].update(fallback_semantic_classes=[]))
+ swordsman=plan_initial_formation(army('swordsman',30),UnitRegistry.load(),LAND_MINI,rules)
+ spearman=plan_initial_formation(army('spearman',30),UnitRegistry.load(),LAND_MINI,rules)
+ assert swordsman.placements==() and spearman.placements[0].runtime_line=='first'
+
+
+def test_eligible_runtime_lines_includes_profile_fallback_but_not_unrelated_lines():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ assert eligible_runtime_lines(registry.get('swordsman'),rules,LAND_MINI)==('first',)
+ assert eligible_runtime_lines(registry.get('catapult'),rules,LAND_MINI)==('third',)
+ assert eligible_runtime_lines(registry.get('doctor'),rules,LAND_MINI)==()
+
+
+def test_deployment_order_authority_cannot_silently_diverge():
+ rules=modified_rules(lambda lines: lines['first'].update(deployment_order_authority='profile.inline'))
+ with pytest.raises(ScenarioError,match='unsupported deployment order authority'):
+  plan_initial_formation(army('hoplite',30),UnitRegistry.load(),LAND_MINI,rules)
 
 
 def test_land_mini_air_deployment_is_capped_at_ten_space():

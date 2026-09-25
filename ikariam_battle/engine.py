@@ -8,6 +8,7 @@ from .attacking_matrix import from_slot_counts
 from .battlefield import battlefield, deploy
 from .damage import RoundingPolicy, calculate_damage
 from .events import Event
+from .formation import FormationRules, eligible_runtime_lines
 from .models import Policy, Scenario, ScenarioError, Wave
 from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, TargetingProfile, WorkshopProfile
 from .redistribution import SlotShare, reserve_redistribution
@@ -50,9 +51,10 @@ def _snapshot(waves: list[Wave], registry: UnitRegistry, battle_end: BattleEndPr
     for wave in waves:
         unit = registry.get(wave.unit.unit_id)
         units[unit.id] += wave.alive; reserve[unit.id] += wave.reserve
-        if unit.battlefield_class in battle_end.main_line_classes:
+        runtime_lines = {slot.line for slot in wave.slots}
+        if "first" in runtime_lines:
             main_line[unit.id] += wave.alive
-        elif unit.battlefield_class in battle_end.fallback_candidate_classes:
+        elif unit.native_line in battle_end.fallback_candidate_classes:
             fallback[unit.id] += wave.alive
         if wave.support_units:
             support[unit.id] += wave.support_units
@@ -97,10 +99,11 @@ def _unsupported(scenario: Scenario, events: list[Event], initial: dict, blocker
             "events": [e.as_dict() for e in events], "assumptions": [], "warnings": warnings}
 
 
-def _preflight(waves: list[Wave], registry: UnitRegistry) -> list[str]:
+def _preflight(waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field) -> list[str]:
     blockers = []
     line_types: dict[str, set[str]] = defaultdict(set)
     line_waves: dict[str, int] = defaultdict(int)
+    deployed_lines = {slot.line for wave in waves for slot in wave.slots if slot.units}
     for wave in waves:
         if len({slot.line for slot in wave.slots}) > 1:
             blockers.append("UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS")
@@ -108,8 +111,14 @@ def _preflight(waves: list[Wave], registry: UnitRegistry) -> list[str]:
         if unit.support_effect == "healing": blockers.append("UNKNOWN-HEALING-ALLOCATION")
         elif unit.support_effect == "morale": blockers.append("UNKNOWN-MORALE-SUPPORT")
         else:
-            line_types[unit.battlefield_class].add(unit.id)
-            line_waves[unit.battlefield_class] += 1
+            if (wave.reserve and not any(slot.units for slot in wave.slots)
+                    and deployed_lines.intersection(eligible_runtime_lines(unit, rules, field))):
+                blockers.append("UNKNOWN-CROSS-WAVE-FORMATION-REBUILD")
+            for runtime_line in {slot.line for slot in wave.slots if slot.units}:
+                line_types[runtime_line].add(unit.id)
+                line_waves[runtime_line] += 1
+                if runtime_line != unit.native_line:
+                    blockers.append("UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT")
     if any(len(types) > 1 for types in line_types.values()): blockers.append("UNKNOWN-MIXED-UNIT-AM-ROWS")
     if any(count > 1 for count in line_waves.values()): blockers.append("UNKNOWN-MULTIPLE-TARGET-WAVES")
     return blockers
@@ -137,7 +146,12 @@ def _redistribute(waves: list[Wave], events: list[Event], number: int, side: str
                reserve_damage=reserve, damage_conserved=sum(allocated.values()) + reserve == total)
 
 
-def _refill(waves: list[Wave], events: list[Event], number: int, side: str) -> None:
+def _rebuild_formation(waves: list[Wave], events: list[Event], number: int, side: str) -> None:
+    """Re-establish existing runtime placements before RR.
+
+    Initial placement is owned by the pure formation planner. Cross-wave slot
+    replacement remains deliberately guarded until damage transfer is known.
+    """
     _guard_single_line_waves(waves)
     for wave in waves:
         for slot in sorted(wave.slots, key=lambda item: item.damage_position):
@@ -150,22 +164,31 @@ def _refill(waves: list[Wave], events: list[Event], number: int, side: str) -> N
 def _prepare_round_start(waves: list[Wave], events: list[Event], number: int, side: str,
                          applied: dict[str, dict[str, str]]) -> None:
     """Establish the following-round deployment before applying PDF RR."""
-    _refill(waves, events, number, side)
+    _rebuild_formation(waves, events, number, side)
     _redistribute(waves, events, number, side, applied)
+
+
+def _runtime_line(wave: Wave, registry: UnitRegistry) -> str:
+    lines = {slot.line for slot in wave.slots if slot.units}
+    if len(lines) == 1:
+        return next(iter(lines))
+    # Reserve-only compatibility for internal callers; deployed combat always
+    # takes its role from Slot.line and multi-line execution is guarded.
+    return registry.get(wave.unit.unit_id).native_line
 
 
 def _combat_waves(waves: list[Wave], registry: UnitRegistry) -> list[Wave]:
     return sorted((w for w in waves if registry.get(w.unit.unit_id).role == "combat"),
-                  key=lambda w: (registry.get(w.unit.unit_id).battlefield_class, w.unit.unit_id, w.unit.wave_id))
+                  key=lambda w: (_runtime_line(w, registry), w.unit.unit_id, w.unit.wave_id))
 
 
 def _target(source: Wave, targets: list[Wave], registry: UnitRegistry,
             targeting: TargetingProfile) -> tuple[Wave | None, str | None]:
     _guard_single_line_waves([source, *targets])
-    source_line = registry.get(source.unit.unit_id).battlefield_class
+    source_line = _runtime_line(source, registry)
     for target_line in targeting.priorities[source_line]:
         choices = [w for w in _combat_waves(targets, registry)
-                   if registry.get(w.unit.unit_id).battlefield_class == target_line
+                   if _runtime_line(w, registry) == target_line
                    and any(slot.units > 0 for slot in w.slots)]
         if len(choices) == 1: return choices[0], target_line
         if len(choices) > 1: return None, target_line
@@ -260,8 +283,10 @@ def simulate(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     if isinstance(scenario, dict): scenario = Scenario.from_dict(scenario)
     registry = UnitRegistry.load(scenario.profiles.unit_stats)
     field = battlefield(scenario.battlefield)
+    formation_rules = FormationRules.load(scenario.profiles.formation)
     battle_end = BattleEndProfile.load(scenario.profiles.battle_end)
-    attacker, defender = deploy(scenario.attacker, registry, field), deploy(scenario.defender, registry, field)
+    attacker = deploy(scenario.attacker, registry, field, scenario.profiles.formation)
+    defender = deploy(scenario.defender, registry, field, scenario.profiles.formation)
     events: list[Event] = []
     for side, waves in (("attacker", attacker), ("defender", defender)):
         for wave in waves:
@@ -272,7 +297,8 @@ def simulate(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     initial = {"attacker": _snapshot(attacker, registry, battle_end),
                "defender": _snapshot(defender, registry, battle_end)}
     warnings = ["Legacy empirical mechanics are being applied to review-supplied current numeric profiles; calibration is required."]
-    blockers = sorted(set(_preflight(attacker, registry) + _preflight(defender, registry)))
+    blockers = sorted(set(_preflight(attacker, registry, formation_rules, field)
+                          + _preflight(defender, registry, formation_rules, field)))
     initial_states = {side: state["continuation_state"] for side, state in initial.items()}
     fallback_sides = [side for side, state in initial_states.items()
                       if state == ContinuationState.FALLBACK_REQUIRED.value]
@@ -288,7 +314,9 @@ def simulate(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                      "UNKNOWN-ACCURACY", "UNKNOWN-TARGET-TRANSFER"]
         return _unsupported(scenario, events, initial, sorted(set(blockers)), warnings)
     if {"UNKNOWN-MIXED-UNIT-AM-ROWS", "UNKNOWN-MULTIPLE-TARGET-WAVES",
-        "UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS"} & set(blockers):
+        "UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS",
+        "UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT",
+        "UNKNOWN-CROSS-WAVE-FORMATION-REBUILD"} & set(blockers):
         return _unsupported(scenario, events, initial, blockers, warnings)
     applied: dict[str, dict[str, str]] = {}
     if "UNKNOWN-HEALING-ALLOCATION" in blockers:

@@ -90,6 +90,7 @@ class Profiles:
     support: str = "v17-support-healing"
     targeting: str = "legacy-community-land-targeting"
     battle_end: str = "legacy-community-battle-end"
+    formation: str = "formation-land"
 
     @classmethod
     def from_dict(cls, value: Any) -> "Profiles":
@@ -97,7 +98,7 @@ class Profiles:
         result = cls(str(data.get("mechanics", cls.mechanics)), str(data.get("unit_stats", cls.unit_stats)),
                      str(data.get("workshop", cls.workshop)), str(data.get("forge", cls.forge)),
                      str(data.get("support", cls.support)), str(data.get("targeting", cls.targeting)),
-                     str(data.get("battle_end", cls.battle_end)))
+                     str(data.get("battle_end", cls.battle_end)), str(data.get("formation", cls.formation)))
         expected = cls()
         if result != expected:
             raise ScenarioError(f"only the current profile bundle is supported: {expected}")

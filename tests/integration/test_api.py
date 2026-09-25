@@ -1,6 +1,7 @@
 import asyncio,json
 from pathlib import Path
 from asgi import application
+from ikariam_battle.models import Profiles
 
 async def request(method,path,body=b''):
  events=[{'type':'http.request','body':body,'more_body':False}]; sent=[]
@@ -18,6 +19,8 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  response=asyncio.run(request('GET','/api/simulate')); data=json.loads(response[1]['body'])
  assert response[0]['status']==200 and data['profiles']['targeting']=='legacy-community-land-targeting'
  assert data['profiles']['battle_end']=='legacy-community-battle-end'
+ assert data['profiles']['formation']=='formation-land'
+ assert set(data['profiles'])==set(Profiles().__dict__)
  assert data['profile_metadata']['verified_through_game_version']=='17.5.0'
  assert next(f for f in data['battlefields'] if f['id']=='land-mini')['supported'] is True
  assert len([u for u in data['units'] if u['domain']=='land' and u['numerically_supported']])==15
