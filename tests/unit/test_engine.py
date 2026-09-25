@@ -3,6 +3,7 @@ import pytest
 from ikariam_battle import simulate
 from ikariam_battle.battlefield import LAND_MINI, deploy
 from ikariam_battle.engine import _plan_fire, _preflight, _prepare_round_start, _target
+from ikariam_battle.formation import FormationRules
 from ikariam_battle.models import Army, ArmyUnit, ScenarioError, Slot, Wave
 from ikariam_battle.profiles import ForgeProfile, TargetingProfile, WorkshopProfile
 from ikariam_battle.units import UnitRegistry
@@ -96,8 +97,8 @@ def test_support_unknowns_distinguish_healing_and_morale():
  registry=UnitRegistry.load()
  doctor=deploy(Army.from_dict({'units':[{'unit_id':'doctor','quantity':1}]}),registry,LAND_MINI)
  cook=deploy(Army.from_dict({'units':[{'unit_id':'cook','quantity':1}]}),registry,LAND_MINI)
- assert _preflight(doctor,registry)==['UNKNOWN-HEALING-ALLOCATION']
- assert _preflight(cook,registry)==['UNKNOWN-MORALE-SUPPORT']
+ assert _preflight(doctor,registry,FormationRules.load(),LAND_MINI)==['UNKNOWN-HEALING-ALLOCATION']
+ assert _preflight(cook,registry,FormationRules.load(),LAND_MINI)==['UNKNOWN-MORALE-SUPPORT']
  s=scenario(); s['attacker']['units'].append({'unit_id':'cook','quantity':1}); r=simulate(s)
  assert 'EXP-MORALE-NONE-001' in {a['id'] for a in r['assumptions']}
  assert 'EXP-HEAL-NONE-001' not in {a['id'] for a in r['assumptions']}
@@ -122,7 +123,8 @@ def test_reserve_only_flank_exposes_fallback_boundary():
 
 def test_round_start_refills_before_rr_uses_following_deployment():
  wave=Wave(ArmyUnit('hoplite',40,'w'),20,[Slot('first-1','first',2,1,'hoplite','w',20,30,20)],0,None)
- assert 'UNKNOWN-CROSS-WAVE-FORMATION-REBUILD' not in _preflight([wave],UnitRegistry.load())
+ assert 'UNKNOWN-CROSS-WAVE-FORMATION-REBUILD' not in _preflight(
+  [wave],UnitRegistry.load(),FormationRules.load(),LAND_MINI)
  events=[]; _prepare_round_start([wave],events,2,'attacker',{})
  assert (wave.slots[0].units,wave.slots[0].damage,wave.reserve,wave.reserve_damage)==(30,15,10,5)
 
@@ -141,10 +143,32 @@ def test_reserve_only_same_line_wave_stops_before_unsafe_cross_wave_rebuild():
  assert not any(e['type']=='attacking_matrix' for e in result['events'])
 
 
+def test_reserve_light_fallback_candidate_stops_before_unsafe_cross_wave_rebuild():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
+    'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':90},
+                         {'unit_id':'swordsman','quantity':30}]}}
+ result=simulate(s)
+ assert result['status']=='inconclusive' and result['rounds_completed']==0
+ assert result['initial_state']['defender']['reserve']['swordsman']==30
+ rules={e['details']['rule_id'] for e in result['events'] if e['type']=='unsupported_mechanic'}
+ assert 'UNKNOWN-CROSS-WAVE-FORMATION-REBUILD' in rules
+ assert not any(e['type']=='attacking_matrix' for e in result['events'])
+
+
+def test_unrelated_reserve_is_not_cross_wave_rebuild_candidate():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ deployed=target_wave('hoplite','first',30)
+ reserve=Wave(ArmyUnit('catapult',6,'reserve'),6)
+ assert 'UNKNOWN-CROSS-WAVE-FORMATION-REBUILD' not in _preflight(
+  [deployed,reserve],registry,rules,LAND_MINI)
+
+
 def test_support_only_state_is_not_cross_wave_rebuild_candidate():
  registry=UnitRegistry.load()
  waves=deploy(Army.from_dict({'units':[{'unit_id':'doctor','quantity':4}]}),registry,LAND_MINI)
- assert 'UNKNOWN-CROSS-WAVE-FORMATION-REBUILD' not in _preflight(waves,registry)
+ assert 'UNKNOWN-CROSS-WAVE-FORMATION-REBUILD' not in _preflight(
+  waves,registry,FormationRules.load(),LAND_MINI)
 
 
 def test_domain_and_unsupported_geometry_rejections():

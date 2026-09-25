@@ -1,7 +1,7 @@
 from copy import deepcopy
 
 from ikariam_battle.battlefield import Battlefield, LAND_MINI, LineGeometry, deploy
-from ikariam_battle.formation import FormationRules, build_initial_formation, plan_initial_formation
+from ikariam_battle.formation import FormationRules, build_initial_formation, eligible_runtime_lines, plan_initial_formation
 import pytest
 
 from ikariam_battle.engine import _prepare_round_start
@@ -107,6 +107,13 @@ def test_first_line_fallback_eligibility_is_executable_but_native_light_remains_
  swordsman=plan_initial_formation(army('swordsman',30),UnitRegistry.load(),LAND_MINI,rules)
  spearman=plan_initial_formation(army('spearman',30),UnitRegistry.load(),LAND_MINI,rules)
  assert swordsman.placements==() and spearman.placements[0].runtime_line=='first'
+
+
+def test_eligible_runtime_lines_includes_profile_fallback_but_not_unrelated_lines():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ assert eligible_runtime_lines(registry.get('swordsman'),rules,LAND_MINI)==('first',)
+ assert eligible_runtime_lines(registry.get('catapult'),rules,LAND_MINI)==('third',)
+ assert eligible_runtime_lines(registry.get('doctor'),rules,LAND_MINI)==()
 
 
 def test_deployment_order_authority_cannot_silently_diverge():

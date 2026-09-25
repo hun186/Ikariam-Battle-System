@@ -17,4 +17,4 @@
 Larger land and naval geometry, accuracy, target transfer, mixed rows, healing/morale, kill/rounding/SR/IR chronology and secondary triggers require calibration.
 
 ## Recent Outcomes
-- Corrected PR #16 so reserve-only native-same-line waves stop at `UNKNOWN-CROSS-WAVE-FORMATION-REBUILD`, while same-wave refill remains supported; GET metadata now derives every profile, including formation, from `Profiles()`.
+- Corrected PR #16 so cross-wave preflight queries formation-profile runtime eligibility, guarding both same-native-line reserves and Light fallback candidates without blocking unrelated reserves, same-wave refill, or support.

@@ -8,6 +8,7 @@ from .attacking_matrix import from_slot_counts
 from .battlefield import battlefield, deploy
 from .damage import RoundingPolicy, calculate_damage
 from .events import Event
+from .formation import FormationRules, eligible_runtime_lines
 from .models import Policy, Scenario, ScenarioError, Wave
 from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, TargetingProfile, WorkshopProfile
 from .redistribution import SlotShare, reserve_redistribution
@@ -98,7 +99,7 @@ def _unsupported(scenario: Scenario, events: list[Event], initial: dict, blocker
             "events": [e.as_dict() for e in events], "assumptions": [], "warnings": warnings}
 
 
-def _preflight(waves: list[Wave], registry: UnitRegistry) -> list[str]:
+def _preflight(waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field) -> list[str]:
     blockers = []
     line_types: dict[str, set[str]] = defaultdict(set)
     line_waves: dict[str, int] = defaultdict(int)
@@ -111,7 +112,7 @@ def _preflight(waves: list[Wave], registry: UnitRegistry) -> list[str]:
         elif unit.support_effect == "morale": blockers.append("UNKNOWN-MORALE-SUPPORT")
         else:
             if (wave.reserve and not any(slot.units for slot in wave.slots)
-                    and unit.native_line in deployed_lines):
+                    and deployed_lines.intersection(eligible_runtime_lines(unit, rules, field))):
                 blockers.append("UNKNOWN-CROSS-WAVE-FORMATION-REBUILD")
             for runtime_line in {slot.line for slot in wave.slots if slot.units}:
                 line_types[runtime_line].add(unit.id)
@@ -282,6 +283,7 @@ def simulate(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     if isinstance(scenario, dict): scenario = Scenario.from_dict(scenario)
     registry = UnitRegistry.load(scenario.profiles.unit_stats)
     field = battlefield(scenario.battlefield)
+    formation_rules = FormationRules.load(scenario.profiles.formation)
     battle_end = BattleEndProfile.load(scenario.profiles.battle_end)
     attacker = deploy(scenario.attacker, registry, field, scenario.profiles.formation)
     defender = deploy(scenario.defender, registry, field, scenario.profiles.formation)
@@ -295,7 +297,8 @@ def simulate(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     initial = {"attacker": _snapshot(attacker, registry, battle_end),
                "defender": _snapshot(defender, registry, battle_end)}
     warnings = ["Legacy empirical mechanics are being applied to review-supplied current numeric profiles; calibration is required."]
-    blockers = sorted(set(_preflight(attacker, registry) + _preflight(defender, registry)))
+    blockers = sorted(set(_preflight(attacker, registry, formation_rules, field)
+                          + _preflight(defender, registry, formation_rules, field)))
     initial_states = {side: state["continuation_state"] for side, state in initial.items()}
     fallback_sides = [side for side, state in initial_states.items()
                       if state == ContinuationState.FALLBACK_REQUIRED.value]

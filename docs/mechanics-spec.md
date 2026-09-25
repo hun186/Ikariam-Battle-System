@@ -34,7 +34,7 @@ Formation legality is not combat knowledge. Separate Heavy and Light slots can c
 
 At round boundary, `_prepare_round_start()` first re-establishes the following round's existing placements through `_rebuild_formation()`, then applies RR using those deployed quantities, and only afterward may fire be planned. Cross-wave replacement after casualties is not silently inferred.
 
-If one combat wave occupies a runtime line while another native-same-line wave is wholly reserve-only, the latter cannot be moved into vacated slots by the current same-wave rebuild. `UNKNOWN-CROSS-WAVE-FORMATION-REBUILD` therefore stops before combat rather than permitting a false termination after the deployed wave dies. A single wave's ordinary reserve refill remains supported; support units are not cross-wave combat candidates.
+If one combat wave occupies a runtime line while another wholly reserve-only combat wave is formation-profile-eligible for future placement there, the latter cannot be moved into vacated slots by the current same-wave rebuild. Eligibility includes both native placement and configured fallback placement: a reserve Swordsman is therefore a future first-line candidate even though its native line is flank. `UNKNOWN-CROSS-WAVE-FORMATION-REBUILD` stops before combat rather than permitting an under-filled formation or false termination. A single wave's ordinary reserve refill remains supported; unrelated-line reserves and support units are not cross-wave candidates.
 
 ## Workshop and Forge ownership
 

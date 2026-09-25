@@ -37,6 +37,36 @@ class FormationPlan:
     reserves: dict[tuple[str, str], int]
 
 
+def _first_line_contract(rules: FormationRules) -> tuple[tuple[str, ...], tuple[str, ...], frozenset[str]]:
+    first = rules.lines["first"]
+    eligible = tuple(first["eligible_semantic_classes"])
+    precedence = tuple(first["class_precedence"])
+    fallback = frozenset(first["fallback_semantic_classes"])
+    if len(set(precedence)) != len(precedence) or set(precedence) != set(eligible):
+        raise ScenarioError("first-line class_precedence must contain each eligible semantic class exactly once")
+    if not fallback <= set(eligible):
+        raise ScenarioError("first-line fallback classes must be eligible semantic classes")
+    return eligible, precedence, fallback
+
+
+def eligible_runtime_lines(unit, rules: FormationRules, field) -> tuple[str, ...]:
+    """Return runtime lines this combat unit may occupy under formation rules."""
+    if unit.role != "combat":
+        return ()
+    eligible, _, fallback = _first_line_contract(rules)
+    result: list[str] = []
+    if ("first" in field.lines and unit.semantic_class in eligible
+            and (unit.native_line == "first" or unit.semantic_class in fallback)):
+        result.append("first")
+    for line_name in field.lines:
+        if line_name == "first":
+            continue
+        native_lines = frozenset(rules.lines[line_name].get("eligible_native_lines", ()))
+        if unit.native_line in native_lines:
+            result.append(line_name)
+    return tuple(result)
+
+
 def plan_initial_formation(army: Army, registry: UnitRegistry, field, rules: FormationRules | None = None) -> FormationPlan:
     """Pure, deterministic placement; formation does not select weapons or targets."""
     rules = rules or FormationRules.load()
@@ -69,20 +99,11 @@ def plan_initial_formation(army: Army, registry: UnitRegistry, field, rules: For
 
     # The first line is planned globally: heavy before light. A partial heavy
     # batch owns its slot; a fallback class is never mixed into that slot.
-    first = rules.lines["first"]
-    eligible = tuple(first["eligible_semantic_classes"])
-    precedence = tuple(first["class_precedence"])
-    fallback = frozenset(first["fallback_semantic_classes"])
-    if len(set(precedence)) != len(precedence) or set(precedence) != set(eligible):
-        raise ScenarioError("first-line class_precedence must contain each eligible semantic class exactly once")
-    if not fallback <= set(eligible):
-        raise ScenarioError("first-line fallback classes must be eligible semantic classes")
-    for semantic_class in first["class_precedence"]:
+    _, precedence, _ = _first_line_contract(rules)
+    for semantic_class in precedence:
         for item in army.units:
             unit = registry.get(item.unit_id)
-            if (unit.semantic_class in eligible
-                    and unit.semantic_class == semantic_class
-                    and (unit.native_line == "first" or semantic_class in fallback)):
+            if unit.semantic_class == semantic_class and "first" in eligible_runtime_lines(unit, rules, field):
                 place(item, "first")
 
     # Only after front requirements have consumed light infantry do remaining
@@ -90,10 +111,8 @@ def plan_initial_formation(army: Army, registry: UnitRegistry, field, rules: For
     for line_name in field.lines:
         if line_name == "first":
             continue
-        line_rules = rules.lines[line_name]
-        native_lines = frozenset(line_rules.get("eligible_native_lines", ()))
         for item in army.units:
-            if registry.get(item.unit_id).native_line in native_lines:
+            if line_name in eligible_runtime_lines(registry.get(item.unit_id), rules, field):
                 place(item, line_name)
     return FormationPlan(tuple(placements), remaining)
 
