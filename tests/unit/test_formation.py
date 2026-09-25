@@ -145,6 +145,9 @@ def test_planner_is_pure_and_registry_metadata_is_immutable():
 
 def test_formation_profile_records_standard_order_and_unknown_combat_boundary():
  rules=FormationRules.load()
+ assert rules.metadata['implementation_status']=='ALL_LAND_GEOMETRIES_PLANNER_IMPLEMENTED_COMBAT_GUARDED'
+ assert rules.lines['first']['implementation_status']=='IMPLEMENTED_FOR_ALL_LAND_GEOMETRIES'
+ assert rules.lines['flank']['implementation_status']=='NATIVE_SLOTS_LAND_SMALL_THROUGH_MAX'
  assert rules.lines['first']['deployment_order_authority']=='battlefield_geometry.damage_priority'
  assert rules.lines['first']['standard_physical_damage_labels_evidence']==[6,4,2,1,3,5,7]
  assert rules.lines['first']['class_precedence']==['heavy_infantry','light_infantry']
