@@ -56,7 +56,7 @@ Finite ammunition is owned by one entry batch (`wave_id`), never by the side, un
 
 A final partial volley uses named `EXP-AMMO-PARTIAL-ORDER-001`; native ranged selection remains primary, and an exhausted primary does not silently switch weapon.
 
-Experimental targeting uses versioned priorities and `EXP-TARGET-LEGACY-001`: artillery front→flank; long-range front→flank→long-range; front front→long-range→artillery→flank; flank flank→long-range→artillery→front; anti-air bomber→anti-air; bomber artillery→long-range→front→flank. Transfer remains calibration-dependent. In particular, a Swordsman selects enemy flank before front.
+Experimental targeting uses versioned priorities and `EXP-TARGET-LEGACY-001`: artillery front→flank; long-range front→flank→long-range; front front→long-range→artillery→flank; flank flank→long-range→artillery→front; anti-air bomber→anti-air; bomber artillery→long-range→front→flank. Transfer remains calibration-dependent. Target priority is a property of the runtime line, not the unit type: a Swordsman in runtime flank uses `targeting.priorities["flank"]` (flank before front), while a Swordsman deployed in runtime first uses `targeting.priorities["first"]`. Active-weapon selection remains a separate step.
 
 Accuracy is stored per weapon, including different secondary accuracy. No complete accuracy algorithm is known: strict emits `UNKNOWN-ACCURACY`; experimental emits `EXP-ACCURACY-IGNORED-001` rather than silently claiming 100% accuracy.
 

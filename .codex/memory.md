@@ -1,7 +1,7 @@
 # Project Memory
 
 ## Current Focus
-- PR #17 adds explicit weapon selection on the PR #16 merge baseline; this environment's hosted GitHub re-check returns HTTP 403.
+- PR #16 is merged; PR #17 focuses on explicit weapon selection and homogeneous single-weapon Light Infantry fallback combat.
 - Workshop upgrades are per unit type; Forge is side-wide.
 - `land-mini` uses line slot counts and slot-space/unit-size capacity.
 - Complete reviewer-verified current data is distinct from empirical mechanics.
