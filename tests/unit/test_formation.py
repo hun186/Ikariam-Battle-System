@@ -240,3 +240,16 @@ def test_spearman_taxonomy_separates_semantic_class_from_native_line():
  spearman=UnitRegistry.load().get('spearman')
  assert spearman.semantic_class=='light_infantry'
  assert spearman.native_line=='first' and spearman.battlefield_class=='first'
+
+
+def test_land_max_full_heavy_front_puts_light_in_native_flank_not_reserve():
+ field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'hoplite','quantity':350},
+  {'unit_id':'swordsman','quantity':240},
+ ]}),UnitRegistry.load(),field)
+ hoplite=next(w for w in waves if w.unit.unit_id=='hoplite')
+ swordsman=next(w for w in waves if w.unit.unit_id=='swordsman')
+ assert sum(slot.units for slot in hoplite.slots if slot.line=='first')==350
+ assert [(slot.line,slot.units) for slot in swordsman.slots]==[('flank',40)]*6
+ assert swordsman.reserve==0
