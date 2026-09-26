@@ -1,0 +1,41 @@
+name: Validate reserve ordering fix
+
+on:
+  push:
+    branches:
+      - fix/game-faithful-battlefield-layout
+    paths:
+      - .github/workflows/validate-reserve-order.yml
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/game-faithful-battlefield-layout
+          fetch-depth: 0
+      - name: Validate reserve ordering and regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -q pytest
+          python -m compileall -q ikariam_battle asgi.py web_simulator.py simulator.py
+          python -m pytest -q tests/integration/test_api.py
+          python -m pytest -q
+          cmp index.html public/index.html
+          grep -q ".battle-half.defender .reserve-box{order:2}" index.html
+          ! grep -q ".battle-half{grid-template-columns:1fr}.reserve-box{order:2}" index.html
+      - name: Remove one-time validation workflow
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/validate-reserve-order.yml
+          git commit -m "chore: remove one-time reserve-order validation"
+          git push origin HEAD:fix/game-faithful-battlefield-layout
