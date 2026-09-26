@@ -124,7 +124,7 @@ function populateForge(id){
 }
 function setupRow(unit,side,options={}){
   const extra=Boolean(options.extra),batchIndex=options.batchIndex||1;
-  const row=document.createElement('div');row.className='unit-setup-row'+(extra?' extra-batch':'');row.dataset.unitId=unit.id;row.dataset.side=side;
+  const row=document.createElement('div');row.className='unit-setup-row'+(extra?' extra-batch':'');row.dataset.unitId=unit.id;row.dataset.side=side;row.dataset.batchIndex=String(batchIndex);
   const glyph=glyphs[unit.semantic_class]||'◆',quantity=extra?0:(unit.id==='hoplite'?90:0);
   row.innerHTML=
     '<div class="unit-ident"><div class="unit-icon" aria-hidden="true">'+glyph+'</div><div><div class="unit-name">'+esc(unit.display_name)+(extra?' · batch '+batchIndex:'')+'</div><div class="unit-meta">'+esc(lineLabel(unit.native_line))+' · size '+esc(unit.size??'—')+'</div></div></div>'+
@@ -141,7 +141,7 @@ function setupRow(unit,side,options={}){
 function addBatchRow(sourceRow){
   const side=sourceRow.dataset.side,unit=unitById(sourceRow.dataset.unitId),group=sourceRow.closest('.unit-group');
   const matching=[...group.querySelectorAll('.unit-setup-row')].filter(row=>row.dataset.unitId===unit.id);
-  const batchIndex=matching.length+1,last=matching[matching.length-1];
+  const batchIndex=Math.max(...matching.map(row=>Number(row.dataset.batchIndex)||1))+1,last=matching[matching.length-1];
   const row=setupRow(unit,side,{extra:true,batchIndex,attack:+sourceRow.querySelector('.attack').value||0,armor:+sourceRow.querySelector('.armor').value||0});
   last.after(row);updateSlotButtons();
 }
