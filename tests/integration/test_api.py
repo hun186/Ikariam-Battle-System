@@ -87,7 +87,7 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert "if(metadata.forge_levels['5'])select.value='5'" in body
  assert "line.physical_order.length*Math.floor(line.slot_space/unit.size)" in body
  assert 'air-zone' in body and 'flank-column' in body and 'ground-zone' in body
- assert "name==='attacker'?air+ground:ground+air" in body
+ assert "const formation='<div class=\"formation\">'+air+ground+'</div>'" in body
  assert "battleHalf(round.attacker,'attacker')" in body
  assert "battleHalf(round.defender,'defender')" in body
  assert "number===0?'部署':String(number)" in body
