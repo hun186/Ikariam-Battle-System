@@ -83,8 +83,11 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert "minus.textContent=step?'−'+step" in body and "plus.textContent=step?'＋'+step" in body
  assert "const submittedBattlefield=battlefield.value" in body
  assert "lastBattlefieldId=submittedBattlefield" in body
- assert "lineOrderDefender=['balloon','anti-balloon','third','second','flank','first']" in body
- assert "lineOrderAttacker=['first','flank','second','third','anti-balloon','balloon']" in body
+ assert "lineOrderAttacker=['balloon','anti-balloon','third','second','flank','first']" in body
+ assert "lineOrderDefender=['first','flank','second','third','anti-balloon','balloon']" in body
+ assert "battleHalf(round.attacker,'attacker')" in body
+ assert "battleHalf(round.defender,'defender')" in body
+ assert "number===0?'部署':String(number)" in body
  assert "summarySide('attacker','攻擊方')" in body
  assert '軍分以未折扣的原始生產資源計分基礎 ÷ 50 計算' in body
  assert 'Workshop、熔爐神蹟與其他戰鬥 buff 不改變軍分' in body
