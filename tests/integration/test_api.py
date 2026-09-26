@@ -38,6 +38,9 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert medium['lines']['flank']['slot_space']==30
  assert maximum['lines']['first']['slot_space']==50
  assert len([u for u in data['units'] if u['domain']=='land' and u['numerically_supported']])==15
+ hoplite=next(u for u in data['units'] if u['id']=='hoplite')
+ carabineer=next(u for u in data['units'] if u['id']=='sulphur_carabineer')
+ assert (hoplite['size'],carabineer['size'])==(1,4)
 
 def test_per_unit_workshop_forge_five_mini_api_smoke():
  status,data=post(payload()); assert status==200
@@ -65,18 +68,21 @@ def test_doctor_and_cook_have_separate_boundaries():
   assert status==200 and unknown in {e['details'].get('rule_id') for e in data['events'] if e['type']=='unsupported_mechanic'}
   value['policy']='experimental'; status,data=post(value); assert assumption in {a['id'] for a in data['assumptions']}
 
-def test_static_ui_uses_metadata_per_unit_upgrades_and_mini_size():
+def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  response=asyncio.run(request('GET','/')); body=response[1]['body'].decode()
  assert response[0]['status']==200 and "fetch('/api/simulate')" in body and 'const units=[' not in body
- assert 'Attack upgrade' in body and 'Armor upgrade' in body and 'Battlefield size' in body
- assert 'Research mode' in body and 'roundSelect' in body and 'slot-tooltip' in body
- assert 'Hit points:' in body and 'Munition:' in body
- assert "const lineOrder=['balloon','anti-balloon','third','second','flank','first']" in body
- assert "metadata.battlefields.find(f=>f.id===lastBattlefieldId)?.lines||{}" in body
- assert "order=geometry[line]?.physical_order||[]" in body
- assert "const submittedBattlefield=battlefield.value,body={" in body
- assert "battlefield:submittedBattlefield" in body
- assert "render(data,submittedBattlefield)" in body
+ assert '兵力設定' in body and '逐回合戰報' in body and '總戰報' in body
+ assert '熔爐神蹟 / Forge' in body and '攻擊' in body and '防禦' in body
+ assert '進階：進場批次' in body and 'Research mode' in body and 'slot-tooltip' in body
+ assert "Math.floor(field.lines[line].slot_space/unit.size)" in body
+ assert "unit.semantic_class==='light_infantry'&&field.lines.first" in body
+ assert "minus.textContent=step?'−'+step" in body and "plus.textContent=step?'＋'+step" in body
+ assert "const submittedBattlefield=battlefield.value" in body
+ assert "lastBattlefieldId=submittedBattlefield" in body
+ assert "lineOrderDefender=['balloon','anti-balloon','third','second','flank','first']" in body
+ assert "lineOrderAttacker=['first','flank','second','third','anti-balloon','balloon']" in body
+ assert "summarySide('attacker','攻擊方')" in body
+ assert '原始生產資源成本 ÷ 50' in body
 
 
 def test_zero_unit_snapshot_slots_render_as_empty_and_static_copies_match():
