@@ -186,6 +186,10 @@ def test_local_unit_icon_assets_and_shared_ui_mapping():
    'steam_ram','fire_ship','ram_ship','ballista_ship','catapult_ship','mortar_ship',
    'diving_boat','rocket_ship','balloon_carrier','paddle_speedboat','tender'
   },
+  'barbarian':{
+   'barbarian_clubman','barbarian_axe_swinger','barbarian_knifeman','barbarian_axe_thrower',
+   'barbarian_war_walker','barbarian_ram','barbarian_catapult','barbarian_dirigible','barbarian_fighter'
+  },
  }
  assert "https://ika-sim.com/units/" not in body
  assert "function unitIconHtml(unit,cssClass='')" in body
@@ -197,4 +201,6 @@ def test_local_unit_icon_assets_and_shared_ui_mapping():
    assert local in body
    assert Path(local.lstrip('/')).is_file()
    assert Path('public'+local).is_file()
+ assert '野蠻人兵種參考（9 種，catalog-only）' in body
+ assert 'function renderBarbarianCatalog()' in body
  assert body==Path('public/index.html').read_text()
