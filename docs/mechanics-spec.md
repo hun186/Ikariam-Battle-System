@@ -20,7 +20,7 @@ The simulator combines empirical mechanics with current numerical profiles; it i
 | verified-through release | OFFICIAL_CHANGELOG, v17.5.0, 2026-09-08 | no later military/profile change reported |
 | `legacy-community-land-targeting` | COMMUNITY_REFERENCE | experimental/calibration policy |
 | `legacy-community-battle-end` | COMMUNITY_REFERENCE, REVIEWER_WEB_VERIFIED | sustaining classes and round-boundary termination; calibration required |
-| `formation-land` | GAMEFORGE_IN_GAME_HELP + EMPIRICAL_PAPER; USER_PROVIDED_BATTLE_OBSERVATION corroboration | deterministic land-mini placement implemented; single-weapon Light fallback combat supported |
+| `formation-land` | GAMEFORGE_IN_GAME_HELP + EMPIRICAL_PAPER; USER_PROVIDED_BATTLE_OBSERVATION corroboration | deterministic placement for all five land geometries; single-weapon Light fallback combat supported |
 
 ## Formation and runtime roles
 
@@ -28,7 +28,7 @@ Formation is separate from combat: planning establishes runtime lines, weapon el
 
 The versioned `formation-land` profile distinguishes tactical `semantic_class`, preferred `native_line`, compatibility-only `battlefield_class`, and authoritative runtime `Slot.line`. Its first-line eligible classes, precedence, and fallback classes are executable planner inputs and are validated for consistency. For first line, Heavy precedes eligible Light. A native-first Light remains eligible independently of fallback; a native-flank Light may enter first only when its semantic class is explicitly fallback-eligible. A partial Heavy batch owns its slot (one slot never mixes types/batches), Light fills only other front slots, and front allocation occurs before remaining Light can enter its native flank. The pure planner calculates this rule and never mutates registry metadata. Thus a Swordsman remains native flank while its planned runtime line can be `first`.
 
-The paper's standard physical damage-label layouts are first/second `[6, 4, 2, 1, 3, 5, 7]`, third `[5, 3, 1, 2, 4]`, flank `[6, 4, 2, 1, 3, 5]`, balloon `[1, 2]`, and anti-balloon `[2, 1]`. These arrays remain evidence, not a second executable ordering table. The formation profile explicitly delegates executable deployment order to `battlefield_geometry.damage_priority`; the planner validates that authority and refuses an unsupported alternative. Production remains `land-mini`, whose geometry is the single source of truth for its center-first order while storing physical position separately. Non-standard renumbering remains unresolved.
+The paper's standard physical damage-label layouts are first/second `[6, 4, 2, 1, 3, 5, 7]`, third `[5, 3, 1, 2, 4]`, flank `[6, 4, 2, 1, 3, 5]`, balloon `[1, 2]`, and anti-balloon `[2, 1]`. Each geometry uses the specified centered subset, except that one-slot anti-balloon retains the existing `(1,)` compatibility label. These arrays remain `EMPIRICAL_PAPER` evidence, distinct from the community slot geometry. The formation profile explicitly delegates executable deployment order to `battlefield_geometry.damage_priority`; the planner validates that authority and refuses an unsupported alternative. Each battlefield geometry is the single executable source for its center-first deployment order while storing physical position separately. Non-standard renumbering remains unresolved.
 
 Formation legality is not combat knowledge. Separate Heavy and Light slots can coexist in runtime first line and snapshots serialize native plus runtime lines. Weapon selection is an explicit step: native combat retains its primary weapon, while a non-native runtime-first Light with exactly one registry weapon deterministically uses that weapon. This supports homogeneous Swordsman-first combat without an unknown fallback rule. `UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT` is now limited to a non-native Light whose weapon is not uniquely selectable; `UNKNOWN-MIXED-UNIT-AM-ROWS` still rejects multiple unit types in one runtime line. `UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS`, `UNKNOWN-FALLBACK-LONG-RANGE-WEAPON`, and `UNKNOWN-SECONDARY-WEAPON-TRIGGER` remain protected. Official/help formation rules and user corroboration do not establish mixed Am rows, damage transfer, RR details, firing chronology, or secondary-weapon selection.
 
@@ -42,7 +42,17 @@ Workshop levels belong to a player’s **unit type**, not the whole army. Every 
 
 ## Battlefield geometry
 
-`land-mini` means Town Hall 1–4/minimum. It has front 3 × 30 space, long-range 3 × 30, flank 0, artillery 1 × 30, bomber 1 × 10, and anti-air 1 × 10. Thus Gyrocopter capacity is 10 and Bombardier capacity is 5. Other stable IDs (`land-small`, `land-medium`, `land-large`, `land-max`) are reserved and rejected until profiles are supplied.
+All five land IDs are executable. Slot count × slot space is:
+
+| ID (descriptive Town Hall range) | First | Second | Flank | Third | Balloon | Anti-balloon |
+| --- | --- | --- | --- | --- | --- | --- |
+| `land-mini` (1–4) | 3 × 30 | 3 × 30 | none | 1 × 30 | 1 × 10 | 1 × 10 |
+| `land-small` (5–9) | 5 × 30 | 5 × 30 | 2 × 30 | 2 × 30 | 1 × 20 | 1 × 20 |
+| `land-medium` (10–16) | 7 × 30 | 7 × 30 | 4 × 30 | 3 × 30 | 1 × 30 | 1 × 30 |
+| `land-large` (17–24) | 7 × 40 | 7 × 40 | 6 × 30 | 4 × 30 | 2 × 20 | 2 × 20 |
+| `land-max` (25+) | 7 × 50 | 7 × 50 | 6 × 40 | 5 × 30 | 2 × 30 | 2 × 30 |
+
+Slot-count/space geometry is reviewer-web-verified community reference material hosted by Gameforge, not Gameforge source code. The current Gameforge battlefield page independently corroborates size-dependent structure and selected capacities. Battlefield selection is always the explicit scenario `battlefield` value; Town Hall ranges are display metadata only. Town Hall/wall inputs, automatic selection, garrison-limit escalation, open-field conversion, and mid-battle resizing are not implemented.
 
 A line stores `slot_space`, not a unit capacity. Deployment uses `floor(slot_space / unit.size)`. With slot space 30 this yields Hoplite 30, Steam Giant 10, Carabineer 7, and Catapult 6. Slots retain physical position and damage position separately. Am targets ascending damage positions; only vector export uses physical order. At round start the following-round formation refills before RR computes `D/N*s`. RR uses the explicit experimental half-up tie policy `EXP-RR-ROUND-HALF-UP-001`, follows damage priority, and preserves deployed + reserve wave damage; this is not claimed as Ikariam truth.
 
@@ -78,7 +88,7 @@ Experimental results list only assumptions actually reached. Partial-ammunition 
 
 `BattleReportFixture` retains game version, complete scenario, round, casualties, damage%, and life%; damage display percentages can be converted to integer intervals rather than hard-coding a winner.
 
-Scope is unit-vs-unit Phase A. Town walls, wall target/damage rules, and garrison-limit-driven battlefield escalation are not implemented.
+Scope is unit-vs-unit Phase A. Executable geometry does not relax mixed-unit Am, multi-line-wave, cross-wave rebuild, fallback, ranged-weapon, or secondary-trigger guards. Town walls, wall target/damage rules, and garrison-limit-driven battlefield escalation or mid-battle transitions are not implemented.
 
 ## Ranged formation calibration
 
