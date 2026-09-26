@@ -20,8 +20,10 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert response[0]['status']==200 and data['profiles']['targeting']=='legacy-community-land-targeting'
  assert data['profiles']['battle_end']=='legacy-community-battle-end'
  assert data['profiles']['formation']=='formation-land'
+ assert data['profiles']['economy']=='military-economy-current'
  assert set(data['profiles'])==set(Profiles().__dict__)
  assert data['profile_metadata']['verified_through_game_version']=='17.5.0'
+ assert data['economy_metadata']['profile']=='military-economy-current'
  assert [(f['id'],f['display_name'],f['supported']) for f in data['battlefields']]==[
   ('land-mini','Land mini / Town Hall 1–4',True),
   ('land-small','Land small / Town Hall 5–9',True),
@@ -41,6 +43,8 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  hoplite=next(u for u in data['units'] if u['id']=='hoplite')
  carabineer=next(u for u in data['units'] if u['id']=='sulphur_carabineer')
  assert (hoplite['size'],carabineer['size'])==(1,4)
+ assert (hoplite['resource_cost_basis_total'],hoplite['general_score'])==(70,'1.4')
+ assert (carabineer['resource_cost_basis_total'],carabineer['general_score'])==(200,'4')
 
 def test_per_unit_workshop_forge_five_mini_api_smoke():
  status,data=post(payload()); assert status==200
@@ -82,7 +86,8 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert "lineOrderDefender=['balloon','anti-balloon','third','second','flank','first']" in body
  assert "lineOrderAttacker=['first','flank','second','third','anti-balloon','balloon']" in body
  assert "summarySide('attacker','攻擊方')" in body
- assert '原始生產資源成本 ÷ 50' in body
+ assert '軍分以未折扣的原始生產資源計分基礎 ÷ 50 計算' in body
+ assert 'Workshop、熔爐神蹟與其他戰鬥 buff 不改變軍分' in body
  assert '新增進場批次' in body and 'addBatchRow' in body
  assert "row.dataset.batchIndex=String(batchIndex)" in body
  assert "同一兵種的不同進場批次必須使用相同的攻擊／防禦升級" in body
@@ -93,6 +98,8 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert "Object.entries(state.deployed_support||{})" in body and 'No deployed support' in body
  assert '<summary>Continuation state</summary>' in body
  assert 'round.attacker.continuation_state' in body and 'round.defender.continuation_state' in body
+ assert '軍分損失' in body and '造成軍分消減' in body and 'Gross HP damage' in body
+ assert 'unit.general_score' in body and 'military.general_score_lost' in body
 
 
 def test_zero_unit_snapshot_slots_render_as_empty_and_static_copies_match():
@@ -138,3 +145,18 @@ def test_additive_ui_state_fields_keep_existing_api_contract():
  slot=data['initial_state']['attacker']['slots'][0]
  assert {'entry_batch_id','display_name','hit_points_percent','munition_percent','native_line','semantic_class'} <= slot.keys()
  assert {'wave_id','entry_batch_id','ammo_capacity_shots','munition_percent','deployed_lines'} <= data['initial_state']['attacker']['waves'][0].keys()
+
+
+def test_general_score_loss_destroyed_and_gross_damage_are_reported():
+ value={'policy':'experimental','battlefield':'land-mini','max_rounds':2,
+   'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
+   'defender':{'units':[{'unit_id':'hoplite','quantity':1}]}}
+ status,data=post(value)
+ assert status==200 and data['outcome']=='attacker'
+ assert data['casualties']['defender']=={'hoplite':1}
+ assert data['military_score']['defender']['resource_cost_basis_lost']==70
+ assert data['military_score']['defender']['general_score_lost']==1.4
+ assert data['military_score']['attacker']['general_score_destroyed']==1.4
+ assert data['military_score']['attacker']['general_score_lost']==0
+ assert data['combat_statistics']['attacker']['gross_damage_dealt']>0
+ assert data['combat_statistics']['defender']['gross_damage_dealt']>0

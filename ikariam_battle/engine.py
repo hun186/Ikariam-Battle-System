@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from collections import defaultdict
 from copy import deepcopy
+from decimal import Decimal
 from typing import Any
 
 from .attacking_matrix import from_slot_counts
 from .battlefield import battlefield, deploy
 from .damage import RoundingPolicy, calculate_damage
+from .economy import MilitaryEconomyProfile
 from .events import Event
 from .formation import FormationRules, eligible_runtime_lines
 from .models import Policy, Scenario, ScenarioError, Wave
@@ -288,7 +290,7 @@ def _non_sustaining(snapshot: dict[str, Any]) -> dict[str, int]:
             if count and unit not in sustaining}
 
 
-def simulate(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
+def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     if isinstance(scenario, dict): scenario = Scenario.from_dict(scenario)
     registry = UnitRegistry.load(scenario.profiles.unit_stats)
     field = battlefield(scenario.battlefield)
@@ -413,3 +415,52 @@ def simulate(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             "outcome":outcome,"rounds_completed":completed,"casualties":{k:dict(v) for k,v in total.items()},
             "initial_state":initial,"final_state":final,"rounds":rounds,"events":[e.as_dict() for e in events],
             "assumptions":list(applied.values()),"warnings":warnings}
+
+
+def _decimal_json(value: Decimal) -> int | float:
+    if value == value.to_integral_value():
+        return int(value)
+    return float(value)
+
+
+def _attach_battle_statistics(result: dict[str, Any], economy: MilitaryEconomyProfile) -> dict[str, Any]:
+    losses: dict[str, dict[str, int | float]] = {}
+    for side in ("attacker", "defender"):
+        casualties = result.get("casualties", {}).get(side, {})
+        basis_loss = economy.resource_cost_basis_loss(casualties)
+        score_loss = economy.score_loss(casualties)
+        losses[side] = {
+            "resource_cost_basis_lost": basis_loss,
+            "general_score_lost": _decimal_json(score_loss),
+        }
+
+    result["military_score"] = {
+        "attacker": {
+            **losses["attacker"],
+            "general_score_destroyed": losses["defender"]["general_score_lost"],
+        },
+        "defender": {
+            **losses["defender"],
+            "general_score_destroyed": losses["attacker"]["general_score_lost"],
+        },
+    }
+
+    gross_damage = {"attacker": 0, "defender": 0}
+    for event in result.get("events", []):
+        if event.get("type") != "damage":
+            continue
+        side = event.get("side")
+        if side in gross_damage:
+            gross_damage[side] += int(event.get("details", {}).get("damage", 0))
+    result["combat_statistics"] = {
+        side: {"gross_damage_dealt": gross_damage[side]}
+        for side in ("attacker", "defender")
+    }
+    return result
+
+
+def simulate(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
+    normalized = Scenario.from_dict(scenario) if isinstance(scenario, dict) else scenario
+    result = _simulate_core(normalized)
+    economy = MilitaryEconomyProfile.load(normalized.profiles.economy)
+    return _attach_battle_statistics(result, economy)

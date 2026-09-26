@@ -91,14 +91,24 @@ class Profiles:
     targeting: str = "legacy-community-land-targeting"
     battle_end: str = "legacy-community-battle-end"
     formation: str = "formation-land"
+    # Appended after the original eight fields so existing positional callers
+    # retain their historical argument mapping.
+    economy: str = "military-economy-current"
 
     @classmethod
     def from_dict(cls, value: Any) -> "Profiles":
         data = _object(value, "profiles")
-        result = cls(str(data.get("mechanics", cls.mechanics)), str(data.get("unit_stats", cls.unit_stats)),
-                     str(data.get("workshop", cls.workshop)), str(data.get("forge", cls.forge)),
-                     str(data.get("support", cls.support)), str(data.get("targeting", cls.targeting)),
-                     str(data.get("battle_end", cls.battle_end)), str(data.get("formation", cls.formation)))
+        result = cls(
+            mechanics=str(data.get("mechanics", cls.mechanics)),
+            unit_stats=str(data.get("unit_stats", cls.unit_stats)),
+            workshop=str(data.get("workshop", cls.workshop)),
+            forge=str(data.get("forge", cls.forge)),
+            support=str(data.get("support", cls.support)),
+            targeting=str(data.get("targeting", cls.targeting)),
+            battle_end=str(data.get("battle_end", cls.battle_end)),
+            formation=str(data.get("formation", cls.formation)),
+            economy=str(data.get("economy", cls.economy)),
+        )
         expected = cls()
         if result != expected:
             raise ScenarioError(f"only the current profile bundle is supported: {expected}")

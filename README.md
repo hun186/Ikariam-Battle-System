@@ -10,6 +10,7 @@ A deterministic browser simulator combining current Infinite Horizons numerical 
 - v17 support: Doctor/Tender healing ×20; 4000 is derived from legacy 200. Cook morale and healing allocation remain unknown.
 - Legacy empirical mechanics profile for formation labels, Am, and RR, with SR/IR/kill/chronology limitations retained.
 - Legacy/community battle-end profile distinguishes actual main-line holders, unresolved light/long-range fallback candidates, and definitely non-sustaining artillery, air, and support.
+- Current land military-economy profile derives General Score from the unmodified resource score basis at 1 point per 50 resources; Workshop, Forge, and combat buffs do not change score value.
 
 Official changelog claims and exact community/PTS tables are not conflated. The reviewer verified sources through v17.5.0 with retrieval date 2026-09-24; this environment did not independently open those URLs. See [the evidence register](docs/mechanics-spec.md).
 
@@ -34,7 +35,7 @@ pytest -q
 uvicorn asgi:application --host 127.0.0.1 --port 8000
 ```
 
-The browser obtains profiles, battlefield geometry, Forge effects, unit roles/lines, and unit size from `GET /api/simulate`. The setup screen presents all land units as dispatch-style rows with quantity, per-unit attack/armor Workshop levels, ±one-slot helpers derived from the selected battlefield, and advanced entry-batch controls; Forge/Hephaistos stays side-wide. Results are split into round replay and total casualty summary views.
+The browser obtains profiles, battlefield geometry, Forge effects, unit roles/lines, and unit size from `GET /api/simulate`. The setup screen presents all land units as dispatch-style rows with quantity, per-unit attack/armor Workshop levels, ±one-slot helpers derived from the selected battlefield, and advanced entry-batch controls; Forge/Hephaistos stays side-wide. Results are split into round replay and total summary views. The summary reports unit casualties, General Score lost/destroyed, and gross engine damage separately.
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/simulate -H 'Content-Type: application/json' --data @sample_scenario.json
