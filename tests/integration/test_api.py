@@ -15,6 +15,13 @@ def payload(policy='experimental'):
 def post(value):
  response=asyncio.run(request('POST','/api/simulate',json.dumps(value).encode())); return response[0]['status'],json.loads(response[1]['body'])
 
+def test_barbarian_metadata_contract_is_documented():
+ contract=Path('.codex/contracts.md').read_text()
+ assert 'barbarian_profile_metadata' in contract and 'barbarian_units' in contract
+ assert 'selectable_by_player = false' in contract and 'simulation_ready = false' in contract
+ assert 'never members of the player `units` collection' in contract
+ assert 'do not make Barbarian units valid `POST /api/simulate` army `unit_id` values' in contract
+
 def test_get_metadata_drives_complete_land_ui_and_profiles():
  response=asyncio.run(request('GET','/api/simulate')); data=json.loads(response[1]['body'])
  assert response[0]['status']==200 and data['profiles']['targeting']=='legacy-community-land-targeting'
