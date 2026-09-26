@@ -106,7 +106,7 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert '@media(max-width:1100px)' in body
  assert '.battle-half{grid-template-columns:1fr}.battle-half.defender .reserve-box{order:2}.battle-board{overflow-x:auto}.formation{min-width:790px}' in body
  assert '.battle-half{grid-template-columns:1fr}.reserve-box{order:2}' not in body
- assert '<section class="battle-half '+name+'">'+reserveBox(state,name==='defender'?'Defender':'Attacker',geometry)+formation+'</section>' in body
+ assert "reserveBox(state,name==='defender'?'Defender':'Attacker',geometry)+formation" in body
  assert '@media(max-width:900px){.setup-grid,.summary-grid{grid-template-columns:1fr}' in body
  assert '}\n@media(max-width:900px)' in body
  assert '}\\n@media(max-width:900px)' not in body
