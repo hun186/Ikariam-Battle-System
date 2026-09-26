@@ -1,0 +1,45 @@
+name: Validate media-query separator fix
+
+on:
+  push:
+    branches:
+      - fix/game-faithful-battlefield-layout
+    paths:
+      - .github/workflows/validate-media-separator.yml
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/game-faithful-battlefield-layout
+          fetch-depth: 0
+      - name: Validate CSS separator and regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -q pytest
+          python -m compileall -q ikariam_battle asgi.py web_simulator.py simulator.py
+          python -m pytest -q tests/integration/test_api.py
+          python -m pytest -q
+          cmp index.html public/index.html
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('index.html').read_text()
+          assert '}\n@media(max-width:900px)' in s
+          assert '}\\n@media(max-width:900px)' not in s
+          PY
+      - name: Remove one-time validation workflow
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/validate-media-separator.yml
+          git commit -m "chore: remove one-time media-separator validation"
+          git push origin HEAD:fix/game-faithful-battlefield-layout
