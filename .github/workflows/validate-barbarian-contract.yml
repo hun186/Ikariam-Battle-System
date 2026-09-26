@@ -1,0 +1,38 @@
+name: Validate Barbarian contract fix
+
+on:
+  push:
+    branches:
+      - feat/barbarian-unit-catalog
+    paths:
+      - .github/workflows/validate-barbarian-contract.yml
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/barbarian-unit-catalog
+          fetch-depth: 0
+      - name: Run focused and full validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -q pytest
+          python -m pytest -q tests/integration/test_api.py
+          python -m pytest -q
+          cmp index.html public/index.html
+      - name: Remove one-time validation workflow
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/validate-barbarian-contract.yml
+          git commit -m "chore: remove one-time Barbarian contract validation"
+          git push origin HEAD:feat/barbarian-unit-catalog
