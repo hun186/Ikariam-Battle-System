@@ -47,11 +47,14 @@ class MilitaryEconomyProfile:
         except KeyError as exc:
             raise ValueError(f"missing military economy data for unit_id: {unit_id}") from exc
 
-    def score_loss(self, casualties: Mapping[str, int]) -> Decimal:
+    def resource_cost_basis_loss(self, casualties: Mapping[str, int]) -> int:
         return sum(
-            (self.score(unit_id) * int(quantity) for unit_id, quantity in casualties.items()),
-            Decimal(0),
+            self.resource_cost_basis_total(unit_id) * int(quantity)
+            for unit_id, quantity in casualties.items()
         )
+
+    def score_loss(self, casualties: Mapping[str, int]) -> Decimal:
+        return Decimal(self.resource_cost_basis_loss(casualties)) / Decimal(50)
 
     def public(self) -> dict[str, dict[str, int | str]]:
         return {
