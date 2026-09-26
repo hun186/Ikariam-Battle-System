@@ -89,6 +89,10 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert 'roundSafetyNotices' in body and 'summarySafetyNotices' in body
  assert "data.events.filter(e=>e.type==='unsupported_mechanic')" in body
  assert 'Experimental assumptions actually used' in body and 'Evidence warnings' in body
+ assert "不同的 Batch ID" in body and "batchIds.get(key).has(item.wave_id)" in body
+ assert "Object.entries(state.deployed_support||{})" in body and 'No deployed support' in body
+ assert '<summary>Continuation state</summary>' in body
+ assert 'round.attacker.continuation_state' in body and 'round.defender.continuation_state' in body
 
 
 def test_zero_unit_snapshot_slots_render_as_empty_and_static_copies_match():
