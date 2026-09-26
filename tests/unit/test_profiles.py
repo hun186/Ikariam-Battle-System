@@ -1,3 +1,6 @@
+from decimal import Decimal
+
+from ikariam_battle.economy import MilitaryEconomyProfile
 from ikariam_battle.formation import FormationRules
 from ikariam_battle.profiles import BattleEndProfile, ContinuationState, ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 from ikariam_battle.units import UnitRegistry
@@ -73,3 +76,27 @@ def test_workshop_forge_support_and_targeting_profiles():
  assert b.continuation_state(0,0) is ContinuationState.NOT_SUSTAINING
  assert {s['source_type'] for s in b.metadata['sources']}=={'COMMUNITY_REFERENCE','GAMEFORGE_FORUM_BATTLE_REPORT'}
  assert FormationRules.load().metadata['implementation_status']=='ALL_LAND_GEOMETRIES_PLANNER_IMPLEMENTED_COMBAT_GUARDED'
+
+
+def test_land_military_economy_profile_derives_generals_from_resource_basis():
+ e=MilitaryEconomyProfile.load()
+ assert e.metadata['formula']['resources_per_general_point']==50
+ assert e.metadata['formula']['population_included'] is False
+ assert e.metadata['formula']['resource_reduction_buildings_affect_score'] is False
+ expected={
+  'spearman':('0.6',30),'swordsman':('1.2',60),'hoplite':('1.4',70),'spartan':('1.6',80),
+  'steam_giant':('6.2',310),'slinger':('0.4',20),'archer':('1.1',55),'sulphur_carabineer':('4',200),
+  'battering_ram':('4.4',220),'catapult':('11.2',560),'mortar':('31',1550),'gyrocopter':('2.5',125),
+  'bombardier':('5.8',290),'doctor':('10',500),'cook':('4',200)}
+ assert set(e.units)==set(LAND)
+ for unit_id,(score,basis) in expected.items():
+  assert e.score(unit_id)==Decimal(score)
+  assert e.resource_cost_basis_total(unit_id)==basis
+  assert e.score(unit_id)==Decimal(basis)/Decimal(50)
+
+
+def test_military_score_loss_is_casualty_count_times_unmodified_score_basis():
+ e=MilitaryEconomyProfile.load()
+ casualties={'hoplite':3,'swordsman':2,'mortar':1}
+ assert e.resource_cost_basis_loss(casualties)==1880
+ assert e.score_loss(casualties)==Decimal('37.6')
