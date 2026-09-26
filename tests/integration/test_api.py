@@ -86,7 +86,8 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert "lineOrderDefender=['balloon','anti-balloon','third','second','flank','first']" in body
  assert "lineOrderAttacker=['first','flank','second','third','anti-balloon','balloon']" in body
  assert "summarySide('attacker','攻擊方')" in body
- assert '原始生產資源成本 ÷ 50' in body
+ assert '軍分以未折扣的原始生產資源計分基礎 ÷ 50 計算' in body
+ assert 'Workshop、熔爐神蹟與其他戰鬥 buff 不改變軍分' in body
  assert '新增進場批次' in body and 'addBatchRow' in body
  assert "row.dataset.batchIndex=String(batchIndex)" in body
  assert "同一兵種的不同進場批次必須使用相同的攻擊／防禦升級" in body
