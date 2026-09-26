@@ -4,7 +4,7 @@ from http.server import BaseHTTPRequestHandler
 import json
 from urllib.parse import urlparse
 
-from ikariam_battle import ScenarioError, UnitRegistry, simulate
+from ikariam_battle import BarbarianRegistry, ScenarioError, UnitRegistry, simulate
 from ikariam_battle.battlefield import battlefield_metadata
 from ikariam_battle.economy import MilitaryEconomyProfile
 from ikariam_battle.models import Profiles
@@ -27,6 +27,7 @@ class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if urlparse(self.path).path.rstrip("/") in API_SIMULATE_PATHS:
             registry = UnitRegistry.load()
+            barbarians = BarbarianRegistry.load()
             economy = MilitaryEconomyProfile.load()
             economy_units = economy.public()
             units = registry.public()
@@ -37,6 +38,7 @@ class handler(BaseHTTPRequestHandler):
                 "profiles": Profiles().__dict__,
                 "battlefields": battlefield_metadata(),
                 "profile_metadata": registry.metadata, "economy_metadata": economy.metadata, "units": units,
+                "barbarian_profile_metadata": barbarians.metadata, "barbarian_units": barbarians.public(),
                 "forge_levels": {str(k): {"damage_multiplier":str(v.damage_multiplier),"armor_bonus":v.armor_bonus}
                                  for k,v in ForgeProfile.load().levels.items()},
                 "support_capacity": SupportProfile.load().derived_capacity})

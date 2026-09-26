@@ -15,6 +15,13 @@ def payload(policy='experimental'):
 def post(value):
  response=asyncio.run(request('POST','/api/simulate',json.dumps(value).encode())); return response[0]['status'],json.loads(response[1]['body'])
 
+def test_barbarian_metadata_contract_is_documented():
+ contract=Path('.codex/contracts.md').read_text()
+ assert 'barbarian_profile_metadata' in contract and 'barbarian_units' in contract
+ assert 'selectable_by_player = false' in contract and 'simulation_ready = false' in contract
+ assert 'never members of the player `units` collection' in contract
+ assert 'do not make Barbarian units valid `POST /api/simulate` army `unit_id` values' in contract
+
 def test_get_metadata_drives_complete_land_ui_and_profiles():
  response=asyncio.run(request('GET','/api/simulate')); data=json.loads(response[1]['body'])
  assert response[0]['status']==200 and data['profiles']['targeting']=='legacy-community-land-targeting'
@@ -40,6 +47,11 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert medium['lines']['flank']['slot_space']==30
  assert maximum['lines']['first']['slot_space']==50
  assert len([u for u in data['units'] if u['domain']=='land' and u['numerically_supported']])==15
+ assert len(data['units'])==26
+ assert len(data['barbarian_units'])==9
+ assert data['barbarian_profile_metadata']['simulation_status']=='CATALOG_ONLY'
+ assert all(u['domain']=='barbarian' and not u['selectable_by_player'] and not u['simulation_ready'] for u in data['barbarian_units'])
+ assert not ({u['id'] for u in data['barbarian_units']} & {u['id'] for u in data['units']})
  hoplite=next(u for u in data['units'] if u['id']=='hoplite')
  carabineer=next(u for u in data['units'] if u['id']=='sulphur_carabineer')
  assert (hoplite['size'],carabineer['size'])==(1,4)
@@ -181,6 +193,10 @@ def test_local_unit_icon_assets_and_shared_ui_mapping():
    'steam_ram','fire_ship','ram_ship','ballista_ship','catapult_ship','mortar_ship',
    'diving_boat','rocket_ship','balloon_carrier','paddle_speedboat','tender'
   },
+  'barbarian':{
+   'barbarian_clubman','barbarian_axe_swinger','barbarian_knifeman','barbarian_axe_thrower',
+   'barbarian_war_walker','barbarian_ram','barbarian_catapult','barbarian_dirigible','barbarian_fighter'
+  },
  }
  assert "https://ika-sim.com/units/" not in body
  assert "function unitIconHtml(unit,cssClass='')" in body
@@ -188,8 +204,11 @@ def test_local_unit_icon_assets_and_shared_ui_mapping():
  assert 'onerror="this.hidden=true;this.nextElementSibling.hidden=false"' in body
  for domain,unit_ids in expected.items():
   for unit in unit_ids:
-   local=f'/assets/unit-icons/{domain}/{unit}.png'
+   ext='webp' if domain=='barbarian' else 'png'
+   local=f'/assets/unit-icons/{domain}/{unit}.{ext}'
    assert local in body
    assert Path(local.lstrip('/')).is_file()
    assert Path('public'+local).is_file()
+ assert '野蠻人兵種參考（9 種，catalog-only）' in body
+ assert 'function renderBarbarianCatalog()' in body
  assert body==Path('public/index.html').read_text()

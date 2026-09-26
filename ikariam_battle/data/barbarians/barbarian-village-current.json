@@ -1,0 +1,279 @@
+{
+  "metadata": {
+    "profile": "barbarian-village-current",
+    "scope": "new Barbarian Village land units",
+    "verified_context_date": "2026-09-26",
+    "simulation_status": "CATALOG_ONLY",
+    "selectable_by_player": false,
+    "current_stat_method": "Base HP, armour and damage use the Infinite Horizons x20 military-unit scaling where the pre-v13 Barbarian guide/equivalent player-unit evidence is available. Accuracy, ammunition and size are not multiplied.",
+    "confidence": "DERIVED_WITH_CURRENT_LIVE_CORROBORATION",
+    "cautions": [
+      "This catalog is intentionally separate from the player UnitRegistry.",
+      "CATALOG_ONLY means these units are not accepted as player army units and are not yet wired into NPC battle formation/targeting.",
+      "The 2019 Barbarian Village guide has an internal inconsistency for Axe Thrower first appearance (unit section says level 30 while the level-by-level narrative introduces the second line at level 40); this catalog uses level 40 and preserves the conflict note."
+    ],
+    "sources": [
+      {
+        "id": "GF_BARBAR_VILLAGE_GUIDE",
+        "type": "GAMEFORGE_FORUM_GUIDE",
+        "url": "https://forum.ikariam.gameforge.com/forum/thread/8492-tutorial-a-vila-dos-b%C3%A1rbaros-6/",
+        "notes": "Nine Barbarian land unit types, line roles, player-unit equivalences, and appearance levels."
+      },
+      {
+        "id": "GF_IH2_CHANGELOG",
+        "type": "OFFICIAL_CHANGELOG",
+        "url": "https://forum.ikariam.gameforge.com/forum/thread/107634-infinite-horizons-milestone-2/",
+        "notes": "Infinite Horizons Milestone 2 increased basic stats of all units."
+      },
+      {
+        "id": "GF_IH2_X20",
+        "type": "GAMEFORGE_FORUM_PLAYER_TEST",
+        "url": "https://forum.ikariam.gameforge.com/forum/thread/107659-infinite-horizons-2/?pageNo=4",
+        "notes": "Player test documents x20 HP/armour/damage unit scaling, e.g. Hoplite 56/1/18 -> 1120/20/360."
+      },
+      {
+        "id": "GF_KNIFEMAN_2026",
+        "type": "GAMEFORGE_FORUM_BATTLE_ANALYSIS",
+        "url": "https://forum.ikariam.gameforge.com/forum/thread/107659-infinite-horizons-2/?pageNo=45",
+        "notes": "2026 battle analysis directly reports Barbarian Knifeman HP 360."
+      },
+      {
+        "id": "COMMUNITY_BARB_GUIDE",
+        "type": "COMMUNITY_GUIDE_MIRROR",
+        "url": "https://static.s123-cdn-static-d.com/uploads/4367622/normal_60b2770c74e23.pdf",
+        "notes": "Legacy new-Barbarian guide: player-unit equivalences and documented exceptions such as Clubman HP/damage, Axe Thrower ammo, Catapult ammo, and Barbarian Ram HP/damage/accuracy."
+      },
+      {
+        "id": "FANDOM_GAMEFORGE_IMAGES",
+        "type": "COMMUNITY_IMAGE_INDEX",
+        "url": "https://ikariam.fandom.com/wiki/Category:License:Images_Copyrighted_by_Gameforge",
+        "notes": "Lists the nine Barbarian button icon filenames under Gameforge-copyrighted images."
+      }
+    ]
+  },
+  "units": [
+    {
+      "id": "barbarian_clubman",
+      "display_name": "Barbarian Clubman",
+      "semantic_class": "light_infantry",
+      "native_line": "first",
+      "first_appearance_level": 1,
+      "last_appearance_level": 22,
+      "equivalent_player_unit": "spearman",
+      "hp": 240,
+      "base_armor": 0,
+      "damage": 100,
+      "accuracy": 70,
+      "ammunition": null,
+      "size": 1,
+      "provenance": {
+        "confidence": "DERIVED_X20_WITH_DOCUMENTED_EXCEPTIONS",
+        "notes": "Legacy guide describes Clubman as Spearman except HP 12 vs 13 and damage 5 vs 4; HP/damage scaled x20. Armour/accuracy/size inherit the documented Spearman equivalence.",
+        "sources": [
+          "GF_BARBAR_VILLAGE_GUIDE",
+          "COMMUNITY_BARB_GUIDE",
+          "GF_IH2_CHANGELOG",
+          "GF_IH2_X20"
+        ]
+      }
+    },
+    {
+      "id": "barbarian_axe_swinger",
+      "display_name": "Barbarian Axe Swinger",
+      "semantic_class": "heavy_infantry",
+      "native_line": "first",
+      "first_appearance_level": 20,
+      "last_appearance_level": null,
+      "equivalent_player_unit": "hoplite",
+      "hp": 1120,
+      "base_armor": 20,
+      "damage": 360,
+      "accuracy": 90,
+      "ammunition": null,
+      "size": 1,
+      "provenance": {
+        "confidence": "EQUIVALENCE_DERIVED_CURRENT",
+        "notes": "Gameforge guide places it on the front line and says it is equivalent to Hoplites; current values follow the current Hoplite baseline.",
+        "sources": [
+          "GF_BARBAR_VILLAGE_GUIDE",
+          "GF_IH2_CHANGELOG",
+          "GF_IH2_X20"
+        ]
+      }
+    },
+    {
+      "id": "barbarian_knifeman",
+      "display_name": "Barbarian Knifeman",
+      "semantic_class": "light_infantry",
+      "native_line": "flank",
+      "first_appearance_level": 30,
+      "last_appearance_level": null,
+      "equivalent_player_unit": "swordsman",
+      "hp": 360,
+      "base_armor": 0,
+      "damage": 200,
+      "accuracy": 90,
+      "ammunition": null,
+      "size": 1,
+      "provenance": {
+        "confidence": "CURRENT_HP_OBSERVED_OTHER_STATS_EQUIVALENCE_DERIVED",
+        "notes": "Gameforge guide says it defends flanks and is equivalent to Swordsmen; 2026 battle analysis directly reports HP 360.",
+        "sources": [
+          "GF_BARBAR_VILLAGE_GUIDE",
+          "GF_KNIFEMAN_2026",
+          "GF_IH2_CHANGELOG",
+          "GF_IH2_X20"
+        ]
+      }
+    },
+    {
+      "id": "barbarian_axe_thrower",
+      "display_name": "Barbarian Axe Thrower",
+      "semantic_class": "long_range",
+      "native_line": "second",
+      "first_appearance_level": 40,
+      "last_appearance_level": null,
+      "equivalent_player_unit": "archer",
+      "hp": 320,
+      "base_armor": 0,
+      "damage": 100,
+      "accuracy": 40,
+      "ammunition": 7,
+      "size": 1,
+      "provenance": {
+        "confidence": "EQUIVALENCE_DERIVED_WITH_AMMO_EXCEPTION",
+        "notes": "Community guide describes Axe Thrower as Archer except ammunition 7 instead of 3. Gameforge level narrative introduces the second-line unit at level 40; a unit-summary line says level 30, so appearance is flagged as conflicted.",
+        "sources": [
+          "GF_BARBAR_VILLAGE_GUIDE",
+          "COMMUNITY_BARB_GUIDE",
+          "GF_IH2_CHANGELOG",
+          "GF_IH2_X20"
+        ]
+      }
+    },
+    {
+      "id": "barbarian_war_walker",
+      "display_name": "Barbarian War Walker",
+      "semantic_class": "heavy_infantry",
+      "native_line": "first",
+      "first_appearance_level": 50,
+      "last_appearance_level": null,
+      "equivalent_player_unit": "steam_giant",
+      "hp": 3680,
+      "base_armor": 60,
+      "damage": 840,
+      "accuracy": 80,
+      "ammunition": null,
+      "size": 3,
+      "provenance": {
+        "confidence": "EQUIVALENCE_DERIVED_CURRENT",
+        "notes": "Gameforge guide places it on the front line at level 50 and says it is equivalent to Steam Giants.",
+        "sources": [
+          "GF_BARBAR_VILLAGE_GUIDE",
+          "GF_IH2_CHANGELOG",
+          "GF_IH2_X20"
+        ]
+      }
+    },
+    {
+      "id": "barbarian_ram",
+      "display_name": "Barbarian Ram",
+      "semantic_class": "artillery",
+      "native_line": "third",
+      "first_appearance_level": 10,
+      "last_appearance_level": null,
+      "equivalent_player_unit": "battering_ram",
+      "hp": 1400,
+      "base_armor": 20,
+      "damage": 2100,
+      "accuracy": 10,
+      "ammunition": null,
+      "size": 5,
+      "provenance": {
+        "confidence": "DIRECT_LEGACY_CORE_X20_PLUS_EQUIVALENCE",
+        "notes": "Legacy guide directly gives HP 70, damage 105 and accuracy 10%; HP/damage scaled x20. Armour and size inherit Battering Ram equivalence; ammunition remains unlimited/null as in the player Ram profile.",
+        "sources": [
+          "GF_BARBAR_VILLAGE_GUIDE",
+          "COMMUNITY_BARB_GUIDE",
+          "GF_IH2_CHANGELOG",
+          "GF_IH2_X20"
+        ]
+      }
+    },
+    {
+      "id": "barbarian_catapult",
+      "display_name": "Barbarian Catapult",
+      "semantic_class": "artillery",
+      "native_line": "third",
+      "first_appearance_level": 40,
+      "last_appearance_level": null,
+      "equivalent_player_unit": "mortar",
+      "hp": 640,
+      "base_armor": 0,
+      "damage": 5400,
+      "accuracy": 10,
+      "ammunition": 5,
+      "size": 5,
+      "provenance": {
+        "confidence": "EQUIVALENCE_DERIVED_WITH_AMMO_EXCEPTION",
+        "notes": "Gameforge guide identifies artillery role; community guide describes it as Mortar except ammunition 5 instead of 3.",
+        "sources": [
+          "GF_BARBAR_VILLAGE_GUIDE",
+          "COMMUNITY_BARB_GUIDE",
+          "GF_IH2_CHANGELOG",
+          "GF_IH2_X20"
+        ]
+      }
+    },
+    {
+      "id": "barbarian_dirigible",
+      "display_name": "Barbarian Dirigible",
+      "semantic_class": "air",
+      "native_line": "balloon",
+      "first_appearance_level": 50,
+      "last_appearance_level": null,
+      "equivalent_player_unit": "bombardier",
+      "hp": 800,
+      "base_armor": 0,
+      "damage": 960,
+      "accuracy": 20,
+      "ammunition": 2,
+      "size": 2,
+      "provenance": {
+        "confidence": "EQUIVALENCE_DERIVED_CURRENT",
+        "notes": "Gameforge guide identifies it as a bomber equivalent to Balloon-Bombardiers at level 50.",
+        "sources": [
+          "GF_BARBAR_VILLAGE_GUIDE",
+          "COMMUNITY_BARB_GUIDE",
+          "GF_IH2_CHANGELOG",
+          "GF_IH2_X20"
+        ]
+      }
+    },
+    {
+      "id": "barbarian_fighter",
+      "display_name": "Barbarian Fighter",
+      "semantic_class": "air",
+      "native_line": "anti-balloon",
+      "first_appearance_level": 50,
+      "last_appearance_level": null,
+      "equivalent_player_unit": "gyrocopter",
+      "hp": 580,
+      "base_armor": 0,
+      "damage": 340,
+      "accuracy": 80,
+      "ammunition": 4,
+      "size": 1,
+      "provenance": {
+        "confidence": "EQUIVALENCE_DERIVED_CURRENT",
+        "notes": "Gameforge guide identifies it as the air-defense/fighter unit equivalent to Gyrocopters at level 50.",
+        "sources": [
+          "GF_BARBAR_VILLAGE_GUIDE",
+          "COMMUNITY_BARB_GUIDE",
+          "GF_IH2_CHANGELOG",
+          "GF_IH2_X20"
+        ]
+      }
+    }
+  ]
+}

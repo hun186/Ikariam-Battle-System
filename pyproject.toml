@@ -21,6 +21,7 @@ exclude = ["public*", "tests*"]
 
 [tool.setuptools.package-data]
 "ikariam_battle.data.units" = ["*.json"]
+"ikariam_battle.data.barbarians" = ["*.json"]
 "ikariam_battle.data.rules" = ["*.json"]
 "ikariam_battle.data.mechanics" = ["*.json"]
 "ikariam_battle.data.calibration" = ["*.json"]
