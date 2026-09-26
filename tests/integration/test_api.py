@@ -83,6 +83,12 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert "lineOrderAttacker=['first','flank','second','third','anti-balloon','balloon']" in body
  assert "summarySide('attacker','攻擊方')" in body
  assert '原始生產資源成本 ÷ 50' in body
+ assert '新增進場批次' in body and 'addBatchRow' in body
+ assert "row.dataset.batchIndex=String(batchIndex)" in body
+ assert "同一兵種的不同進場批次必須使用相同的攻擊／防禦升級" in body
+ assert 'roundSafetyNotices' in body and 'summarySafetyNotices' in body
+ assert "data.events.filter(e=>e.type==='unsupported_mechanic')" in body
+ assert 'Experimental assumptions actually used' in body and 'Evidence warnings' in body
 
 
 def test_zero_unit_snapshot_slots_render_as_empty_and_static_copies_match():
