@@ -85,6 +85,7 @@ class Army:
 class Profiles:
     mechanics: str = "battle-system-paper-2020"
     unit_stats: str = "infinite-horizons-current"
+    economy: str = "military-economy-current"
     workshop: str = "v14-workshop"
     forge: str = "v14-hephaistos"
     support: str = "v17-support-healing"
@@ -96,9 +97,10 @@ class Profiles:
     def from_dict(cls, value: Any) -> "Profiles":
         data = _object(value, "profiles")
         result = cls(str(data.get("mechanics", cls.mechanics)), str(data.get("unit_stats", cls.unit_stats)),
-                     str(data.get("workshop", cls.workshop)), str(data.get("forge", cls.forge)),
-                     str(data.get("support", cls.support)), str(data.get("targeting", cls.targeting)),
-                     str(data.get("battle_end", cls.battle_end)), str(data.get("formation", cls.formation)))
+                     str(data.get("economy", cls.economy)), str(data.get("workshop", cls.workshop)),
+                     str(data.get("forge", cls.forge)), str(data.get("support", cls.support)),
+                     str(data.get("targeting", cls.targeting)), str(data.get("battle_end", cls.battle_end)),
+                     str(data.get("formation", cls.formation)))
         expected = cls()
         if result != expected:
             raise ScenarioError(f"only the current profile bundle is supported: {expected}")
