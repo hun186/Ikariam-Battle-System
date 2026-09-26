@@ -1,0 +1,51 @@
+{
+  "metadata": {
+    "profile": "military-economy-current",
+    "scope": "current player land units",
+    "verified_through_date": "2026-09-26",
+    "verification_status": "CHATGPT_WEB_VERIFIED",
+    "formula": {
+      "resource_point_multiplier": "0.02",
+      "resources_per_general_point": 50,
+      "population_included": false,
+      "resource_reduction_buildings_affect_score": false,
+      "source_type": "COMMUNITY_REFERENCE_CURRENT",
+      "source_title": "Ikariam Fandom — Scores / Military (Generals)",
+      "source_url": "https://ikariam.fandom.com/wiki/Scores",
+      "verification": "CHATGPT_WEB_VERIFIED",
+      "retrieved": "2026-09-26"
+    },
+    "unit_scores": {
+      "source_type": "COMMUNITY_REFERENCE_CURRENT",
+      "source_title": "Ikariam Battle Simulator — current Infinite Horizons land unit GEN values",
+      "source_url": "https://ika-sim.com/",
+      "verification": "CHATGPT_WEB_VERIFIED",
+      "retrieved": "2026-09-26"
+    },
+    "spartan_score_basis": {
+      "source_type": "COMMUNITY_REFERENCE_CURRENT",
+      "source_title": "Ikariam Fandom — Spartan",
+      "source_url": "https://ikariam.fandom.com/wiki/Unit-ship%3ASpartan",
+      "verification": "CHATGPT_WEB_VERIFIED",
+      "retrieved": "2026-09-26",
+      "note": "Spartan wood/sulphur values are nominal score-basis values, not resources actually paid to recruit the premium unit."
+    }
+  },
+  "units": {
+    "spearman": {"resource_cost_basis_total": 30, "general_score": "0.6"},
+    "swordsman": {"resource_cost_basis_total": 60, "general_score": "1.2"},
+    "hoplite": {"resource_cost_basis_total": 70, "general_score": "1.4"},
+    "spartan": {"resource_cost_basis_total": 80, "general_score": "1.6"},
+    "steam_giant": {"resource_cost_basis_total": 310, "general_score": "6.2"},
+    "slinger": {"resource_cost_basis_total": 20, "general_score": "0.4"},
+    "archer": {"resource_cost_basis_total": 55, "general_score": "1.1"},
+    "sulphur_carabineer": {"resource_cost_basis_total": 200, "general_score": "4"},
+    "battering_ram": {"resource_cost_basis_total": 220, "general_score": "4.4"},
+    "catapult": {"resource_cost_basis_total": 560, "general_score": "11.2"},
+    "mortar": {"resource_cost_basis_total": 1550, "general_score": "31"},
+    "gyrocopter": {"resource_cost_basis_total": 125, "general_score": "2.5"},
+    "bombardier": {"resource_cost_basis_total": 290, "general_score": "5.8"},
+    "doctor": {"resource_cost_basis_total": 500, "general_score": "10"},
+    "cook": {"resource_cost_basis_total": 200, "general_score": "4"}
+  }
+}
