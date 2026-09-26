@@ -77,6 +77,6 @@ class UnitRegistry:
     def public(self) -> list[dict[str, Any]]:
         return [{"id": u.id, "display_name": u.display_name, "domain": u.domain, "role": u.role,
                  "support_effect":u.support_effect, "battlefield_class": u.battlefield_class,
-                 "semantic_class":u.semantic_class, "native_line":u.native_line,
+                 "semantic_class":u.semantic_class, "native_line":u.native_line, "size":u.size,
                  "numerically_supported": u.numerically_supported,
                  "counts_toward_garrison_limit": u.counts_toward_garrison_limit} for u in self.all()]

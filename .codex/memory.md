@@ -1,7 +1,7 @@
 # Project Memory
 
 ## Current Focus
-- PR #18 is merged; executable battle-report calibration is the current baseline.
+- PR #19 is merged; all five land geometries plus metadata-driven battlefield rendering are the current baseline.
 - Workshop upgrades are per unit type; Forge is side-wide.
 - All five land IDs use evidence-backed slot geometry and slot-space/unit-size capacity; selection remains explicit.
 - Complete reviewer-verified current data is distinct from empirical mechanics.
@@ -16,6 +16,7 @@
 Naval geometry, automatic Town Hall/garrison/wall selection and transitions, accuracy, target transfer, mixed rows, healing/morale, kill/rounding/SR/IR chronology and secondary triggers require future work.
 
 ## Recent Outcomes
+- Game-like battle setup/report work is in progress: setup is unit-row based, ±slot is derived from battlefield slot space and unit size, Workshop levels are per unit, Forge/Hephaistos is side-wide, and round/summary report views are separated.
 - All five land geometries are executable with descriptive Town Hall metadata; this does not relax mixed/multi-line/fallback blockers.
 - Battle-report calibration is executable through separate run/evaluate APIs with per-field MATCH/MISMATCH/NOT_ASSESSABLE results; a match does not promote empirical evidence into production truth, and life-percent semantics remain unknown.
 - Explicit weapon selection preserves native primary behavior and enables homogeneous single-weapon Light Infantry in runtime first; runtime target priority remains separate.
