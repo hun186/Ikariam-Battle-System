@@ -1,0 +1,46 @@
+name: Validate game-faithful battlefield layout
+
+on:
+  push:
+    branches:
+      - fix/game-faithful-battlefield-layout
+    paths:
+      - .github/workflows/validate-game-layout.yml
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/game-faithful-battlefield-layout
+          fetch-depth: 0
+      - name: Run layout validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -q pytest
+          python -m compileall -q ikariam_battle asgi.py web_simulator.py simulator.py
+          python -m pytest -q tests/integration/test_api.py
+          python -m pytest -q
+          cmp index.html public/index.html
+          grep -q "formation-row front-row" index.html
+          grep -q "formation-row rear-row" index.html
+          grep -q "sideLine(state,'flank',geometry,'left'" index.html
+          grep -q "sideLine(state,'anti-balloon',geometry,'left')" index.html
+          grep -q "sideLine(state,'balloon',geometry,'right')" index.html
+          ! grep -q "flank-column" index.html
+          ! grep -q "air-zone" index.html
+      - name: Remove one-time validation workflow
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/validate-game-layout.yml
+          git commit -m "chore: remove one-time game-layout validation"
+          git push origin HEAD:fix/game-faithful-battlefield-layout
