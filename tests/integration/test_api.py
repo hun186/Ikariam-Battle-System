@@ -74,6 +74,9 @@ def test_static_ui_uses_metadata_per_unit_upgrades_and_mini_size():
  assert "const lineOrder=['balloon','anti-balloon','third','second','flank','first']" in body
  assert "metadata.battlefields.find(f=>f.id===lastBattlefieldId)?.lines||{}" in body
  assert "order=geometry[line]?.physical_order||[]" in body
+ assert "const submittedBattlefield=battlefield.value,body={" in body
+ assert "battlefield:submittedBattlefield" in body
+ assert "render(data,submittedBattlefield)" in body
 
 
 def test_zero_unit_snapshot_slots_render_as_empty_and_static_copies_match():
