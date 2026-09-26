@@ -20,53 +20,49 @@ jobs:
           ref: feat/land-unit-icons
           fetch-depth: 0
 
-      - name: Download fixed land unit icon set
+      - name: Download fixed icon set
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p assets/unit-icons/land public/assets/unit-icons/land docs
-          cat > /tmp/icons.tsv <<'EOF'
-          hoplite	HOPLITE.webp
-          spartan	SPARTAN.webp
-          steam_giant	STEAM_GIANT.webp
-          spearman	SPEARMAN.webp
-          swordsman	SWORDSMAN.webp
-          slinger	SLINGER.webp
-          archer	ARCHER.webp
-          sulphur_carabineer	SULPHUR_CARABINEER.webp
-          battering_ram	BATTERING_RAM.webp
-          catapult	CATAPULT.webp
-          mortar	MORTAR.webp
-          gyrocopter	GYROCOPTER.webp
-          bombardier	BOMBARDIER.webp
-          doctor	DOCTOR.webp
-          cook	COOK.webp
-          EOF
+          printf '%s\n' '# Unit icon provenance' '' > docs/unit-icon-provenance.md
+          printf '%s\n' 'Retrieved on 2026-09-26 from the fixed ika-sim.com unit URLs through images.weserv.nl as a transfer proxy. The repository does not claim that these images are open-source or that their copyright is owned by this repository.' '' >> docs/unit-icon-provenance.md
+          printf '%s\n' '| Unit | Canonical source | Local path | SHA-256 |' '| --- | --- | --- | --- |' >> docs/unit-icon-provenance.md
 
-          printf '# Unit icon provenance\n\n' > docs/unit-icon-provenance.md
-          printf 'These local PNG assets were fetched on 2026-09-26 through a fixed image proxy from the known ika-sim.com unit URLs. This repository does not claim that these images are open-source or that their copyright is owned by this repository.\n\n' >> docs/unit-icon-provenance.md
-          printf '| Unit | Canonical source | Local path | SHA-256 |\n| --- | --- | --- | --- |\n' >> docs/unit-icon-provenance.md
+          items=(
+            "hoplite:HOPLITE.webp"
+            "spartan:SPARTAN.webp"
+            "steam_giant:STEAM_GIANT.webp"
+            "spearman:SPEARMAN.webp"
+            "swordsman:SWORDSMAN.webp"
+            "slinger:SLINGER.webp"
+            "archer:ARCHER.webp"
+            "sulphur_carabineer:SULPHUR_CARABINEER.webp"
+            "battering_ram:BATTERING_RAM.webp"
+            "catapult:CATAPULT.webp"
+            "mortar:MORTAR.webp"
+            "gyrocopter:GYROCOPTER.webp"
+            "bombardier:BOMBARDIER.webp"
+            "doctor:DOCTOR.webp"
+            "cook:COOK.webp"
+          )
 
-          while IFS=$'\t' read -r unit remote; do
-            source="https://ika-sim.com/units/$remote"
-            proxy="https://images.weserv.nl/?url=ika-sim.com/units/$remote&output=png"
-            dest="assets/unit-icons/land/$unit.png"
-            curl --fail --location --retry 0 --connect-timeout 10 --max-time 30 --silent --show-error "$proxy" -o "$dest"
-            python - "$dest" <<'PY'
-import pathlib, sys
-p=pathlib.Path(sys.argv[1])
-data=p.read_bytes()
-if len(data) < 24 or data[:8] != b"\x89PNG\r\n\x1a\n":
-    raise SystemExit(f"{p} is not a PNG")
-PY
-            cp "$dest" "public/$dest"
-            sha="$(sha256sum "$dest" | awk '{print $1}')"
-            printf '| %s | %s | %s | `%s` |\n' "$unit" "$source" "$dest" "$sha" >> docs/unit-icon-provenance.md
-          done < /tmp/icons.tsv
+          for item in "${items[@]}"; do
+            unit="${item%%:*}"
+            remote="${item#*:}"
+            source="https://ika-sim.com/units/${remote}"
+            proxy="https://images.weserv.nl/?url=ika-sim.com/units/${remote}&output=png"
+            dest="assets/unit-icons/land/${unit}.png"
+            curl --fail --location --retry 0 --connect-timeout 10 --max-time 30 --silent --show-error "${proxy}" -o "${dest}"
+            python -c 'import pathlib,sys; d=pathlib.Path(sys.argv[1]).read_bytes(); assert len(d)>=24 and d[:8]==b"\x89PNG\r\n\x1a\n", "not PNG"' "${dest}"
+            cp "${dest}" "public/${dest}"
+            sha="$(sha256sum "${dest}" | cut -d ' ' -f1)"
+            printf '| %s | %s | %s | `%s` |\n' "${unit}" "${source}" "${dest}" "${sha}" >> docs/unit-icon-provenance.md
+          done
 
-          rm -f .icon-materialize-trigger .github/workflows/materialize-unit-icons.yml
+          rm -f .icon-materialize-trigger
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git add assets public/assets docs/unit-icon-provenance.md .icon-materialize-trigger
           git commit -m "feat: add local land unit icon assets"
           git push origin HEAD:feat/land-unit-icons
