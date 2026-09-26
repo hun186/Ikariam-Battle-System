@@ -87,6 +87,12 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert "if(metadata.forge_levels['5'])select.value='5'" in body
  assert "line.physical_order.length*Math.floor(line.slot_space/unit.size)" in body
  assert 'air-zone' in body and 'flank-column' in body and 'ground-zone' in body
+ assert "unitIconBase='https://ika-sim.com/units/'" in body
+ assert "hoplite:'HOPLITE.webp'" in body and "swordsman:'SWORDSMAN.webp'" in body
+ assert "gyrocopter:'GYROCOPTER.webp'" in body and "bombardier:'BOMBARDIER.webp'" in body
+ assert "doctor:'DOCTOR.webp'" in body and "cook:'COOK.webp'" in body
+ assert "unitIconHtml(unit)" in body
+ assert 'onerror="this.hidden=true;this.nextElementSibling.hidden=false"' in body
  assert '此戰場沒有 Flank slot；未能補入前線的側翼兵會留在 Reserve。' in body
  assert "const formation='<div class=\"formation\">'+air+ground+'</div>'" in body
  assert "battleHalf(round.attacker,'attacker')" in body
