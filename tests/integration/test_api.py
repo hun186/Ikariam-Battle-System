@@ -172,17 +172,24 @@ def test_general_score_loss_destroyed_and_gross_damage_are_reported():
 def test_local_unit_icon_assets_and_shared_ui_mapping():
  body=Path('index.html').read_text()
  expected={
-  'hoplite','spartan','steam_giant','spearman','swordsman','slinger','archer',
-  'sulphur_carabineer','battering_ram','catapult','mortar','gyrocopter',
-  'bombardier','doctor','cook'
+  'land':{
+   'hoplite','spartan','steam_giant','spearman','swordsman','slinger','archer',
+   'sulphur_carabineer','battering_ram','catapult','mortar','gyrocopter',
+   'bombardier','doctor','cook'
+  },
+  'naval':{
+   'steam_ram','fire_ship','ram_ship','ballista_ship','catapult_ship','mortar_ship',
+   'diving_boat','rocket_ship','balloon_carrier','paddle_speedboat','tender'
+  },
  }
  assert "https://ika-sim.com/units/" not in body
  assert "function unitIconHtml(unit,cssClass='')" in body
  assert "unitIconHtml(unit)" in body
  assert 'onerror="this.hidden=true;this.nextElementSibling.hidden=false"' in body
- for unit in expected:
-  local=f'/assets/unit-icons/land/{unit}.png'
-  assert local in body
-  assert Path(local.lstrip('/')).is_file()
-  assert Path('public'+local).is_file()
+ for domain,unit_ids in expected.items():
+  for unit in unit_ids:
+   local=f'/assets/unit-icons/{domain}/{unit}.png'
+   assert local in body
+   assert Path(local.lstrip('/')).is_file()
+   assert Path('public'+local).is_file()
  assert body==Path('public/index.html').read_text()
