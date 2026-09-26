@@ -21,6 +21,7 @@ The simulator combines empirical mechanics with current numerical profiles; it i
 | `legacy-community-land-targeting` | COMMUNITY_REFERENCE | experimental/calibration policy |
 | `legacy-community-battle-end` | COMMUNITY_REFERENCE, REVIEWER_WEB_VERIFIED | sustaining classes and round-boundary termination; calibration required |
 | `formation-land` | GAMEFORGE_IN_GAME_HELP + EMPIRICAL_PAPER; USER_PROVIDED_BATTLE_OBSERVATION corroboration | deterministic placement for all five land geometries; single-weapon Light fallback combat supported |
+| `military-economy-current` | COMMUNITY_REFERENCE_CURRENT + derived score-basis validation | player land General Score metadata/reporting; score = unmodified resource basis / 50; combat buffs do not change score |
 
 ## Formation and runtime roles
 
@@ -117,3 +118,12 @@ Player mode defaults to an upper defender/lower attacker field, visual line slot
 Damage-percent observations use the existing documented round-up assumption to derive the exact compatible integer persistent-damage interval from surviving units × unit HP. This remains a calibration assumption rather than confirmed Ikariam law. Casualties are summed only from round `damage` events carrying exact target side, runtime line, and damage position; missing identity is not inferred from side totals. Battle-report `life_percent` remains `not_assessable` with `UNKNOWN-BATTLE-REPORT-LIFE-PERCENT-SEMANTICS`, because the report denominator and rounding have not been proven identical to engine-derived `hit_points_percent`.
 
 A calibration match says only that one simulator result is compatible with one observation. It does not promote `USER_PROVIDED_BATTLE_OBSERVATION`, an experimental policy, or any empirical hypothesis into a production mechanic. Existing mixed-unit Am, accuracy, RR/SR/IR, secondary-trigger, target-transfer, ranged-fallback, cross-wave rebuild, and formation blockers remain intact.
+
+
+## Military economy and General Score
+
+The `military-economy-current` profile is presentation/reporting data, not a combat modifier. The current community score rule states that active military units and ships contribute 0.02 General Score per unmodified production resource, equivalent to one General point per 50 resources; reduction buildings do not reduce the score basis. The current land-unit GEN values are cross-checked against that formula, and the profile loader rejects any row whose published score does not equal `resource_cost_basis_total / 50`.
+
+Spartan is a special case: its stored 40 + 40 resource values are nominal score-basis values rather than resources actually paid for recruitment, so its 1.6 score remains valid without pretending that 80 resources were spent. Population is not part of the General Score formula. Workshop levels, Forge/Hephaistos, and combat buffs are deliberately absent from the economy calculation.
+
+Battle output derives `general_score_lost` only from actual casualties and derives `general_score_destroyed` as the opposing side's loss. `gross_damage_dealt` is separately the sum of simulator `damage` events; it is an engine observability metric and is not claimed to be an independently verified Ikariam war-report field with identical semantics.
