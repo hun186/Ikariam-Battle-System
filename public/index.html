@@ -171,13 +171,16 @@ function adjustBySlot(row,direction){
 function army(side){
   const rows=[...document.querySelectorAll('#'+side+'Units .unit-setup-row')];
   const items=rows.map(row=>({unit_id:row.dataset.unitId,quantity:Math.max(0,+row.querySelector('.qty').value||0),
-    wave_id:row.querySelector('.wave').value||side+'-'+row.dataset.unitId+'-1',attack_upgrade:Math.max(0,+row.querySelector('.attack').value||0),
+    wave_id:(row.querySelector('.wave').value||side+'-'+row.dataset.unitId+'-1').trim(),attack_upgrade:Math.max(0,+row.querySelector('.attack').value||0),
     armor_upgrade:Math.max(0,+row.querySelector('.armor').value||0)})).filter(item=>item.quantity>0);
-  const upgrades=new Map();
+  const upgrades=new Map(),batchIds=new Map();
   for(const item of items){
     const key=item.unit_id,value=item.attack_upgrade+'/'+item.armor_upgrade;
     if(upgrades.has(key)&&upgrades.get(key)!==value)throw Error('同一兵種的不同進場批次必須使用相同的攻擊／防禦升級。');
     upgrades.set(key,value);
+    if(!batchIds.has(key))batchIds.set(key,new Set());
+    if(batchIds.get(key).has(item.wave_id))throw Error('同一兵種的不同進場批次必須使用不同的 Batch ID，否則彈藥池會被合併。');
+    batchIds.get(key).add(item.wave_id);
   }
   return {forge_level:+document.getElementById(side==='attacker'?'aForge':'dForge').value,units:items};
 }
@@ -198,11 +201,17 @@ function lineSlots(state,line,geometry){
       '<div class="slot empty" aria-label="Empty '+esc(line)+' slot">◇</div>';
   }).join('')+'</div>';
 }
+function unitCountRows(entries){
+  return entries.map(([id,n])=>{const unit=unitById(id);return '<div class="reserve-item"><span>'+esc(unit?.display_name||id)+'</span><b>'+n+'</b></div>';}).join('');
+}
 function reserveBox(state,name){
-  const entries=Object.entries(state.reserve||{}).filter(([,n])=>n);
-  return '<aside class="reserve-box"><h3>'+name+' Reserve</h3>'+(entries.length?entries.map(([id,n])=>{
-    const unit=unitById(id);return '<div class="reserve-item"><span>'+esc(unit?.display_name||id)+'</span><b>'+n+'</b></div>';
-  }).join(''):'<div class="reserve-empty">No reserve</div>')+'</aside>';
+  const reserve=Object.entries(state.reserve||{}).filter(([,n])=>n);
+  const support=Object.entries(state.deployed_support||{}).filter(([,n])=>n);
+  return '<aside class="reserve-box"><h3>'+name+' Reserve</h3>'+
+    (reserve.length?unitCountRows(reserve):'<div class="reserve-empty">No reserve</div>')+
+    '<h3 style="margin-top:12px">Support</h3>'+
+    (support.length?unitCountRows(support):'<div class="reserve-empty">No deployed support</div>')+
+    '</aside>';
 }
 function battleHalf(state,name){
   const geometry=metadata.battlefields.find(f=>f.id===lastBattlefieldId)?.lines||{};
@@ -241,7 +250,7 @@ function renderRound(index){
   document.getElementById('battleBoard').innerHTML=battleHalf(round.defender,'defender')+'<div class="clash" aria-hidden="true"></div>'+battleHalf(round.attacker,'attacker');
   document.getElementById('roundMetrics').innerHTML='<div class="metric"><span>Status</span><b>'+esc(lastResult.status)+'</b></div><div class="metric"><span>Outcome</span><b>'+esc(lastResult.outcome)+'</b></div>';
   const events=lastResult.events.filter(e=>e.round===round.round);
-  document.getElementById('researchData').innerHTML='<details><summary>Wave / batch state</summary><pre>'+esc(JSON.stringify({attacker:round.attacker.waves,defender:round.defender.waves},null,2))+'</pre></details><details><summary>Engine events</summary><pre>'+esc(JSON.stringify(events,null,2))+'</pre></details>';
+  document.getElementById('researchData').innerHTML='<details><summary>Continuation state</summary><pre>'+esc(JSON.stringify({attacker:round.attacker.continuation_state,defender:round.defender.continuation_state},null,2))+'</pre></details><details><summary>Wave / batch state</summary><pre>'+esc(JSON.stringify({attacker:round.attacker.waves,defender:round.defender.waves},null,2))+'</pre></details><details><summary>Engine events</summary><pre>'+esc(JSON.stringify(events,null,2))+'</pre></details>';
   renderSafetyNotices();renderPager();
 }
 function summarySide(side,label){
