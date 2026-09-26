@@ -19,7 +19,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 .unit-setup-row{display:grid;grid-template-columns:minmax(150px,1.45fr) minmax(205px,1.6fr) 82px 82px;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px solid #ddd0b4}.unit-ident{display:grid;grid-template-columns:42px 1fr;gap:8px;align-items:center;min-width:0}.unit-icon{width:46px;height:46px;border-radius:7px;display:grid;place-items:center;background:linear-gradient(#f7e7bf,#d5bd87);border:2px solid #9a8051;overflow:hidden}.unit-icon img{width:44px;height:44px;object-fit:contain;display:block}.unit-art-fallback{font-size:20px;line-height:1}.unit-name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.unit-meta{font-size:11px;color:var(--muted)}
 .qty-control{display:grid;grid-template-columns:auto 1fr auto;gap:5px;align-items:center}.slot-btn{min-height:38px;border:1px solid #8a744e;background:#ead6aa;border-radius:4px;font-size:12px;font-weight:900;padding:5px 7px}.slot-btn:disabled{opacity:.35;cursor:not-allowed}.qty{min-width:0;width:100%;padding:8px;border:1px solid #96805b;background:#fffdf7;border-radius:4px;text-align:center;font-weight:800}.level-field{display:grid;gap:3px;font-size:10px;font-weight:900;text-transform:uppercase}.level-field input{width:100%;padding:8px;border:1px solid #96805b;background:#fffdf7;border-radius:4px;text-align:center}
 .advanced{grid-column:1/-1;margin:0 0 4px 50px}.advanced summary{font-size:11px;color:#6c604d;cursor:pointer}.advanced label{display:flex;gap:8px;align-items:center;font-size:11px;margin-top:5px}.advanced input{padding:6px;border:1px solid #a58e67;border-radius:4px;background:#fffdf7}.batch-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.batch-btn{border:1px solid #8a744e;background:#f1dfb7;border-radius:4px;padding:6px 9px;font-size:11px;font-weight:800}.batch-remove{border-color:#92564b;background:#f1d0c7;color:#74382f}.extra-batch{background:#fff8e9}
-.setup-note,.report-note{padding:10px 12px;margin:12px 0;border-left:4px solid var(--gold);background:#fff4cc;color:#594e39}.actions{text-align:center;margin:18px}.primary{border:1px solid #6f2d25;border-radius:5px;padding:11px 28px;background:linear-gradient(#b15a4c,#863d34);color:#fff;font-weight:900}.error{color:#8b3028;font-weight:800;margin-top:8px}
+.setup-note,.report-note{padding:10px 12px;margin:12px 0;border-left:4px solid var(--gold);background:#fff4cc;color:#594e39}.barbarian-reference{margin:12px 0;border:1px solid #b69a65;background:#f7ead0;border-radius:5px}.barbarian-reference>summary{cursor:pointer;padding:10px 12px;font-weight:900;color:#5a4328}.barbarian-note{padding:0 12px 10px;font-size:12px;color:#655b49}.barbarian-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:8px;padding:0 10px 10px}.barbarian-card{display:grid;grid-template-columns:50px 1fr;gap:8px;align-items:center;padding:8px;border:1px solid #cfb987;background:#fff8e8;border-radius:5px}.barbarian-card-icon{width:46px;height:46px;object-fit:contain}.barbarian-card b{display:block}.barbarian-card small{display:block;color:#6d6353;line-height:1.35}.actions{text-align:center;margin:18px}.primary{border:1px solid #6f2d25;border-radius:5px;padding:11px 28px;background:linear-gradient(#b15a4c,#863d34);color:#fff;font-weight:900}.error{color:#8b3028;font-weight:800;margin-top:8px}
 .safety-notices{display:grid;gap:8px;margin:10px 0}.safety-card{padding:9px 11px;border-left:4px solid var(--gold);background:#fff3cb;font-size:12px}.safety-card.blocker{border-color:#a04136;background:#f8ddd4}.safety-card.warning{border-color:#b8862d;background:#fff3cb}.safety-card.assumption{border-color:#506f83;background:#e7f0f3}.safety-card b{display:block;margin-bottom:4px}.safety-card ul{margin:4px 0 0 18px;padding:0}
 .result-shell{padding:14px}.report-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}.report-head h2{font:700 24px Georgia,serif;margin:0}.report-metrics{display:flex;gap:8px;flex-wrap:wrap}.metric{min-width:115px;padding:7px 10px;border:1px solid #c6b48f;background:#fff8e7}.metric span{display:block;font-size:10px;text-transform:uppercase;color:#6d665b}.metric b{font-size:17px}
 .round-bar{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin:10px 0}.round-bar button{min-width:34px;height:34px;border:1px solid #887659;background:#f6e7c5;border-radius:4px;font-weight:800}.round-bar button.active{background:var(--deep);color:#fff}.round-caption{text-align:center;font-weight:900;margin:5px 0 10px}
@@ -62,6 +62,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
     </div>
 
     <div class="setup-note">預設使用最大戰場與 Lv5 熔爐；初始 Hoplite 數量會填滿預設戰場前線，方便直接測側翼。每列的 ±一格 由目前戰場的 slot space ÷ unit size 動態計算；攻擊／防禦為該兵種 Workshop 等級，進場批次收在進階設定內。</div>
+    <details class="barbarian-reference"><summary>野蠻人兵種參考（9 種，catalog-only）</summary><div class="barbarian-note">這裡只呈現 Barbarian Village 兵種資料與目前證據狀態；尚未把野蠻人 NPC 編成、城牆、targeting 或升級規則接入戰鬥模擬。</div><div id="barbarianCatalog" class="barbarian-grid"></div></details>
     <div class="actions"><button id="simulate" class="primary" type="button">開始模擬</button><div id="error" class="error" role="alert"></div></div>
   </section>
 
@@ -102,7 +103,12 @@ const unitIconFiles={
   steam_ram:'/assets/unit-icons/naval/steam_ram.png',fire_ship:'/assets/unit-icons/naval/fire_ship.png',ram_ship:'/assets/unit-icons/naval/ram_ship.png',
   ballista_ship:'/assets/unit-icons/naval/ballista_ship.png',catapult_ship:'/assets/unit-icons/naval/catapult_ship.png',mortar_ship:'/assets/unit-icons/naval/mortar_ship.png',
   diving_boat:'/assets/unit-icons/naval/diving_boat.png',rocket_ship:'/assets/unit-icons/naval/rocket_ship.png',balloon_carrier:'/assets/unit-icons/naval/balloon_carrier.png',
-  paddle_speedboat:'/assets/unit-icons/naval/paddle_speedboat.png',tender:'/assets/unit-icons/naval/tender.png'
+  paddle_speedboat:'/assets/unit-icons/naval/paddle_speedboat.png',tender:'/assets/unit-icons/naval/tender.png',
+  barbarian_clubman:'/assets/unit-icons/barbarian/barbarian_clubman.png',barbarian_axe_swinger:'/assets/unit-icons/barbarian/barbarian_axe_swinger.png',
+  barbarian_knifeman:'/assets/unit-icons/barbarian/barbarian_knifeman.png',barbarian_axe_thrower:'/assets/unit-icons/barbarian/barbarian_axe_thrower.png',
+  barbarian_war_walker:'/assets/unit-icons/barbarian/barbarian_war_walker.png',barbarian_ram:'/assets/unit-icons/barbarian/barbarian_ram.png',
+  barbarian_catapult:'/assets/unit-icons/barbarian/barbarian_catapult.png',barbarian_dirigible:'/assets/unit-icons/barbarian/barbarian_dirigible.png',
+  barbarian_fighter:'/assets/unit-icons/barbarian/barbarian_fighter.png'
 };
 const esc=value=>String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 
@@ -131,6 +137,18 @@ function unitIconHtml(unit,cssClass=''){
   const glyph=glyphs[unit?.semantic_class]||'◆',file=unitIconFiles[unit?.id];
   if(!file)return '<span class="unit-art-fallback '+cssClass+'">'+glyph+'</span>';
   return '<img class="'+cssClass+'" src="'+file+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="unit-art-fallback" hidden>'+glyph+'</span>';
+}
+
+function renderBarbarianCatalog(){
+  const target=document.getElementById('barbarianCatalog'),catalog=[...(metadata?.barbarian_units||[])];
+  if(!target)return;
+  catalog.sort((a,b)=>(a.first_appearance_level-b.first_appearance_level)||a.display_name.localeCompare(b.display_name));
+  target.innerHTML=catalog.map(unit=>{
+    const ammo=unit.ammunition==null?'∞/—':unit.ammunition;
+    const stats='HP '+unit.hit_points+' · Armor '+unit.base_armor+' · Dmg '+unit.damage+' · Acc '+unit.accuracy+'% · Ammo '+ammo+' · Size '+unit.size;
+    const levels='Lv'+unit.first_appearance_level+(unit.last_appearance_level?'–'+unit.last_appearance_level:'+');
+    return '<div class="barbarian-card"><div class="unit-icon" aria-hidden="true">'+unitIconHtml(unit,'barbarian-card-icon')+'</div><div><b>'+esc(unit.display_name)+'</b><small>'+esc(lineLabel(unit.native_line))+' · '+levels+'</small><small>'+stats+'</small><small>≈ '+esc(unit.equivalent_player_unit||'custom')+' · catalog only</small></div></div>';
+  }).join('');
 }
 
 function populateForge(id){
@@ -321,7 +339,7 @@ async function boot(){
   [...battlefield.options].forEach(option=>option.disabled=!data.battlefields.find(f=>f.id===option.value).supported);
   const maxField=data.battlefields.find(f=>f.id==='land-max'&&f.supported);
   if(maxField)battlefield.value=maxField.id;
-  populateForge('aForge');populateForge('dForge');renderArmy('attacker');renderArmy('defender');updateSlotButtons();
+  populateForge('aForge');populateForge('dForge');renderArmy('attacker');renderArmy('defender');renderBarbarianCatalog();updateSlotButtons();
 }
 battlefield.addEventListener('change',updateSlotButtons);
 researchMode.addEventListener('change',()=>document.body.classList.toggle('research',researchMode.checked));
