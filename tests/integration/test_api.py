@@ -106,6 +106,8 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert '@media(max-width:1100px)' in body
  assert '.battle-half{grid-template-columns:1fr}.reserve-box{order:2}.battle-board{overflow-x:auto}.formation{min-width:790px}' in body
  assert '@media(max-width:900px){.setup-grid,.summary-grid{grid-template-columns:1fr}' in body
+ assert '}\n@media(max-width:900px)' in body
+ assert '}\\n@media(max-width:900px)' not in body
  assert '此戰場沒有 Flank slot；未能補入前線的側翼兵會留在 Reserve。' in body
  assert 'const formation=formationGrid(state,name,geometry)' in body
  assert "battleHalf(round.attacker,'attacker')" in body
