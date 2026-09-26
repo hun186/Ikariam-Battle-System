@@ -167,3 +167,22 @@ def test_general_score_loss_destroyed_and_gross_damage_are_reported():
  assert data['military_score']['attacker']['general_score_lost']==0
  assert data['combat_statistics']['attacker']['gross_damage_dealt']>0
  assert data['combat_statistics']['defender']['gross_damage_dealt']>0
+
+
+def test_local_unit_icon_assets_and_shared_ui_mapping():
+ body=Path('index.html').read_text()
+ expected={
+  'hoplite','spartan','steam_giant','spearman','swordsman','slinger','archer',
+  'sulphur_carabineer','battering_ram','catapult','mortar','gyrocopter',
+  'bombardier','doctor','cook'
+ }
+ assert "https://ika-sim.com/units/" not in body
+ assert "function unitIconHtml(unit,cssClass='')" in body
+ assert "unitIconHtml(unit)" in body
+ assert 'onerror="this.hidden=true;this.nextElementSibling.hidden=false"' in body
+ for unit in expected:
+  local=f'/assets/unit-icons/land/{unit}.png'
+  assert local in body
+  assert Path(local.lstrip('/')).is_file()
+  assert Path('public'+local).is_file()
+ assert body==Path('public/index.html').read_text()
