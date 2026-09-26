@@ -1,0 +1,114 @@
+name: Materialize Ikariam naval and barbarian icons
+
+on:
+  push:
+    branches:
+      - feat/naval-barbarian-catalog
+    paths:
+      - .github/workflows/materialize-naval-barbarian-icons.yml
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/naval-barbarian-catalog
+          fetch-depth: 0
+
+      - name: Download fixed Ikariam icon URLs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets/unit-icons/naval public/assets/unit-icons/naval
+          mkdir -p assets/unit-icons/barbarian public/assets/unit-icons/barbarian
+
+          naval=(
+            "steam_ram:STEAM_RAM.webp"
+            "fire_ship:FIRE_SHIP.webp"
+            "ram_ship:RAM_SHIP.webp"
+            "ballista_ship:BALLISTA_SHIP.webp"
+            "catapult_ship:CATAPULT_SHIP.webp"
+            "mortar_ship:MORTAR_SHIP.webp"
+            "diving_boat:DIVING_BOAT.webp"
+            "rocket_ship:ROCKET_SHIP.webp"
+            "balloon_carrier:BALLOON_CARRIER.webp"
+            "paddle_speedboat:PADDLE_SPEEDBOAT.webp"
+            "tender:TENDER.webp"
+          )
+
+          barbarian=(
+            "barbarian_clubman:Barbarian-Clubman-button.png"
+            "barbarian_axe_swinger:Barbarian-Axe%20Swinger-button.png"
+            "barbarian_war_walker:Barbarian-War%20Walker-button.png"
+            "barbarian_knifeman:Barbarian-Knifeman-button.png"
+            "barbarian_axe_thrower:Barbarian-Axe%20Thrower-button.png"
+            "barbarian_ram:Barbarian-Ram-button.png"
+            "barbarian_catapult:Barbarian-Catapult-button.png"
+            "barbarian_dirigible:Barbarian-Dirigible-button.png"
+            "barbarian_fighter:Barbarian-Fighter-button.png"
+          )
+
+          validate_png() {
+            python - "$1" <<'PY'
+          import pathlib, sys
+          p = pathlib.Path(sys.argv[1])
+          d = p.read_bytes()
+          assert len(d) >= 24, f"{p}: too small"
+          assert d[:8] == b"\x89PNG\r\n\x1a\n", f"{p}: not PNG"
+          PY
+          }
+
+          for item in "${naval[@]}"; do
+            unit="${item%%:*}"
+            remote="${item#*:}"
+            dest="assets/unit-icons/naval/${unit}.png"
+            proxy="https://images.weserv.nl/?url=ika-sim.com/units/${remote}&output=png"
+            echo "naval: ${unit}"
+            curl --fail --location --retry 2 --connect-timeout 10 --max-time 45 --silent --show-error "${proxy}" -o "${dest}"
+            validate_png "${dest}"
+            cp "${dest}" "public/${dest}"
+          done
+
+          for item in "${barbarian[@]}"; do
+            unit="${item%%:*}"
+            remote="${item#*:}"
+            dest="assets/unit-icons/barbarian/${unit}.png"
+            proxy="https://images.weserv.nl/?url=ikariam.fandom.com/wiki/Special:FilePath/${remote}&output=png"
+            canonical="https://ikariam.fandom.com/wiki/Special:FilePath/${remote}"
+            echo "barbarian: ${unit}"
+            if ! curl --fail --location --retry 2 --connect-timeout 10 --max-time 45 --silent --show-error "${proxy}" -o "${dest}"; then
+              curl --fail --location --retry 2 --connect-timeout 10 --max-time 45 --silent --show-error "${canonical}" -o "${dest}"
+            fi
+            validate_png "${dest}"
+            cp "${dest}" "public/${dest}"
+          done
+
+          {
+            echo "# Naval and barbarian icon provenance"
+            echo
+            echo "Retrieved on 2026-09-26 from fixed Ikariam image URLs. Naval icons use ika-sim.com unit assets; barbarian icons use Ikariam Fandom Special:FilePath names listed in the Gameforge-copyrighted image category. Runtime code must use only the committed local files."
+            echo
+            echo "| Unit | Source | Local path | SHA-256 |"
+            echo "| --- | --- | --- | --- |"
+            for item in "${naval[@]}"; do
+              unit="${item%%:*}"; remote="${item#*:}"; p="assets/unit-icons/naval/${unit}.png"
+              sha="$(sha256sum "${p}" | awk '{print $1}')"
+              echo "| ${unit} | https://ika-sim.com/units/${remote} | ${p} | \`${sha}\` |"
+            done
+            for item in "${barbarian[@]}"; do
+              unit="${item%%:*}"; remote="${item#*:}"; p="assets/unit-icons/barbarian/${unit}.png"
+              sha="$(sha256sum "${p}" | awk '{print $1}')"
+              echo "| ${unit} | https://ikariam.fandom.com/wiki/Special:FilePath/${remote} | ${p} | \`${sha}\` |"
+            done
+          } > docs/naval-barbarian-icon-provenance.md
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/unit-icons/naval assets/unit-icons/barbarian public/assets/unit-icons/naval public/assets/unit-icons/barbarian docs/naval-barbarian-icon-provenance.md
+          git rm .github/workflows/materialize-naval-barbarian-icons.yml
+          git commit -m "feat: add local naval and barbarian unit icons"
+          git push origin HEAD:feat/naval-barbarian-catalog
