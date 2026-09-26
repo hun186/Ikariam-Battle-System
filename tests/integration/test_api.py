@@ -197,7 +197,8 @@ def test_local_unit_icon_assets_and_shared_ui_mapping():
  assert 'onerror="this.hidden=true;this.nextElementSibling.hidden=false"' in body
  for domain,unit_ids in expected.items():
   for unit in unit_ids:
-   local=f'/assets/unit-icons/{domain}/{unit}.png'
+   ext='webp' if domain=='barbarian' else 'png'
+   local=f'/assets/unit-icons/{domain}/{unit}.{ext}'
    assert local in body
    assert Path(local.lstrip('/')).is_file()
    assert Path('public'+local).is_file()
