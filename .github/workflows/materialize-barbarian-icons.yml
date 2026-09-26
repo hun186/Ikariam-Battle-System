@@ -1,0 +1,107 @@
+name: Materialize Ikariam Barbarian icons
+
+on:
+  push:
+    branches:
+      - feat/barbarian-unit-catalog
+    paths:
+      - .github/workflows/materialize-barbarian-icons.yml
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/barbarian-unit-catalog
+          fetch-depth: 0
+
+      - name: Download fixed Barbarian icon files
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          import urllib.parse
+          import urllib.request
+
+          files = {
+              "barbarian_clubman": "Barbarian-Clubman-button.png",
+              "barbarian_axe_swinger": "Barbarian-Axe Swinger-button.png",
+              "barbarian_axe_thrower": "Barbarian-Axe Thrower-button.png",
+              "barbarian_catapult": "Barbarian-Catapult-button.png",
+              "barbarian_dirigible": "Barbarian-Dirigible-button.png",
+              "barbarian_fighter": "Barbarian-Fighter-button.png",
+              "barbarian_knifeman": "Barbarian-Knifeman-button.png",
+              "barbarian_ram": "Barbarian-Ram-button.png",
+              "barbarian_war_walker": "Barbarian-War Walker-button.png",
+          }
+          out = Path("assets/unit-icons/barbarian")
+          public = Path("public/assets/unit-icons/barbarian")
+          out.mkdir(parents=True, exist_ok=True)
+          public.mkdir(parents=True, exist_ok=True)
+
+          rows = []
+          for unit_id, filename in files.items():
+              params = urllib.parse.urlencode({
+                  "action": "query",
+                  "format": "json",
+                  "prop": "imageinfo",
+                  "iiprop": "url",
+                  "titles": f"File:{filename}",
+              })
+              api = f"https://ikariam.fandom.com/api.php?{params}"
+              req = urllib.request.Request(
+                  api,
+                  headers={
+                      "User-Agent": "Ikariam-Battle-System/1.0 GitHub asset materializer",
+                      "Accept": "application/json",
+                  },
+              )
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  payload = json.load(response)
+              pages = payload.get("query", {}).get("pages", {})
+              page = next(iter(pages.values()))
+              info = page.get("imageinfo") or []
+              if not info or not info[0].get("url"):
+                  raise RuntimeError(f"No image URL returned for {filename}")
+              image_url = info[0]["url"]
+              img_req = urllib.request.Request(
+                  image_url,
+                  headers={"User-Agent": "Ikariam-Battle-System/1.0 GitHub asset materializer"},
+              )
+              with urllib.request.urlopen(img_req, timeout=30) as response:
+                  data = response.read()
+              if len(data) < 24 or data[:8] != b"\x89PNG\r\n\x1a\n":
+                  raise RuntimeError(f"{filename}: expected PNG, got {data[:16]!r}")
+              target = out / f"{unit_id}.png"
+              target.write_bytes(data)
+              (public / target.name).write_bytes(data)
+              sha = hashlib.sha256(data).hexdigest()
+              rows.append((unit_id, filename, target.as_posix(), sha))
+
+          doc = [
+              "# Barbarian icon provenance",
+              "",
+              "Retrieved 2026-09-26 from the Ikariam Fandom file entries listed in the Gameforge-copyrighted image category. Runtime code uses only the committed local files. This repository does not claim ownership of, or an open-source license for, the artwork.",
+              "",
+              "| Unit | Fandom file | Local path | SHA-256 |",
+              "| --- | --- | --- | --- |",
+          ]
+          for unit_id, filename, path, sha in rows:
+              source = "https://ikariam.fandom.com/wiki/File:" + urllib.parse.quote(filename)
+              doc.append(f"| {unit_id} | {source} | {path} | `{sha}` |")
+          Path("docs/barbarian-icon-provenance.md").write_text("\n".join(doc) + "\n", encoding="utf-8")
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/unit-icons/barbarian public/assets/unit-icons/barbarian docs/barbarian-icon-provenance.md
+          git rm .github/workflows/materialize-barbarian-icons.yml
+          git commit -m "feat: add local Ikariam Barbarian unit icons"
+          git push origin HEAD:feat/barbarian-unit-catalog
