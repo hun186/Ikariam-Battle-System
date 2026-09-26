@@ -40,6 +40,11 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert medium['lines']['flank']['slot_space']==30
  assert maximum['lines']['first']['slot_space']==50
  assert len([u for u in data['units'] if u['domain']=='land' and u['numerically_supported']])==15
+ assert len(data['units'])==26
+ assert len(data['barbarian_units'])==9
+ assert data['barbarian_profile_metadata']['simulation_status']=='CATALOG_ONLY'
+ assert all(u['domain']=='barbarian' and not u['selectable_by_player'] and not u['simulation_ready'] for u in data['barbarian_units'])
+ assert not ({u['id'] for u in data['barbarian_units']} & {u['id'] for u in data['units']})
  hoplite=next(u for u in data['units'] if u['id']=='hoplite')
  carabineer=next(u for u in data['units'] if u['id']=='sulphur_carabineer')
  assert (hoplite['size'],carabineer['size'])==(1,4)
