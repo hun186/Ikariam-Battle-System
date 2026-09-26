@@ -1,7 +1,7 @@
 # Project Memory
 
 ## Current Focus
-- PR #20 is merged; game-like setup, round replay, safety notices, multi-batch UI, support display, and total casualty reporting are the current baseline.
+- PR #21 is merged; General Score / gross-damage reporting is now part of the current baseline on top of the PR #20 game-like workbench.
 - Workshop upgrades are per unit type; Forge is side-wide.
 - All five land IDs use evidence-backed slot geometry and slot-space/unit-size capacity; selection remains explicit.
 - Complete reviewer-verified current data is distinct from empirical mechanics.
@@ -16,6 +16,7 @@
 Naval geometry, automatic Town Hall/garrison/wall selection and transitions, accuracy, target transfer, mixed rows, healing/morale, kill/rounding/SR/IR chronology and secondary triggers require future work.
 
 ## Recent Outcomes
+- Round-report layout follow-up aligns the board with the supplied game screenshots: attacker above the clash line, defender below, and the simulator-only initial snapshot is labeled `部署` instead of numeric round 0.
 - Land military economy profile work now derives General Score from unmodified resource score basis / 50, exposes score metadata, and adds casualty-based score lost/destroyed plus separate gross damage statistics to the battle summary.
 - Game-like battle setup/report work is in progress: setup is unit-row based, ±slot is derived from battlefield slot space and unit size, Workshop levels are per unit, Forge/Hephaistos is side-wide, and round/summary report views are separated.
 - All five land geometries are executable with descriptive Town Hall metadata; this does not relax mixed/multi-line/fallback blockers.

@@ -90,8 +90,8 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 let metadata=null, units=[], lastResult=null, lastBattlefieldId=null, currentRoundIndex=0;
 const battlefield=document.getElementById('battlefield'),policy=document.getElementById('policy'),maxRounds=document.getElementById('maxRounds'),researchMode=document.getElementById('researchMode'),simulate=document.getElementById('simulate'),error=document.getElementById('error');
 const viewIds={setup:'setupView',round:'roundView',summary:'summaryView'};
-const lineOrderDefender=['balloon','anti-balloon','third','second','flank','first'];
-const lineOrderAttacker=['first','flank','second','third','anti-balloon','balloon'];
+const lineOrderAttacker=['balloon','anti-balloon','third','second','flank','first'];
+const lineOrderDefender=['first','flank','second','third','anti-balloon','balloon'];
 const groupOrder=['heavy_infantry','light_infantry','long_range','artillery','air','support'];
 const groupLabels={heavy_infantry:'Heavy Infantry',light_infantry:'Light Infantry',long_range:'Long Range',artillery:'Artillery',air:'Air / Anti-air',support:'Support'};
 const glyphs={heavy_infantry:'🛡',light_infantry:'⚔',long_range:'🎯',artillery:'💥',air:'✈',support:'✚'};
@@ -228,7 +228,7 @@ function renderPager(){
     if(!disabled)b.addEventListener('click',()=>renderRound(index));root.append(b);
   };
   add('‹',Math.max(0,currentRoundIndex-1),currentRoundIndex===0);
-  for(let i=start;i<end;i++)add(String(lastResult.rounds[i].round),i);
+  for(let i=start;i<end;i++){const number=lastResult.rounds[i].round;add(number===0?'部署':String(number),i);}
   add('›',Math.min(total-1,currentRoundIndex+1),currentRoundIndex===total-1);
 }
 function safetyNoticesHtml(data){
@@ -247,7 +247,7 @@ function renderSafetyNotices(){
 function renderRound(index){
   currentRoundIndex=index;const round=lastResult.rounds[index];
   document.getElementById('roundCaption').textContent=round.round===0?'部署狀態':'Round '+round.round+' / '+lastResult.rounds_completed;
-  document.getElementById('battleBoard').innerHTML=battleHalf(round.defender,'defender')+'<div class="clash" aria-hidden="true"></div>'+battleHalf(round.attacker,'attacker');
+  document.getElementById('battleBoard').innerHTML=battleHalf(round.attacker,'attacker')+'<div class="clash" aria-hidden="true"></div>'+battleHalf(round.defender,'defender');
   document.getElementById('roundMetrics').innerHTML='<div class="metric"><span>Status</span><b>'+esc(lastResult.status)+'</b></div><div class="metric"><span>Outcome</span><b>'+esc(lastResult.outcome)+'</b></div>';
   const events=lastResult.events.filter(e=>e.round===round.round);
   document.getElementById('researchData').innerHTML='<details><summary>Continuation state</summary><pre>'+esc(JSON.stringify({attacker:round.attacker.continuation_state,defender:round.defender.continuation_state},null,2))+'</pre></details><details><summary>Wave / batch state</summary><pre>'+esc(JSON.stringify({attacker:round.attacker.waves,defender:round.defender.waves},null,2))+'</pre></details><details><summary>Engine events</summary><pre>'+esc(JSON.stringify(events,null,2))+'</pre></details>';
