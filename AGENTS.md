@@ -19,6 +19,7 @@
 - 專案目的：以可解釋、可重現的 evidence-aware engine 提供 browser Ikariam Phase A 戰鬥模擬
 - 主要技術：Python 3.11+ domain package、無 framework ASGI／Vercel adapter、vanilla HTML/CSS/JS
 - 主要入口：`ikariam_battle.simulate()`、`POST /api/simulate`、`asgi:application`
+- Land 戰場 UI 以遊戲實戰畫面排列為基準：前排為 `Flank | First/Main | Flank`，後排為 `Air defense | Third/Artillery | Air bomber`；這只是 presentation，不得藉此改動 engine slot identity、capacity 或 targeting。
 - 最快驗證：`pytest -q`
 <!-- END CODEX PROJECT QUICKSTART -->
 

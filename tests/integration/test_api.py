@@ -98,9 +98,13 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert "if(maxField)battlefield.value=maxField.id" in body
  assert "if(metadata.forge_levels['5'])select.value='5'" in body
  assert "line.physical_order.length*Math.floor(line.slot_space/unit.size)" in body
- assert 'air-zone' in body and 'flank-column' in body and 'ground-zone' in body
+ assert 'formation-row front-row' in body and 'formation-row ranged-row' in body and 'formation-row rear-row' in body
+ assert "sideLine(state,'flank',geometry,'left'" in body and "sideLine(state,'flank',geometry,'right'" in body
+ assert "sideLine(state,'anti-balloon',geometry,'left')" in body and "sideLine(state,'balloon',geometry,'right')" in body
+ assert "name==='attacker'?[rear,ranged,front]:[front,ranged,rear]" in body
+ assert 'air-zone' not in body and 'flank-column' not in body and 'ground-zone' not in body
  assert '此戰場沒有 Flank slot；未能補入前線的側翼兵會留在 Reserve。' in body
- assert "const formation='<div class=\"formation\">'+air+ground+'</div>'" in body
+ assert 'const formation=formationGrid(state,name,geometry)' in body
  assert "battleHalf(round.attacker,'attacker')" in body
  assert "battleHalf(round.defender,'defender')" in body
  assert "number===0?'部署':String(number)" in body
