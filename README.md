@@ -34,7 +34,7 @@ pytest -q
 uvicorn asgi:application --host 127.0.0.1 --port 8000
 ```
 
-The browser obtains profiles, battlefields, Forge effects, and units from `GET /api/simulate`. Each unit row has quantity, wave, attack upgrade, and armor upgrade; Forge stays side-wide.
+The browser obtains profiles, battlefield geometry, Forge effects, unit roles/lines, and unit size from `GET /api/simulate`. The setup screen presents all land units as dispatch-style rows with quantity, per-unit attack/armor Workshop levels, ±one-slot helpers derived from the selected battlefield, and advanced entry-batch controls; Forge/Hephaistos stays side-wide. Results are split into round replay and total casualty summary views.
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/simulate -H 'Content-Type: application/json' --data @sample_scenario.json
