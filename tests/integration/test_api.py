@@ -423,11 +423,15 @@ def test_compact_setup_identity_stats_and_shared_floating_tooltip_contract():
  assert 'window.innerWidth' in body and 'window.innerHeight' in body
  # Hover and keyboard focus are independent: mouseleave must not hide a still-focused tooltip,
  # and blur must not hide while the pointer is still over the trigger.
- assert "const hideIfInactive=()=>{if(document.activeElement!==trigger&&!trigger.matches(':hover'))hideFloatingTooltip()}" in body
- assert "trigger.addEventListener('mouseleave',hideIfInactive)" in body
- assert "trigger.addEventListener('blur',hideIfInactive)" in body
- assert "trigger.addEventListener('mouseleave',hideFloatingTooltip)" not in body
- assert "trigger.addEventListener('blur',hideFloatingTooltip)" not in body
+ assert 'let hoveredTooltipTrigger=null,focusedTooltipTrigger=null' in body
+ assert 'function refreshFloatingTooltip()' in body
+ assert 'const trigger=hoveredTooltipTrigger||focusedTooltipTrigger' in body
+ assert "trigger.addEventListener('mouseenter',()=>{hoveredTooltipTrigger=trigger;refreshFloatingTooltip()})" in body
+ assert "trigger.addEventListener('mouseleave',()=>{if(hoveredTooltipTrigger===trigger)hoveredTooltipTrigger=null;refreshFloatingTooltip()})" in body
+ assert "trigger.addEventListener('focus',()=>{focusedTooltipTrigger=trigger;refreshFloatingTooltip()})" in body
+ assert "trigger.addEventListener('blur',()=>{if(focusedTooltipTrigger===trigger)focusedTooltipTrigger=null;refreshFloatingTooltip()})" in body
+ assert 'function resetFloatingTooltipState()' in body
+ assert 'resetFloatingTooltipState();' in body
  assert '.slot:hover .slot-tooltip' not in body
  assert '.reserve-card:hover .slot-tooltip' not in body
  assert body==Path('public/index.html').read_text()

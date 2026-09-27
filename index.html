@@ -307,6 +307,7 @@ function slotTooltipHtml(slot){
     '<br>Ammo pool: '+(slot.ammo_pool_shots??'∞')+' / '+(slot.ammo_capacity_shots??'∞')+'</span>';
 }
 function tooltipAttribute(html){return esc(html)}
+let hoveredTooltipTrigger=null,focusedTooltipTrigger=null;
 function showFloatingTooltip(trigger){
   const content=trigger?.dataset?.tooltip;if(!content)return;
   floatingTooltip.innerHTML=content;floatingTooltip.hidden=false;
@@ -320,14 +321,20 @@ function showFloatingTooltip(trigger){
   floatingTooltip.style.left=Math.round(left)+'px';floatingTooltip.style.top=Math.round(top)+'px';
 }
 function hideFloatingTooltip(){floatingTooltip.hidden=true;floatingTooltip.innerHTML=''}
+function refreshFloatingTooltip(){
+  const trigger=hoveredTooltipTrigger||focusedTooltipTrigger;
+  if(trigger?.isConnected)showFloatingTooltip(trigger);else hideFloatingTooltip();
+}
+function resetFloatingTooltipState(){
+  hoveredTooltipTrigger=null;focusedTooltipTrigger=null;hideFloatingTooltip();
+}
 function bindFloatingTooltips(root){
   root.querySelectorAll('[data-tooltip]').forEach(trigger=>{
     if(trigger.dataset.tooltipBound)return;trigger.dataset.tooltipBound='1';
-    const hideIfInactive=()=>{if(document.activeElement!==trigger&&!trigger.matches(':hover'))hideFloatingTooltip()};
-    trigger.addEventListener('mouseenter',()=>showFloatingTooltip(trigger));
-    trigger.addEventListener('mouseleave',hideIfInactive);
-    trigger.addEventListener('focus',()=>showFloatingTooltip(trigger));
-    trigger.addEventListener('blur',hideIfInactive);
+    trigger.addEventListener('mouseenter',()=>{hoveredTooltipTrigger=trigger;refreshFloatingTooltip()});
+    trigger.addEventListener('mouseleave',()=>{if(hoveredTooltipTrigger===trigger)hoveredTooltipTrigger=null;refreshFloatingTooltip()});
+    trigger.addEventListener('focus',()=>{focusedTooltipTrigger=trigger;refreshFloatingTooltip()});
+    trigger.addEventListener('blur',()=>{if(focusedTooltipTrigger===trigger)focusedTooltipTrigger=null;refreshFloatingTooltip()});
   });
 }
 function lineSlots(state,line,geometry,positions=null,compact=false){
@@ -496,7 +503,7 @@ async function renderRound(number){
   if(!round)throw Error('Requested round was not returned by the simulator.');
   currentRoundNumber=number;
   document.getElementById('roundCaption').textContent=round.round===0?'部署狀態':'Round '+round.round+' / '+lastResult.rounds_completed;
-  hideFloatingTooltip();
+  resetFloatingTooltipState();
   const board=document.getElementById('battleBoard');
   board.innerHTML=battleHalf(round.attacker,'attacker')+'<div class="clash" aria-hidden="true"></div>'+battleHalf(round.defender,'defender');
   bindFloatingTooltips(board);
