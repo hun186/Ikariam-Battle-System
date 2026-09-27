@@ -1,4 +1,5 @@
 name: Validate mechanics spec sync
+# retry 2
 
 on:
   push:
