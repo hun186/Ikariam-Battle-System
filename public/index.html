@@ -47,9 +47,9 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
     <section class="settings panel">
       <label>Policy<select id="policy"><option value="experimental">Experimental / named assumptions</option><option value="strict">Strict / evidence-safe</option></select></label>
       <label>Battlefield<select id="battlefield"></select></label>
-      <label>Max rounds / safety cap<input id="maxRounds" type="number" min="1" max="1000" value="1000"></label>
+      <label>Max rounds / safety cap<input id="maxRounds" type="number" min="1" max="1000" value="100"></label>
       <label style="text-transform:none"><span><input id="researchMode" type="checkbox"> Research mode</span></label>
-      <div class="settings-note">1000 回合是安全上限，不是固定戰鬥長度；若提早分出勝負或遇到無法安全判定的機制，模擬會提早停止。Cook 士氣目前尚未完整建模；實戰常見約 15 Cook 的配置不會被當成已驗證的固定公式。</div>
+      <div class="settings-note">預設 100 回合；1000 回合是可手動提高的安全上限，不是固定戰鬥長度。若提早分出勝負或遇到無法安全判定的機制，模擬會提早停止。Cook 士氣目前尚未完整建模；實戰常見約 15 Cook 的配置不會被當成已驗證的固定公式。</div>
     </section>
 
     <div class="setup-grid">
