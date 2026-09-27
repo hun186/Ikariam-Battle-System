@@ -192,8 +192,9 @@ function setupRow(unit,side,options={}){
   const extra=Boolean(options.extra),batchIndex=options.batchIndex||1;
   const row=document.createElement('div');row.className='unit-setup-row'+(extra?' extra-batch':'');row.dataset.unitId=unit.id;row.dataset.side=side;row.dataset.batchIndex=String(batchIndex);
   const quantity=extra?0:defaultQuantity(unit);
+  const supportNote=unit.support_effect==='morale'?' · 士氣支援（尚未建模）':'';
   row.innerHTML=
-    '<div class="unit-ident"><div class="unit-icon" aria-hidden="true">'+unitIconHtml(unit)+'</div><div><div class="unit-name">'+esc(unit.display_name)+(extra?' · batch '+batchIndex:'')+'</div><div class="unit-meta">'+esc(lineLabel(unit.native_line))+' · size '+esc(unit.size??'—')+(unit.general_score==null?'':' · 軍分 '+esc(unit.general_score))+'</div></div></div>'+
+    '<div class="unit-ident"><div class="unit-icon" aria-hidden="true">'+unitIconHtml(unit)+'</div><div><div class="unit-name">'+esc(unit.display_name)+(extra?' · batch '+batchIndex:'')+'</div><div class="unit-meta">'+esc(lineLabel(unit.native_line))+' · size '+esc(unit.size??'—')+(unit.general_score==null?'':' · 軍分 '+esc(unit.general_score))+supportNote+'</div></div></div>'+
     '<div class="qty-control"><button type="button" class="slot-btn slot-minus">−格</button><input class="qty" type="number" min="0" value="'+quantity+'" aria-label="'+esc(unit.display_name)+' quantity"><button type="button" class="slot-btn slot-plus">＋格</button></div>'+
     '<label class="level-field">攻擊<input class="attack" type="number" min="0" value="'+(options.attack??0)+'"></label>'+
     '<label class="level-field">防禦<input class="armor" type="number" min="0" value="'+(options.armor??0)+'"></label>'+
@@ -342,6 +343,13 @@ function safetyNoticesHtml(data){
   const warnings=[...new Set(data.warnings||[])],assumptions=data.assumptions||[],cards=[];
   const roundCap=data.events.find(e=>e.type==='safety_limit_reached');
   if(roundCap)cards.push('<div class="safety-card warning"><b>Safety round cap reached / 已達安全回合上限</b><div>Simulation stopped at '+esc(roundCap.details?.limit)+' rounds without a resolved outcome.</div></div>');
+  const morale=data.morale_status,moraleSides=morale?.sides||{},aCook=moraleSides.attacker?.cook_count||0,dCook=moraleSides.defender?.cook_count||0;
+  if(aCook||dCook){
+    const handling=data.policy==='strict'
+      ?'Strict：遇到 Cook 會以 '+esc(morale.strict_rule_id)+' 停在證據邊界。'
+      :'Experimental：依 '+esc(morale.experimental_assumption_id)+' 繼續，但不套用 Cook 的士氣效果。';
+    cards.push('<div class="safety-card warning"><b>Morale / 士氣尚未建模</b><div>攻擊方 Cook '+aCook+'；防守方 Cook '+dCook+'。'+handling+' 實戰常見約 15 Cook 僅作配置參考，不是已驗證固定公式。</div></div>');
+  }
   if(blockers.length)cards.push('<div class="safety-card blocker"><b>Unsupported mechanics / 無法安全判定</b><ul>'+blockers.map(id=>'<li>'+esc(id)+'</li>').join('')+'</ul></div>');
   if(warnings.length)cards.push('<div class="safety-card warning"><b>Evidence warnings</b><ul>'+warnings.map(item=>'<li>'+esc(item)+'</li>').join('')+'</ul></div>');
   if(assumptions.length)cards.push('<div class="safety-card assumption"><b>Experimental assumptions actually used</b><ul>'+assumptions.map(item=>'<li>'+esc(item.id)+': '+esc(item.description)+'</li>').join('')+'</ul></div>');
@@ -370,10 +378,11 @@ async function renderRound(number){
 function summarySide(side,label){
   const initial=lastResult.initial_state[side].remaining||{},final=lastResult.final_state[side].remaining||{},loss=lastResult.casualties[side]||{};
   const ids=[...new Set([...Object.keys(initial),...Object.keys(final),...Object.keys(loss)])].filter(id=>(initial[id]||final[id]||loss[id]));
-  const military=lastResult.military_score?.[side]||{},combat=lastResult.combat_statistics?.[side]||{};
+  const military=lastResult.military_score?.[side]||{},combat=lastResult.combat_statistics?.[side]||{},morale=lastResult.morale_status?.sides?.[side]||{};
+  const moraleText=(morale.cook_count||0)?'Cook '+morale.cook_count+' · 未套用':'Cook 0 · 未使用';
   return '<section class="panel summary-side"><h3>'+label+'</h3><table class="summary-table"><thead><tr><th>兵種</th><th>初始</th><th>損失</th><th>剩餘</th></tr></thead><tbody>'+
     ids.map(id=>{const unit=unitById(id);return '<tr><td>'+esc(unit?.display_name||id)+'</td><td>'+(initial[id]||0)+'</td><td class="loss">−'+(loss[id]||0)+'</td><td>'+(final[id]||0)+'</td></tr>'}).join('')+
-    '</tbody></table><div class="side-stats"><div class="side-stat"><span>軍分損失</span><b>−'+(military.general_score_lost??0)+'</b></div><div class="side-stat"><span>造成軍分消減</span><b>'+(military.general_score_destroyed??0)+'</b></div><div class="side-stat"><span>Gross HP damage</span><b>'+(combat.gross_damage_dealt??0).toLocaleString()+'</b></div></div></section>';
+    '</tbody></table><div class="side-stats"><div class="side-stat"><span>軍分損失</span><b>−'+(military.general_score_lost??0)+'</b></div><div class="side-stat"><span>造成軍分消減</span><b>'+(military.general_score_destroyed??0)+'</b></div><div class="side-stat"><span>Gross HP damage</span><b>'+(combat.gross_damage_dealt??0).toLocaleString()+'</b></div><div class="side-stat"><span>Cook / 士氣</span><b>'+esc(moraleText)+'</b></div></div></section>';
 }
 function renderSummary(){
   const aLoss=Object.values(lastResult.casualties.attacker||{}).reduce((a,b)=>a+b,0),dLoss=Object.values(lastResult.casualties.defender||{}).reduce((a,b)=>a+b,0);

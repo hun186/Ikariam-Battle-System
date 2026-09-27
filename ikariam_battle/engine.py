@@ -426,7 +426,38 @@ def _decimal_json(value: Decimal) -> int | float:
     return float(value)
 
 
-def _attach_battle_statistics(result: dict[str, Any], economy: MilitaryEconomyProfile) -> dict[str, Any]:
+def _morale_status(scenario: Scenario) -> dict[str, Any]:
+    sides: dict[str, dict[str, Any]] = {}
+    for side, army in (("attacker", scenario.attacker), ("defender", scenario.defender)):
+        cook_count = sum(unit.quantity for unit in army.units if unit.unit_id == "cook")
+        if not cook_count:
+            status = "not_present"
+        elif scenario.policy == Policy.STRICT:
+            status = "unsupported_boundary"
+        else:
+            status = "ignored_by_named_assumption"
+        sides[side] = {
+            "cook_count": cook_count,
+            "status": status,
+            "effect_applied": False,
+        }
+    return {
+        "modeled": False,
+        "strict_rule_id": "UNKNOWN-MORALE-SUPPORT",
+        "experimental_assumption_id": "EXP-MORALE-NONE-001",
+        "common_player_reference": (
+            "About 15 Cooks is a common practical configuration, "
+            "not a verified fixed morale formula."
+        ),
+        "sides": sides,
+    }
+
+
+def _attach_battle_statistics(
+    result: dict[str, Any],
+    economy: MilitaryEconomyProfile,
+    scenario: Scenario,
+) -> dict[str, Any]:
     losses: dict[str, dict[str, int | float]] = {}
     for side in ("attacker", "defender"):
         casualties = result.get("casualties", {}).get(side, {})
@@ -459,6 +490,7 @@ def _attach_battle_statistics(result: dict[str, Any], economy: MilitaryEconomyPr
         side: {"gross_damage_dealt": gross_damage[side]}
         for side in ("attacker", "defender")
     }
+    result["morale_status"] = _morale_status(scenario)
     return result
 
 
@@ -466,4 +498,4 @@ def simulate(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     normalized = Scenario.from_dict(scenario) if isinstance(scenario, dict) else scenario
     result = _simulate_core(normalized)
     economy = MilitaryEconomyProfile.load(normalized.profiles.economy)
-    return _attach_battle_statistics(result, economy)
+    return _attach_battle_statistics(result, economy, normalized)

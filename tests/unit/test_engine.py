@@ -100,9 +100,20 @@ def test_support_unknowns_distinguish_healing_and_morale():
  cook=deploy(Army.from_dict({'units':[{'unit_id':'cook','quantity':1}]}),registry,LAND_MINI)
  assert _preflight(doctor,registry,FormationRules.load(),LAND_MINI)==['UNKNOWN-HEALING-ALLOCATION']
  assert _preflight(cook,registry,FormationRules.load(),LAND_MINI)==['UNKNOWN-MORALE-SUPPORT']
- s=scenario(); s['attacker']['units'].append({'unit_id':'cook','quantity':1}); r=simulate(s)
+ s=scenario(); s['attacker']['units'].append({'unit_id':'cook','quantity':15}); r=simulate(s)
  assert 'EXP-MORALE-NONE-001' in {a['id'] for a in r['assumptions']}
  assert 'EXP-HEAL-NONE-001' not in {a['id'] for a in r['assumptions']}
+ morale=r['morale_status']
+ assert morale['modeled'] is False
+ assert morale['strict_rule_id']=='UNKNOWN-MORALE-SUPPORT'
+ assert morale['experimental_assumption_id']=='EXP-MORALE-NONE-001'
+ assert morale['sides']['attacker']=={'cook_count':15,'status':'ignored_by_named_assumption','effect_applied':False}
+ assert morale['sides']['defender']=={'cook_count':0,'status':'not_present','effect_applied':False}
+
+ strict=scenario('strict'); strict['attacker']['units'].append({'unit_id':'cook','quantity':15}); blocked=simulate(strict)
+ assert blocked['status']=='inconclusive' and blocked['rounds_completed']==0
+ assert blocked['morale_status']['sides']['attacker']['status']=='unsupported_boundary'
+ assert blocked['morale_status']['sides']['attacker']['effect_applied'] is False
 
 
 def test_support_is_deployed_separately_not_reported_as_reserve():
