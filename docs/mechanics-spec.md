@@ -84,7 +84,7 @@ Finite ammunition is owned by one entry batch (`wave_id`), never by the side, un
 
 A final partial volley uses named `EXP-AMMO-PARTIAL-ORDER-001`; native ranged selection remains primary, and an exhausted primary does not silently switch weapon.
 
-Targeting uses the executable Art of Warfare priority table above; there is no longer an `EXP-TARGET-LEGACY-001` assumption. Target priority is a property of the runtime line, not the unit type: a Swordsman in runtime flank uses `targeting.priorities["flank"]` (flank before long-range), while a Swordsman deployed in runtime first uses `targeting.priorities["first"]`. Individual shots re-evaluate the current highest-priority surviving formation, so target transfer after a formation is destroyed is executable rather than an unknown blocker. Active-weapon selection remains a separate step.
+Targeting uses the executable Art of Warfare priority table above; the former experimental legacy-targeting assumption is no longer active. Target priority is a property of the runtime line, not the unit type: a Swordsman in runtime flank uses `targeting.priorities["flank"]` (flank before long-range), while a Swordsman deployed in runtime first uses `targeting.priorities["first"]`. Individual shots re-evaluate the current highest-priority surviving formation, so target transfer after a formation is destroyed is executable rather than an unknown blocker. Active-weapon selection remains a separate step.
 
 Accuracy is stored per weapon, including different secondary accuracy. No complete accuracy algorithm is known: strict emits `UNKNOWN-ACCURACY`; experimental emits `EXP-ACCURACY-IGNORED-001` rather than silently claiming 100% accuracy.
 
