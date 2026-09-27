@@ -559,3 +559,30 @@ def test_am_slot_addresses_stay_fixed_when_target_slot_empties_mid_volley():
  assert trace['target_damage_positions']==[1,2]
  assert trace['hits_by_damage_position']=={1:2,2:2}
  assert trace['empty_addressed_shots_by_damage_position']=={2:1}
+
+
+def test_round_snapshot_keeps_destroyed_slot_identity_and_round_casualties():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+    'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':1}]}}
+ result=simulate(s)
+ slot=next(row for row in result['rounds'][1]['defender']['slots']
+           if row['unit_id']=='hoplite' and row['line']=='first')
+ assert slot['units']==0
+ assert slot['hit_points_percent']==0
+ assert slot['casualties']==1
+
+
+def test_snapshot_exposes_batch_reserve_damage_and_hp_percent():
+ from ikariam_battle.engine import _snapshot
+ from ikariam_battle.profiles import BattleEndProfile
+ registry=UnitRegistry.load()
+ hp=registry.get('hoplite').hit_points
+ wave=Wave(ArmyUnit('hoplite',40,'reserve-batch'),10,
+           [Slot('first-1','first',2,1,'hoplite','reserve-batch',30,30)],
+           reserve_damage=2*hp)
+ state=_snapshot([wave],registry,BattleEndProfile.load())
+ batch=state['waves'][0]
+ assert batch['reserve']==10
+ assert batch['reserve_damage']==2*hp
+ assert batch['reserve_hit_points_percent']==80

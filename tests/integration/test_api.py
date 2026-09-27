@@ -65,6 +65,9 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  hoplite=next(u for u in data['units'] if u['id']=='hoplite')
  carabineer=next(u for u in data['units'] if u['id']=='sulphur_carabineer')
  assert (hoplite['size'],carabineer['size'])==(1,4)
+ assert (hoplite['hit_points'],hoplite['base_armor'])==(1120,20)
+ assert next(w for w in hoplite['weapons'] if w['trigger']=='primary')['damage']==360
+ assert data['workshop_increments']=={'land':5,'naval':10}
  assert hoplite['unit_class']=='human' and carabineer['unit_class']=='human'
  machine_land={u['id'] for u in data['units'] if u['domain']=='land' and u['unit_class']=='machine'}
  assert machine_land=={'steam_giant','battering_ram','catapult','mortar','gyrocopter','bombardier'}
@@ -178,6 +181,12 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert 'lastScenario' not in body
  assert '熔爐神蹟 / Forge' in body and '攻擊' in body and '防禦' in body
  assert '進階：進場批次' in body and 'Research mode' in body and 'slot-tooltip' in body
+ assert 'id="showUnitStats" type="checkbox"' in body
+ assert 'function effectiveSetupStats(row)' in body and 'workshop_increments' in body
+ assert "含 Workshop + Forge Lv" in body
+ assert 'function reserveGroups(state)' in body and 'reserve_hit_points_percent' in body
+ assert 'batches.length>1' in body and 'batch-badge' in body
+ assert "Persistent reserve damage" in body
  assert "Math.floor(field.lines[line].slot_space/unit.size)" in body
  assert "unit.semantic_class==='light_infantry'&&field.lines.first" in body
  assert "minus.textContent=step?'−'+step" in body and "plus.textContent=step?'＋'+step" in body
@@ -203,7 +212,13 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert 'const formation=formationGrid(state,name,geometry)' in body
  assert "battleHalf(round.attacker,'attacker')" in body
  assert "battleHalf(round.defender,'defender')" in body
- assert "number===0?'部署':String(number)" in body
+ assert "add('初始部署',0,false,'deployment-jump')" in body
+ assert "add('«',1" in body and "add('»',maximum" in body
+ assert "currentRoundNumber===0?1:Math.min(maximum,currentRoundNumber+1)" in body
+ assert "input.step='1'" in body and "input.placeholder='回合'" in body
+ assert "Math.trunc(raw)" in body and "Number.isFinite(raw)" in body
+ assert "if(event.key==='Enter')jumpNow()" in body
+ assert "number===0?'部署':String(number)" not in body
  assert "summarySide('attacker','攻擊方')" in body
  assert '軍分以未折扣的原始生產資源計分基礎 ÷ 50 計算' in body
  assert 'Workshop、熔爐神蹟與其他戰鬥 buff 不改變軍分' in body
@@ -221,9 +236,14 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert 'unit.general_score' in body and 'military.general_score_lost' in body
 
 
-def test_zero_unit_snapshot_slots_render_as_empty_and_static_copies_match():
+def test_destroyed_snapshot_slots_keep_unit_identity_and_static_copies_match():
  response=asyncio.run(request('GET','/')); body=response[1]['body'].decode()
- assert 'state.slots.filter(s=>s.line===line&&s.units>0)' in body
+ assert 'state.slots.filter(s=>s.line===line)' in body
+ assert 'state.slots.filter(s=>s.line===line&&s.units>0)' not in body
+ assert "const dead=Number(slot.units||0)===0" in body
+ assert "slot.dead .slot-glyph img" in body
+ assert "(-'+loss+')" in body
+ assert "hpBar(hp,'HP')" in body
  assert body==Path('public/index.html').read_text()
 
 def test_battle_end_survivors_round_boundary_and_unique_assumptions_api():
@@ -272,7 +292,9 @@ def test_additive_ui_state_fields_keep_existing_api_contract():
  assert status==200 and {'remaining','reserve','slots','total'} <= data['initial_state']['attacker'].keys()
  slot=data['initial_state']['attacker']['slots'][0]
  assert {'entry_batch_id','display_name','hit_points_percent','munition_percent','native_line','semantic_class'} <= slot.keys()
- assert {'wave_id','entry_batch_id','ammo_capacity_shots','munition_percent','deployed_lines'} <= data['initial_state']['attacker']['waves'][0].keys()
+ assert {'wave_id','entry_batch_id','ammo_capacity_shots','munition_percent','deployed_lines',
+         'reserve_damage','reserve_hit_points_percent'} <= data['initial_state']['attacker']['waves'][0].keys()
+ assert 'casualties' in slot
 
 
 def test_general_score_loss_destroyed_and_gross_damage_are_reported():
