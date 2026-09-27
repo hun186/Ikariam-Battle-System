@@ -9,3 +9,6 @@ The browser is now treated as a battle workbench with three presentation states:
 
 
 HTTP battle transport is intentionally separate from the pure combat engine. `ikariam_battle.simulate()` still produces a complete deterministic in-memory report for internal callers and calibration. `web_simulator.run_battle()`, shared by the ASGI and Vercel adapters, projects that full report into either a compact summary or a bounded round page. The browser stores the submitted Scenario locally, requests summary first, and deterministically replays the same Scenario for 10-round pages as the user navigates. Loaded pages are cached client-side; no server-side battle session is required, which keeps the serverless deployment stateless while bounding response payload size.
+
+
+Browser simulation requests distinguish the last successfully committed battle from a pending replacement. The active `simulationGeneration` and its scenario/page cache remain intact while a newer summary request is pending; a separate monotonic request generation suppresses stale overlapping summaries. Only a successful latest summary atomically becomes the active generation and replaces the scenario/cache. If the pending request fails, report navigation is re-enabled for the prior completed battle instead of discarding it.

@@ -20,6 +20,10 @@ def post(value,report=None):
 def post_page(value,start=0,limit=10):
  return post(value,{'mode':'round_page','round_start':start,'round_limit':limit})
 
+def post_raw(value):
+ response=asyncio.run(request('POST','/api/simulate',json.dumps(value).encode()))
+ return response[0]['status'],json.loads(response[1]['body'])
+
 def test_barbarian_metadata_contract_is_documented():
  contract=Path('.codex/contracts.md').read_text()
  assert 'barbarian_profile_metadata' in contract and 'barbarian_units' in contract
@@ -109,13 +113,16 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert "cacheKey=generation+':'+start" in body
  assert 'if(generation!==simulationGeneration)return null' in body
  assert 'if(token!==roundRenderToken||generation!==simulationGeneration||!page)return' in body
- assert 'let generation=null' in body
- assert 'generation=++simulationGeneration' in body
- assert 'if(generation===simulationGeneration)showView' in body
+ assert 'simulationRequestGeneration=0' in body
+ assert 'let requestGeneration=null' in body
+ assert 'requestGeneration=++simulationRequestGeneration' in body
+ assert 'simulationGeneration=requestGeneration' in body
+ assert 'requestGeneration===simulationRequestGeneration&&simulationGeneration===requestGeneration' in body
  assert 'scenarioByGeneration=new Map()' in body
  assert 'scenario=scenarioByGeneration.get(generation)' in body
  assert 'if(generation!==simulationGeneration||!scenario)return null' in body
- assert 'scenarioByGeneration.clear();scenarioByGeneration.set(generation,scenario);disableReports()' in body
+ assert 'roundPageCache.clear();scenarioByGeneration.clear();scenarioByGeneration.set(simulationGeneration,scenario)' in body
+ assert 'if(lastResult)enableReports();else disableReports()' in body
  assert 'function disableReports(){setReportsEnabled(false)}' in body
  assert 'lastScenario' not in body
  assert '熔爐神蹟 / Forge' in body and '攻擊' in body and '防禦' in body
@@ -283,3 +290,10 @@ def test_http_round_page_rejects_start_past_completed_battle():
  assert status==200 and summary['rounds_completed']==1
  status,error=post(value,{'mode':'round_page','round_start':2,'round_limit':10})
  assert status==400 and 'report.round_start must be <= rounds_completed' in error['error']
+
+
+def test_http_non_object_json_bodies_are_400_not_500():
+ for value in ([],None,42,'scenario'):
+  status,data=post_raw(value)
+  assert status==400
+  assert data=={'error':'request body must be an object'}

@@ -93,6 +93,8 @@ def _transport_result(full: dict, mode: str, start: int, limit: int) -> dict:
 
 
 def run_battle(payload: dict) -> dict:
+    if not isinstance(payload, dict):
+        raise ValueError("request body must be an object")
     mode, start, limit = _report_spec(payload)
     return _transport_result(simulate(payload), mode, start, limit)
 

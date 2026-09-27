@@ -90,7 +90,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 </main>
 
 <script>
-let metadata=null, units=[], lastResult=null, lastBattlefieldId=null, currentRoundNumber=0, roundRenderToken=0, simulationGeneration=0;
+let metadata=null, units=[], lastResult=null, lastBattlefieldId=null, currentRoundNumber=0, roundRenderToken=0, simulationGeneration=0, simulationRequestGeneration=0;
 const roundPageCache=new Map(), scenarioByGeneration=new Map();
 const battlefield=document.getElementById('battlefield'),policy=document.getElementById('policy'),maxRounds=document.getElementById('maxRounds'),researchMode=document.getElementById('researchMode'),simulate=document.getElementById('simulate'),error=document.getElementById('error');
 const viewIds={setup:'setupView',round:'roundView',summary:'summaryView'};
@@ -398,22 +398,30 @@ battlefield.addEventListener('change',updateSlotButtons);
 researchMode.addEventListener('change',()=>document.body.classList.toggle('research',researchMode.checked));
 simulate.addEventListener('click',async()=>{
   error.textContent='';
-  let generation=null;
+  let requestGeneration=null;
   try{
     const submittedBattlefield=battlefield.value,attacker=army('attacker'),defender=army('defender');
     if(!attacker.units.length||!defender.units.length)throw Error('攻擊方與防守方都至少要設定一種兵力。');
     const scenario={profiles:metadata.profiles,policy:policy.value,battlefield:submittedBattlefield,max_rounds:+maxRounds.value,attacker,defender};
-    generation=++simulationGeneration;
+    requestGeneration=++simulationRequestGeneration;
     ++roundRenderToken;
-    roundPageCache.clear();scenarioByGeneration.clear();scenarioByGeneration.set(generation,scenario);disableReports();
+    disableReports();
     const data=await postSimulation({...scenario,report:{mode:'summary'}});
-    if(generation!==simulationGeneration)return;
+    if(requestGeneration!==simulationRequestGeneration)return;
+    simulationGeneration=requestGeneration;
+    roundPageCache.clear();scenarioByGeneration.clear();scenarioByGeneration.set(simulationGeneration,scenario);
     lastResult=data;lastBattlefieldId=submittedBattlefield;currentRoundNumber=data.rounds_completed;
-    roundPageCache.clear();
     renderSummary();enableReports();await renderRound(currentRoundNumber);
-    if(generation===simulationGeneration)showView('round');
+    if(requestGeneration===simulationRequestGeneration&&simulationGeneration===requestGeneration)showView('round');
   }catch(e){
-    if(generation===null||generation===simulationGeneration)error.textContent=e.message;
+    if(requestGeneration===null){
+      error.textContent=e.message;
+      return;
+    }
+    if(requestGeneration===simulationRequestGeneration){
+      if(lastResult)enableReports();else disableReports();
+      error.textContent=e.message;
+    }
   }
 });
 boot().catch(e=>error.textContent=e.message);
