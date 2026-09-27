@@ -13,7 +13,7 @@
 - Entry-batch ammo ownership and additive UI-derived HP/munition state are contracted; user-observed ranged fallback and initial-garrison retreat/rejoin remain calibration-only unsupported mechanics.
 
 ## Open Handoffs
-Naval geometry, automatic Town Hall/garrison/wall selection and transitions, accuracy, target transfer, mixed rows, the actual healing/morale algorithms, kill/rounding/SR/IR chronology and secondary triggers require future work.
+Naval geometry, automatic Town Hall/garrison/wall selection and transitions, accuracy, mixed rows, the actual healing/morale algorithms, kill-type selectors, rounding selector, SR/IR triggers and secondary-weapon triggers require future work.
 
 ## Recent Outcomes
 - Art of Warfare chronology is now phase-based: Air defence → Air → Artillery → Flank → Long-range → Main. Same-formation sides snapshot firing eligibility simultaneously; earlier-phase casualties suppress later firing; target priority is re-evaluated individual-shot by individual-shot. Experimental uses sequential D-kill baseline, while IR/SR triggers and P/I/IR/PIR/M kill selectors remain explicit unknowns.

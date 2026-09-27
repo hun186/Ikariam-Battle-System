@@ -196,7 +196,7 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert '.formation{min-width:790px}' not in body
  assert '.battle-half{grid-template-columns:1fr}.reserve-box{order:2}' not in body
  assert "reserveBox(state,name==='defender'?'Defender':'Attacker',geometry)+formation" in body
- assert '@media(max-width:900px){.setup-grid,.summary-grid{grid-template-columns:1fr}' in body
+ assert '@media(max-width:900px){.setup-grid,.summary-grid,.mechanics-grid{grid-template-columns:1fr}' in body
  assert '}\n@media(max-width:900px)' in body
  assert '}\\n@media(max-width:900px)' not in body
  assert '此戰場沒有 Flank slot；未能補入前線的側翼兵會留在 Reserve。' in body
