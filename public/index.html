@@ -345,9 +345,15 @@ function safetyNoticesHtml(data){
   if(roundCap)cards.push('<div class="safety-card warning"><b>Safety round cap reached / 已達安全回合上限</b><div>Simulation stopped at '+esc(roundCap.details?.limit)+' rounds without a resolved outcome.</div></div>');
   const morale=data.morale_status,moraleSides=morale?.sides||{},aCook=moraleSides.attacker?.cook_count||0,dCook=moraleSides.defender?.cook_count||0;
   if(aCook||dCook){
-    const handling=data.policy==='strict'
-      ?'Strict：遇到 Cook 會以 '+esc(morale.strict_rule_id)+' 停在證據邊界。'
-      :'Experimental：依 '+esc(morale.experimental_assumption_id)+' 繼續，但不套用 Cook 的士氣效果。';
+    const moraleStatuses=[moraleSides.attacker?.status,moraleSides.defender?.status].filter(Boolean);
+    let handling;
+    if(moraleStatuses.includes('ignored_by_named_assumption')){
+      handling='Experimental：已依 '+esc(morale.experimental_assumption_id)+' 繼續，但不套用 Cook 的士氣效果。';
+    }else if(moraleStatuses.includes('unsupported_boundary')){
+      handling='Strict：遇到 Cook 會以 '+esc(morale.strict_rule_id)+' 停在證據邊界。';
+    }else{
+      handling='尚未到達士氣處理：戰鬥先因其他 unsupported boundary 停止，'+esc(morale.experimental_assumption_id)+' 並未套用。';
+    }
     cards.push('<div class="safety-card warning"><b>Morale / 士氣尚未建模</b><div>攻擊方 Cook '+aCook+'；防守方 Cook '+dCook+'。'+handling+' 實戰常見約 15 Cook 僅作配置參考，不是已驗證固定公式。</div></div>');
   }
   if(blockers.length)cards.push('<div class="safety-card blocker"><b>Unsupported mechanics / 無法安全判定</b><ul>'+blockers.map(id=>'<li>'+esc(id)+'</li>').join('')+'</ul></div>');
@@ -379,7 +385,8 @@ function summarySide(side,label){
   const initial=lastResult.initial_state[side].remaining||{},final=lastResult.final_state[side].remaining||{},loss=lastResult.casualties[side]||{};
   const ids=[...new Set([...Object.keys(initial),...Object.keys(final),...Object.keys(loss)])].filter(id=>(initial[id]||final[id]||loss[id]));
   const military=lastResult.military_score?.[side]||{},combat=lastResult.combat_statistics?.[side]||{},morale=lastResult.morale_status?.sides?.[side]||{};
-  const moraleText=(morale.cook_count||0)?'Cook '+morale.cook_count+' · 未套用':'Cook 0 · 未使用';
+  const moraleStatusLabel={ignored_by_named_assumption:'假設忽略',unsupported_boundary:'Strict 邊界',not_reached:'尚未到達',not_present:'未使用'}[morale.status]||'未建模';
+  const moraleText=(morale.cook_count||0)?'Cook '+morale.cook_count+' · '+moraleStatusLabel:'Cook 0 · 未使用';
   return '<section class="panel summary-side"><h3>'+label+'</h3><table class="summary-table"><thead><tr><th>兵種</th><th>初始</th><th>損失</th><th>剩餘</th></tr></thead><tbody>'+
     ids.map(id=>{const unit=unitById(id);return '<tr><td>'+esc(unit?.display_name||id)+'</td><td>'+(initial[id]||0)+'</td><td class="loss">−'+(loss[id]||0)+'</td><td>'+(final[id]||0)+'</td></tr>'}).join('')+
     '</tbody></table><div class="side-stats"><div class="side-stat"><span>軍分損失</span><b>−'+(military.general_score_lost??0)+'</b></div><div class="side-stat"><span>造成軍分消減</span><b>'+(military.general_score_destroyed??0)+'</b></div><div class="side-stat"><span>Gross HP damage</span><b>'+(combat.gross_damage_dealt??0).toLocaleString()+'</b></div><div class="side-stat"><span>Cook / 士氣</span><b>'+esc(moraleText)+'</b></div></div></section>';

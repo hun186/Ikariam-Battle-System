@@ -116,6 +116,24 @@ def test_support_unknowns_distinguish_healing_and_morale():
  assert blocked['morale_status']['sides']['attacker']['effect_applied'] is False
 
 
+ hard_blocked={
+  'policy':'experimental','battlefield':'land-mini','max_rounds':2,
+  'attacker':{'units':[
+   {'unit_id':'hoplite','quantity':30},
+   {'unit_id':'steam_giant','quantity':10},
+   {'unit_id':'cook','quantity':15},
+  ]},
+  'defender':{'units':[{'unit_id':'hoplite','quantity':30}]},
+ }
+ stopped=simulate(hard_blocked)
+ hard_rules={e['details'].get('rule_id') for e in stopped['events'] if e['type']=='unsupported_mechanic'}
+ assert {'UNKNOWN-MIXED-UNIT-AM-ROWS','UNKNOWN-MORALE-SUPPORT'} <= hard_rules
+ assert stopped['assumptions']==[]
+ assert stopped['morale_status']['sides']['attacker']=={
+  'cook_count':15,'status':'not_reached','effect_applied':False
+ }
+
+
 def test_support_is_deployed_separately_not_reported_as_reserve():
  s=scenario('strict'); s['attacker']['units'].append({'unit_id':'doctor','quantity':4})
  state=simulate(s)['initial_state']['attacker']

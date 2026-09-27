@@ -426,16 +426,29 @@ def _decimal_json(value: Decimal) -> int | float:
     return float(value)
 
 
-def _morale_status(scenario: Scenario) -> dict[str, Any]:
+def _morale_status(scenario: Scenario, result: dict[str, Any]) -> dict[str, Any]:
+    assumption_id = "EXP-MORALE-NONE-001"
+    strict_rule_id = "UNKNOWN-MORALE-SUPPORT"
+    applied_ids = {row.get("id") for row in result.get("assumptions", [])}
+    unsupported_ids = {
+        event.get("details", {}).get("rule_id")
+        for event in result.get("events", [])
+        if event.get("type") == "unsupported_mechanic"
+    }
+    morale_assumption_applied = assumption_id in applied_ids
+    morale_boundary_reported = strict_rule_id in unsupported_ids
+
     sides: dict[str, dict[str, Any]] = {}
     for side, army in (("attacker", scenario.attacker), ("defender", scenario.defender)):
         cook_count = sum(unit.quantity for unit in army.units if unit.unit_id == "cook")
         if not cook_count:
             status = "not_present"
-        elif scenario.policy == Policy.STRICT:
+        elif morale_assumption_applied:
+            status = "ignored_by_named_assumption"
+        elif scenario.policy == Policy.STRICT and morale_boundary_reported:
             status = "unsupported_boundary"
         else:
-            status = "ignored_by_named_assumption"
+            status = "not_reached"
         sides[side] = {
             "cook_count": cook_count,
             "status": status,
@@ -443,8 +456,8 @@ def _morale_status(scenario: Scenario) -> dict[str, Any]:
         }
     return {
         "modeled": False,
-        "strict_rule_id": "UNKNOWN-MORALE-SUPPORT",
-        "experimental_assumption_id": "EXP-MORALE-NONE-001",
+        "strict_rule_id": strict_rule_id,
+        "experimental_assumption_id": assumption_id,
         "common_player_reference": (
             "About 15 Cooks is a common practical configuration, "
             "not a verified fixed morale formula."
@@ -490,7 +503,7 @@ def _attach_battle_statistics(
         side: {"gross_damage_dealt": gross_damage[side]}
         for side in ("attacker", "defender")
     }
-    result["morale_status"] = _morale_status(scenario)
+    result["morale_status"] = _morale_status(scenario, result)
     return result
 
 
