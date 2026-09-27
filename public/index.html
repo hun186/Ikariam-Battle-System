@@ -323,10 +323,11 @@ function hideFloatingTooltip(){floatingTooltip.hidden=true;floatingTooltip.inner
 function bindFloatingTooltips(root){
   root.querySelectorAll('[data-tooltip]').forEach(trigger=>{
     if(trigger.dataset.tooltipBound)return;trigger.dataset.tooltipBound='1';
+    const hideIfInactive=()=>{if(document.activeElement!==trigger&&!trigger.matches(':hover'))hideFloatingTooltip()};
     trigger.addEventListener('mouseenter',()=>showFloatingTooltip(trigger));
-    trigger.addEventListener('mouseleave',hideFloatingTooltip);
+    trigger.addEventListener('mouseleave',hideIfInactive);
     trigger.addEventListener('focus',()=>showFloatingTooltip(trigger));
-    trigger.addEventListener('blur',hideFloatingTooltip);
+    trigger.addEventListener('blur',hideIfInactive);
   });
 }
 function lineSlots(state,line,geometry,positions=null,compact=false){
