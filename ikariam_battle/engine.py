@@ -46,8 +46,10 @@ def _assume(applied: dict[str, dict[str, str]], events: list[Event], assumption_
     _event(events, round_no, phase, "assumption_applied", None, **assumption)
 
 
-def _snapshot(waves: list[Wave], registry: UnitRegistry, battle_end: BattleEndProfile) -> dict[str, Any]:
+def _snapshot(waves: list[Wave], registry: UnitRegistry, battle_end: BattleEndProfile,
+              slot_losses: dict[tuple[str, str], int] | None = None) -> dict[str, Any]:
     units, main_line, fallback, reserve, support = (defaultdict(int) for _ in range(5))
+    slot_losses = slot_losses or {}
     slots: list[dict[str, Any]] = []
     wave_states: list[dict[str, Any]] = []
     for wave in waves:
@@ -62,9 +64,16 @@ def _snapshot(waves: list[Wave], registry: UnitRegistry, battle_end: BattleEndPr
             support[unit.id] += wave.support_units
         ammo_percent = None if wave.ammo_capacity_shots is None else round(
             100 * (wave.ammo_pool_shots or 0) / wave.ammo_capacity_shots, 2)
+        reserve_hp_percent = None
+        if wave.reserve and unit.hit_points:
+            reserve_hp_percent = round(
+                100 * (wave.reserve * unit.hit_points - wave.reserve_damage) /
+                (wave.reserve * unit.hit_points), 2)
         wave_states.append({"unit_id": unit.id, "wave_id": wave.unit.wave_id,
                             "entry_batch_id": wave.unit.wave_id, "alive": wave.alive,
-                            "reserve": wave.reserve, "ammo_pool_shots": wave.ammo_pool_shots,
+                            "reserve": wave.reserve, "reserve_damage": wave.reserve_damage,
+                            "reserve_hit_points_percent": reserve_hp_percent,
+                            "ammo_pool_shots": wave.ammo_pool_shots,
                             "ammo_capacity_shots": wave.ammo_capacity_shots,
                             "munition_percent": ammo_percent,
                             "deployed_lines": sorted({slot.line for slot in wave.slots if slot.units})})
@@ -75,8 +84,9 @@ def _snapshot(waves: list[Wave], registry: UnitRegistry, battle_end: BattleEndPr
                       "semantic_class": unit.semantic_class, "native_line": unit.native_line,
                       "attack_upgrade": wave.unit.attack_upgrade,
                       "armor_upgrade": wave.unit.armor_upgrade,
+                      "casualties": slot_losses.get((s.wave_id, s.slot_id), 0),
                       "hit_points_percent": round(100 * (s.units * unit.hit_points - s.damage) /
-                                                  (s.units * unit.hit_points), 2) if s.units else None,
+                                                  (s.units * unit.hit_points), 2) if s.units else 0,
                       "ammo_pool_shots": wave.ammo_pool_shots,
                       "ammo_capacity_shots": wave.ammo_capacity_shots,
                       "munition_percent": ammo_percent} for s in wave.slots)
@@ -347,6 +357,7 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                       registry: UnitRegistry, workshop: WorkshopProfile, forge: ForgeProfile,
                       targeting: TargetingProfile, events: list[Event], number: int,
                       source_army, target_army, casualties: dict[str, int],
+                      slot_casualties: dict[tuple[str, str], int],
                       applied: dict[str, dict[str, str]]) -> None:
     for volley in volleys:
         if not volley["row_numbers"]:
@@ -419,6 +430,8 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             prior_unit_damage, killed, overkill = _apply_sequential_hit(
                 target_slot, queue, target_unit.hit_points or 0, damage_trace.final_damage)
             casualties[target_slot.unit_id] += killed
+            if killed:
+                slot_casualties[(target_slot.wave_id, target_slot.slot_id)] += killed
 
             damage_key = (
                 enemy.unit.unit_id, enemy.unit.wave_id, target_slot.slot_id,
@@ -589,6 +602,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         # Art of Warfare: same formations on both sides shoot simultaneously;
         # casualties from an earlier formation suppress firing in later phases.
         a_dead, d_dead = defaultdict(int), defaultdict(int)
+        a_slot_dead, d_slot_dead = defaultdict(int), defaultdict(int)
         a_queues = _build_damage_queues(attacker, registry, events, number, "attacker", applied)
         d_queues = _build_damage_queues(defender, registry, events, number, "defender", applied)
         for firing_phase in targeting.firing_order:
@@ -606,10 +620,10 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                    defender_shots=sum(len(v["row_numbers"]) for v in d_volleys))
             _resolve_volleys(
                 a_volleys, defender, d_queues, registry, workshop, forge, targeting,
-                events, number, scenario.attacker, scenario.defender, d_dead, applied)
+                events, number, scenario.attacker, scenario.defender, d_dead, d_slot_dead, applied)
             _resolve_volleys(
                 d_volleys, attacker, a_queues, registry, workshop, forge, targeting,
-                events, number, scenario.defender, scenario.attacker, a_dead, applied)
+                events, number, scenario.defender, scenario.attacker, a_dead, a_slot_dead, applied)
             _assume(applied, events, "EXP-SR-DISABLED-001", number, "fire")
             if _sr_trigger(firing_phase, attacker, defender):
                 _apply_slot_redistribution(attacker, a_queues)
@@ -617,7 +631,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         for k,v in a_dead.items(): total["attacker"][k] += v
         for k,v in d_dead.items(): total["defender"][k] += v
         completed = number
-        attacker_state, defender_state = _snapshot(attacker,registry,battle_end), _snapshot(defender,registry,battle_end)
+        attacker_state = _snapshot(attacker, registry, battle_end, a_slot_dead)
+        defender_state = _snapshot(defender, registry, battle_end, d_slot_dead)
         rounds.append({"round":number,"attacker":attacker_state,"defender":defender_state,
                        "casualties":{"attacker":dict(a_dead),"defender":dict(d_dead)}})
         states = {"attacker": attacker_state["continuation_state"],

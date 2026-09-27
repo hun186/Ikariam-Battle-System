@@ -80,5 +80,8 @@ class UnitRegistry:
                  "support_effect":u.support_effect, "battlefield_class": u.battlefield_class,
                  "semantic_class":u.semantic_class, "native_line":u.native_line,
                  "unit_class":u.unit_class, "size":u.size,
+                 "hit_points":u.hit_points, "base_armor":u.base_armor,
+                 "weapons":[{"id":w.id,"damage":w.damage,"ammunition":w.ammunition,
+                             "trigger":w.trigger,"accuracy":w.accuracy} for w in u.weapons],
                  "numerically_supported": u.numerically_supported,
                  "counts_toward_garrison_limit": u.counts_toward_garrison_limit} for u in self.all()]

@@ -92,7 +92,7 @@ async def _api_simulate(scope, receive, send) -> None:
         from ikariam_battle.battlefield import battlefield_metadata
         from ikariam_battle.economy import MilitaryEconomyProfile
         from ikariam_battle.models import Profiles
-        from ikariam_battle.profiles import ForgeProfile, SupportProfile, TargetingProfile
+        from ikariam_battle.profiles import ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
         registry = UnitRegistry.load()
         barbarians = BarbarianRegistry.load()
         economy = MilitaryEconomyProfile.load()
@@ -116,6 +116,8 @@ async def _api_simulate(scope, receive, send) -> None:
             "barbarian_profile_metadata":barbarians.metadata,"barbarian_units":barbarians.public(),
             "forge_levels":{str(k):{"damage_multiplier":str(v.damage_multiplier),"armor_bonus":v.armor_bonus}
                             for k,v in ForgeProfile.load().levels.items()},
+            "workshop_increments":{"land":WorkshopProfile.load().land_increment,
+                                   "naval":WorkshopProfile.load().naval_increment},
             "support_capacity":SupportProfile.load().derived_capacity,
             "report_transport":{"default_mode":"summary","default_round_page_size":DEFAULT_ROUND_PAGE_SIZE,
                                 "max_round_page_size":MAX_ROUND_PAGE_SIZE}})
