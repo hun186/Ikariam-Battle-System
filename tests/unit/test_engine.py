@@ -356,3 +356,15 @@ def test_both_sides_without_main_line_is_not_an_unqualified_draw():
  result=simulate(s)
  assert result['status']=='inconclusive' and result['outcome']=='inconclusive'
  assert 'UNKNOWN-BOTH-SIDES-NO-MAIN-LINE-OUTCOME' in {e['details'].get('rule_id') for e in result['events']}
+
+
+def test_round_cap_emits_explicit_safety_event():
+ s=scenario(rounds=2)
+ s['attacker']['units'][0]['quantity']=100000
+ s['defender']['units'][0]['quantity']=100000
+ result=simulate(s)
+ cap=[e for e in result['events'] if e['type']=='safety_limit_reached']
+ assert result['status']=='inconclusive' and result['outcome']=='inconclusive'
+ assert result['rounds_completed']==2
+ assert len(cap)==1 and cap[0]['round']==2
+ assert cap[0]['details']=={'reason':'max_rounds_reached','limit':2}

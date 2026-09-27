@@ -406,6 +406,9 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                                              "defender":_non_sustaining(defender_state)})
             break
         if not a_dead and not d_dead and not a_plan and not d_plan: break
+    else:
+        _event(events, scenario.max_rounds, "battle_end", "safety_limit_reached", None,
+               reason="max_rounds_reached", limit=scenario.max_rounds)
     final = {"attacker":_snapshot(attacker,registry,battle_end),"defender":_snapshot(defender,registry,battle_end)}
     outcome, _ = _termination(final["attacker"], final["defender"])
     if fallback_boundary or both_zero_boundary:

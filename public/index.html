@@ -13,7 +13,7 @@ header h1{font:700 clamp(26px,4vw,42px) Georgia,serif;margin:0}header p{margin:5
 main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.tab{border:1px solid #6f634e;background:#f8edd2;color:var(--ink);padding:9px 16px;border-radius:5px;font-weight:800}.tab.active{background:var(--deep);color:#fff;border-color:var(--deep)}.tab:disabled{opacity:.45;cursor:not-allowed}
 .panel{background:linear-gradient(135deg,#fffdf5,#efe0ba);border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 14px #4a381f26}
-.settings{display:flex;gap:12px;align-items:end;flex-wrap:wrap;padding:12px 14px;margin-bottom:14px}.settings label,.side-toolbar label{font-size:11px;font-weight:800;text-transform:uppercase;display:grid;gap:4px}.settings select,.settings input,.side-toolbar select{border:1px solid #96805b;background:#fffdf7;border-radius:4px;padding:8px;color:var(--ink)}
+.settings{display:flex;gap:12px;align-items:end;flex-wrap:wrap;padding:12px 14px;margin-bottom:14px}.settings label,.side-toolbar label{font-size:11px;font-weight:800;text-transform:uppercase;display:grid;gap:4px}.settings select,.settings input,.side-toolbar select{border:1px solid #96805b;background:#fffdf7;border-radius:4px;padding:8px;color:var(--ink)}.settings-note{flex-basis:100%;padding:8px 10px;background:#f8efd8;border-left:4px solid #9a8356;font-size:12px;color:#5d5548}
 .setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.side-setup{overflow:hidden}.side-title{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;color:#fff}.side-setup.attacker .side-title{background:linear-gradient(90deg,#894138,#ad5b4d)}.side-setup.defender .side-title{background:linear-gradient(90deg,#245d78,#3c7893)}.side-title h2{font:700 22px Georgia,serif;margin:0}.side-toolbar{display:flex;align-items:end;gap:10px}.side-toolbar select{min-width:150px}
 .unit-list{padding:10px}.unit-group{margin-bottom:10px}.unit-group-title{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#655b49;border-bottom:1px solid #cbb892;padding:4px 2px}
 .unit-setup-row{display:grid;grid-template-columns:minmax(150px,1.45fr) minmax(205px,1.6fr) 82px 82px;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px solid #ddd0b4}.unit-ident{display:grid;grid-template-columns:42px 1fr;gap:8px;align-items:center;min-width:0}.unit-icon{width:46px;height:46px;border-radius:7px;display:grid;place-items:center;background:linear-gradient(#f7e7bf,#d5bd87);border:2px solid #9a8051;overflow:hidden}.unit-icon img{width:44px;height:44px;object-fit:contain;display:block}.unit-art-fallback{font-size:20px;line-height:1}.unit-name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.unit-meta{font-size:11px;color:var(--muted)}
@@ -47,8 +47,9 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
     <section class="settings panel">
       <label>Policy<select id="policy"><option value="experimental">Experimental / named assumptions</option><option value="strict">Strict / evidence-safe</option></select></label>
       <label>Battlefield<select id="battlefield"></select></label>
-      <label>Max rounds<input id="maxRounds" type="number" min="1" max="100" value="10"></label>
+      <label>Max rounds / safety cap<input id="maxRounds" type="number" min="1" max="1000" value="100"></label>
       <label style="text-transform:none"><span><input id="researchMode" type="checkbox"> Research mode</span></label>
+      <div class="settings-note">預設 100 回合；1000 回合是可手動提高的安全上限，不是固定戰鬥長度。長戰的逐回合資料會按需分頁載入，不會一次傳送全部回合。若提早分出勝負或遇到無法安全判定的機制，模擬會提早停止。Cook 士氣目前尚未完整建模；實戰常見約 15 Cook 的配置不會被當成已驗證的固定公式。</div>
     </section>
 
     <div class="setup-grid">
@@ -89,7 +90,8 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 </main>
 
 <script>
-let metadata=null, units=[], lastResult=null, lastBattlefieldId=null, currentRoundIndex=0;
+let metadata=null, units=[], lastResult=null, lastBattlefieldId=null, currentRoundNumber=0, roundRenderToken=0, simulationGeneration=0, simulationRequestGeneration=0;
+const roundPageCache=new Map(), scenarioByGeneration=new Map();
 const battlefield=document.getElementById('battlefield'),policy=document.getElementById('policy'),maxRounds=document.getElementById('maxRounds'),researchMode=document.getElementById('researchMode'),simulate=document.getElementById('simulate'),error=document.getElementById('error');
 const viewIds={setup:'setupView',round:'roundView',summary:'summaryView'};
 const groupOrder=['heavy_infantry','light_infantry','long_range','artillery','air','support'];
@@ -116,6 +118,30 @@ const esc=value=>String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','
 function showView(name){
   Object.entries(viewIds).forEach(([key,id])=>document.getElementById(id).classList.toggle('hidden',key!==name));
   document.querySelectorAll('.tab').forEach(btn=>btn.classList.toggle('active',btn.dataset.view===name));
+}
+async function postSimulation(body){
+  const response=await fetch('/api/simulate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),data=await response.json();
+  if(!response.ok)throw Error(data.error);
+  return data;
+}
+function roundPageSize(){return metadata?.report_transport?.default_round_page_size||10}
+function pageStartForRound(number){const size=roundPageSize();return Math.floor(number/size)*size}
+async function loadRoundPage(number,generation=simulationGeneration){
+  const start=pageStartForRound(number),cacheKey=generation+':'+start,scenario=scenarioByGeneration.get(generation);
+  if(generation!==simulationGeneration||!scenario)return null;
+  if(roundPageCache.has(cacheKey))return await roundPageCache.get(cacheKey);
+  const request={...scenario,report:{mode:'round_page',round_start:start,round_limit:roundPageSize()}};
+  const pending=postSimulation(request);
+  roundPageCache.set(cacheKey,pending);
+  try{
+    const page=await pending;
+    if(generation!==simulationGeneration)return null;
+    roundPageCache.set(cacheKey,page);
+    return page;
+  }catch(e){
+    if(generation===simulationGeneration)roundPageCache.delete(cacheKey);
+    throw e;
+  }
 }
 document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>{if(!btn.disabled)showView(btn.dataset.view)}));
 
@@ -302,18 +328,20 @@ function battleHalf(state,name){
 }
 function renderPager(){
   const root=document.getElementById('roundPager');root.innerHTML='';
-  const total=lastResult.rounds.length,start=Math.max(0,Math.min(currentRoundIndex-4,total-9)),end=Math.min(total,start+9);
-  const add=(label,index,disabled=false)=>{
-    const b=document.createElement('button');b.type='button';b.textContent=label;b.disabled=disabled;b.classList.toggle('active',index===currentRoundIndex);
-    if(!disabled)b.addEventListener('click',()=>renderRound(index));root.append(b);
+  const maximum=lastResult.rounds_completed,start=Math.max(0,Math.min(currentRoundNumber-4,Math.max(0,maximum-8))),end=Math.min(maximum,start+8);
+  const add=(label,number,disabled=false)=>{
+    const b=document.createElement('button');b.type='button';b.textContent=label;b.disabled=disabled;b.classList.toggle('active',number===currentRoundNumber);
+    if(!disabled)b.addEventListener('click',()=>renderRound(number).catch(e=>error.textContent=e.message));root.append(b);
   };
-  add('‹',Math.max(0,currentRoundIndex-1),currentRoundIndex===0);
-  for(let i=start;i<end;i++){const number=lastResult.rounds[i].round;add(number===0?'部署':String(number),i);}
-  add('›',Math.min(total-1,currentRoundIndex+1),currentRoundIndex===total-1);
+  add('‹',Math.max(0,currentRoundNumber-1),currentRoundNumber===0);
+  for(let number=start;number<=end;number++)add(number===0?'部署':String(number),number);
+  add('›',Math.min(maximum,currentRoundNumber+1),currentRoundNumber===maximum);
 }
 function safetyNoticesHtml(data){
   const blockers=[...new Set(data.events.filter(e=>e.type==='unsupported_mechanic').map(e=>e.details?.rule_id).filter(Boolean))];
   const warnings=[...new Set(data.warnings||[])],assumptions=data.assumptions||[],cards=[];
+  const roundCap=data.events.find(e=>e.type==='safety_limit_reached');
+  if(roundCap)cards.push('<div class="safety-card warning"><b>Safety round cap reached / 已達安全回合上限</b><div>Simulation stopped at '+esc(roundCap.details?.limit)+' rounds without a resolved outcome.</div></div>');
   if(blockers.length)cards.push('<div class="safety-card blocker"><b>Unsupported mechanics / 無法安全判定</b><ul>'+blockers.map(id=>'<li>'+esc(id)+'</li>').join('')+'</ul></div>');
   if(warnings.length)cards.push('<div class="safety-card warning"><b>Evidence warnings</b><ul>'+warnings.map(item=>'<li>'+esc(item)+'</li>').join('')+'</ul></div>');
   if(assumptions.length)cards.push('<div class="safety-card assumption"><b>Experimental assumptions actually used</b><ul>'+assumptions.map(item=>'<li>'+esc(item.id)+': '+esc(item.description)+'</li>').join('')+'</ul></div>');
@@ -324,12 +352,18 @@ function renderSafetyNotices(){
   document.getElementById('roundSafetyNotices').innerHTML=html;
   document.getElementById('summarySafetyNotices').innerHTML=html;
 }
-function renderRound(index){
-  currentRoundIndex=index;const round=lastResult.rounds[index];
+async function renderRound(number){
+  const token=++roundRenderToken,generation=simulationGeneration;
+  number=Math.max(0,Math.min(number,lastResult.rounds_completed));
+  const page=await loadRoundPage(number,generation);
+  if(token!==roundRenderToken||generation!==simulationGeneration||!page)return;
+  const round=page.rounds.find(item=>item.round===number);
+  if(!round)throw Error('Requested round was not returned by the simulator.');
+  currentRoundNumber=number;
   document.getElementById('roundCaption').textContent=round.round===0?'部署狀態':'Round '+round.round+' / '+lastResult.rounds_completed;
   document.getElementById('battleBoard').innerHTML=battleHalf(round.attacker,'attacker')+'<div class="clash" aria-hidden="true"></div>'+battleHalf(round.defender,'defender');
   document.getElementById('roundMetrics').innerHTML='<div class="metric"><span>Status</span><b>'+esc(lastResult.status)+'</b></div><div class="metric"><span>Outcome</span><b>'+esc(lastResult.outcome)+'</b></div>';
-  const events=lastResult.events.filter(e=>e.round===round.round);
+  const events=page.events.filter(e=>e.round===round.round);
   document.getElementById('researchData').innerHTML='<details><summary>Continuation state</summary><pre>'+esc(JSON.stringify({attacker:round.attacker.continuation_state,defender:round.defender.continuation_state},null,2))+'</pre></details><details><summary>Wave / batch state</summary><pre>'+esc(JSON.stringify({attacker:round.attacker.waves,defender:round.defender.waves},null,2))+'</pre></details><details><summary>Engine events</summary><pre>'+esc(JSON.stringify(events,null,2))+'</pre></details>';
   renderSafetyNotices();renderPager();
 }
@@ -346,9 +380,11 @@ function renderSummary(){
   document.getElementById('summaryMetrics').innerHTML='<div class="metric"><span>Rounds</span><b>'+lastResult.rounds_completed+'</b></div><div class="metric"><span>Attacker losses</span><b>'+aLoss+'</b></div><div class="metric"><span>Defender losses</span><b>'+dLoss+'</b></div>';
   document.getElementById('summaryGrid').innerHTML=summarySide('attacker','攻擊方')+summarySide('defender','防守方');
 }
-function enableReports(){
-  document.querySelector('[data-view="round"]').disabled=false;document.querySelector('[data-view="summary"]').disabled=false;
+function setReportsEnabled(enabled){
+  document.querySelector('[data-view="round"]').disabled=!enabled;document.querySelector('[data-view="summary"]').disabled=!enabled;
 }
+function enableReports(){setReportsEnabled(true)}
+function disableReports(){setReportsEnabled(false)}
 async function boot(){
   const response=await fetch('/api/simulate'),data=await response.json();metadata=data;
   units=data.units.filter(u=>u.domain==='land'&&(u.numerically_supported||u.role==='support'));
@@ -362,15 +398,41 @@ battlefield.addEventListener('change',updateSlotButtons);
 researchMode.addEventListener('change',()=>document.body.classList.toggle('research',researchMode.checked));
 simulate.addEventListener('click',async()=>{
   error.textContent='';
+  let requestGeneration=null;
   try{
     const submittedBattlefield=battlefield.value,attacker=army('attacker'),defender=army('defender');
     if(!attacker.units.length||!defender.units.length)throw Error('攻擊方與防守方都至少要設定一種兵力。');
-    const body={profiles:metadata.profiles,policy:policy.value,battlefield:submittedBattlefield,max_rounds:+maxRounds.value,attacker,defender};
-    const response=await fetch('/api/simulate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),data=await response.json();
-    if(!response.ok)throw Error(data.error);
-    lastResult=data;lastBattlefieldId=submittedBattlefield;currentRoundIndex=Math.max(0,data.rounds.length-1);
-    renderRound(currentRoundIndex);renderSummary();enableReports();showView('round');
-  }catch(e){error.textContent=e.message}
+    const scenario={profiles:metadata.profiles,policy:policy.value,battlefield:submittedBattlefield,max_rounds:+maxRounds.value,attacker,defender};
+    requestGeneration=++simulationRequestGeneration;
+    ++roundRenderToken;
+    disableReports();
+    const data=await postSimulation({...scenario,report:{mode:'summary'}});
+    if(requestGeneration!==simulationRequestGeneration)return;
+    simulationGeneration=requestGeneration;
+    roundPageCache.clear();scenarioByGeneration.clear();scenarioByGeneration.set(simulationGeneration,scenario);
+    lastResult=data;lastBattlefieldId=submittedBattlefield;currentRoundNumber=data.rounds_completed;
+    renderSummary();enableReports();await renderRound(currentRoundNumber);
+    if(requestGeneration===simulationRequestGeneration&&simulationGeneration===requestGeneration)showView('round');
+  }catch(e){
+    if(requestGeneration===null){
+      error.textContent=e.message;
+      return;
+    }
+    if(requestGeneration===simulationRequestGeneration){
+      if(lastResult){
+        enableReports();
+        try{
+          await renderRound(currentRoundNumber);
+        }catch(recoveryError){
+          if(requestGeneration===simulationRequestGeneration)error.textContent=e.message+' · Active report refresh failed: '+recoveryError.message;
+          return;
+        }
+      }else{
+        disableReports();
+      }
+      if(requestGeneration===simulationRequestGeneration)error.textContent=e.message;
+    }
+  }
 });
 boot().catch(e=>error.textContent=e.message);
 </script>

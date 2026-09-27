@@ -12,8 +12,17 @@ async def request(method,path,body=b''):
 def payload(policy='experimental'):
  value=json.loads(Path('sample_scenario.json').read_text()); value['policy']=policy; return value
 
-def post(value):
- response=asyncio.run(request('POST','/api/simulate',json.dumps(value).encode())); return response[0]['status'],json.loads(response[1]['body'])
+def post(value,report=None):
+ body={**value}
+ if report is not None: body['report']=report
+ response=asyncio.run(request('POST','/api/simulate',json.dumps(body).encode())); return response[0]['status'],json.loads(response[1]['body'])
+
+def post_page(value,start=0,limit=10):
+ return post(value,{'mode':'round_page','round_start':start,'round_limit':limit})
+
+def post_raw(value):
+ response=asyncio.run(request('POST','/api/simulate',json.dumps(value).encode()))
+ return response[0]['status'],json.loads(response[1]['body'])
 
 def test_barbarian_metadata_contract_is_documented():
  contract=Path('.codex/contracts.md').read_text()
@@ -50,6 +59,7 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert len(data['units'])==26
  assert len(data['barbarian_units'])==9
  assert data['barbarian_profile_metadata']['simulation_status']=='CATALOG_ONLY'
+ assert data['report_transport']=={'default_mode':'summary','default_round_page_size':10,'max_round_page_size':20}
  assert all(u['domain']=='barbarian' and not u['selectable_by_player'] and not u['simulation_ready'] for u in data['barbarian_units'])
  assert not ({u['id'] for u in data['barbarian_units']} & {u['id'] for u in data['units']})
  hoplite=next(u for u in data['units'] if u['id']=='hoplite')
@@ -59,7 +69,7 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert (carabineer['resource_cost_basis_total'],carabineer['general_score'])==(200,'4')
 
 def test_per_unit_workshop_forge_five_mini_api_smoke():
- status,data=post(payload()); assert status==200
+ status,data=post_page(payload()); assert status==200
  calculations=[e['details'] for e in data['events'] if e['type']=='damage_calculation' and e['side']=='attacker']
  assert any(c['workshop_attack_level']==12 for c in calculations)
  assert any(c['workshop_attack_level']==3 for c in calculations)
@@ -88,6 +98,35 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  response=asyncio.run(request('GET','/')); body=response[1]['body'].decode()
  assert response[0]['status']==200 and "fetch('/api/simulate')" in body and 'const units=[' not in body
  assert '兵力設定' in body and '逐回合戰報' in body and '總戰報' in body
+ assert 'id="maxRounds" type="number" min="1" max="1000" value="100"' in body
+ assert '預設 100 回合；1000 回合是可手動提高的安全上限' in body
+ assert 'Cook 士氣目前尚未完整建模' in body
+ assert "e.type==='safety_limit_reached'" in body
+ assert 'Safety round cap reached / 已達安全回合上限' in body
+ assert '長戰的逐回合資料會按需分頁載入' in body
+ assert "report:{mode:'summary'}" in body
+ assert "mode:'round_page'" in body
+ assert 'roundPageCache' in body and 'pageStartForRound' in body
+ assert 'page.events.filter(e=>e.round===round.round)' in body
+ assert 'currentRoundIndex' not in body
+ assert 'simulationGeneration=0' in body
+ assert "cacheKey=generation+':'+start" in body
+ assert 'if(generation!==simulationGeneration)return null' in body
+ assert 'if(token!==roundRenderToken||generation!==simulationGeneration||!page)return' in body
+ assert 'simulationRequestGeneration=0' in body
+ assert 'let requestGeneration=null' in body
+ assert 'requestGeneration=++simulationRequestGeneration' in body
+ assert 'simulationGeneration=requestGeneration' in body
+ assert 'requestGeneration===simulationRequestGeneration&&simulationGeneration===requestGeneration' in body
+ assert 'scenarioByGeneration=new Map()' in body
+ assert 'scenario=scenarioByGeneration.get(generation)' in body
+ assert 'if(generation!==simulationGeneration||!scenario)return null' in body
+ assert 'roundPageCache.clear();scenarioByGeneration.clear();scenarioByGeneration.set(simulationGeneration,scenario)' in body
+ assert 'if(lastResult){' in body and 'await renderRound(currentRoundNumber)' in body
+ assert 'Active report refresh failed' in body
+ assert 'if(requestGeneration===simulationRequestGeneration)error.textContent=e.message' in body
+ assert 'function disableReports(){setReportsEnabled(false)}' in body
+ assert 'lastScenario' not in body
  assert '熔爐神蹟 / Forge' in body and '攻擊' in body and '防禦' in body
  assert '進階：進場批次' in body and 'Research mode' in body and 'slot-tooltip' in body
  assert "Math.floor(field.lines[line].slot_space/unit.size)" in body
@@ -154,7 +193,7 @@ def test_dynamic_fallback_boundary_api_stops_without_stale_round():
  value={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
    'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
    'defender':{'units':[{'unit_id':'hoplite','quantity':1},{'unit_id':'sulphur_carabineer','quantity':7}]}}
- status,data=post(value); assert status==200
+ status,data=post_page(value); assert status==200
  assert data['status']=='inconclusive' and data['rounds_completed']==1
  assert data['final_state']['defender']['continuation_state']=='fallback_required'
  assert not any(e['type']=='attacking_matrix' and e['side']=='defender' and e['round']>1 for e in data['events'])
@@ -224,3 +263,39 @@ def test_local_unit_icon_assets_and_shared_ui_mapping():
  assert '野蠻人兵種參考（9 種，catalog-only）' in body
  assert 'function renderBarbarianCatalog()' in body
  assert body==Path('public/index.html').read_text()
+
+
+def test_http_summary_default_and_bounded_round_pages():
+ value={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
+   'attacker':{'units':[{'unit_id':'hoplite','quantity':5000}]},
+   'defender':{'units':[{'unit_id':'hoplite','quantity':5000}]}}
+ status,summary=post(value)
+ assert status==200 and summary['report']['mode']=='summary'
+ assert summary['rounds']==[]
+ assert summary['report']['rounds_returned']==0
+ assert all(e['type'] in {'unsupported_mechanic','safety_limit_reached','battle_termination','assumption_applied'} for e in summary['events'])
+ status,page=post_page(value,0,10)
+ assert status==200 and page['report']['mode']=='round_page'
+ assert 1 <= len(page['rounds']) <= 10
+ assert page['report']['rounds_returned']==len(page['rounds'])
+ assert all(0 <= row['round'] <= 9 for row in page['rounds'])
+ assert all(0 <= event['round'] <= 9 for event in page['events'])
+ status,error=post(value,{'mode':'round_page','round_start':0,'round_limit':21})
+ assert status==400 and 'report.round_limit must be 1..20' in error['error']
+
+
+def test_http_round_page_rejects_start_past_completed_battle():
+ value={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
+   'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
+   'defender':{'units':[{'unit_id':'hoplite','quantity':1}]}}
+ status,summary=post(value)
+ assert status==200 and summary['rounds_completed']==1
+ status,error=post(value,{'mode':'round_page','round_start':2,'round_limit':10})
+ assert status==400 and 'report.round_start must be <= rounds_completed' in error['error']
+
+
+def test_http_non_object_json_bodies_are_400_not_500():
+ for value in ([],None,42,'scenario'):
+  status,data=post_raw(value)
+  assert status==400
+  assert data=={'error':'request body must be an object'}
