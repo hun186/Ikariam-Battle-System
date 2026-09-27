@@ -16,10 +16,7 @@
     "unit_class_contract": {
       "status": "USER_SUPPLIED_CURRENT_RULE",
       "domain": "land",
-      "values": [
-        "human",
-        "machine"
-      ],
+      "values": ["human", "machine"],
       "doctor_eligibility_note": "Doctor healing applies to Human land units; Machine land units are ineligible. Exact healing allocation/timing relative to RR remains unresolved."
     }
   },
@@ -28,6 +25,7 @@
       "id": "spearman",
       "display_name": "Spearman",
       "domain": "land",
+      "unit_class": "human",
       "role": "combat",
       "support_effect": null,
       "battlefield_class": "first",
@@ -49,7 +47,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -60,7 +58,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -71,7 +69,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -87,7 +85,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -98,7 +96,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -109,7 +107,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -120,7 +118,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -131,7 +129,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -142,7 +140,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -154,13 +152,13 @@
         }
       },
       "semantic_class": "light_infantry",
-      "native_line": "first",
-      "unit_class": "human"
+      "native_line": "first"
     },
     {
       "id": "swordsman",
       "display_name": "Swordsman",
       "domain": "land",
+      "unit_class": "human",
       "role": "combat",
       "support_effect": null,
       "battlefield_class": "flank",
@@ -182,7 +180,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -193,7 +191,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -204,7 +202,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -220,7 +218,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -231,7 +229,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -242,7 +240,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -253,7 +251,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -264,7 +262,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -275,7 +273,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -287,13 +285,13 @@
         }
       },
       "semantic_class": "light_infantry",
-      "native_line": "flank",
-      "unit_class": "human"
+      "native_line": "flank"
     },
     {
       "id": "hoplite",
       "display_name": "Hoplite",
       "domain": "land",
+      "unit_class": "human",
       "role": "combat",
       "support_effect": null,
       "battlefield_class": "first",
@@ -315,7 +313,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -332,7 +330,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -349,7 +347,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -371,7 +369,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -388,7 +386,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -405,7 +403,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -422,7 +420,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -439,7 +437,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -456,7 +454,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -474,13 +472,13 @@
         }
       },
       "semantic_class": "heavy_infantry",
-      "native_line": "first",
-      "unit_class": "human"
+      "native_line": "first"
     },
     {
       "id": "spartan",
       "display_name": "Spartan",
       "domain": "land",
+      "unit_class": "human",
       "role": "combat",
       "support_effect": null,
       "battlefield_class": "first",
@@ -502,7 +500,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -513,7 +511,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -524,7 +522,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -540,7 +538,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -551,7 +549,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -562,7 +560,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -573,7 +571,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -584,7 +582,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -595,7 +593,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -607,13 +605,13 @@
         }
       },
       "semantic_class": "heavy_infantry",
-      "native_line": "first",
-      "unit_class": "human"
+      "native_line": "first"
     },
     {
       "id": "steam_giant",
       "display_name": "Steam Giant",
       "domain": "land",
+      "unit_class": "machine",
       "role": "combat",
       "support_effect": null,
       "battlefield_class": "first",
@@ -635,7 +633,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -646,7 +644,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -657,7 +655,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -673,7 +671,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -684,7 +682,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -695,7 +693,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -706,7 +704,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -717,7 +715,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -728,7 +726,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -740,13 +738,13 @@
         }
       },
       "semantic_class": "heavy_infantry",
-      "native_line": "first",
-      "unit_class": "machine"
+      "native_line": "first"
     },
     {
       "id": "slinger",
       "display_name": "Slinger",
       "domain": "land",
+      "unit_class": "human",
       "role": "combat",
       "support_effect": null,
       "battlefield_class": "second",
@@ -768,7 +766,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -779,7 +777,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -790,7 +788,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -810,7 +808,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -821,7 +819,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -832,7 +830,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -848,7 +846,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -859,7 +857,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -870,7 +868,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -881,7 +879,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -892,7 +890,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -903,7 +901,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -915,13 +913,13 @@
         }
       },
       "semantic_class": "long_range",
-      "native_line": "second",
-      "unit_class": "human"
+      "native_line": "second"
     },
     {
       "id": "archer",
       "display_name": "Archer",
       "domain": "land",
+      "unit_class": "human",
       "role": "combat",
       "support_effect": null,
       "battlefield_class": "second",
@@ -943,7 +941,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -954,7 +952,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -965,7 +963,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -985,7 +983,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -996,7 +994,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1007,7 +1005,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1023,7 +1021,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1034,7 +1032,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1045,7 +1043,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1056,7 +1054,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1067,7 +1065,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1078,7 +1076,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1090,13 +1088,13 @@
         }
       },
       "semantic_class": "long_range",
-      "native_line": "second",
-      "unit_class": "human"
+      "native_line": "second"
     },
     {
       "id": "sulphur_carabineer",
       "display_name": "Sulphur Carabineer",
       "domain": "land",
+      "unit_class": "human",
       "role": "combat",
       "support_effect": null,
       "battlefield_class": "second",
@@ -1118,7 +1116,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1129,7 +1127,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1140,7 +1138,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1160,7 +1158,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1171,7 +1169,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1182,7 +1180,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1198,7 +1196,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1209,7 +1207,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1220,7 +1218,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1231,7 +1229,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1242,7 +1240,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1253,7 +1251,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1265,13 +1263,13 @@
         }
       },
       "semantic_class": "long_range",
-      "native_line": "second",
-      "unit_class": "human"
+      "native_line": "second"
     },
     {
       "id": "battering_ram",
       "display_name": "Battering Ram",
       "domain": "land",
+      "unit_class": "machine",
       "role": "combat",
       "support_effect": null,
       "battlefield_class": "third",
@@ -1293,7 +1291,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1304,7 +1302,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1315,7 +1313,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1335,7 +1333,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1346,7 +1344,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1357,7 +1355,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1373,7 +1371,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1384,7 +1382,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1395,7 +1393,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1406,7 +1404,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1417,7 +1415,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1428,7 +1426,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1440,13 +1438,13 @@
         }
       },
       "semantic_class": "artillery",
-      "native_line": "third",
-      "unit_class": "machine"
+      "native_line": "third"
     },
     {
       "id": "catapult",
       "display_name": "Catapult",
       "domain": "land",
+      "unit_class": "machine",
       "role": "combat",
       "support_effect": null,
       "battlefield_class": "third",
@@ -1468,7 +1466,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1479,7 +1477,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1490,7 +1488,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1510,7 +1508,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1521,7 +1519,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1532,7 +1530,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1548,7 +1546,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1559,7 +1557,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1570,7 +1568,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1581,7 +1579,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1592,7 +1590,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1603,7 +1601,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1615,13 +1613,13 @@
         }
       },
       "semantic_class": "artillery",
-      "native_line": "third",
-      "unit_class": "machine"
+      "native_line": "third"
     },
     {
       "id": "mortar",
       "display_name": "Mortar",
       "domain": "land",
+      "unit_class": "machine",
       "role": "combat",
       "support_effect": null,
       "battlefield_class": "third",
@@ -1643,7 +1641,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1654,7 +1652,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1665,7 +1663,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1685,7 +1683,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1696,7 +1694,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1707,7 +1705,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1723,7 +1721,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1734,7 +1732,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1745,7 +1743,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1756,7 +1754,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1767,7 +1765,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1778,7 +1776,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1790,13 +1788,13 @@
         }
       },
       "semantic_class": "artillery",
-      "native_line": "third",
-      "unit_class": "machine"
+      "native_line": "third"
     },
     {
       "id": "gyrocopter",
       "display_name": "Gyrocopter",
       "domain": "land",
+      "unit_class": "machine",
       "role": "combat",
       "support_effect": null,
       "battlefield_class": "anti-balloon",
@@ -1818,7 +1816,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1829,7 +1827,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1840,7 +1838,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1856,7 +1854,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1867,7 +1865,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1878,7 +1876,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1889,7 +1887,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1900,7 +1898,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1911,7 +1909,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -1923,13 +1921,13 @@
         }
       },
       "semantic_class": "air",
-      "native_line": "anti-balloon",
-      "unit_class": "machine"
+      "native_line": "anti-balloon"
     },
     {
       "id": "bombardier",
       "display_name": "Bombardier",
       "domain": "land",
+      "unit_class": "machine",
       "role": "combat",
       "support_effect": null,
       "battlefield_class": "balloon",
@@ -1951,7 +1949,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1962,7 +1960,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1973,7 +1971,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -1989,7 +1987,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2000,7 +1998,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2011,7 +2009,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2022,7 +2020,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2033,7 +2031,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2044,7 +2042,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2056,13 +2054,13 @@
         }
       },
       "semantic_class": "air",
-      "native_line": "balloon",
-      "unit_class": "machine"
+      "native_line": "balloon"
     },
     {
       "id": "doctor",
       "display_name": "Doctor",
       "domain": "land",
+      "unit_class": "human",
       "role": "support",
       "support_effect": "healing",
       "battlefield_class": "support",
@@ -2084,7 +2082,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -2095,7 +2093,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -2106,7 +2104,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -2122,7 +2120,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2133,7 +2131,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2144,7 +2142,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2155,7 +2153,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2166,7 +2164,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2177,7 +2175,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2196,13 +2194,13 @@
         }
       },
       "semantic_class": "support",
-      "native_line": "support",
-      "unit_class": "human"
+      "native_line": "support"
     },
     {
       "id": "cook",
       "display_name": "Cook",
       "domain": "land",
+      "unit_class": "human",
       "role": "support",
       "support_effect": "morale",
       "battlefield_class": "support",
@@ -2224,7 +2222,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -2235,7 +2233,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -2246,7 +2244,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -2262,7 +2260,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2273,7 +2271,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2284,7 +2282,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2295,7 +2293,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2306,7 +2304,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2317,7 +2315,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2336,8 +2334,7 @@
         }
       },
       "semantic_class": "support",
-      "native_line": "support",
-      "unit_class": "human"
+      "native_line": "support"
     },
     {
       "id": "steam_ram",
@@ -2364,7 +2361,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -2382,7 +2379,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -2393,7 +2390,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -2409,7 +2406,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -2427,7 +2424,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -2445,7 +2442,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -2463,7 +2460,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2474,7 +2471,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2485,7 +2482,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -2531,7 +2528,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -2549,7 +2546,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -2560,7 +2557,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -2576,7 +2573,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -2594,7 +2591,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -2612,7 +2609,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -2630,7 +2627,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2641,7 +2638,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2652,7 +2649,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -2698,7 +2695,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -2716,7 +2713,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -2727,7 +2724,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -2743,7 +2740,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -2761,7 +2758,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -2779,7 +2776,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -2797,7 +2794,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2808,7 +2805,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -2819,7 +2816,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -2865,7 +2862,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -2883,7 +2880,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -2894,7 +2891,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -2921,7 +2918,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -2939,7 +2936,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -2950,7 +2947,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -2966,7 +2963,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -2984,7 +2981,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3002,7 +2999,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3020,7 +3017,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -3031,7 +3028,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3049,7 +3046,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3095,7 +3092,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -3113,7 +3110,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -3124,7 +3121,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -3151,7 +3148,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -3169,7 +3166,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -3180,7 +3177,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -3196,7 +3193,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3214,7 +3211,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3232,7 +3229,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3250,7 +3247,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -3261,7 +3258,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3279,7 +3276,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3325,7 +3322,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -3343,7 +3340,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -3354,7 +3351,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -3381,7 +3378,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -3399,7 +3396,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -3410,7 +3407,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -3426,7 +3423,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3444,7 +3441,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3462,7 +3459,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3480,7 +3477,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -3491,7 +3488,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3509,7 +3506,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3555,7 +3552,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -3573,7 +3570,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -3584,7 +3581,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -3611,7 +3608,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -3629,7 +3626,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -3640,7 +3637,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -3656,7 +3653,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3674,7 +3671,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3692,7 +3689,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3710,7 +3707,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -3721,7 +3718,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3739,7 +3736,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3785,7 +3782,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -3803,7 +3800,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -3814,7 +3811,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -3841,7 +3838,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -3859,7 +3856,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -3870,7 +3867,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -3886,7 +3883,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3904,7 +3901,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3922,7 +3919,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3940,7 +3937,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -3951,7 +3948,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -3969,7 +3966,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -4015,7 +4012,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -4033,7 +4030,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -4044,7 +4041,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -4067,7 +4064,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -4085,7 +4082,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -4103,7 +4100,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -4121,7 +4118,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -4132,7 +4129,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -4150,7 +4147,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -4196,7 +4193,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -4214,7 +4211,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -4225,7 +4222,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -4248,7 +4245,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -4266,7 +4263,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -4284,7 +4281,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -4302,7 +4299,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -4313,7 +4310,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -4331,7 +4328,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -4377,7 +4374,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 },
                 {
@@ -4395,7 +4392,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -4406,7 +4403,7 @@
                 {
                   "source_type": "COMMUNITY_REFERENCE_CURRENT",
                   "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+                  "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
                   "retrieved": "2026-09-24"
                 }
               ]
@@ -4422,7 +4419,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -4440,7 +4437,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -4458,7 +4455,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
@@ -4476,7 +4473,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -4487,7 +4484,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             }
           ]
@@ -4498,7 +4495,7 @@
             {
               "source_type": "COMMUNITY_REFERENCE_CURRENT",
               "verification": "REVIEWER_WEB_VERIFIED",
-              "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
+              "source_title": "Ikariam Battle Simulator Wiki \u2014 Infinite Horizons current units",
               "retrieved": "2026-09-24"
             },
             {
