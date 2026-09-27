@@ -89,7 +89,8 @@ def _snapshot(waves: list[Wave], registry: UnitRegistry, battle_end: BattleEndPr
                                                   (s.units * unit.hit_points), 2) if s.units else 0,
                       "ammo_pool_shots": wave.ammo_pool_shots,
                       "ammo_capacity_shots": wave.ammo_capacity_shots,
-                      "munition_percent": ammo_percent} for s in wave.slots)
+                      "munition_percent": ammo_percent} for s in wave.slots
+                     if s.units or slot_losses.get((s.wave_id, s.slot_id), 0))
     slots.sort(key=lambda s: (s["line"], s["physical_position"], s["unit_id"], s["wave_id"]))
     state = battle_end.continuation_state(sum(main_line.values()), sum(fallback.values()))
     return {"remaining": dict(units), "main_line_holding_remaining": dict(main_line),
