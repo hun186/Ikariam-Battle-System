@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 from ikariam_battle import BarbarianRegistry, ScenarioError, UnitRegistry, simulate
 from ikariam_battle.battlefield import battlefield_metadata
 from ikariam_battle.economy import MilitaryEconomyProfile
-from ikariam_battle.models import Profiles
+from ikariam_battle.models import MAX_ROUNDS, Profiles
 from ikariam_battle.profiles import ForgeProfile, SupportProfile, WorkshopProfile
 
 
@@ -41,7 +41,7 @@ def _report_spec(payload: dict) -> tuple[str, int, int]:
         return mode, 0, DEFAULT_ROUND_PAGE_SIZE
     if mode != "round_page":
         raise ValueError("report.mode must be summary or round_page")
-    start = _report_integer(report.get("round_start", 0), "report.round_start", 0, 1000)
+    start = _report_integer(report.get("round_start", 0), "report.round_start", 0, MAX_ROUNDS)
     limit = _report_integer(
         report.get("round_limit", DEFAULT_ROUND_PAGE_SIZE),
         "report.round_limit",
