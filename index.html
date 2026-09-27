@@ -17,19 +17,20 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 .setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.side-setup{overflow:hidden}.side-title{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;color:#fff}.side-setup.attacker .side-title{background:linear-gradient(90deg,#894138,#ad5b4d)}.side-setup.defender .side-title{background:linear-gradient(90deg,#245d78,#3c7893)}.side-title h2{font:700 22px Georgia,serif;margin:0}.side-toolbar{display:flex;align-items:end;gap:10px}.side-toolbar select{min-width:150px}
 .unit-list{padding:10px}.unit-group{margin-bottom:10px}.unit-group-title{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#655b49;border-bottom:1px solid #cbb892;padding:4px 2px}
 .unit-setup-row{display:grid;grid-template-columns:minmax(150px,1.45fr) minmax(205px,1.6fr) 82px 82px;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px solid #ddd0b4}.unit-ident{display:grid;grid-template-columns:42px 1fr;gap:8px;align-items:center;min-width:0}.unit-icon{width:46px;height:46px;border-radius:7px;display:grid;place-items:center;background:linear-gradient(#f7e7bf,#d5bd87);border:2px solid #9a8051;overflow:hidden}.unit-icon img{width:44px;height:44px;object-fit:contain;display:block}.unit-art-fallback{font-size:20px;line-height:1}.unit-name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.unit-meta{font-size:11px;color:var(--muted)}
+.unit-statbox{display:none;grid-column:3/5;gap:6px;align-items:center;padding:5px 7px;border:1px solid #cbb991;border-radius:4px;background:#fff8e7;font-size:10px}.show-unit-stats .unit-statbox{display:flex}.unit-statbox span{white-space:nowrap}.unit-statbox b{font-size:12px}.unit-statbox .stat-note{color:#746955;font-weight:400}
 .qty-control{display:grid;grid-template-columns:auto 1fr auto;gap:5px;align-items:center}.slot-btn{min-height:38px;border:1px solid #8a744e;background:#ead6aa;border-radius:4px;font-size:12px;font-weight:900;padding:5px 7px}.slot-btn:disabled{opacity:.35;cursor:not-allowed}.qty{min-width:0;width:100%;padding:8px;border:1px solid #96805b;background:#fffdf7;border-radius:4px;text-align:center;font-weight:800}.level-field{display:grid;gap:3px;font-size:10px;font-weight:900;text-transform:uppercase}.level-field input{width:100%;padding:8px;border:1px solid #96805b;background:#fffdf7;border-radius:4px;text-align:center}
 .advanced{grid-column:1/-1;margin:0 0 4px 50px}.advanced summary{font-size:11px;color:#6c604d;cursor:pointer}.advanced label{display:flex;gap:8px;align-items:center;font-size:11px;margin-top:5px}.advanced input{padding:6px;border:1px solid #a58e67;border-radius:4px;background:#fffdf7}.batch-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.batch-btn{border:1px solid #8a744e;background:#f1dfb7;border-radius:4px;padding:6px 9px;font-size:11px;font-weight:800}.batch-remove{border-color:#92564b;background:#f1d0c7;color:#74382f}.extra-batch{background:#fff8e9}
 .setup-note,.report-note{padding:10px 12px;margin:12px 0;border-left:4px solid var(--gold);background:#fff4cc;color:#594e39}.barbarian-reference{margin:12px 0;border:1px solid #b69a65;background:#f7ead0;border-radius:5px}.barbarian-reference>summary{cursor:pointer;padding:10px 12px;font-weight:900;color:#5a4328}.barbarian-note{padding:0 12px 10px;font-size:12px;color:#655b49}.barbarian-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:8px;padding:0 10px 10px}.barbarian-card{display:grid;grid-template-columns:50px 1fr;gap:8px;align-items:center;padding:8px;border:1px solid #cfb987;background:#fff8e8;border-radius:5px}.barbarian-card-icon{width:46px;height:46px;object-fit:contain}.barbarian-card b{display:block}.barbarian-card small{display:block;color:#6d6353;line-height:1.35}.actions{text-align:center;margin:18px}.primary{border:1px solid #6f2d25;border-radius:5px;padding:11px 28px;background:linear-gradient(#b15a4c,#863d34);color:#fff;font-weight:900}.error{color:#8b3028;font-weight:800;margin-top:8px}
 .safety-notices{display:grid;gap:8px;margin:10px 0}.safety-card{padding:9px 11px;border-left:4px solid var(--gold);background:#fff3cb;font-size:12px}.safety-card.blocker{border-color:#a04136;background:#f8ddd4}.safety-card.warning{border-color:#b8862d;background:#fff3cb}.safety-card.assumption{border-color:#506f83;background:#e7f0f3}.safety-card b{display:block;margin-bottom:4px}.safety-card ul{margin:4px 0 0 18px;padding:0}
 .result-shell{padding:14px}.report-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}.report-head h2{font:700 24px Georgia,serif;margin:0}.report-metrics{display:flex;gap:8px;flex-wrap:wrap}.metric{min-width:115px;padding:7px 10px;border:1px solid #c6b48f;background:#fff8e7}.metric span{display:block;font-size:10px;text-transform:uppercase;color:#6d665b}.metric b{font-size:17px}
-.round-bar{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin:10px 0}.round-bar button{min-width:34px;height:34px;border:1px solid #887659;background:#f6e7c5;border-radius:4px;font-weight:800}.round-bar button.active{background:var(--deep);color:#fff}.round-caption{text-align:center;font-weight:900;margin:5px 0 10px}
-.battle-board{border:3px ridge #8d774f;border-radius:7px;background:#c7b284;overflow:hidden}.battle-half{display:grid;grid-template-columns:150px minmax(0,1fr);gap:8px;padding:9px}.battle-half.defender{background:linear-gradient(#bfd5da,#d9d3b9)}.battle-half.attacker{background:linear-gradient(#d7c8aa,#cdb382)}.reserve-box{align-self:stretch;border:1px solid #8d7957;background:#fff5d8cc;padding:8px;border-radius:5px}.reserve-box h3{font:700 15px Georgia,serif;margin:0 0 6px}.reserve-item{display:flex;justify-content:space-between;gap:8px;font-size:12px;padding:3px 0;border-bottom:1px dotted #c4af88}.reserve-empty{color:#817768;font-size:12px}.reserve-note{margin-top:7px;padding:6px;background:#fff1c6;border-left:3px solid #b8862d;font-size:10px;color:#655b49}.formation{display:grid;gap:5px;align-content:center;min-width:0}.formation-row{display:grid;grid-template-columns:minmax(168px,.8fr) minmax(430px,2.2fr) minmax(168px,.8fr);gap:6px;align-items:center;min-width:0}.formation-side{display:grid;gap:2px;align-content:center;justify-items:center;min-width:0}.formation-side .battle-line-name{text-align:center}.formation-side.left .slots{justify-content:flex-end}.formation-side.right .slots{justify-content:flex-start}.formation-center{min-width:0}.ranged-row .formation-center{padding-inline:18px}.battle-line{display:grid;grid-template-columns:62px minmax(0,1fr);align-items:center;gap:4px}.battle-line-name{text-align:right;font-size:9px;font-weight:900;text-transform:uppercase;color:#3d4d55}.slots{display:flex;justify-content:center;gap:3px;min-width:0}.formation .slot{width:58px;min-height:42px}.formation .compact-slots .slot{width:54px;min-height:40px}.slot{position:relative;width:72px;min-height:42px;padding:3px;border:2px solid #806d4a;border-radius:4px;background:linear-gradient(#fffbe9,#d9c397);text-align:center;font-size:10px}.compact-slots .slot{width:66px;min-height:40px}.slot.empty{opacity:.46;background:#94ada788}.slot strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.slot-glyph{height:26px;display:grid;place-items:center}.slot-glyph img{max-width:40px;max-height:28px;object-fit:contain;display:block}.slot-glyph .unit-art-fallback{font-size:16px;line-height:16px}.slot-tooltip{display:none;position:absolute;z-index:20;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);width:220px;text-align:left;padding:9px;color:#fff;background:#182733f2;border:1px solid #c99d45;border-radius:4px;pointer-events:none}.slot:hover .slot-tooltip,.slot:focus .slot-tooltip{display:block}.clash{height:10px;background:linear-gradient(90deg,#925342,#d4ac55,#356e88)}
+.round-bar{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin:10px 0}.round-bar button{min-width:34px;height:34px;border:1px solid #887659;background:#f6e7c5;border-radius:4px;font-weight:800}.round-bar button.active{background:var(--deep);color:#fff}.round-bar .deployment-jump{margin-right:8px;padding:0 10px}.round-jump{display:inline-flex;align-items:center;gap:4px;margin-left:8px}.round-jump input{width:70px;height:34px;border:1px solid #887659;border-radius:4px;background:#fffaf0;padding:0 6px}.round-jump button{padding:0 8px}.round-caption{text-align:center;font-weight:900;margin:5px 0 10px}
+.battle-board{border:3px ridge #8d774f;border-radius:7px;background:#c7b284;overflow:hidden}.battle-half{display:grid;grid-template-columns:150px minmax(0,1fr);gap:8px;padding:9px}.battle-half.defender{background:linear-gradient(#bfd5da,#d9d3b9)}.battle-half.attacker{background:linear-gradient(#d7c8aa,#cdb382)}.reserve-box{align-self:stretch;border:1px solid #8d7957;background:#fff5d8cc;padding:8px;border-radius:5px}.reserve-box h3{font:700 15px Georgia,serif;margin:0 0 6px}.reserve-grid{display:flex;flex-wrap:wrap;gap:6px}.reserve-card{position:relative;width:62px;padding:4px;border:1px solid #8d7957;border-radius:4px;background:linear-gradient(#fffbe9,#dfcca4);text-align:center;font-size:10px}.reserve-card-main{display:flex;align-items:center;justify-content:center;gap:3px}.reserve-card .unit-art{width:38px;height:30px;object-fit:contain}.reserve-card-count{font-weight:900;margin-top:2px}.reserve-card-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.batch-badge{display:inline-block;margin-top:2px;padding:1px 4px;border-radius:8px;background:#6d604b;color:#fff;font-size:8px}.reserve-card:hover .slot-tooltip,.reserve-card:focus .slot-tooltip{display:block}.support-grid{display:flex;flex-wrap:wrap;gap:6px}.support-card{display:flex;align-items:center;gap:5px;min-width:62px;padding:4px 6px;border:1px solid #a28e68;border-radius:4px;background:#fffaf0;font-size:10px}.support-card img{width:30px;height:25px;object-fit:contain}.reserve-empty{color:#817768;font-size:12px}.reserve-note{margin-top:7px;padding:6px;background:#fff1c6;border-left:3px solid #b8862d;font-size:10px;color:#655b49}.formation{display:grid;gap:5px;align-content:center;min-width:0}.formation-row{display:grid;grid-template-columns:minmax(168px,.8fr) minmax(430px,2.2fr) minmax(168px,.8fr);gap:6px;align-items:center;min-width:0}.formation-side{display:grid;gap:2px;align-content:center;justify-items:center;min-width:0}.formation-side .battle-line-name{text-align:center}.formation-side.left .slots{justify-content:flex-end}.formation-side.right .slots{justify-content:flex-start}.formation-center{min-width:0}.ranged-row .formation-center{padding-inline:18px}.battle-line{display:grid;grid-template-columns:62px minmax(0,1fr);align-items:center;gap:4px}.battle-line-name{text-align:right;font-size:9px;font-weight:900;text-transform:uppercase;color:#3d4d55}.slots{display:flex;justify-content:center;gap:3px;min-width:0}.formation .slot{width:58px;min-height:42px}.formation .compact-slots .slot{width:54px;min-height:40px}.slot{position:relative;width:72px;min-height:48px;padding:3px;border:2px solid #806d4a;border-radius:4px;background:linear-gradient(#fffbe9,#d9c397);text-align:center;font-size:10px}.compact-slots .slot{width:66px;min-height:46px}.slot.empty{opacity:.46;background:#94ada788}.slot strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.slot-visual{display:flex;justify-content:center;align-items:center;gap:3px}.slot-glyph{height:28px;display:grid;place-items:center}.slot-glyph img{max-width:40px;max-height:28px;object-fit:contain;display:block}.slot-glyph .unit-art-fallback{font-size:16px;line-height:16px}.hp-rail{position:relative;display:inline-block;width:7px;height:29px;border:1px solid #6d3e32;border-radius:2px;background:#a7463d;overflow:hidden;flex:0 0 auto}.hp-fill{position:absolute;left:0;right:0;bottom:0;background:#5a9a49}.slot-count{font-weight:900;line-height:1.1}.slot-loss{color:#9a3f34;font-weight:900}.slot.dead .slot-glyph img{filter:grayscale(1);opacity:.5}.slot.dead .slot-glyph .unit-art-fallback{filter:grayscale(1);opacity:.5}.slot-tooltip{display:none;position:absolute;z-index:20;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);width:220px;text-align:left;padding:9px;color:#fff;background:#182733f2;border:1px solid #c99d45;border-radius:4px;pointer-events:none}.slot:hover .slot-tooltip,.slot:focus .slot-tooltip{display:block}.clash{height:10px;background:linear-gradient(90deg,#925342,#d4ac55,#356e88)}
 .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.summary-side{padding:12px}.summary-side h3{font:700 20px Georgia,serif;margin:0 0 8px}.summary-table{width:100%;border-collapse:collapse}.summary-table th,.summary-table td{padding:7px;border-bottom:1px solid #d2c19e;text-align:right}.summary-table th:first-child,.summary-table td:first-child{text-align:left}.loss{color:#9a3f34;font-weight:900}.side-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}.side-stat{padding:8px;background:#f8efd8;border:1px solid #d2c19e}.side-stat span{display:block;font-size:10px;text-transform:uppercase;color:#706654}.side-stat b{font-size:17px}.economy-note{margin-top:12px;padding:9px;background:#f8efd8;border-left:4px solid #9a8356;font-size:12px;color:#5d5548}
 .mechanics-reference{margin-top:14px}.mechanics-reference summary{cursor:pointer;font-weight:900;font-size:16px}.mechanics-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:10px}.mechanics-card{padding:10px;border:1px solid #c7b386;background:#fffaf0;border-radius:5px}.mechanics-card b{display:block;margin-bottom:4px}.mechanics-card p{margin:3px 0;font-size:12px;line-height:1.48}.mechanics-known{border-left:4px solid #5d805a}.mechanics-partial{border-left:4px solid #b58a3c}.mechanics-unknown{border-left:4px solid #9a5b4a}
 .research-drawer{background:#172533;color:#dce7ed;padding:10px;margin-top:12px;border-radius:4px;font:12px ui-monospace,monospace}.research-only{display:none}.research .research-only{display:block}
 @media(max-width:1100px){.battle-half{grid-template-columns:1fr}.battle-half.defender .reserve-box{order:2}.battle-board{overflow-x:auto}.formation{min-width:880px}}
 @media(max-width:900px){.setup-grid,.summary-grid,.mechanics-grid{grid-template-columns:1fr}.unit-setup-row{grid-template-columns:minmax(150px,1.2fr) minmax(190px,1.5fr) 76px 76px}}
-@media(max-width:600px){main{padding:0 8px 30px}.unit-setup-row{grid-template-columns:1fr 1fr}.unit-ident,.qty-control{grid-column:1/-1}.advanced{margin-left:0}.slot{width:64px}.settings{align-items:stretch}.side-title{align-items:flex-start;flex-direction:column}.side-toolbar{width:100%}}
+@media(max-width:600px){main{padding:0 8px 30px}.unit-setup-row{grid-template-columns:1fr 1fr}.unit-ident,.qty-control,.unit-statbox{grid-column:1/-1}.advanced{margin-left:0}.slot{width:64px}.settings{align-items:stretch}.side-title{align-items:flex-start;flex-direction:column}.side-toolbar{width:100%}}
 </style>
 </head>
 <body>
@@ -50,6 +51,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
       <label>Battlefield<select id="battlefield"></select></label>
       <label>Max rounds / safety cap<input id="maxRounds" type="number" min="1" max="1000" value="100"></label>
       <label style="text-transform:none"><span><input id="researchMode" type="checkbox"> Research mode</span></label>
+      <label style="text-transform:none"><span><input id="showUnitStats" type="checkbox"> 顯示兵種數值</span></label>
       <div class="settings-note">預設 100 回合；1000 回合是可手動提高的安全上限，不是固定戰鬥長度。長戰的逐回合資料會按需分頁載入，不會一次傳送全部回合。若提早分出勝負或遇到無法安全判定的機制，模擬會提早停止。Cook 士氣目前尚未完整建模；實戰常見約 15 Cook 的配置不會被當成已驗證的固定公式。</div>
     </section>
 
@@ -105,7 +107,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 <script>
 let metadata=null, units=[], lastResult=null, lastBattlefieldId=null, currentRoundNumber=0, roundRenderToken=0, simulationGeneration=0, simulationRequestGeneration=0;
 const roundPageCache=new Map(), scenarioByGeneration=new Map();
-const battlefield=document.getElementById('battlefield'),policy=document.getElementById('policy'),maxRounds=document.getElementById('maxRounds'),researchMode=document.getElementById('researchMode'),simulate=document.getElementById('simulate'),error=document.getElementById('error');
+const battlefield=document.getElementById('battlefield'),policy=document.getElementById('policy'),maxRounds=document.getElementById('maxRounds'),researchMode=document.getElementById('researchMode'),showUnitStats=document.getElementById('showUnitStats'),simulate=document.getElementById('simulate'),error=document.getElementById('error');
 const viewIds={setup:'setupView',round:'roundView',summary:'summaryView'};
 const groupOrder=['heavy_infantry','light_infantry','long_range','artillery','air','support'];
 const groupLabels={heavy_infantry:'Heavy Infantry',light_infantry:'Light Infantry',long_range:'Long Range',artillery:'Artillery',air:'Air / Anti-air',support:'Support'};
@@ -172,6 +174,27 @@ function oneSlotStep(unit){
   return Math.floor(field.lines[line].slot_space/unit.size);
 }
 function lineLabel(line){return ({first:'Front',second:'Long range',third:'Artillery',flank:'Flank',balloon:'Air bomber','anti-balloon':'Air defense',support:'Support'})[line]||line}
+function statNumber(value){
+  if(value==null||Number.isNaN(Number(value)))return '—';
+  const n=Number(value);return Number.isInteger(n)?String(n):n.toFixed(2).replace(/\.00$/,'').replace(/(\.\d)0$/,'$1');
+}
+function effectiveSetupStats(row){
+  const unit=unitById(row.dataset.unitId),side=row.dataset.side;
+  const attackLevel=Math.max(0,+row.querySelector('.attack').value||0),armorLevel=Math.max(0,+row.querySelector('.armor').value||0);
+  const forgeLevel=+(document.getElementById(side==='attacker'?'aForge':'dForge').value||0);
+  const forge=metadata.forge_levels?.[String(forgeLevel)]||{damage_multiplier:'1',armor_bonus:0};
+  const increment=Number(metadata.workshop_increments?.[unit.domain]||0);
+  const primary=(unit.weapons||[]).find(w=>w.trigger==='primary')||(unit.weapons||[])[0];
+  const attack=primary?.damage==null?null:(Number(primary.damage)+attackLevel*increment)*Number(forge.damage_multiplier);
+  const defense=unit.base_armor==null?null:Number(unit.base_armor)+armorLevel*increment+Number(forge.armor_bonus||0);
+  return {hp:unit.hit_points,attack,defense,forgeLevel};
+}
+function updateUnitStatRow(row){
+  const box=row.querySelector('.unit-statbox');if(!box)return;
+  const stats=effectiveSetupStats(row);
+  box.innerHTML='<span>HP <b>'+statNumber(stats.hp)+'</b></span><span>ATK <b>'+statNumber(stats.attack)+'</b></span><span>DEF <b>'+statNumber(stats.defense)+'</b></span><span class="stat-note">含 Workshop + Forge Lv'+stats.forgeLevel+'</span>';
+}
+function updateAllUnitStats(){document.querySelectorAll('.unit-setup-row').forEach(updateUnitStatRow)}
 
 function unitIconHtml(unit,cssClass=''){
   const glyph=glyphs[unit?.semantic_class]||'◆',file=unitIconFiles[unit?.id];
@@ -211,11 +234,15 @@ function setupRow(unit,side,options={}){
     '<div class="qty-control"><button type="button" class="slot-btn slot-minus">−格</button><input class="qty" type="number" min="0" value="'+quantity+'" aria-label="'+esc(unit.display_name)+' quantity"><button type="button" class="slot-btn slot-plus">＋格</button></div>'+
     '<label class="level-field">攻擊<input class="attack" type="number" min="0" value="'+(options.attack??0)+'"></label>'+
     '<label class="level-field">防禦<input class="armor" type="number" min="0" value="'+(options.armor??0)+'"></label>'+
+    '<div class="unit-statbox" aria-live="polite"></div>'+
     '<details class="advanced"><summary>進階：進場批次</summary><label>Batch <input class="wave" value="'+side+'-'+unit.id+'-'+batchIndex+'"></label><div class="batch-actions"><button type="button" class="batch-btn batch-add">＋ 新增進場批次</button>'+(extra?'<button type="button" class="batch-btn batch-remove">移除此批次</button>':'')+'</div></details>';
   row.querySelector('.slot-plus').addEventListener('click',()=>adjustBySlot(row,1));
   row.querySelector('.slot-minus').addEventListener('click',()=>adjustBySlot(row,-1));
+  row.querySelector('.attack').addEventListener('input',()=>updateUnitStatRow(row));
+  row.querySelector('.armor').addEventListener('input',()=>updateUnitStatRow(row));
   row.querySelector('.batch-add').addEventListener('click',()=>addBatchRow(row));
   const remove=row.querySelector('.batch-remove');if(remove)remove.addEventListener('click',()=>row.remove());
+  updateUnitStatRow(row);
   return row;
 }
 function addBatchRow(sourceRow){
@@ -265,21 +292,28 @@ function army(side){
   return {forge_level:+document.getElementById(side==='attacker'?'aForge':'dForge').value,units:items};
 }
 
+function hpBar(percent,label='HP'){
+  const raw=percent==null?0:Number(percent),pct=Math.max(0,Math.min(100,Number.isFinite(raw)?raw:0));
+  return '<span class="hp-rail" role="img" aria-label="'+esc(label)+' '+pct+'%"><span class="hp-fill" style="height:'+pct+'%"></span></span>';
+}
 function tooltip(slot){
   return '<span class="slot-tooltip"><b>'+esc(slot.display_name)+'</b><br>Attack upgrade: '+slot.attack_upgrade+
-    '<br>Armor upgrade: '+slot.armor_upgrade+'<br>Hit points: '+slot.hit_points_percent+'%'+
+    '<br>Armor upgrade: '+slot.armor_upgrade+'<br>Hit points: '+Number(slot.hit_points_percent??0).toFixed(2).replace(/\.00$/,'')+'%'+
+    '<br>Casualties this round: '+Number(slot.casualties||0)+
     (slot.munition_percent==null?'':'<br>Munition: '+slot.munition_percent+'%')+
     '<span class="research-only"><br>Batch: '+esc(slot.entry_batch_id)+'<br>Native/current: '+esc(slot.native_line)+' / '+esc(slot.line)+
     '<br>Ammo pool: '+(slot.ammo_pool_shots??'∞')+' / '+(slot.ammo_capacity_shots??'∞')+'</span></span>';
 }
 function lineSlots(state,line,geometry,positions=null,compact=false){
-  const found=state.slots.filter(s=>s.line===line&&s.units>0).sort((a,b)=>a.physical_position-b.physical_position);
+  const found=state.slots.filter(s=>s.line===line).sort((a,b)=>a.physical_position-b.physical_position);
   const order=geometry[line]?.physical_order||[],physicalPositions=positions||order.map((_,index)=>index+1);
   return '<div class="slots'+(compact?' compact-slots':'')+'">'+physicalPositions.map(position=>{
     const slot=found.find(v=>v.physical_position===position);
     const unit=unitById(slot?.unit_id);
-    return slot?'<div class="slot" tabindex="0"><div class="slot-glyph" aria-hidden="true">'+unitIconHtml(unit)+'</div><strong>'+esc(slot.display_name)+'</strong>× '+slot.units+tooltip(slot)+'</div>':
-      '<div class="slot empty" aria-label="Empty '+esc(line)+' slot">◇</div>';
+    if(!slot)return '<div class="slot empty" aria-label="Empty '+esc(line)+' slot">◇</div>';
+    const dead=Number(slot.units||0)===0,hp=dead?0:Number(slot.hit_points_percent??0),loss=Number(slot.casualties||0);
+    return '<div class="slot'+(dead?' dead':'')+'" tabindex="0"><div class="slot-visual"><div class="slot-glyph" aria-hidden="true">'+unitIconHtml(unit)+'</div>'+hpBar(hp,'HP')+'</div>'+
+      '<strong>'+esc(slot.display_name)+'</strong><div class="slot-count">'+Number(slot.units||0)+' <span class="slot-loss">(-'+loss+')</span></div>'+tooltip(slot)+'</div>';
   }).join('')+'</div>';
 }
 function lineRow(state,line,geometry){
@@ -321,18 +355,38 @@ function formationGrid(state,name,geometry){
   const rows=name==='attacker'?[rear,ranged,front]:[front,ranged,rear];
   return '<div class="formation">'+rows.join('')+'</div>';
 }
-function unitCountRows(entries){
-  return entries.map(([id,n])=>{const unit=unitById(id);return '<div class="reserve-item"><span>'+esc(unit?.display_name||id)+'</span><b>'+n+'</b></div>';}).join('');
+function reserveGroups(state){
+  const groups=new Map();
+  for(const wave of state.waves||[]){
+    if(!wave.reserve)continue;
+    const unit=unitById(wave.unit_id),hp=Number(unit?.hit_points||0),maxHp=Number(wave.reserve)*hp;
+    const group=groups.get(wave.unit_id)||{unit_id:wave.unit_id,count:0,max_hp:0,remaining_hp:0,batches:[]};
+    group.count+=Number(wave.reserve);group.max_hp+=maxHp;group.remaining_hp+=Math.max(0,maxHp-Number(wave.reserve_damage||0));
+    group.batches.push({id:wave.entry_batch_id,count:Number(wave.reserve),damage:Number(wave.reserve_damage||0),hp_percent:wave.reserve_hit_points_percent,munition_percent:wave.munition_percent});
+    groups.set(wave.unit_id,group);
+  }
+  return [...groups.values()].map(group=>({...group,hp_percent:group.max_hp?Math.max(0,Math.min(100,100*group.remaining_hp/group.max_hp)):0}));
+}
+function reserveCard(group){
+  const unit=unitById(group.unit_id),batches=group.batches;
+  const detail=batches.map(batch=>'<br>Batch '+esc(batch.id)+': '+batch.count+' · HP '+statNumber(batch.hp_percent)+'%'+(batch.munition_percent==null?'':' · Ammo '+statNumber(batch.munition_percent)+'%')).join('');
+  return '<div class="reserve-card" tabindex="0"><div class="reserve-card-main"><div aria-hidden="true">'+unitIconHtml(unit,'unit-art')+'</div>'+hpBar(group.hp_percent,'Reserve HP')+'</div>'+
+    '<div class="reserve-card-count">'+group.count+'</div><div class="reserve-card-name">'+esc(unit?.display_name||group.unit_id)+'</div>'+
+    (batches.length>1?'<span class="batch-badge">'+batches.length+'批</span>':'')+
+    '<span class="slot-tooltip"><b>'+esc(unit?.display_name||group.unit_id)+' Reserve</b><br>Total: '+group.count+'<br>Reserve HP: '+statNumber(group.hp_percent)+'%'+
+    '<br>Persistent reserve damage: '+group.batches.reduce((sum,b)=>sum+b.damage,0)+detail+'</span></div>';
+}
+function supportCards(entries){
+  return entries.map(([id,n])=>{const unit=unitById(id);return '<div class="support-card"><span aria-hidden="true">'+unitIconHtml(unit)+'</span><span>'+esc(unit?.display_name||id)+'<br><b>'+n+'</b></span></div>';}).join('');
 }
 function reserveBox(state,name,geometry){
-  const reserve=Object.entries(state.reserve||{}).filter(([,n])=>n);
-  const support=Object.entries(state.deployed_support||{}).filter(([,n])=>n);
-  const flankReserve=reserve.some(([id])=>unitById(id)?.native_line==='flank');
+  const reserve=reserveGroups(state),support=Object.entries(state.deployed_support||{}).filter(([,n])=>n);
+  const flankReserve=reserve.some(group=>unitById(group.unit_id)?.native_line==='flank');
   const note=flankReserve&&!geometry.flank?'<div class="reserve-note">此戰場沒有 Flank slot；未能補入前線的側翼兵會留在 Reserve。</div>':'';
   return '<aside class="reserve-box"><h3>'+name+' Reserve</h3>'+
-    (reserve.length?unitCountRows(reserve):'<div class="reserve-empty">No reserve</div>')+note+
+    (reserve.length?'<div class="reserve-grid">'+reserve.map(reserveCard).join('')+'</div>':'<div class="reserve-empty">No reserve</div>')+note+
     '<h3 style="margin-top:12px">Support</h3>'+
-    (support.length?unitCountRows(support):'<div class="reserve-empty">No deployed support</div>')+
+    (support.length?'<div class="support-grid">'+supportCards(support)+'</div>':'<div class="reserve-empty">No deployed support</div>')+
     '</aside>';
 }
 function battleHalf(state,name){
@@ -342,14 +396,28 @@ function battleHalf(state,name){
 }
 function renderPager(){
   const root=document.getElementById('roundPager');root.innerHTML='';
-  const maximum=lastResult.rounds_completed,start=Math.max(0,Math.min(currentRoundNumber-4,Math.max(0,maximum-8))),end=Math.min(maximum,start+8);
-  const add=(label,number,disabled=false)=>{
-    const b=document.createElement('button');b.type='button';b.textContent=label;b.disabled=disabled;b.classList.toggle('active',number===currentRoundNumber);
-    if(!disabled)b.addEventListener('click',()=>renderRound(number).catch(e=>error.textContent=e.message));root.append(b);
+  const maximum=lastResult.rounds_completed;
+  const add=(label,number,disabled=false,cssClass='')=>{
+    const b=document.createElement('button');b.type='button';b.textContent=label;b.disabled=disabled;if(cssClass)b.classList.add(cssClass);
+    b.classList.toggle('active',number===currentRoundNumber);
+    if(!disabled)b.addEventListener('click',()=>renderRound(number).catch(e=>error.textContent=e.message));root.append(b);return b;
   };
-  add('‹',Math.max(0,currentRoundNumber-1),currentRoundNumber===0);
-  for(let number=start;number<=end;number++)add(number===0?'部署':String(number),number);
-  add('›',Math.min(maximum,currentRoundNumber+1),currentRoundNumber===maximum);
+  add('初始部署',0,false,'deployment-jump');
+  if(maximum<1)return;
+  const anchor=currentRoundNumber===0?1:currentRoundNumber;
+  const start=Math.max(1,Math.min(anchor-4,Math.max(1,maximum-8))),end=Math.min(maximum,start+8);
+  add('«',1,currentRoundNumber===1);
+  add('‹',Math.max(1,currentRoundNumber-1),currentRoundNumber<=1);
+  for(let number=start;number<=end;number++)add(String(number),number);
+  add('›',Math.min(maximum,Math.max(1,currentRoundNumber)+1),currentRoundNumber===maximum);
+  add('»',maximum,currentRoundNumber===maximum);
+  const jump=document.createElement('span');jump.className='round-jump';
+  const input=document.createElement('input');input.type='number';input.min='1';input.max=String(maximum);input.placeholder='回合';input.setAttribute('aria-label','跳到指定回合');
+  if(currentRoundNumber>0)input.value=String(currentRoundNumber);
+  const go=document.createElement('button');go.type='button';go.textContent='跳轉';
+  const jumpNow=()=>{const value=Math.max(1,Math.min(maximum,Number(input.value)||1));renderRound(value).catch(e=>error.textContent=e.message)};
+  go.addEventListener('click',jumpNow);input.addEventListener('keydown',event=>{if(event.key==='Enter')jumpNow()});
+  jump.append(input,go);root.append(jump);
 }
 function safetyNoticesHtml(data){
   const blockers=[...new Set(data.events.filter(e=>e.type==='unsupported_mechanic').map(e=>e.details?.rule_id).filter(Boolean))];
@@ -447,10 +515,13 @@ async function boot(){
   [...battlefield.options].forEach(option=>option.disabled=!data.battlefields.find(f=>f.id===option.value).supported);
   const maxField=data.battlefields.find(f=>f.id==='land-max'&&f.supported);
   if(maxField)battlefield.value=maxField.id;
-  populateForge('aForge');populateForge('dForge');renderArmy('attacker');renderArmy('defender');renderBarbarianCatalog();updateSlotButtons();
+  populateForge('aForge');populateForge('dForge');renderArmy('attacker');renderArmy('defender');renderBarbarianCatalog();updateSlotButtons();updateAllUnitStats();
 }
-battlefield.addEventListener('change',updateSlotButtons);
+battlefield.addEventListener('change',()=>{updateSlotButtons();updateAllUnitStats()});
 researchMode.addEventListener('change',()=>document.body.classList.toggle('research',researchMode.checked));
+showUnitStats.addEventListener('change',()=>{document.body.classList.toggle('show-unit-stats',showUnitStats.checked);if(showUnitStats.checked)updateAllUnitStats()});
+document.getElementById('aForge').addEventListener('change',updateAllUnitStats);
+document.getElementById('dForge').addEventListener('change',updateAllUnitStats);
 simulate.addEventListener('click',async()=>{
   error.textContent='';
   let requestGeneration=null;
