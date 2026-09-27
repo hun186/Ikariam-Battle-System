@@ -1,0 +1,94 @@
+name: Validate morale status reporting
+
+on:
+  push:
+    branches:
+      - feat/morale-status-reporting
+    paths:
+      - .github/workflows/validate-morale-status.yml
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/morale-status-reporting
+          fetch-depth: 0
+      - name: Validate morale observability
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -q pytest
+          python -m compileall -q ikariam_battle asgi.py web_simulator.py simulator.py
+          python -m pytest -q tests/unit/test_engine.py tests/integration/test_api.py
+          python -m pytest -q
+          cmp index.html public/index.html
+          python - <<'PY'
+          from pathlib import Path
+          from ikariam_battle import simulate
+          from web_simulator import run_battle
+
+          base={
+              'battlefield':'land-mini',
+              'max_rounds':2,
+              'attacker':{'units':[{'unit_id':'hoplite','quantity':90},{'unit_id':'cook','quantity':15}]},
+              'defender':{'units':[{'unit_id':'hoplite','quantity':90}]},
+          }
+
+          experimental=simulate({**base,'policy':'experimental'})
+          morale=experimental['morale_status']
+          assert morale['modeled'] is False
+          assert morale['strict_rule_id']=='UNKNOWN-MORALE-SUPPORT'
+          assert morale['experimental_assumption_id']=='EXP-MORALE-NONE-001'
+          assert morale['sides']['attacker']=={
+              'cook_count':15,
+              'status':'ignored_by_named_assumption',
+              'effect_applied':False,
+          }
+          assert morale['sides']['defender']=={
+              'cook_count':0,
+              'status':'not_present',
+              'effect_applied':False,
+          }
+          assert 'EXP-MORALE-NONE-001' in {a['id'] for a in experimental['assumptions']}
+
+          strict=simulate({**base,'policy':'strict'})
+          assert strict['status']=='inconclusive'
+          assert strict['rounds_completed']==0
+          assert strict['morale_status']['sides']['attacker']['status']=='unsupported_boundary'
+          assert strict['morale_status']['sides']['attacker']['effect_applied'] is False
+          assert 'UNKNOWN-MORALE-SUPPORT' in {
+              e['details'].get('rule_id') for e in strict['events']
+              if e['type']=='unsupported_mechanic'
+          }
+
+          summary=run_battle({**base,'policy':'experimental','report':{'mode':'summary'}})
+          assert summary['rounds']==[]
+          assert summary['morale_status']==experimental['morale_status']
+
+          html=Path('index.html').read_text()
+          for needle in (
+              '士氣支援（尚未建模）',
+              'Morale / 士氣尚未建模',
+              'Cook / 士氣',
+              '實戰常見約 15 Cook 僅作配置參考，不是已驗證固定公式',
+          ):
+              assert needle in html, needle
+          script=html.split('<script>',1)[1].split('</script>',1)[0]
+          Path('/tmp/ikariam-ui.js').write_text(script)
+          PY
+          node --check /tmp/ikariam-ui.js
+      - name: Remove one-time validation workflow
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/validate-morale-status.yml
+          git commit -m "chore: remove one-time morale validation"
+          git push origin HEAD:feat/morale-status-reporting
