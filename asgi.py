@@ -6,7 +6,7 @@ import mimetypes
 from pathlib import Path
 from urllib.parse import unquote
 
-from web_simulator import run_battle
+from web_simulator import DEFAULT_ROUND_PAGE_SIZE, MAX_ROUND_PAGE_SIZE, run_battle
 from ikariam_battle import ScenarioError
 
 ROOT = Path(__file__).resolve().parent
@@ -108,7 +108,9 @@ async def _api_simulate(scope, receive, send) -> None:
             "barbarian_profile_metadata":barbarians.metadata,"barbarian_units":barbarians.public(),
             "forge_levels":{str(k):{"damage_multiplier":str(v.damage_multiplier),"armor_bonus":v.armor_bonus}
                             for k,v in ForgeProfile.load().levels.items()},
-            "support_capacity":SupportProfile.load().derived_capacity})
+            "support_capacity":SupportProfile.load().derived_capacity,
+            "report_transport":{"default_mode":"summary","default_round_page_size":DEFAULT_ROUND_PAGE_SIZE,
+                                "max_round_page_size":MAX_ROUND_PAGE_SIZE}})
         return
 
     if method != "POST":
