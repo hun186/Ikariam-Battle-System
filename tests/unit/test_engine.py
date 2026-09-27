@@ -397,3 +397,47 @@ def test_round_cap_emits_explicit_safety_event():
  assert result['rounds_completed']==2
  assert len(cap)==1 and cap[0]['round']==2
  assert cap[0]['details']=={'reason':'max_rounds_reached','limit':2}
+
+
+def test_round_combat_statistics_track_dealt_taken_and_cumulative_damage():
+ result=simulate(scenario())
+ assert result['rounds'][0]['combat_statistics']['attacker']=={
+  'damage_dealt':0,'damage_taken':0,'cumulative_damage_dealt':0,'cumulative_damage_taken':0,
+  'healing':0,'cumulative_healing':0,
+ }
+ assert result['rounds'][0]['combat_statistics']['defender']=={
+  'damage_dealt':0,'damage_taken':0,'cumulative_damage_dealt':0,'cumulative_damage_taken':0,
+  'healing':0,'cumulative_healing':0,
+ }
+ prev={'attacker':(0,0),'defender':(0,0)}
+ for row in result['rounds']:
+  stats=row['combat_statistics']
+  assert stats['attacker']['damage_dealt']==stats['defender']['damage_taken']
+  assert stats['defender']['damage_dealt']==stats['attacker']['damage_taken']
+  for side in ('attacker','defender'):
+   assert stats[side]['cumulative_damage_dealt']>=prev[side][0]
+   assert stats[side]['cumulative_damage_taken']>=prev[side][1]
+   prev[side]=(stats[side]['cumulative_damage_dealt'],stats[side]['cumulative_damage_taken'])
+ final=result['rounds'][-1]['combat_statistics']
+ for side in ('attacker','defender'):
+  assert final[side]['cumulative_damage_dealt']==result['combat_statistics'][side]['gross_damage_dealt']
+  assert final[side]['cumulative_damage_taken']==result['combat_statistics'][side]['gross_damage_taken']
+  assert result['combat_statistics'][side]['gross_healing']==0
+
+
+def test_doctor_healing_is_explicitly_unknown_not_zero():
+ s=scenario(); s['attacker']['units'].append({'unit_id':'doctor','quantity':2}); result=simulate(s)
+ healing=result['healing_status']
+ assert healing['modeled'] is False
+ assert healing['derived_capacity_per_doctor']==4000
+ assert healing['capacity_is_allocation_formula'] is False
+ assert healing['sides']['attacker']=={
+  'doctor_count':2,'status':'ignored_by_named_assumption','effect_applied':False,'healing_amount':None
+ }
+ assert result['combat_statistics']['attacker']['gross_healing'] is None
+ assert all(row['combat_statistics']['attacker']['healing'] is None for row in result['rounds'])
+ assert all(row['combat_statistics']['attacker']['cumulative_healing'] is None for row in result['rounds'])
+
+ strict=scenario('strict'); strict['attacker']['units'].append({'unit_id':'doctor','quantity':2}); blocked=simulate(strict)
+ assert blocked['healing_status']['sides']['attacker']['status']=='unsupported_boundary'
+ assert blocked['healing_status']['sides']['attacker']['healing_amount'] is None

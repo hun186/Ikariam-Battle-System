@@ -13,9 +13,10 @@
 - Entry-batch ammo ownership and additive UI-derived HP/munition state are contracted; user-observed ranged fallback and initial-garrison retreat/rejoin remain calibration-only unsupported mechanics.
 
 ## Open Handoffs
-Naval geometry, automatic Town Hall/garrison/wall selection and transitions, accuracy, target transfer, mixed rows, healing/morale, kill/rounding/SR/IR chronology and secondary triggers require future work.
+Naval geometry, automatic Town Hall/garrison/wall selection and transitions, accuracy, target transfer, mixed rows, the actual healing/morale algorithms, kill/rounding/SR/IR chronology and secondary triggers require future work.
 
 ## Recent Outcomes
+- Round combat statistics now expose per-side damage dealt/taken and cumulative values. Doctor presence is evidence-safe: healing amounts are null while allocation is unresolved, with `healing_status` exposing the 4000 derived capacity reference without treating it as a subtraction formula.
 - Morale handling is explicit but not fabricated: results expose per-side `morale_status` and Cook counts; strict stops at `UNKNOWN-MORALE-SUPPORT`, experimental continues under `EXP-MORALE-NONE-001` without applying Cook effects, and the common ~15-Cook setup remains explanatory rather than a verified formula.
 - HTTP long-battle transport is summary-first and stateless: `simulate()` stays complete in memory, while API responses return compact summary or bounded round pages (browser cache 10 rounds, API maximum 20), preventing hundreds of rounds from being buffered into one response.
 - Round execution now uses a 100-round default and a 1000-round maximum safety cap. Reaching the cap is explicit via `safety_limit_reached`; normal battle termination and unsupported boundaries still stop earlier. The browser also states that Cook morale remains unresolved and does not treat the common ~15-Cook player setup as a verified formula.

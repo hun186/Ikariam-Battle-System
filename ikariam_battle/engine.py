@@ -12,7 +12,7 @@ from .economy import MilitaryEconomyProfile
 from .events import Event
 from .formation import FormationRules, eligible_runtime_lines
 from .models import Policy, Scenario, ScenarioError, Wave
-from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, TargetingProfile, WorkshopProfile
+from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 from .redistribution import SlotShare, reserve_redistribution
 from .units import UnitRegistry
 from .weapon_selection import UnsupportedWeaponSelection, select_active_weapon
@@ -466,6 +466,53 @@ def _morale_status(scenario: Scenario, result: dict[str, Any]) -> dict[str, Any]
     }
 
 
+def _healing_status(
+    scenario: Scenario,
+    result: dict[str, Any],
+    support: SupportProfile,
+) -> dict[str, Any]:
+    assumption_id = "EXP-HEAL-NONE-001"
+    strict_rule_id = "UNKNOWN-HEALING-ALLOCATION"
+    applied_ids = {row.get("id") for row in result.get("assumptions", [])}
+    unsupported_ids = {
+        event.get("details", {}).get("rule_id")
+        for event in result.get("events", [])
+        if event.get("type") == "unsupported_mechanic"
+    }
+    healing_assumption_applied = assumption_id in applied_ids
+    healing_boundary_reported = strict_rule_id in unsupported_ids
+
+    sides: dict[str, dict[str, Any]] = {}
+    for side, army in (("attacker", scenario.attacker), ("defender", scenario.defender)):
+        doctor_count = sum(unit.quantity for unit in army.units if unit.unit_id == "doctor")
+        if not doctor_count:
+            status = "not_present"
+            amount = 0
+        elif healing_assumption_applied:
+            status = "ignored_by_named_assumption"
+            amount = None
+        elif scenario.policy == Policy.STRICT and healing_boundary_reported:
+            status = "unsupported_boundary"
+            amount = None
+        else:
+            status = "not_reached"
+            amount = None
+        sides[side] = {
+            "doctor_count": doctor_count,
+            "status": status,
+            "effect_applied": False,
+            "healing_amount": amount,
+        }
+    return {
+        "modeled": False,
+        "strict_rule_id": strict_rule_id,
+        "experimental_assumption_id": assumption_id,
+        "derived_capacity_per_doctor": support.derived_capacity,
+        "capacity_is_allocation_formula": False,
+        "sides": sides,
+    }
+
+
 def _attach_battle_statistics(
     result: dict[str, Any],
     economy: MilitaryEconomyProfile,
@@ -492,20 +539,69 @@ def _attach_battle_statistics(
         },
     }
 
-    gross_damage = {"attacker": 0, "defender": 0}
+    support = SupportProfile.load(scenario.profiles.support)
+    healing_status = _healing_status(scenario, result, support)
+    gross_dealt = {"attacker": 0, "defender": 0}
+    gross_taken = {"attacker": 0, "defender": 0}
+    per_round: dict[int, dict[str, dict[str, int]]] = {}
+
+    def round_stats(number: int) -> dict[str, dict[str, int]]:
+        return per_round.setdefault(number, {
+            "attacker": {"damage_dealt": 0, "damage_taken": 0},
+            "defender": {"damage_dealt": 0, "damage_taken": 0},
+        })
+
+    for row in result.get("rounds", []):
+        round_stats(int(row.get("round", 0)))
+
     for event in result.get("events", []):
         if event.get("type") != "damage":
             continue
-        side = event.get("side")
-        if side in gross_damage:
-            gross_damage[side] += int(event.get("details", {}).get("damage", 0))
+        source = event.get("side")
+        target = event.get("details", {}).get("target_side")
+        if source not in gross_dealt or target not in gross_taken:
+            continue
+        amount = int(event.get("details", {}).get("damage", 0))
+        number = int(event.get("round", 0))
+        stats = round_stats(number)
+        stats[source]["damage_dealt"] += amount
+        stats[target]["damage_taken"] += amount
+        gross_dealt[source] += amount
+        gross_taken[target] += amount
+
+    cumulative = {
+        "attacker": {"damage_dealt": 0, "damage_taken": 0},
+        "defender": {"damage_dealt": 0, "damage_taken": 0},
+    }
+    for row in sorted(result.get("rounds", []), key=lambda value: int(value.get("round", 0))):
+        number = int(row.get("round", 0))
+        stats = round_stats(number)
+        row_combat: dict[str, dict[str, int | None]] = {}
+        for side in ("attacker", "defender"):
+            cumulative[side]["damage_dealt"] += stats[side]["damage_dealt"]
+            cumulative[side]["damage_taken"] += stats[side]["damage_taken"]
+            healing_unknown = healing_status["sides"][side]["doctor_count"] > 0
+            row_combat[side] = {
+                "damage_dealt": stats[side]["damage_dealt"],
+                "damage_taken": stats[side]["damage_taken"],
+                "cumulative_damage_dealt": cumulative[side]["damage_dealt"],
+                "cumulative_damage_taken": cumulative[side]["damage_taken"],
+                "healing": None if healing_unknown else 0,
+                "cumulative_healing": None if healing_unknown else 0,
+            }
+        row["combat_statistics"] = row_combat
+
     result["combat_statistics"] = {
-        side: {"gross_damage_dealt": gross_damage[side]}
+        side: {
+            "gross_damage_dealt": gross_dealt[side],
+            "gross_damage_taken": gross_taken[side],
+            "gross_healing": None if healing_status["sides"][side]["doctor_count"] else 0,
+        }
         for side in ("attacker", "defender")
     }
+    result["healing_status"] = healing_status
     result["morale_status"] = _morale_status(scenario, result)
     return result
-
 
 def simulate(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     normalized = Scenario.from_dict(scenario) if isinstance(scenario, dict) else scenario

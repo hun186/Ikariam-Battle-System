@@ -88,6 +88,21 @@ def test_conflicting_same_unit_upgrades_and_invalid_domain_rejected():
  value=payload(); value['attacker']['units']=[{'unit_id':'rocket_ship','quantity':1}]
  assert post(value)[0]==400
 
+def test_healing_status_and_null_healing_are_preserved_in_http_reports():
+ value=payload('experimental'); value['attacker']['units'].append({'unit_id':'doctor','quantity':2})
+ status,summary=post(value)
+ assert status==200
+ assert summary['healing_status']['derived_capacity_per_doctor']==4000
+ assert summary['healing_status']['sides']['attacker']=={
+  'doctor_count':2,'status':'ignored_by_named_assumption','effect_applied':False,'healing_amount':None
+ }
+ assert summary['combat_statistics']['attacker']['gross_healing'] is None
+ status,page=post_page(value,0,10)
+ assert status==200
+ assert all(row['combat_statistics']['attacker']['healing'] is None for row in page['rounds'])
+ assert all(row['combat_statistics']['attacker']['cumulative_healing'] is None for row in page['rounds'])
+
+
 def test_doctor_and_cook_have_separate_boundaries():
  for unit,unknown,assumption in [('doctor','UNKNOWN-HEALING-ALLOCATION','EXP-HEAL-NONE-001'),('cook','UNKNOWN-MORALE-SUPPORT','EXP-MORALE-NONE-001')]:
   value=payload('strict'); value['attacker']['units'].append({'unit_id':unit,'quantity':1}); status,data=post(value)
@@ -115,8 +130,11 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert 'id="maxRounds" type="number" min="1" max="1000" value="100"' in body
  assert '預設 100 回合；1000 回合是可手動提高的安全上限' in body
  assert 'Cook 士氣目前尚未完整建模' in body
- assert '士氣支援（尚未建模）' in body
+ assert '士氣支援（尚未建模）' in body and '治療支援（尚未建模）' in body
  assert 'Morale / 士氣尚未建模' in body and 'Cook / 士氣' in body
+ assert 'Healing / 治療尚未建模' in body and 'Doctor / 治療' in body
+ assert '攻擊方造成傷害' in body and '攻擊方承受傷害' in body and '攻擊方治療' in body
+ assert 'Gross damage taken' in body and 'derived capacity reference' in body
  assert '尚未到達士氣處理' in body and "not_reached:'尚未到達'" in body
  assert "morale_status" in body
  assert "e.type==='safety_limit_reached'" in body
@@ -298,6 +316,12 @@ def test_http_summary_default_and_bounded_round_pages():
  assert page['report']['rounds_returned']==len(page['rounds'])
  assert all(0 <= row['round'] <= 9 for row in page['rounds'])
  assert all(0 <= event['round'] <= 9 for event in page['events'])
+ assert all('combat_statistics' in row for row in page['rounds'])
+ for row in page['rounds']:
+  assert row['combat_statistics']['attacker']['damage_dealt']==row['combat_statistics']['defender']['damage_taken']
+  assert row['combat_statistics']['defender']['damage_dealt']==row['combat_statistics']['attacker']['damage_taken']
+ assert summary['combat_statistics']['attacker']['gross_damage_taken']==summary['combat_statistics']['defender']['gross_damage_dealt']
+ assert summary['combat_statistics']['defender']['gross_damage_taken']==summary['combat_statistics']['attacker']['gross_damage_dealt']
  status,error=post(value,{'mode':'round_page','round_start':0,'round_limit':21})
  assert status==400 and 'report.round_limit must be 1..20' in error['error']
 
