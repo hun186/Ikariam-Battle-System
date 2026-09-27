@@ -1,4 +1,5 @@
 name: Validate pending scenario binding
+# rerun-after-test-fix
 
 on:
   push:

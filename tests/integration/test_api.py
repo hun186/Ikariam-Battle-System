@@ -109,7 +109,8 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert "cacheKey=generation+':'+start" in body
  assert 'if(generation!==simulationGeneration)return null' in body
  assert 'if(token!==roundRenderToken||generation!==simulationGeneration||!page)return' in body
- assert 'const generation=++simulationGeneration' in body
+ assert 'let generation=null' in body
+ assert 'generation=++simulationGeneration' in body
  assert 'if(generation===simulationGeneration)showView' in body
  assert 'scenarioByGeneration=new Map()' in body
  assert 'scenario=scenarioByGeneration.get(generation)' in body
