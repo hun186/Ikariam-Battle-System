@@ -180,7 +180,7 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert 'function disableReports(){setReportsEnabled(false)}' in body
  assert 'lastScenario' not in body
  assert '熔爐神蹟 / Forge' in body and '攻擊' in body and '防禦' in body
- assert '進階：進場批次' in body and 'Research mode' in body and 'slot-tooltip' in body
+ assert '進階：進場批次' in body and 'Research mode' in body and 'floating-tooltip' in body
  assert 'id="showUnitStats" type="checkbox"' in body
  assert 'function effectiveSetupStats(row)' in body and 'workshop_increments' in body
  assert "含 Workshop + Forge Lv" in body
