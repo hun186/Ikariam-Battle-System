@@ -90,8 +90,8 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 </main>
 
 <script>
-let metadata=null, units=[], lastResult=null, lastScenario=null, lastBattlefieldId=null, currentRoundNumber=0, roundRenderToken=0, simulationGeneration=0;
-const roundPageCache=new Map();
+let metadata=null, units=[], lastResult=null, lastBattlefieldId=null, currentRoundNumber=0, roundRenderToken=0, simulationGeneration=0;
+const roundPageCache=new Map(), scenarioByGeneration=new Map();
 const battlefield=document.getElementById('battlefield'),policy=document.getElementById('policy'),maxRounds=document.getElementById('maxRounds'),researchMode=document.getElementById('researchMode'),simulate=document.getElementById('simulate'),error=document.getElementById('error');
 const viewIds={setup:'setupView',round:'roundView',summary:'summaryView'};
 const groupOrder=['heavy_infantry','light_infantry','long_range','artillery','air','support'];
@@ -127,7 +127,8 @@ async function postSimulation(body){
 function roundPageSize(){return metadata?.report_transport?.default_round_page_size||10}
 function pageStartForRound(number){const size=roundPageSize();return Math.floor(number/size)*size}
 async function loadRoundPage(number,generation=simulationGeneration){
-  const start=pageStartForRound(number),cacheKey=generation+':'+start,scenario=lastScenario;
+  const start=pageStartForRound(number),cacheKey=generation+':'+start,scenario=scenarioByGeneration.get(generation);
+  if(generation!==simulationGeneration||!scenario)return null;
   if(roundPageCache.has(cacheKey))return await roundPageCache.get(cacheKey);
   const request={...scenario,report:{mode:'round_page',round_start:start,round_limit:roundPageSize()}};
   const pending=postSimulation(request);
@@ -379,9 +380,11 @@ function renderSummary(){
   document.getElementById('summaryMetrics').innerHTML='<div class="metric"><span>Rounds</span><b>'+lastResult.rounds_completed+'</b></div><div class="metric"><span>Attacker losses</span><b>'+aLoss+'</b></div><div class="metric"><span>Defender losses</span><b>'+dLoss+'</b></div>';
   document.getElementById('summaryGrid').innerHTML=summarySide('attacker','攻擊方')+summarySide('defender','防守方');
 }
-function enableReports(){
-  document.querySelector('[data-view="round"]').disabled=false;document.querySelector('[data-view="summary"]').disabled=false;
+function setReportsEnabled(enabled){
+  document.querySelector('[data-view="round"]').disabled=!enabled;document.querySelector('[data-view="summary"]').disabled=!enabled;
 }
+function enableReports(){setReportsEnabled(true)}
+function disableReports(){setReportsEnabled(false)}
 async function boot(){
   const response=await fetch('/api/simulate'),data=await response.json();metadata=data;
   units=data.units.filter(u=>u.domain==='land'&&(u.numerically_supported||u.role==='support'));
@@ -395,20 +398,22 @@ battlefield.addEventListener('change',updateSlotButtons);
 researchMode.addEventListener('change',()=>document.body.classList.toggle('research',researchMode.checked));
 simulate.addEventListener('click',async()=>{
   error.textContent='';
-  const generation=++simulationGeneration;
-  ++roundRenderToken;
-  roundPageCache.clear();
+  let generation=null;
   try{
     const submittedBattlefield=battlefield.value,attacker=army('attacker'),defender=army('defender');
     if(!attacker.units.length||!defender.units.length)throw Error('攻擊方與防守方都至少要設定一種兵力。');
     const scenario={profiles:metadata.profiles,policy:policy.value,battlefield:submittedBattlefield,max_rounds:+maxRounds.value,attacker,defender};
+    generation=++simulationGeneration;
+    ++roundRenderToken;
+    roundPageCache.clear();scenarioByGeneration.clear();scenarioByGeneration.set(generation,scenario);disableReports();
     const data=await postSimulation({...scenario,report:{mode:'summary'}});
     if(generation!==simulationGeneration)return;
-    lastResult=data;lastScenario=scenario;lastBattlefieldId=submittedBattlefield;currentRoundNumber=data.rounds_completed;
+    lastResult=data;lastBattlefieldId=submittedBattlefield;currentRoundNumber=data.rounds_completed;
+    roundPageCache.clear();
     renderSummary();enableReports();await renderRound(currentRoundNumber);
     if(generation===simulationGeneration)showView('round');
   }catch(e){
-    if(generation===simulationGeneration)error.textContent=e.message;
+    if(generation===null||generation===simulationGeneration)error.textContent=e.message;
   }
 });
 boot().catch(e=>error.textContent=e.message);

@@ -111,6 +111,12 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert 'if(token!==roundRenderToken||generation!==simulationGeneration||!page)return' in body
  assert 'const generation=++simulationGeneration' in body
  assert 'if(generation===simulationGeneration)showView' in body
+ assert 'scenarioByGeneration=new Map()' in body
+ assert 'scenario=scenarioByGeneration.get(generation)' in body
+ assert 'if(generation!==simulationGeneration||!scenario)return null' in body
+ assert 'scenarioByGeneration.clear();scenarioByGeneration.set(generation,scenario);disableReports()' in body
+ assert 'function disableReports(){setReportsEnabled(false)}' in body
+ assert 'lastScenario' not in body
  assert '熔爐神蹟 / Forge' in body and '攻擊' in body and '防禦' in body
  assert '進階：進場批次' in body and 'Research mode' in body and 'slot-tooltip' in body
  assert "Math.floor(field.lines[line].slot_space/unit.size)" in body
