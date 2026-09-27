@@ -419,8 +419,18 @@ simulate.addEventListener('click',async()=>{
       return;
     }
     if(requestGeneration===simulationRequestGeneration){
-      if(lastResult)enableReports();else disableReports();
-      error.textContent=e.message;
+      if(lastResult){
+        enableReports();
+        try{
+          await renderRound(currentRoundNumber);
+        }catch(recoveryError){
+          if(requestGeneration===simulationRequestGeneration)error.textContent=e.message+' · Active report refresh failed: '+recoveryError.message;
+          return;
+        }
+      }else{
+        disableReports();
+      }
+      if(requestGeneration===simulationRequestGeneration)error.textContent=e.message;
     }
   }
 });
