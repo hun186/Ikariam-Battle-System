@@ -90,7 +90,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 </main>
 
 <script>
-let metadata=null, units=[], lastResult=null, lastScenario=null, lastBattlefieldId=null, currentRoundNumber=0, roundRenderToken=0;
+let metadata=null, units=[], lastResult=null, lastScenario=null, lastBattlefieldId=null, currentRoundNumber=0, roundRenderToken=0, simulationGeneration=0;
 const roundPageCache=new Map();
 const battlefield=document.getElementById('battlefield'),policy=document.getElementById('policy'),maxRounds=document.getElementById('maxRounds'),researchMode=document.getElementById('researchMode'),simulate=document.getElementById('simulate'),error=document.getElementById('error');
 const viewIds={setup:'setupView',round:'roundView',summary:'summaryView'};
@@ -126,18 +126,19 @@ async function postSimulation(body){
 }
 function roundPageSize(){return metadata?.report_transport?.default_round_page_size||10}
 function pageStartForRound(number){const size=roundPageSize();return Math.floor(number/size)*size}
-async function loadRoundPage(number){
-  const start=pageStartForRound(number);
-  if(roundPageCache.has(start))return await roundPageCache.get(start);
-  const request={...lastScenario,report:{mode:'round_page',round_start:start,round_limit:roundPageSize()}};
+async function loadRoundPage(number,generation=simulationGeneration){
+  const start=pageStartForRound(number),cacheKey=generation+':'+start,scenario=lastScenario;
+  if(roundPageCache.has(cacheKey))return await roundPageCache.get(cacheKey);
+  const request={...scenario,report:{mode:'round_page',round_start:start,round_limit:roundPageSize()}};
   const pending=postSimulation(request);
-  roundPageCache.set(start,pending);
+  roundPageCache.set(cacheKey,pending);
   try{
     const page=await pending;
-    roundPageCache.set(start,page);
+    if(generation!==simulationGeneration)return null;
+    roundPageCache.set(cacheKey,page);
     return page;
   }catch(e){
-    roundPageCache.delete(start);
+    if(generation===simulationGeneration)roundPageCache.delete(cacheKey);
     throw e;
   }
 }
@@ -351,10 +352,10 @@ function renderSafetyNotices(){
   document.getElementById('summarySafetyNotices').innerHTML=html;
 }
 async function renderRound(number){
-  const token=++roundRenderToken;
+  const token=++roundRenderToken,generation=simulationGeneration;
   number=Math.max(0,Math.min(number,lastResult.rounds_completed));
-  const page=await loadRoundPage(number);
-  if(token!==roundRenderToken)return;
+  const page=await loadRoundPage(number,generation);
+  if(token!==roundRenderToken||generation!==simulationGeneration||!page)return;
   const round=page.rounds.find(item=>item.round===number);
   if(!round)throw Error('Requested round was not returned by the simulator.');
   currentRoundNumber=number;
@@ -394,14 +395,21 @@ battlefield.addEventListener('change',updateSlotButtons);
 researchMode.addEventListener('change',()=>document.body.classList.toggle('research',researchMode.checked));
 simulate.addEventListener('click',async()=>{
   error.textContent='';
+  const generation=++simulationGeneration;
+  ++roundRenderToken;
+  roundPageCache.clear();
   try{
     const submittedBattlefield=battlefield.value,attacker=army('attacker'),defender=army('defender');
     if(!attacker.units.length||!defender.units.length)throw Error('攻擊方與防守方都至少要設定一種兵力。');
     const scenario={profiles:metadata.profiles,policy:policy.value,battlefield:submittedBattlefield,max_rounds:+maxRounds.value,attacker,defender};
     const data=await postSimulation({...scenario,report:{mode:'summary'}});
-    lastResult=data;lastScenario=scenario;lastBattlefieldId=submittedBattlefield;currentRoundNumber=data.rounds_completed;roundPageCache.clear();
-    renderSummary();enableReports();await renderRound(currentRoundNumber);showView('round');
-  }catch(e){error.textContent=e.message}
+    if(generation!==simulationGeneration)return;
+    lastResult=data;lastScenario=scenario;lastBattlefieldId=submittedBattlefield;currentRoundNumber=data.rounds_completed;
+    renderSummary();enableReports();await renderRound(currentRoundNumber);
+    if(generation===simulationGeneration)showView('round');
+  }catch(e){
+    if(generation===simulationGeneration)error.textContent=e.message;
+  }
 });
 boot().catch(e=>error.textContent=e.message);
 </script>

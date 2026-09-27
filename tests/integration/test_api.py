@@ -105,6 +105,12 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert 'roundPageCache' in body and 'pageStartForRound' in body
  assert 'page.events.filter(e=>e.round===round.round)' in body
  assert 'currentRoundIndex' not in body
+ assert 'simulationGeneration=0' in body
+ assert "cacheKey=generation+':'+start" in body
+ assert 'if(generation!==simulationGeneration)return null' in body
+ assert 'if(token!==roundRenderToken||generation!==simulationGeneration||!page)return' in body
+ assert 'const generation=++simulationGeneration' in body
+ assert 'if(generation===simulationGeneration)showView' in body
  assert '熔爐神蹟 / Forge' in body and '攻擊' in body and '防禦' in body
  assert '進階：進場批次' in body and 'Research mode' in body and 'slot-tooltip' in body
  assert "Math.floor(field.lines[line].slot_space/unit.size)" in body
