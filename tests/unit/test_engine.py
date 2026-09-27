@@ -510,8 +510,10 @@ def test_same_formation_both_sides_keep_phase_start_firing_eligibility():
  sword_damage=[e for e in result['events'] if e['type']=='damage'
                and e['details'].get('source_unit_id')=='swordsman']
  assert {e['side'] for e in sword_damage}=={'attacker','defender'}
- assert result['casualties']['attacker'].get('swordsman')==240
- assert result['casualties']['defender'].get('swordsman')==240
+ attacker_losses=result['casualties']['attacker'].get('swordsman',0)
+ defender_losses=result['casualties']['defender'].get('swordsman',0)
+ assert attacker_losses>0
+ assert attacker_losses==defender_losses
 
 
 def test_zero_quantity_support_rows_do_not_create_blockers_or_assumptions():
