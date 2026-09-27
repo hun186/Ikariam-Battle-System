@@ -44,10 +44,9 @@ def test_carabineer_ammunition_is_pooled_shots_not_round_counter():
  assert attacker[0].ammo_pool_shots==126 and sum(s.units for s in attacker[0].slots)==21
  for round_no in range(1,5):
   plans=_plan_fire(attacker,deepcopy(defender),registry,WorkshopProfile.load(),ForgeProfile.load(),TargetingProfile.load(),events,round_no,'attacker',attacker_army,defender_army,{})
-  assert plans
+  assert plans and {plan['weapon_id'] for plan in plans}=={'primary'}
  assert attacker[0].ammo_pool_shots==42
  assert not any(e.type=='ammo_exhausted' for e in events)
- assert {e.details['weapon_id'] for e in events if e.type=='damage_calculation'}=={'primary'}
 
 
 def test_partial_ammo_assumption_is_applied_only_when_partial_volley_occurs():
@@ -148,7 +147,7 @@ def test_single_weapon_light_fallback_has_no_specific_strict_blocker():
  strict=simulate(s)
  rules={e['details']['rule_id'] for e in strict['events'] if e['type']=='unsupported_mechanic'}
  assert 'UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT' not in rules
- assert {'UNKNOWN-KILL-SELECTION','UNKNOWN-ACCURACY','UNKNOWN-TARGET-TRANSFER'} <= rules
+ assert {'UNKNOWN-KILL-SELECTION','UNKNOWN-ACCURACY','UNKNOWN-IR-TRIGGER','UNKNOWN-SR-TRIGGER'} <= rules
  s['policy']='experimental'; experimental=simulate(s)
  assert any(e['type']=='attacking_matrix' for e in experimental['events'])
 
@@ -300,9 +299,8 @@ def test_tooltip_ammo_is_shared_wave_derived_state():
  assert state['waves'][0]['munition_percent']==50
 
 
-def test_support_artillery_and_air_survive_but_do_not_sustain_battle():
- cases=[('doctor',4),('catapult',6),('gyrocopter',10)]
- for unit,quantity in cases:
+def test_support_and_air_survive_but_main_can_retarget_artillery_after_front_dies():
+ for unit,quantity in [('doctor',4),('gyrocopter',10)]:
   s={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
      'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
      'defender':{'units':[{'unit_id':'hoplite','quantity':1},{'unit_id':unit,'quantity':quantity}]}}
@@ -313,6 +311,17 @@ def test_support_artillery_and_air_survive_but_do_not_sustain_battle():
   assert result['casualties']['defender'].get(unit,0)==0
   event=next(e for e in result['events'] if e['type']=='battle_termination')
   assert event['details']['surviving_non_sustaining']['defender']=={unit:quantity}
+
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
+    'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':1},{'unit_id':'catapult','quantity':6}]}}
+ result=simulate(s)
+ assert result['outcome']=='attacker' and result['rounds_completed']==1
+ assert result['final_state']['defender']['remaining'].get('catapult',0)==0
+ assert result['casualties']['defender'].get('catapult')==6
+ catapult_hits=[e for e in result['events'] if e['type']=='damage'
+                and e['side']=='attacker' and e['details'].get('target_unit_id')=='catapult']
+ assert catapult_hits and {e['details']['firing_phase'] for e in catapult_hits}=={'first'}
 
 
 def test_initial_long_range_requires_fallback_and_is_not_sustaining():
@@ -353,18 +362,23 @@ def test_front_alive_with_carabineer_is_sustaining():
  assert state['continuation_state']=='sustaining'
 
 
-@pytest.mark.parametrize('fallback_unit,quantity',[('sulphur_carabineer',7)])
-def test_dynamic_front_collapse_stops_at_fallback_boundary(fallback_unit,quantity):
+def test_dynamic_front_collapse_retargets_later_main_shots_into_long_range():
+ quantity=7
  s={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
     'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
-    'defender':{'units':[{'unit_id':'hoplite','quantity':1},{'unit_id':fallback_unit,'quantity':quantity}]}}
+    'defender':{'units':[{'unit_id':'hoplite','quantity':1},
+                         {'unit_id':'sulphur_carabineer','quantity':quantity}]}}
  result=simulate(s); state=result['final_state']['defender']
- assert result['status']=='inconclusive' and result['outcome']=='inconclusive'
- assert result['rounds_completed']==1 and state['continuation_state']=='fallback_required'
- assert state['fallback_candidate_total']==quantity
- boundary=next(e for e in result['events'] if e['type']=='unsupported_mechanic' and e['details']['rule_id']=='UNKNOWN-FORMATION-FALLBACK')
- assert boundary['round']==1
- assert not any(e['type']=='attacking_matrix' and e['side']=='defender' and e['round']>1 for e in result['events'])
+ assert result['status']=='completed' and result['outcome']=='attacker'
+ assert result['rounds_completed']==1 and state['continuation_state']=='not_sustaining'
+ assert state['fallback_candidate_total']==0
+ assert result['casualties']['defender'].get('sulphur_carabineer')==quantity
+ assert any(e['type']=='damage' and e['side']=='defender'
+            and e['details'].get('source_unit_id')=='sulphur_carabineer'
+            and e['details'].get('firing_phase')=='second' for e in result['events'])
+ assert any(e['type']=='damage' and e['side']=='attacker'
+            and e['details'].get('target_unit_id')=='sulphur_carabineer'
+            and e['details'].get('firing_phase')=='first' for e in result['events'])
 
 
 def test_mixed_runtime_front_is_represented_but_never_fires():
@@ -488,9 +502,9 @@ def test_artillery_fires_before_flank_and_hits_front_only_while_front_exists():
 
 def test_same_formation_both_sides_keep_phase_start_firing_eligibility():
  s={'policy':'experimental','battlefield':'land-max','max_rounds':1,
-    'attacker':{'units':[{'unit_id':'hoplite','quantity':350},
+    'attacker':{'forge_level':5,'units':[{'unit_id':'hoplite','quantity':350},
                          {'unit_id':'swordsman','quantity':240,'attack_upgrade':30}]},
-    'defender':{'units':[{'unit_id':'hoplite','quantity':350},
+    'defender':{'forge_level':5,'units':[{'unit_id':'hoplite','quantity':350},
                          {'unit_id':'swordsman','quantity':240,'attack_upgrade':30}]}}
  result=simulate(s)
  sword_damage=[e for e in result['events'] if e['type']=='damage'

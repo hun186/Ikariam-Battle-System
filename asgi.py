@@ -92,7 +92,7 @@ async def _api_simulate(scope, receive, send) -> None:
         from ikariam_battle.battlefield import battlefield_metadata
         from ikariam_battle.economy import MilitaryEconomyProfile
         from ikariam_battle.models import Profiles
-        from ikariam_battle.profiles import ForgeProfile, SupportProfile
+        from ikariam_battle.profiles import ForgeProfile, SupportProfile, TargetingProfile
         registry = UnitRegistry.load()
         barbarians = BarbarianRegistry.load()
         economy = MilitaryEconomyProfile.load()
@@ -101,8 +101,16 @@ async def _api_simulate(scope, receive, send) -> None:
         for row in units:
             if row["id"] in economy_units:
                 row.update(economy_units[row["id"]])
+        targeting = TargetingProfile.load()
         await _json_response(send, HTTPStatus.OK, {"message":"POST a typed scenario to /api/simulate",
             "profiles":Profiles().__dict__,
+            "combat_chronology":{
+                "formation_fill_order":list(targeting.formation_fill_order),
+                "firing_order":list(targeting.firing_order),
+                "same_formation_simultaneous":targeting.same_formation_simultaneous,
+                "target_priorities":{k:list(v) for k,v in targeting.priorities.items()},
+                "ir_trigger":"UNKNOWN_DISABLED",
+                "sr_trigger":"UNKNOWN_DISABLED"},
             "battlefields":battlefield_metadata(),
             "profile_metadata":registry.metadata,"economy_metadata":economy.metadata,"units":units,
             "barbarian_profile_metadata":barbarians.metadata,"barbarian_units":barbarians.public(),

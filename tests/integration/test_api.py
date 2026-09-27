@@ -220,25 +220,34 @@ def test_zero_unit_snapshot_slots_render_as_empty_and_static_copies_match():
  assert body==Path('public/index.html').read_text()
 
 def test_battle_end_survivors_round_boundary_and_unique_assumptions_api():
- for survivor,quantity in [('doctor',4),('catapult',6)]:
-  value={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
-    'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
-    'defender':{'units':[{'unit_id':'hoplite','quantity':1},{'unit_id':survivor,'quantity':quantity}]}}
-  status,data=post(value); assert status==200 and data['outcome']=='attacker' and data['rounds_completed']==1
-  assert data['final_state']['defender']['remaining'][survivor]==quantity
-  assert data['final_state']['defender']['main_line_holding_total']==0
-  assert data['final_state']['defender']['continuation_state']=='not_sustaining'
-  assert data['casualties']['defender'].get(survivor,0)==0
-  ids=[a['id'] for a in data['assumptions']]; assert len(ids)==len(set(ids))
+ value={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
+   'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
+   'defender':{'units':[{'unit_id':'hoplite','quantity':1},{'unit_id':'doctor','quantity':4}]}}
+ status,data=post(value); assert status==200 and data['outcome']=='attacker' and data['rounds_completed']==1
+ assert data['final_state']['defender']['remaining']['doctor']==4
+ assert data['final_state']['defender']['main_line_holding_total']==0
+ assert data['final_state']['defender']['continuation_state']=='not_sustaining'
+ assert data['casualties']['defender'].get('doctor',0)==0
+ ids=[a['id'] for a in data['assumptions']]; assert len(ids)==len(set(ids))
 
-def test_dynamic_fallback_boundary_api_stops_without_stale_round():
+ value={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
+   'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
+   'defender':{'units':[{'unit_id':'hoplite','quantity':1},{'unit_id':'catapult','quantity':6}]}}
+ status,data=post(value); assert status==200 and data['outcome']=='attacker'
+ assert data['final_state']['defender']['remaining'].get('catapult',0)==0
+ assert data['casualties']['defender'].get('catapult')==6
+
+def test_dynamic_front_collapse_api_retargets_main_into_long_range():
  value={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
    'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
    'defender':{'units':[{'unit_id':'hoplite','quantity':1},{'unit_id':'sulphur_carabineer','quantity':7}]}}
  status,data=post_page(value); assert status==200
- assert data['status']=='inconclusive' and data['rounds_completed']==1
- assert data['final_state']['defender']['continuation_state']=='fallback_required'
- assert not any(e['type']=='attacking_matrix' and e['side']=='defender' and e['round']>1 for e in data['events'])
+ assert data['status']=='completed' and data['rounds_completed']==1
+ assert data['outcome']=='attacker'
+ assert data['final_state']['defender']['continuation_state']=='not_sustaining'
+ assert data['casualties']['defender'].get('sulphur_carabineer')==7
+ assert any(e['type']=='damage' and e['side']=='defender'
+            and e['details'].get('source_unit_id')=='sulphur_carabineer' for e in data['events'])
  ids=[a['id'] for a in data['assumptions']]; assert len(ids)==len(set(ids))
 
 def test_front_alive_continuation_state_api():
