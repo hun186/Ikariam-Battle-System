@@ -1,4 +1,5 @@
 name: Validate compact report UI follow-up
+# rerun
 
 on:
   push:
