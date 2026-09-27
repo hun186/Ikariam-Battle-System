@@ -92,7 +92,21 @@ def test_doctor_and_cook_have_separate_boundaries():
  for unit,unknown,assumption in [('doctor','UNKNOWN-HEALING-ALLOCATION','EXP-HEAL-NONE-001'),('cook','UNKNOWN-MORALE-SUPPORT','EXP-MORALE-NONE-001')]:
   value=payload('strict'); value['attacker']['units'].append({'unit_id':unit,'quantity':1}); status,data=post(value)
   assert status==200 and unknown in {e['details'].get('rule_id') for e in data['events'] if e['type']=='unsupported_mechanic'}
+  if unit=='cook':
+   assert data['morale_status']['sides']['attacker']=={'cook_count':1,'status':'unsupported_boundary','effect_applied':False}
   value['policy']='experimental'; status,data=post(value); assert assumption in {a['id'] for a in data['assumptions']}
+  if unit=='cook':
+   assert data['morale_status']['modeled'] is False
+   assert data['morale_status']['sides']['attacker']=={'cook_count':1,'status':'ignored_by_named_assumption','effect_applied':False}
+
+
+ value={'policy':'experimental','battlefield':'land-mini','max_rounds':2,
+   'attacker':{'units':[{'unit_id':'hoplite','quantity':30},{'unit_id':'steam_giant','quantity':10},{'unit_id':'cook','quantity':15}]},
+   'defender':{'units':[{'unit_id':'hoplite','quantity':30}]}}
+ status,data=post(value)
+ assert status==200 and data['status']=='inconclusive'
+ assert data['assumptions']==[]
+ assert data['morale_status']['sides']['attacker']=={'cook_count':15,'status':'not_reached','effect_applied':False}
 
 def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  response=asyncio.run(request('GET','/')); body=response[1]['body'].decode()
@@ -101,6 +115,10 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert 'id="maxRounds" type="number" min="1" max="1000" value="100"' in body
  assert '預設 100 回合；1000 回合是可手動提高的安全上限' in body
  assert 'Cook 士氣目前尚未完整建模' in body
+ assert '士氣支援（尚未建模）' in body
+ assert 'Morale / 士氣尚未建模' in body and 'Cook / 士氣' in body
+ assert '尚未到達士氣處理' in body and "not_reached:'尚未到達'" in body
+ assert "morale_status" in body
  assert "e.type==='safety_limit_reached'" in body
  assert 'Safety round cap reached / 已達安全回合上限' in body
  assert '長戰的逐回合資料會按需分頁載入' in body
