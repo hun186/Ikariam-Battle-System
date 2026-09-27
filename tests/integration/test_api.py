@@ -214,7 +214,10 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert "battleHalf(round.defender,'defender')" in body
  assert "add('初始部署',0,false,'deployment-jump')" in body
  assert "add('«',1" in body and "add('»',maximum" in body
- assert "input.placeholder='回合'" in body and "if(event.key==='Enter')jumpNow()" in body
+ assert "currentRoundNumber===0?1:Math.min(maximum,currentRoundNumber+1)" in body
+ assert "input.step='1'" in body and "input.placeholder='回合'" in body
+ assert "Math.trunc(raw)" in body and "Number.isFinite(raw)" in body
+ assert "if(event.key==='Enter')jumpNow()" in body
  assert "number===0?'部署':String(number)" not in body
  assert "summarySide('attacker','攻擊方')" in body
  assert '軍分以未折扣的原始生產資源計分基礎 ÷ 50 計算' in body

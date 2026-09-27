@@ -409,13 +409,13 @@ function renderPager(){
   add('«',1,currentRoundNumber===1);
   add('‹',Math.max(1,currentRoundNumber-1),currentRoundNumber<=1);
   for(let number=start;number<=end;number++)add(String(number),number);
-  add('›',Math.min(maximum,Math.max(1,currentRoundNumber)+1),currentRoundNumber===maximum);
+  add('›',currentRoundNumber===0?1:Math.min(maximum,currentRoundNumber+1),currentRoundNumber===maximum);
   add('»',maximum,currentRoundNumber===maximum);
   const jump=document.createElement('span');jump.className='round-jump';
-  const input=document.createElement('input');input.type='number';input.min='1';input.max=String(maximum);input.placeholder='回合';input.setAttribute('aria-label','跳到指定回合');
+  const input=document.createElement('input');input.type='number';input.min='1';input.max=String(maximum);input.step='1';input.placeholder='回合';input.setAttribute('aria-label','跳到指定回合');
   if(currentRoundNumber>0)input.value=String(currentRoundNumber);
   const go=document.createElement('button');go.type='button';go.textContent='跳轉';
-  const jumpNow=()=>{const value=Math.max(1,Math.min(maximum,Number(input.value)||1));renderRound(value).catch(e=>error.textContent=e.message)};
+  const jumpNow=()=>{const raw=Number(input.value),whole=Number.isFinite(raw)?Math.trunc(raw):1,value=Math.max(1,Math.min(maximum,whole));input.value=String(value);renderRound(value).catch(e=>error.textContent=e.message)};
   go.addEventListener('click',jumpNow);input.addEventListener('keydown',event=>{if(event.key==='Enter')jumpNow()});
   jump.append(input,go);root.append(jump);
 }
