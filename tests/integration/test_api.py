@@ -400,3 +400,27 @@ def test_zero_quantity_support_rows_are_absent_from_http_support_status():
   side=data[status_key]['sides']['attacker']
   assert side[count_key]==0 and side['status']=='not_present'
   assert assumption not in {a['id'] for a in data['assumptions']}
+
+
+def test_compact_setup_identity_stats_and_shared_floating_tooltip_contract():
+ body=Path('index.html').read_text()
+ # Experienced players can collapse repetitive unit names/basic metadata globally.
+ assert 'id="showUnitIdentity" type="checkbox"' in body
+ assert '顯示兵種名稱與基本資訊' in body
+ assert '.show-unit-identity .unit-ident-copy' in body
+ # Expanded HP/ATK/DEF must wrap instead of letting DEF overflow the setup card.
+ assert '.unit-statbox{display:none' in body
+ assert 'flex-wrap:wrap' in body
+ # Round slots stay compact: icon + HP rail + alive/dead counts; name belongs in tooltip.
+ assert "'<strong>'+esc(slot.display_name)+'</strong>" not in body
+ # One body-level fixed tooltip is shared by battlefield slots and Reserve cards,
+ # so board/reserve overflow cannot clip it at the viewport/container edge.
+ assert 'id="floatingTooltip"' in body
+ assert '.floating-tooltip{position:fixed' in body
+ assert 'function showFloatingTooltip' in body
+ assert 'function hideFloatingTooltip' in body
+ assert 'getBoundingClientRect()' in body
+ assert 'window.innerWidth' in body and 'window.innerHeight' in body
+ assert '.slot:hover .slot-tooltip' not in body
+ assert '.reserve-card:hover .slot-tooltip' not in body
+ assert body==Path('public/index.html').read_text()
