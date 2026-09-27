@@ -1,0 +1,63 @@
+name: Validate 1000-round safety cap
+
+on:
+  push:
+    branches:
+      - feat/round-safety-cap-1000
+    paths:
+      - .github/workflows/validate-round-cap-1000.yml
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/round-safety-cap-1000
+          fetch-depth: 0
+      - name: Validate tests and 1000-round execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -q pytest
+          python -m compileall -q ikariam_battle asgi.py web_simulator.py simulator.py
+          python -m pytest -q tests/unit/test_models.py tests/unit/test_engine.py tests/integration/test_api.py
+          python -m pytest -q
+          cmp index.html public/index.html
+          grep -q 'max="1000" value="1000"' index.html
+          grep -q 'safety_limit_reached' index.html
+          python - <<'PY'
+          from time import perf_counter
+          from ikariam_battle import simulate
+
+          scenario={
+              'policy':'experimental',
+              'battlefield':'land-max',
+              'max_rounds':1000,
+              'attacker':{'units':[{'unit_id':'hoplite','quantity':10_000_000}]},
+              'defender':{'units':[{'unit_id':'hoplite','quantity':10_000_000}]},
+          }
+          started=perf_counter()
+          result=simulate(scenario)
+          elapsed=perf_counter()-started
+          cap=[e for e in result['events'] if e['type']=='safety_limit_reached']
+          print(f'ROUND_CAP_BENCHMARK elapsed_sec={elapsed:.3f} rounds={result["rounds_completed"]} snapshots={len(result["rounds"])} events={len(result["events"])}')
+          assert result['rounds_completed']==1000
+          assert result['status']=='inconclusive'
+          assert len(result['rounds'])==1001
+          assert len(cap)==1
+          assert cap[0]['details']=={'reason':'max_rounds_reached','limit':1000}
+          PY
+      - name: Remove one-time validation workflow
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/validate-round-cap-1000.yml
+          git commit -m "chore: remove one-time 1000-round validation"
+          git push origin HEAD:feat/round-safety-cap-1000
