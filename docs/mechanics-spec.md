@@ -48,7 +48,7 @@ Formation target priority is also executable and belongs to runtime line, not un
 - Air defence / `anti-balloon`: Air/Balloon → Air defence.
 - Air / `balloon`: Artillery/Third → Long-range/Second → Main/First → Flank.
 
-Individual shots re-evaluate the highest surviving target formation. Once a higher-priority formation is eliminated, later shots in the same firing phase may transfer to the next listed formation. Artillery therefore never silently attacks Long-range, Artillery, or Air: if neither Main nor Flank remains, it has no valid target.
+Individual shots re-evaluate the highest surviving target formation. Once a higher-priority formation is eliminated, later shots in the same firing phase may transfer to the next listed formation. This is **formation-class transfer only**. Within one volley against one target formation, the Am row→damage-position address set is frozen when that formation is first targeted. If an addressed slot empties mid-volley, later rows that still address that slot are not remapped to surviving slots; the shot remains addressed to the empty slot and deals no damage. Only when the whole target formation is gone may a later shot transfer to the next formation class. Artillery therefore never silently attacks Long-range, Artillery, or Air: if neither Main nor Flank remains, it has no valid target.
 
 At round boundary, `_prepare_round_start()` first re-establishes the following round's existing placements through `_rebuild_formation()`, then applies RR using those deployed quantities, and only afterward may fire be planned. Cross-wave replacement after casualties is not silently inferred.
 

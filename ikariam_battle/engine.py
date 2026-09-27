@@ -358,17 +358,48 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
         matrix_groups: dict[tuple[str, str, str], dict[str, Any]] = {}
         damage_groups: dict[tuple[str, str, str, str, int], dict[str, Any]] = {}
         calculation_keys: set[tuple[str, str, str, int]] = set()
+        address_books: dict[tuple[str, str, str], tuple[Any, ...]] = {}
 
         for row_number in volley["row_numbers"]:
             enemy, target_class = _target_for_line(
                 volley["runtime_line"], targets, registry, targeting)
             if enemy is None or target_class is None:
                 break
-            active = sorted((slot for slot in enemy.slots if slot.units),
-                            key=lambda slot: slot.damage_position)
-            if not active:
+
+            address_key = (enemy.unit.unit_id, enemy.unit.wave_id, target_class)
+            if address_key not in address_books:
+                address_books[address_key] = tuple(sorted(
+                    (slot for slot in enemy.slots if slot.units),
+                    key=lambda slot: slot.damage_position))
+            addressed = address_books[address_key]
+            if not addressed:
                 continue
-            target_slot = active[(row_number - 1) % len(active)]
+            target_slot = addressed[(row_number - 1) % len(addressed)]
+
+            matrix_key = (enemy.unit.unit_id, enemy.unit.wave_id, target_class)
+            matrix = matrix_groups.setdefault(matrix_key, {
+                "target_unit_id": enemy.unit.unit_id,
+                "target_class": target_class,
+                "rows": defaultdict(int),
+                "hits": defaultdict(int),
+                "empty_hits": defaultdict(int),
+                "positions": {slot.damage_position for slot in addressed},
+            })
+            matrix["rows"][row_number] += 1
+            matrix["hits"][target_slot.damage_position] += 1
+
+            if not target_slot.units:
+                matrix["empty_hits"][target_slot.damage_position] += 1
+                _event(events, number, "fire", "shot_addressed_empty_slot", volley["side"],
+                       firing_phase=volley["runtime_line"], source_unit_id=source_unit.id,
+                       target_side="defender" if volley["side"] == "attacker" else "attacker",
+                       target_unit_id=target_slot.unit_id, target_wave=enemy.unit.wave_id,
+                       target_slot=target_slot.slot_id, target_line=target_slot.line,
+                       target_damage_position=target_slot.damage_position,
+                       target_class=target_class, weapon_id=weapon.id,
+                       action="address_preserved_no_retarget")
+                continue
+
             target_unit = registry.get(target_slot.unit_id)
             damage_trace = calculate_damage(
                 source_unit, target_unit, volley["attack_upgrade"], enemy.unit.armor_upgrade,
@@ -388,18 +419,6 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             prior_unit_damage, killed, overkill = _apply_sequential_hit(
                 target_slot, queue, target_unit.hit_points or 0, damage_trace.final_damage)
             casualties[target_slot.unit_id] += killed
-
-            matrix_key = (enemy.unit.unit_id, enemy.unit.wave_id, target_class)
-            matrix = matrix_groups.setdefault(matrix_key, {
-                "target_unit_id": enemy.unit.unit_id,
-                "target_class": target_class,
-                "rows": defaultdict(int),
-                "hits": defaultdict(int),
-                "positions": set(),
-            })
-            matrix["rows"][row_number] += 1
-            matrix["hits"][target_slot.damage_position] += 1
-            matrix["positions"].add(target_slot.damage_position)
 
             damage_key = (
                 enemy.unit.unit_id, enemy.unit.wave_id, target_slot.slot_id,
@@ -438,6 +457,7 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                                            for row in range(1, max_row + 1)],
                        "target_damage_positions": sorted(matrix["positions"]),
                        "hits_by_damage_position": dict(matrix["hits"]),
+                       "empty_addressed_shots_by_damage_position": dict(matrix["empty_hits"]),
                    })
         for group in damage_groups.values():
             target_wave = next(

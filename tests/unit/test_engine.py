@@ -531,3 +531,29 @@ def test_zero_quantity_support_rows_do_not_create_blockers_or_assumptions():
   assert assumption not in ids
   side=result[status_key]['sides']['attacker']
   assert side[count_key]==0 and side['status']=='not_present'
+
+
+def test_am_slot_addresses_stay_fixed_when_target_slot_empties_mid_volley():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+    'attacker':{'units':[{'unit_id':'hoplite','quantity':4}]},
+    'defender':{'units':[{'unit_id':'spearman','quantity':31}]}}
+ result=simulate(s)
+
+ # land-mini deploys 31 Spearmen as damage-position 1:30 and 2:1.
+ # Four Hoplite rows address 1,2,1,2. Once position 2 empties, row 4
+ # remains addressed to position 2 instead of being redirected to position 1.
+ assert result['casualties']['defender'].get('spearman')==3
+ wasted=[e for e in result['events']
+         if e['type']=='shot_addressed_empty_slot' and e['side']=='attacker']
+ assert len(wasted)==1
+ assert wasted[0]['details']['target_damage_position']==2
+ assert wasted[0]['details']['action']=='address_preserved_no_retarget'
+
+ matrix=next(e for e in result['events']
+             if e['type']=='attacking_matrix'
+             and e['side']=='attacker'
+             and e['details'].get('source_unit_id','hoplite')=='hoplite')
+ trace=matrix['details']['trace']
+ assert trace['target_damage_positions']==[1,2]
+ assert trace['hits_by_damage_position']=={1:2,2:2}
+ assert trace['empty_addressed_shots_by_damage_position']=={2:1}
