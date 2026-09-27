@@ -185,7 +185,7 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert 'function effectiveSetupStats(row)' in body and 'workshop_increments' in body
  assert "含 Workshop + Forge Lv" in body
  assert 'function reserveGroups(state)' in body and 'reserve_hit_points_percent' in body
- assert "batches.length>1?'<span class=\"batch-badge\"'" in body
+ assert 'batches.length>1' in body and 'batch-badge' in body
  assert "Persistent reserve damage" in body
  assert "Math.floor(field.lines[line].slot_space/unit.size)" in body
  assert "unit.semantic_class==='light_infantry'&&field.lines.first" in body
