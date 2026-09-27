@@ -65,6 +65,9 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  hoplite=next(u for u in data['units'] if u['id']=='hoplite')
  carabineer=next(u for u in data['units'] if u['id']=='sulphur_carabineer')
  assert (hoplite['size'],carabineer['size'])==(1,4)
+ assert hoplite['unit_class']=='human' and carabineer['unit_class']=='human'
+ machine_land={u['id'] for u in data['units'] if u['domain']=='land' and u['unit_class']=='machine'}
+ assert machine_land=={'steam_giant','battering_ram','catapult','mortar','gyrocopter','bombardier'}
  assert data['combat_chronology']['firing_order']==['anti-balloon','balloon','third','flank','second','first']
  assert data['combat_chronology']['formation_fill_order']==['balloon','anti-balloon','third','second','first','flank']
  assert data['combat_chronology']['same_formation_simultaneous'] is True
@@ -133,6 +136,10 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  response=asyncio.run(request('GET','/')); body=response[1]['body'].decode()
  assert response[0]['status']==200 and "fetch('/api/simulate')" in body and 'const units=[' not in body
  assert '兵力設定' in body and '逐回合戰報' in body and '總戰報' in body
+ assert '戰鬥機制狀態 / Mechanics status' in body
+ assert 'Air defence → Air → Artillery → Flanks → Long-range → Main battle line' in body
+ assert 'P-kill' in body and 'IR / SR' in body and 'RR · Reserve Redistribution' in body
+ assert 'Steam Giant、Ram、Catapult、Mortar、Gyrocopter、Bombardier' in body
  assert 'id="maxRounds" type="number" min="1" max="1000" value="100"' in body
  assert '預設 100 回合；1000 回合是可手動提高的安全上限' in body
  assert 'Cook 士氣目前尚未完整建模' in body
