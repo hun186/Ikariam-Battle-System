@@ -5,7 +5,6 @@ from copy import deepcopy
 from decimal import Decimal
 from typing import Any
 
-from .attacking_matrix import from_slot_counts
 from .battlefield import battlefield, deploy
 from .damage import RoundingPolicy, calculate_damage
 from .economy import MilitaryEconomyProfile
@@ -19,14 +18,14 @@ from .weapon_selection import UnsupportedWeaponSelection, select_active_weapon
 
 
 EXPERIMENTAL_POLICIES = {
-    "EXP-I-KILL-001": "Pool damage per slot and apply indirect kills.",
+    "EXP-D-KILL-SEQUENTIAL-001": "Resolve individual shots sequentially against the most-damaged current unit; discard overkill unless an unimplemented special kill rule applies.",
+    "EXP-SLOT-DAMAGE-EVEN-001": "When RR leaves aggregate persistent damage in a slot, distribute it as evenly as possible across surviving units before sequential fire; exact within-slot allocation is unresolved.",
+    "EXP-IR-DISABLED-001": "Immediate Redistribution has an implementation hook but its trigger is unknown, so it is not triggered.",
+    "EXP-SR-DISABLED-001": "Slot Redistribution has an implementation hook but its trigger is unknown, so it is not triggered.",
     "EXP-ROUND-FLOOR-001": "Floor non-integer net damage; the general selector is unknown.",
-    "EXP-CHRONOLOGY-001": "Both sides plan fire from the same phase-start snapshot.",
-    "EXP-RETARGET-NONE-001": "Do not retarget shots after a slot/line is destroyed within a phase.",
     "EXP-RR-ROUND-HALF-UP-001": "Round the total deployed RR share half-up, then assign remainder by damage priority.",
     "EXP-AMMO-STOP-001": "After primary ammunition is exhausted, do not silently switch to an unverified secondary weapon.",
     "EXP-AMMO-PARTIAL-ORDER-001": "Allocate a partial ammunition pool by source-slot damage priority.",
-    "EXP-TARGET-LEGACY-001": "Use the versioned legacy/community class target priorities.",
     "EXP-ACCURACY-IGNORED-001": "Do not reduce Am hits by weapon accuracy because its algorithm is unresolved.",
     "EXP-BATTLE-END-ROUND-BOUNDARY-001": "Evaluate battle-sustaining forces at the initial and completed-round boundaries.",
     "EXP-HEAL-NONE-001": "Support healing is not applied because allocation is unknown.",
@@ -188,41 +187,56 @@ def _combat_waves(waves: list[Wave], registry: UnitRegistry) -> list[Wave]:
                   key=lambda w: (_runtime_line(w, registry), w.unit.unit_id, w.unit.wave_id))
 
 
-def _target(source: Wave, targets: list[Wave], registry: UnitRegistry,
-            targeting: TargetingProfile) -> tuple[Wave | None, str | None]:
-    _guard_single_line_waves([source, *targets])
-    source_line = _runtime_line(source, registry)
+def _target_for_line(source_line: str, targets: list[Wave], registry: UnitRegistry,
+                     targeting: TargetingProfile) -> tuple[Wave | None, str | None]:
+    _guard_single_line_waves(targets)
     for target_line in targeting.priorities[source_line]:
         choices = [w for w in _combat_waves(targets, registry)
                    if _runtime_line(w, registry) == target_line
                    and any(slot.units > 0 for slot in w.slots)]
-        if len(choices) == 1: return choices[0], target_line
-        if len(choices) > 1: return None, target_line
+        if len(choices) == 1:
+            return choices[0], target_line
+        if len(choices) > 1:
+            return None, target_line
     return None, None
 
 
-def _plan_fire(source: list[Wave], target: list[Wave], registry: UnitRegistry, workshop: WorkshopProfile,
-               forge: ForgeProfile, targeting: TargetingProfile, events: list[Event], number: int, side: str,
-               source_army, target_army, applied: dict[str, dict[str, str]]) -> list[dict[str, Any]]:
-    _guard_single_line_waves([*source, *target])
-    plans = []
+def _target(source: Wave, targets: list[Wave], registry: UnitRegistry,
+            targeting: TargetingProfile) -> tuple[Wave | None, str | None]:
+    return _target_for_line(_runtime_line(source, registry), targets, registry, targeting)
+
+
+def _shot_rows(firing_counts: list[int]) -> list[int]:
+    """Expand an Am source into individual shots while preserving row order."""
+    return [row
+            for row in range(1, max(firing_counts, default=0) + 1)
+            for _ in range(sum(count >= row for count in firing_counts))]
+
+
+def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitRegistry,
+                         targeting: TargetingProfile, events: list[Event], number: int,
+                         side: str, runtime_line: str,
+                         applied: dict[str, dict[str, str]]) -> list[dict[str, Any]]:
+    """Freeze firing eligibility for one formation before either side takes damage."""
+    volleys: list[dict[str, Any]] = []
     for wave in _combat_waves(source, registry):
-        if not wave.slots or not wave.alive: continue
+        if _runtime_line(wave, registry) != runtime_line or not wave.slots or not wave.alive:
+            continue
+        enemy, _ = _target_for_line(runtime_line, target, registry, targeting)
+        if enemy is None:
+            continue
         unit = registry.get(wave.unit.unit_id)
-        runtime_line = _runtime_line(wave, registry)
         weapon = select_active_weapon(unit, runtime_line)
         if wave.ammo_pool_shots == 0:
             _assume(applied, events, "EXP-AMMO-STOP-001", number, "fire")
             _event(events, number, "fire", "ammo_exhausted", side, unit_id=unit.id,
-                   assumption_id="EXP-AMMO-STOP-001", action="no_primary_fire_no_secondary_switch")
+                   firing_phase=runtime_line, assumption_id="EXP-AMMO-STOP-001",
+                   action="no_primary_fire_no_secondary_switch")
             continue
-        enemy, target_class = _target(wave, target, registry, targeting)
-        if enemy is None: continue
-        _assume(applied, events, "EXP-TARGET-LEGACY-001", number, "fire")
         _assume(applied, events, "EXP-ACCURACY-IGNORED-001", number, "fire")
         _assume(applied, events, "EXP-ROUND-FLOOR-001", number, "fire")
-        active = [slot for slot in enemy.slots if slot.units]
-        deployed = sorted(wave.slots, key=lambda slot: slot.damage_position)
+        deployed = sorted((slot for slot in wave.slots if slot.units),
+                          key=lambda slot: slot.damage_position)
         firing_counts = [slot.units for slot in deployed]
         total_firing = sum(firing_counts)
         if wave.ammo_pool_shots is not None and wave.ammo_pool_shots < total_firing:
@@ -230,48 +244,228 @@ def _plan_fire(source: list[Wave], target: list[Wave], registry: UnitRegistry, w
             remaining = wave.ammo_pool_shots
             firing_counts = []
             for slot in deployed:
-                count = min(slot.units, remaining); firing_counts.append(count); remaining -= count
+                count = min(slot.units, remaining)
+                firing_counts.append(count)
+                remaining -= count
             _event(events, number, "fire", "partial_ammunition", side, unit_id=unit.id,
-                   assumption_id="EXP-AMMO-PARTIAL-ORDER-001", firing_counts=firing_counts)
-        shots = sum(firing_counts)
-        if shots == 0: continue
-        trace = from_slot_counts(firing_counts, [slot.damage_position for slot in active])
-        damage = calculate_damage(unit, registry.get(enemy.unit.unit_id), wave.unit.attack_upgrade,
-                                  enemy.unit.armor_upgrade, source_army.forge_level,
-                                  target_army.forge_level, workshop, forge, RoundingPolicy.FLOOR,
-                                  weapon=weapon)
-        _event(events, number, "fire", "attacking_matrix", side, unit_id=unit.id,
-               target_unit_id=enemy.unit.unit_id, target_class=target_class,
-               weapon_id=weapon.id, targeting_assumption="EXP-TARGET-LEGACY-001", trace=trace.as_dict())
-        _event(events, number, "fire", "damage_calculation", side, source_unit_id=unit.id,
-               target_unit_id=enemy.unit.unit_id, **damage.as_dict())
-        for slot in active:
-            plans.append({"target_unit": enemy.unit.unit_id, "target_wave": enemy.unit.wave_id,
-                          "target_side": "defender" if side == "attacker" else "attacker",
-                          "slot_id": slot.slot_id, "hits": trace.hits_by_damage_position[slot.damage_position],
-                          "damage_per_hit": damage.final_damage, "source_unit": unit.id, "side": side})
-        if wave.ammo_pool_shots is not None: wave.ammo_pool_shots -= shots
+                   firing_phase=runtime_line, assumption_id="EXP-AMMO-PARTIAL-ORDER-001",
+                   firing_counts=firing_counts)
+        row_numbers = _shot_rows(firing_counts)
+        if not row_numbers:
+            continue
+        if wave.ammo_pool_shots is not None:
+            wave.ammo_pool_shots -= len(row_numbers)
+        volleys.append({
+            "side": side,
+            "source_unit": unit.id,
+            "source_wave": wave.unit.wave_id,
+            "runtime_line": runtime_line,
+            "weapon_id": weapon.id,
+            "attack_upgrade": wave.unit.attack_upgrade,
+            "row_numbers": row_numbers,
+        })
+    return volleys
+
+
+def _plan_fire(source: list[Wave], target: list[Wave], registry: UnitRegistry,
+               workshop: WorkshopProfile, forge: ForgeProfile, targeting: TargetingProfile,
+               events: list[Event], number: int, side: str, source_army, target_army,
+               applied: dict[str, dict[str, str]]) -> list[dict[str, Any]]:
+    """Compatibility helper used by focused tests; the engine executes per phase."""
+    del workshop, forge, source_army, target_army
+    plans: list[dict[str, Any]] = []
+    for runtime_line in targeting.firing_order:
+        plans.extend(_snapshot_phase_fire(
+            source, target, registry, targeting, events, number, side, runtime_line, applied))
     return plans
 
 
-def _apply(plans: list[dict[str, Any]], targets: list[Wave], registry: UnitRegistry,
-           events: list[Event], number: int, casualties: dict[str, int],
-           applied: dict[str, dict[str, str]]) -> None:
-    lookup = {(w.unit.unit_id, w.unit.wave_id, s.slot_id): s for w in targets for s in w.slots}
-    for plan in plans:
-        _assume(applied, events, "EXP-I-KILL-001", number, "fire")
-        _assume(applied, events, "EXP-RETARGET-NONE-001", number, "fire")
-        slot = lookup[(plan["target_unit"], plan["target_wave"], plan["slot_id"])]
-        hp = registry.get(slot.unit_id).hit_points
+def _even_unit_damage(total: int, units: int) -> list[int]:
+    if units <= 0:
+        return []
+    base, extra = divmod(total, units)
+    return [base + 1] * extra + [base] * (units - extra)
+
+
+def _build_damage_queues(waves: list[Wave], registry: UnitRegistry, events: list[Event],
+                         number: int, side: str,
+                         applied: dict[str, dict[str, str]]) -> dict[tuple[str, str, str], list[int]]:
+    """Materialize aggregate slot damage for sequential-hit resolution this round."""
+    queues: dict[tuple[str, str, str], list[int]] = {}
+    for wave in waves:
+        unit = registry.get(wave.unit.unit_id)
+        if unit.role != "combat":
+            continue
+        hp = unit.hit_points
         assert hp is not None
-        dealt, prior = plan["hits"] * plan["damage_per_hit"], slot.damage
-        killed = min(slot.units, (prior + dealt) // hp)
-        slot.units -= killed; slot.damage = prior + dealt - killed * hp; casualties[slot.unit_id] += killed
-        _event(events, number, "fire", "damage", plan["side"], target_slot=slot.slot_id,
-               target_side=plan["target_side"], target_line=slot.line,
-               target_damage_position=slot.damage_position, source_unit_id=plan["source_unit"], target_unit_id=slot.unit_id, firing_units=plan["hits"],
-               damage=dealt, prior_damage=prior, casualties=killed, persistent_damage=slot.damage,
-               assumption_ids=["EXP-I-KILL-001", "EXP-RETARGET-NONE-001"])
+        for slot in wave.slots:
+            if not slot.units:
+                continue
+            if slot.damage < 0 or slot.damage >= hp * slot.units:
+                raise ScenarioError("persistent slot damage must be below surviving slot HP")
+            if slot.damage and slot.units > 1:
+                _assume(applied, events, "EXP-SLOT-DAMAGE-EVEN-001", number, "round_start")
+            queues[(wave.unit.unit_id, wave.unit.wave_id, slot.slot_id)] = sorted(
+                _even_unit_damage(slot.damage, slot.units), reverse=True)
+    return queues
+
+
+def _rebalance_damage_queue(queue: list[int]) -> None:
+    queue[:] = sorted(_even_unit_damage(sum(queue), len(queue)), reverse=True)
+
+
+def _ir_trigger(*_args: Any, **_kwargs: Any) -> bool:
+    return False
+
+
+def _sr_trigger(*_args: Any, **_kwargs: Any) -> bool:
+    return False
+
+
+def _apply_sequential_hit(slot, queue: list[int], hp: int, damage: int) -> tuple[int, int, int]:
+    """D-kill baseline: focus the most-damaged survivor; discard overkill."""
+    if not queue or not slot.units:
+        return 0, 0, 0
+    prior_unit_damage = queue[0]
+    casualty = 0
+    overkill = 0
+    if prior_unit_damage + damage >= hp:
+        casualty = 1
+        overkill = max(0, prior_unit_damage + damage - hp)
+        queue.pop(0)
+    else:
+        queue[0] = prior_unit_damage + damage
+    slot.units = len(queue)
+    slot.damage = sum(queue)
+    return prior_unit_damage, casualty, overkill
+
+
+def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
+                      queues: dict[tuple[str, str, str], list[int]],
+                      registry: UnitRegistry, workshop: WorkshopProfile, forge: ForgeProfile,
+                      targeting: TargetingProfile, events: list[Event], number: int,
+                      source_army, target_army, casualties: dict[str, int],
+                      applied: dict[str, dict[str, str]]) -> None:
+    for volley in volleys:
+        if not volley["row_numbers"]:
+            continue
+        _assume(applied, events, "EXP-D-KILL-SEQUENTIAL-001", number, "fire")
+        _assume(applied, events, "EXP-IR-DISABLED-001", number, "fire")
+        source_unit = registry.get(volley["source_unit"])
+        weapon = next(item for item in source_unit.weapons if item.id == volley["weapon_id"])
+        matrix_groups: dict[tuple[str, str, str], dict[str, Any]] = {}
+        damage_groups: dict[tuple[str, str, str, str, int], dict[str, Any]] = {}
+        calculation_keys: set[tuple[str, str, str, int]] = set()
+
+        for row_number in volley["row_numbers"]:
+            enemy, target_class = _target_for_line(
+                volley["runtime_line"], targets, registry, targeting)
+            if enemy is None or target_class is None:
+                break
+            active = sorted((slot for slot in enemy.slots if slot.units),
+                            key=lambda slot: slot.damage_position)
+            if not active:
+                continue
+            target_slot = active[(row_number - 1) % len(active)]
+            target_unit = registry.get(target_slot.unit_id)
+            damage_trace = calculate_damage(
+                source_unit, target_unit, volley["attack_upgrade"], enemy.unit.armor_upgrade,
+                source_army.forge_level, target_army.forge_level, workshop, forge,
+                RoundingPolicy.FLOOR, weapon=weapon)
+            calculation_key = (
+                source_unit.id, target_unit.id, weapon.id, damage_trace.final_damage)
+            if calculation_key not in calculation_keys:
+                calculation_keys.add(calculation_key)
+                _event(events, number, "fire", "damage_calculation", volley["side"],
+                       firing_phase=volley["runtime_line"], source_unit_id=source_unit.id,
+                       target_unit_id=target_unit.id, **damage_trace.as_dict())
+
+            queue_key = (enemy.unit.unit_id, enemy.unit.wave_id, target_slot.slot_id)
+            queue = queues[queue_key]
+            prior_slot_damage = target_slot.damage
+            prior_unit_damage, killed, overkill = _apply_sequential_hit(
+                target_slot, queue, target_unit.hit_points or 0, damage_trace.final_damage)
+            casualties[target_slot.unit_id] += killed
+
+            matrix_key = (enemy.unit.unit_id, enemy.unit.wave_id, target_class)
+            matrix = matrix_groups.setdefault(matrix_key, {
+                "target_unit_id": enemy.unit.unit_id,
+                "target_class": target_class,
+                "rows": defaultdict(int),
+                "hits": defaultdict(int),
+                "positions": set(),
+            })
+            matrix["rows"][row_number] += 1
+            matrix["hits"][target_slot.damage_position] += 1
+            matrix["positions"].add(target_slot.damage_position)
+
+            damage_key = (
+                enemy.unit.unit_id, enemy.unit.wave_id, target_slot.slot_id,
+                target_class, damage_trace.final_damage)
+            group = damage_groups.setdefault(damage_key, {
+                "target_unit_id": target_slot.unit_id,
+                "target_wave": enemy.unit.wave_id,
+                "target_slot": target_slot.slot_id,
+                "target_line": target_slot.line,
+                "target_damage_position": target_slot.damage_position,
+                "damage": 0,
+                "firing_units": 0,
+                "casualties": 0,
+                "overkill_discarded": 0,
+                "prior_damage": prior_slot_damage,
+                "first_target_unit_damage": prior_unit_damage,
+            })
+            group["damage"] += damage_trace.final_damage
+            group["firing_units"] += 1
+            group["casualties"] += killed
+            group["overkill_discarded"] += overkill
+
+            if _ir_trigger(volley, enemy, target_slot, row_number):
+                _rebalance_damage_queue(queue)
+                target_slot.damage = sum(queue)
+
+        for matrix in matrix_groups.values():
+            max_row = max(matrix["rows"], default=0)
+            _event(events, number, "fire", "attacking_matrix", volley["side"],
+                   firing_phase=volley["runtime_line"], unit_id=source_unit.id,
+                   target_unit_id=matrix["target_unit_id"],
+                   target_class=matrix["target_class"], weapon_id=weapon.id,
+                   targeting_authority="GAMEFORGE_IN_GAME_HELP",
+                   trace={
+                       "row_populations": [matrix["rows"].get(row, 0)
+                                           for row in range(1, max_row + 1)],
+                       "target_damage_positions": sorted(matrix["positions"]),
+                       "hits_by_damage_position": dict(matrix["hits"]),
+                   })
+        for group in damage_groups.values():
+            target_wave = next(
+                wave for wave in targets
+                if wave.unit.unit_id == group["target_unit_id"]
+                and wave.unit.wave_id == group["target_wave"])
+            target_slot = next(slot for slot in target_wave.slots
+                               if slot.slot_id == group["target_slot"])
+            _event(events, number, "fire", "damage", volley["side"],
+                   firing_phase=volley["runtime_line"],
+                   target_side="defender" if volley["side"] == "attacker" else "attacker",
+                   source_unit_id=source_unit.id,
+                   resolution="sequential_d_kill_baseline",
+                   persistent_damage=target_slot.damage,
+                   assumption_ids=["EXP-D-KILL-SEQUENTIAL-001", "EXP-IR-DISABLED-001"],
+                   **group)
+
+
+def _apply_slot_redistribution(
+    waves: list[Wave], queues: dict[tuple[str, str, str], list[int]]
+) -> None:
+    for wave in waves:
+        for slot in wave.slots:
+            key = (wave.unit.unit_id, wave.unit.wave_id, slot.slot_id)
+            queue = queues.get(key)
+            if queue is None or not queue:
+                continue
+            _rebalance_damage_queue(queue)
+            slot.damage = sum(queue)
+
 
 
 def _termination(attacker: dict[str, Any], defender: dict[str, Any]) -> tuple[str | None, str | None]:
@@ -321,8 +515,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     if all(state == ContinuationState.NOT_SUSTAINING.value for state in initial_states.values()):
         blockers.append("UNKNOWN-BOTH-SIDES-NO-MAIN-LINE-OUTCOME")
     if scenario.policy is Policy.STRICT:
-        blockers += ["UNKNOWN-KILL-SELECTION", "UNKNOWN-ROUNDING-SELECTOR", "UNKNOWN-COMPLETE-CHRONOLOGY",
-                     "UNKNOWN-ACCURACY", "UNKNOWN-TARGET-TRANSFER"]
+        blockers += ["UNKNOWN-KILL-SELECTION", "UNKNOWN-ROUNDING-SELECTOR",
+                     "UNKNOWN-ACCURACY", "UNKNOWN-IR-TRIGGER", "UNKNOWN-SR-TRIGGER"]
         return _unsupported(scenario, events, initial, sorted(set(blockers)), warnings)
     if {"UNKNOWN-MIXED-UNIT-AM-ROWS", "UNKNOWN-MULTIPLE-TARGET-WAVES",
         "UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS",
@@ -370,13 +564,34 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     both_zero_boundary = False
     for number in range(1, scenario.max_rounds + 1):
         _prepare_round_start(attacker, events, number, "attacker", applied); _prepare_round_start(defender, events, number, "defender", applied)
-        # Both plans are made before either is applied: no hidden attacker-first bias.
-        a_plan = _plan_fire(attacker, deepcopy(defender), registry, workshop, forge, targeting, events, number, "attacker", scenario.attacker, scenario.defender, applied)
-        d_plan = _plan_fire(defender, deepcopy(attacker), registry, workshop, forge, targeting, events, number, "defender", scenario.defender, scenario.attacker, applied)
-        if a_plan or d_plan:
-            _assume(applied, events, "EXP-CHRONOLOGY-001", number, "fire")
+        # Art of Warfare: same formations on both sides shoot simultaneously;
+        # casualties from an earlier formation suppress firing in later phases.
         a_dead, d_dead = defaultdict(int), defaultdict(int)
-        _apply(a_plan, defender, registry, events, number, d_dead, applied); _apply(d_plan, attacker, registry, events, number, a_dead, applied)
+        a_queues = _build_damage_queues(attacker, registry, events, number, "attacker", applied)
+        d_queues = _build_damage_queues(defender, registry, events, number, "defender", applied)
+        for firing_phase in targeting.firing_order:
+            a_volleys = _snapshot_phase_fire(
+                attacker, defender, registry, targeting, events, number, "attacker",
+                firing_phase, applied)
+            d_volleys = _snapshot_phase_fire(
+                defender, attacker, registry, targeting, events, number, "defender",
+                firing_phase, applied)
+            if not a_volleys and not d_volleys:
+                continue
+            _event(events, number, "fire", "formation_fire_phase", None,
+                   firing_phase=firing_phase, simultaneous=True,
+                   attacker_shots=sum(len(v["row_numbers"]) for v in a_volleys),
+                   defender_shots=sum(len(v["row_numbers"]) for v in d_volleys))
+            _resolve_volleys(
+                a_volleys, defender, d_queues, registry, workshop, forge, targeting,
+                events, number, scenario.attacker, scenario.defender, d_dead, applied)
+            _resolve_volleys(
+                d_volleys, attacker, a_queues, registry, workshop, forge, targeting,
+                events, number, scenario.defender, scenario.attacker, a_dead, applied)
+            _assume(applied, events, "EXP-SR-DISABLED-001", number, "fire")
+            if _sr_trigger(firing_phase, attacker, defender):
+                _apply_slot_redistribution(attacker, a_queues)
+                _apply_slot_redistribution(defender, d_queues)
         for k,v in a_dead.items(): total["attacker"][k] += v
         for k,v in d_dead.items(): total["defender"][k] += v
         completed = number

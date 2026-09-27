@@ -65,6 +65,12 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  hoplite=next(u for u in data['units'] if u['id']=='hoplite')
  carabineer=next(u for u in data['units'] if u['id']=='sulphur_carabineer')
  assert (hoplite['size'],carabineer['size'])==(1,4)
+ assert data['combat_chronology']['firing_order']==['anti-balloon','balloon','third','flank','second','first']
+ assert data['combat_chronology']['formation_fill_order']==['balloon','anti-balloon','third','second','first','flank']
+ assert data['combat_chronology']['same_formation_simultaneous'] is True
+ assert data['combat_chronology']['target_priorities']['third']==['first','flank']
+ assert data['combat_chronology']['ir_trigger']=='UNKNOWN_DISABLED'
+ assert data['combat_chronology']['sr_trigger']=='UNKNOWN_DISABLED'
  assert (hoplite['resource_cost_basis_total'],hoplite['general_score'])==(70,'1.4')
  assert (carabineer['resource_cost_basis_total'],carabineer['general_score'])==(200,'4')
 

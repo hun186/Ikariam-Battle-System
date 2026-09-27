@@ -8,7 +8,7 @@ from ikariam_battle import BarbarianRegistry, ScenarioError, UnitRegistry, simul
 from ikariam_battle.battlefield import battlefield_metadata
 from ikariam_battle.economy import MilitaryEconomyProfile
 from ikariam_battle.models import MAX_ROUNDS, Profiles
-from ikariam_battle.profiles import ForgeProfile, SupportProfile, WorkshopProfile
+from ikariam_battle.profiles import ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 
 
 API_SIMULATE_PATHS = {"/api/simulate", "/api/simulate.py"}
@@ -115,8 +115,17 @@ class handler(BaseHTTPRequestHandler):
             for row in units:
                 if row["id"] in economy_units:
                     row.update(economy_units[row["id"]])
+            targeting = TargetingProfile.load()
             self._json(200, {"message": "POST a typed scenario to /api/simulate",
                 "profiles": Profiles().__dict__,
+                "combat_chronology": {
+                    "formation_fill_order": list(targeting.formation_fill_order),
+                    "firing_order": list(targeting.firing_order),
+                    "same_formation_simultaneous": targeting.same_formation_simultaneous,
+                    "target_priorities": {k:list(v) for k,v in targeting.priorities.items()},
+                    "ir_trigger": "UNKNOWN_DISABLED",
+                    "sr_trigger": "UNKNOWN_DISABLED",
+                },
                 "battlefields": battlefield_metadata(),
                 "profile_metadata": registry.metadata, "economy_metadata": economy.metadata, "units": units,
                 "barbarian_profile_metadata": barbarians.metadata, "barbarian_units": barbarians.public(),
