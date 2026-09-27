@@ -88,6 +88,11 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  response=asyncio.run(request('GET','/')); body=response[1]['body'].decode()
  assert response[0]['status']==200 and "fetch('/api/simulate')" in body and 'const units=[' not in body
  assert '兵力設定' in body and '逐回合戰報' in body and '總戰報' in body
+ assert 'id="maxRounds" type="number" min="1" max="1000" value="1000"' in body
+ assert '1000 回合是安全上限，不是固定戰鬥長度' in body
+ assert 'Cook 士氣目前尚未完整建模' in body
+ assert "e.type==='safety_limit_reached'" in body
+ assert 'Safety round cap reached / 已達安全回合上限' in body
  assert '熔爐神蹟 / Forge' in body and '攻擊' in body and '防禦' in body
  assert '進階：進場批次' in body and 'Research mode' in body and 'slot-tooltip' in body
  assert "Math.floor(field.lines[line].slot_space/unit.size)" in body

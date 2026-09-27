@@ -13,7 +13,7 @@ header h1{font:700 clamp(26px,4vw,42px) Georgia,serif;margin:0}header p{margin:5
 main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.tab{border:1px solid #6f634e;background:#f8edd2;color:var(--ink);padding:9px 16px;border-radius:5px;font-weight:800}.tab.active{background:var(--deep);color:#fff;border-color:var(--deep)}.tab:disabled{opacity:.45;cursor:not-allowed}
 .panel{background:linear-gradient(135deg,#fffdf5,#efe0ba);border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 14px #4a381f26}
-.settings{display:flex;gap:12px;align-items:end;flex-wrap:wrap;padding:12px 14px;margin-bottom:14px}.settings label,.side-toolbar label{font-size:11px;font-weight:800;text-transform:uppercase;display:grid;gap:4px}.settings select,.settings input,.side-toolbar select{border:1px solid #96805b;background:#fffdf7;border-radius:4px;padding:8px;color:var(--ink)}
+.settings{display:flex;gap:12px;align-items:end;flex-wrap:wrap;padding:12px 14px;margin-bottom:14px}.settings label,.side-toolbar label{font-size:11px;font-weight:800;text-transform:uppercase;display:grid;gap:4px}.settings select,.settings input,.side-toolbar select{border:1px solid #96805b;background:#fffdf7;border-radius:4px;padding:8px;color:var(--ink)}.settings-note{flex-basis:100%;padding:8px 10px;background:#f8efd8;border-left:4px solid #9a8356;font-size:12px;color:#5d5548}
 .setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.side-setup{overflow:hidden}.side-title{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;color:#fff}.side-setup.attacker .side-title{background:linear-gradient(90deg,#894138,#ad5b4d)}.side-setup.defender .side-title{background:linear-gradient(90deg,#245d78,#3c7893)}.side-title h2{font:700 22px Georgia,serif;margin:0}.side-toolbar{display:flex;align-items:end;gap:10px}.side-toolbar select{min-width:150px}
 .unit-list{padding:10px}.unit-group{margin-bottom:10px}.unit-group-title{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#655b49;border-bottom:1px solid #cbb892;padding:4px 2px}
 .unit-setup-row{display:grid;grid-template-columns:minmax(150px,1.45fr) minmax(205px,1.6fr) 82px 82px;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px solid #ddd0b4}.unit-ident{display:grid;grid-template-columns:42px 1fr;gap:8px;align-items:center;min-width:0}.unit-icon{width:46px;height:46px;border-radius:7px;display:grid;place-items:center;background:linear-gradient(#f7e7bf,#d5bd87);border:2px solid #9a8051;overflow:hidden}.unit-icon img{width:44px;height:44px;object-fit:contain;display:block}.unit-art-fallback{font-size:20px;line-height:1}.unit-name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.unit-meta{font-size:11px;color:var(--muted)}
@@ -47,8 +47,9 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
     <section class="settings panel">
       <label>Policy<select id="policy"><option value="experimental">Experimental / named assumptions</option><option value="strict">Strict / evidence-safe</option></select></label>
       <label>Battlefield<select id="battlefield"></select></label>
-      <label>Max rounds<input id="maxRounds" type="number" min="1" max="100" value="10"></label>
+      <label>Max rounds / safety cap<input id="maxRounds" type="number" min="1" max="1000" value="1000"></label>
       <label style="text-transform:none"><span><input id="researchMode" type="checkbox"> Research mode</span></label>
+      <div class="settings-note">1000 回合是安全上限，不是固定戰鬥長度；若提早分出勝負或遇到無法安全判定的機制，模擬會提早停止。Cook 士氣目前尚未完整建模；實戰常見約 15 Cook 的配置不會被當成已驗證的固定公式。</div>
     </section>
 
     <div class="setup-grid">
@@ -314,6 +315,8 @@ function renderPager(){
 function safetyNoticesHtml(data){
   const blockers=[...new Set(data.events.filter(e=>e.type==='unsupported_mechanic').map(e=>e.details?.rule_id).filter(Boolean))];
   const warnings=[...new Set(data.warnings||[])],assumptions=data.assumptions||[],cards=[];
+  const roundCap=data.events.find(e=>e.type==='safety_limit_reached');
+  if(roundCap)cards.push('<div class="safety-card warning"><b>Safety round cap reached / 已達安全回合上限</b><div>Simulation stopped at '+esc(roundCap.details?.limit)+' rounds without a resolved outcome.</div></div>');
   if(blockers.length)cards.push('<div class="safety-card blocker"><b>Unsupported mechanics / 無法安全判定</b><ul>'+blockers.map(id=>'<li>'+esc(id)+'</li>').join('')+'</ul></div>');
   if(warnings.length)cards.push('<div class="safety-card warning"><b>Evidence warnings</b><ul>'+warnings.map(item=>'<li>'+esc(item)+'</li>').join('')+'</ul></div>');
   if(assumptions.length)cards.push('<div class="safety-card assumption"><b>Experimental assumptions actually used</b><ul>'+assumptions.map(item=>'<li>'+esc(item.id)+': '+esc(item.description)+'</li>').join('')+'</ul></div>');
