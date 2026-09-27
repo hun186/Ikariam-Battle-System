@@ -40,3 +40,10 @@ def test_profiles_from_dict_uses_named_mapping_with_economy_extension():
  value=Profiles.from_dict({'economy':'military-economy-current'})
  assert value==Profiles()
  assert value.workshop=='v14-workshop' and value.economy=='military-economy-current'
+
+
+def test_max_rounds_defaults_to_1000_and_rejects_above_safety_cap():
+ assert Scenario.from_dict(BASE).max_rounds==1000
+ assert Scenario.from_dict({**BASE,'max_rounds':1000}).max_rounds==1000
+ with pytest.raises(ScenarioError,match='max_rounds must be 1..1000'):
+  Scenario.from_dict({**BASE,'max_rounds':1001})

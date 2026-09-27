@@ -5,6 +5,9 @@ from enum import Enum
 from typing import Any
 
 
+MAX_ROUNDS = 1000
+
+
 class ScenarioError(ValueError):
     pass
 
@@ -122,7 +125,7 @@ class Scenario:
     profiles: Profiles = Profiles()
     policy: Policy = Policy.STRICT
     battlefield: str = "land-mini"
-    max_rounds: int = 10
+    max_rounds: int = MAX_ROUNDS
 
     @classmethod
     def from_dict(cls, value: Any) -> "Scenario":
@@ -137,7 +140,7 @@ class Scenario:
         try:
             return cls(Army.from_dict(data["attacker"]), Army.from_dict(data["defender"]),
                        Profiles.from_dict(data.get("profiles", {})), policy, battlefield,
-                       _integer(data.get("max_rounds", 10), "max_rounds", 1, 100))
+                       _integer(data.get("max_rounds", MAX_ROUNDS), "max_rounds", 1, MAX_ROUNDS))
         except KeyError as exc:
             raise ScenarioError(f"missing field: {exc.args[0]}") from exc
 

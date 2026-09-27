@@ -368,6 +368,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     completed = 0
     fallback_boundary = False
     both_zero_boundary = False
+    round_cap_reached = False
     for number in range(1, scenario.max_rounds + 1):
         _prepare_round_start(attacker, events, number, "attacker", applied); _prepare_round_start(defender, events, number, "defender", applied)
         # Both plans are made before either is applied: no hidden attacker-first bias.
@@ -406,6 +407,10 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                                              "defender":_non_sustaining(defender_state)})
             break
         if not a_dead and not d_dead and not a_plan and not d_plan: break
+    else:
+        round_cap_reached = True
+        _event(events, scenario.max_rounds, "battle_end", "safety_limit_reached", None,
+               reason="max_rounds_reached", limit=scenario.max_rounds)
     final = {"attacker":_snapshot(attacker,registry,battle_end),"defender":_snapshot(defender,registry,battle_end)}
     outcome, _ = _termination(final["attacker"], final["defender"])
     if fallback_boundary or both_zero_boundary:
