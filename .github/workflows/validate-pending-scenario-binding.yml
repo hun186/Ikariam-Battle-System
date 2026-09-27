@@ -1,0 +1,58 @@
+name: Validate pending scenario binding
+
+on:
+  push:
+    branches:
+      - feat/round-safety-cap-1000
+    paths:
+      - .github/workflows/validate-pending-scenario-binding.yml
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/round-safety-cap-1000
+          fetch-depth: 0
+      - name: Validate pending scenario isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -q pytest
+          python -m compileall -q ikariam_battle asgi.py web_simulator.py simulator.py
+          python -m pytest -q tests/integration/test_api.py
+          python -m pytest -q
+          cmp index.html public/index.html
+          python - <<'PY'
+          from pathlib import Path
+          html=Path('index.html').read_text()
+          required=[
+              "scenarioByGeneration=new Map()",
+              "scenario=scenarioByGeneration.get(generation)",
+              "if(generation!==simulationGeneration||!scenario)return null",
+              "scenarioByGeneration.clear();scenarioByGeneration.set(generation,scenario);disableReports()",
+              "function disableReports(){setReportsEnabled(false)}",
+              "roundPageCache.clear();\n    renderSummary()",
+          ]
+          for needle in required:
+              assert needle in html, needle
+          assert "lastScenario" not in html
+          assert html==Path('public/index.html').read_text()
+          script=html.split('<script>',1)[1].split('</script>',1)[0]
+          Path('/tmp/ikariam-ui.js').write_text(script)
+          PY
+          node --check /tmp/ikariam-ui.js
+      - name: Remove one-time validation workflow
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/validate-pending-scenario-binding.yml
+          git commit -m "chore: remove one-time pending-scenario validation"
+          git push origin HEAD:feat/round-safety-cap-1000
