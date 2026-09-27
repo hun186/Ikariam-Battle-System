@@ -363,3 +363,18 @@ def test_http_non_object_json_bodies_are_400_not_500():
   status,data=post_raw(value)
   assert status==400
   assert data=={'error':'request body must be an object'}
+
+
+def test_zero_quantity_support_rows_are_absent_from_http_support_status():
+ for support,status_key,count_key,assumption in (
+  ('doctor','healing_status','doctor_count','EXP-HEAL-NONE-001'),
+  ('cook','morale_status','cook_count','EXP-MORALE-NONE-001'),
+ ):
+  value={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+    'attacker':{'units':[{'unit_id':'hoplite','quantity':30},{'unit_id':support,'quantity':0}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':30}]}}
+  status,data=post(value)
+  assert status==200
+  side=data[status_key]['sides']['attacker']
+  assert side[count_key]==0 and side['status']=='not_present'
+  assert assumption not in {a['id'] for a in data['assumptions']}

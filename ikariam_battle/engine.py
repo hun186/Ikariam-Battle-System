@@ -107,6 +107,8 @@ def _preflight(waves: list[Wave], registry: UnitRegistry, rules: FormationRules,
     line_waves: dict[str, int] = defaultdict(int)
     deployed_lines = {slot.line for wave in waves for slot in wave.slots if slot.units}
     for wave in waves:
+        if not wave.alive:
+            continue
         if len({slot.line for slot in wave.slots}) > 1:
             blockers.append("UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS")
         unit = registry.get(wave.unit.unit_id)

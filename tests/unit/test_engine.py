@@ -512,3 +512,22 @@ def test_same_formation_both_sides_keep_phase_start_firing_eligibility():
  assert {e['side'] for e in sword_damage}=={'attacker','defender'}
  assert result['casualties']['attacker'].get('swordsman')==240
  assert result['casualties']['defender'].get('swordsman')==240
+
+
+def test_zero_quantity_support_rows_do_not_create_blockers_or_assumptions():
+ for support,blocker,assumption,status_key,count_key in (
+  ('doctor','UNKNOWN-HEALING-ALLOCATION','EXP-HEAL-NONE-001','healing_status','doctor_count'),
+  ('cook','UNKNOWN-MORALE-SUPPORT','EXP-MORALE-NONE-001','morale_status','cook_count'),
+ ):
+  s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+     'attacker':{'units':[{'unit_id':'hoplite','quantity':30},
+                          {'unit_id':support,'quantity':0}]},
+     'defender':{'units':[{'unit_id':'hoplite','quantity':30}]}}
+  result=simulate(s)
+  rules={e['details'].get('rule_id') for e in result['events']
+         if e['type']=='unsupported_mechanic'}
+  ids={a['id'] for a in result['assumptions']}
+  assert blocker not in rules
+  assert assumption not in ids
+  side=result[status_key]['sides']['attacker']
+  assert side[count_key]==0 and side['status']=='not_present'
