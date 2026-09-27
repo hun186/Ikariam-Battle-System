@@ -1,0 +1,75 @@
+name: Validate battle report UI calibration
+
+on:
+  push:
+    branches:
+      - feat/battle-report-ui-calibration
+    paths:
+      - .github/workflows/validate-battle-report-ui-calibration.yml
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/battle-report-ui-calibration
+          fetch-depth: 0
+      - name: Validate backend, UI contracts and suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -q pytest
+          python -m compileall -q ikariam_battle asgi.py web_simulator.py simulator.py
+          python -m pytest -q tests/unit/test_engine.py tests/integration/test_api.py
+          python -m pytest -q
+          cmp index.html public/index.html
+          python - <<'PY'
+          from pathlib import Path
+          from ikariam_battle import simulate
+
+          result=simulate({
+              'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+              'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
+              'defender':{'units':[{'unit_id':'hoplite','quantity':1}]},
+          })
+          slot=next(row for row in result['rounds'][1]['defender']['slots']
+                    if row['unit_id']=='hoplite' and row['line']=='first')
+          assert slot['units']==0
+          assert slot['hit_points_percent']==0
+          assert slot['casualties']==1
+
+          html=Path('index.html').read_text()
+          assert html==Path('public/index.html').read_text()
+          required=(
+              "state.slots.filter(s=>s.line===line)",
+              "slot.dead .slot-glyph img",
+              "function reserveGroups(state)",
+              "reserve_hit_points_percent",
+              "add('初始部署',0,false,'deployment-jump')",
+              "add('«',1",
+              "add('»',maximum",
+              "input.placeholder='回合'",
+              'id="showUnitStats" type="checkbox"',
+              "function effectiveSetupStats(row)",
+          )
+          for needle in required:
+              assert needle in html, needle
+          assert "state.slots.filter(s=>s.line===line&&s.units>0)" not in html
+          assert "number===0?'部署':String(number)" not in html
+          Path('/tmp/ikariam-ui.js').write_text(html.split('<script>',1)[1].split('</script>',1)[0])
+          PY
+          node --check /tmp/ikariam-ui.js
+      - name: Remove one-time validation workflow
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/validate-battle-report-ui-calibration.yml
+          git commit -m "chore: remove battle-report UI validation"
+          git push origin HEAD:feat/battle-report-ui-calibration
