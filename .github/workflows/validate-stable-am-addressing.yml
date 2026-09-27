@@ -1,0 +1,71 @@
+name: Validate stable Am slot addressing
+
+on:
+  push:
+    branches:
+      - feat/round-combat-healing-stats
+    paths:
+      - .github/workflows/validate-stable-am-addressing.yml
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/round-combat-healing-stats
+          fetch-depth: 0
+      - name: Validate engine, docs and full suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -q pytest
+          python -m compileall -q ikariam_battle asgi.py web_simulator.py simulator.py
+          python -m pytest -q tests/unit/test_attacking_matrix.py tests/unit/test_engine.py tests/unit/test_profiles.py tests/integration/test_api.py
+          python -m pytest -q
+          cmp index.html public/index.html
+          python - <<'PY'
+          from pathlib import Path
+          from ikariam_battle import simulate
+
+          s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+             'attacker':{'units':[{'unit_id':'hoplite','quantity':4}]},
+             'defender':{'units':[{'unit_id':'spearman','quantity':31}]}}
+          r=simulate(s)
+          assert r['casualties']['defender'].get('spearman')==3
+          wasted=[e for e in r['events'] if e['type']=='shot_addressed_empty_slot'
+                  and e['side']=='attacker']
+          assert len(wasted)==1
+          assert wasted[0]['details']['target_damage_position']==2
+          matrix=next(e for e in r['events'] if e['type']=='attacking_matrix'
+                      and e['side']=='attacker' and e['details']['unit_id']=='hoplite')
+          assert matrix['details']['trace']['target_damage_positions']==[1,2]
+          assert matrix['details']['trace']['hits_by_damage_position']=={1:2,2:2}
+          assert matrix['details']['trace']['empty_addressed_shots_by_damage_position']=={2:1}
+
+          readme=Path('README.md').read_text()
+          assert 'chronology limitations retained' not in readme
+          assert 'legacy/community experimental profile' not in readme
+          issues=Path('.codex/known_issues.md').read_text()
+          assert 'chronology/accuracy/transfer' not in issues
+          spec=Path('docs/mechanics-spec.md').read_text()
+          assert 'Within one volley against one target formation, the Am row→damage-position address set is frozen' in spec
+
+          html=Path('index.html').read_text()
+          assert html==Path('public/index.html').read_text()
+          Path('/tmp/ikariam-ui.js').write_text(html.split('<script>',1)[1].split('</script>',1)[0])
+          PY
+          node --check /tmp/ikariam-ui.js
+      - name: Remove one-time validation workflow
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/validate-stable-am-addressing.yml
+          git commit -m "chore: remove stable-Am validation"
+          git push origin HEAD:feat/round-combat-healing-stats
