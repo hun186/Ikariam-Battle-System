@@ -5,7 +5,7 @@
 - Workshop upgrades are per unit type; Forge is side-wide.
 - All five land IDs use evidence-backed slot geometry and slot-space/unit-size capacity; selection remains explicit.
 - Complete reviewer-verified current data is distinct from empirical mechanics.
-- Ammo is a pooled shot count; targeting and ignored accuracy are named experimental policies.
+- Ammo is a pooled shot count. Art of Warfare firing chronology and runtime-line target priorities are executable contracts; ignored accuracy remains a named experimental policy.
 - Doctor/Tender healing and Cook morale are separate unknowns.
 - Support has separate deployed state; walls and garrison-limit escalation are out of current scope.
 - Battle-end state separates actual main-line holders, unresolved fallback candidates, and non-sustaining survivors; fallback-required stops inconclusive and applied assumptions remain unique and conditional.
