@@ -1,0 +1,38 @@
+name: Validate formation phase engine
+
+on:
+  push:
+    branches:
+      - feat/round-combat-healing-stats
+    paths:
+      - .github/workflows/validate-formation-phase-engine.yml
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/round-combat-healing-stats
+          fetch-depth: 0
+      - name: Validate phase chronology and sequential shots
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -q pytest
+          python -m compileall -q ikariam_battle asgi.py web_simulator.py simulator.py
+          python -m pytest -q tests/unit/test_engine.py tests/unit/test_profiles.py tests/integration/test_api.py
+          python -m pytest -q
+      - name: Remove one-time validation workflow
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/validate-formation-phase-engine.yml
+          git commit -m "chore: remove one-time phase-engine validation"
+          git push origin HEAD:feat/round-combat-healing-stats
