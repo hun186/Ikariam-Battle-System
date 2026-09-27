@@ -57,6 +57,11 @@ class TargetingProfile:
     def __init__(self, raw: dict):
         self.metadata = raw["metadata"]
         self.priorities = {line: tuple(targets) for line, targets in raw["priorities"].items()}
+        self.firing_order = tuple(raw["firing_order"])
+        self.formation_fill_order = tuple(raw["formation_fill_order"])
+        self.same_formation_simultaneous = bool(raw["same_formation_simultaneous"])
+        if set(self.firing_order) != set(self.priorities):
+            raise ValueError("targeting firing_order must contain each formation exactly once")
 
     @classmethod
     def load(cls, name: str = "legacy-community-land-targeting") -> "TargetingProfile":

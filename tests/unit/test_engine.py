@@ -18,13 +18,15 @@ def scenario(policy='experimental',rounds=5):
 def test_strict_refuses_accuracy_targeting_and_other_unknowns():
  r=simulate(scenario('strict')); rules={e['details']['rule_id'] for e in r['events'] if e['type']=='unsupported_mechanic'}
  assert r['status']=='inconclusive' and r['rounds_completed']==0
- assert {'UNKNOWN-KILL-SELECTION','UNKNOWN-ACCURACY','UNKNOWN-TARGET-TRANSFER'} <= rules
+ assert {'UNKNOWN-KILL-SELECTION','UNKNOWN-ACCURACY','UNKNOWN-IR-TRIGGER','UNKNOWN-SR-TRIGGER'} <= rules
 
 
 def test_experimental_names_accuracy_targeting_and_is_reproducible():
  first=simulate(scenario()); assert first==simulate(scenario())
  ids={a['id'] for a in first['assumptions']}
- assert {'EXP-I-KILL-001','EXP-ACCURACY-IGNORED-001','EXP-TARGET-LEGACY-001'} <= ids
+ assert {'EXP-D-KILL-SEQUENTIAL-001','EXP-ACCURACY-IGNORED-001',
+         'EXP-IR-DISABLED-001','EXP-SR-DISABLED-001'} <= ids
+ assert 'EXP-TARGET-LEGACY-001' not in ids
  assert 'EXP-AMMO-PARTIAL-ORDER-001' not in ids
  assert len(ids)==len(first['assumptions'])
  assert any(e['type']=='damage_calculation' and e['details']['workshop_attack_level']==12 for e in first['events'])
@@ -42,10 +44,9 @@ def test_carabineer_ammunition_is_pooled_shots_not_round_counter():
  assert attacker[0].ammo_pool_shots==126 and sum(s.units for s in attacker[0].slots)==21
  for round_no in range(1,5):
   plans=_plan_fire(attacker,deepcopy(defender),registry,WorkshopProfile.load(),ForgeProfile.load(),TargetingProfile.load(),events,round_no,'attacker',attacker_army,defender_army,{})
-  assert plans
+  assert plans and {plan['weapon_id'] for plan in plans}=={'primary'}
  assert attacker[0].ammo_pool_shots==42
  assert not any(e.type=='ammo_exhausted' for e in events)
- assert {e.details['weapon_id'] for e in events if e.type=='damage_calculation'}=={'primary'}
 
 
 def test_partial_ammo_assumption_is_applied_only_when_partial_volley_occurs():
@@ -146,7 +147,7 @@ def test_single_weapon_light_fallback_has_no_specific_strict_blocker():
  strict=simulate(s)
  rules={e['details']['rule_id'] for e in strict['events'] if e['type']=='unsupported_mechanic'}
  assert 'UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT' not in rules
- assert {'UNKNOWN-KILL-SELECTION','UNKNOWN-ACCURACY','UNKNOWN-TARGET-TRANSFER'} <= rules
+ assert {'UNKNOWN-KILL-SELECTION','UNKNOWN-ACCURACY','UNKNOWN-IR-TRIGGER','UNKNOWN-SR-TRIGGER'} <= rules
  s['policy']='experimental'; experimental=simulate(s)
  assert any(e['type']=='attacking_matrix' for e in experimental['events'])
 
@@ -298,9 +299,8 @@ def test_tooltip_ammo_is_shared_wave_derived_state():
  assert state['waves'][0]['munition_percent']==50
 
 
-def test_support_artillery_and_air_survive_but_do_not_sustain_battle():
- cases=[('doctor',4),('catapult',6),('gyrocopter',10)]
- for unit,quantity in cases:
+def test_support_and_air_survive_but_main_can_retarget_artillery_after_front_dies():
+ for unit,quantity in [('doctor',4),('gyrocopter',10)]:
   s={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
      'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
      'defender':{'units':[{'unit_id':'hoplite','quantity':1},{'unit_id':unit,'quantity':quantity}]}}
@@ -311,6 +311,17 @@ def test_support_artillery_and_air_survive_but_do_not_sustain_battle():
   assert result['casualties']['defender'].get(unit,0)==0
   event=next(e for e in result['events'] if e['type']=='battle_termination')
   assert event['details']['surviving_non_sustaining']['defender']=={unit:quantity}
+
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
+    'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':1},{'unit_id':'catapult','quantity':6}]}}
+ result=simulate(s)
+ assert result['outcome']=='attacker' and result['rounds_completed']==1
+ assert result['final_state']['defender']['remaining'].get('catapult',0)==0
+ assert result['casualties']['defender'].get('catapult')==6
+ catapult_hits=[e for e in result['events'] if e['type']=='damage'
+                and e['side']=='attacker' and e['details'].get('target_unit_id')=='catapult']
+ assert catapult_hits and {e['details']['firing_phase'] for e in catapult_hits}=={'first'}
 
 
 def test_initial_long_range_requires_fallback_and_is_not_sustaining():
@@ -351,18 +362,23 @@ def test_front_alive_with_carabineer_is_sustaining():
  assert state['continuation_state']=='sustaining'
 
 
-@pytest.mark.parametrize('fallback_unit,quantity',[('sulphur_carabineer',7)])
-def test_dynamic_front_collapse_stops_at_fallback_boundary(fallback_unit,quantity):
+def test_dynamic_front_collapse_retargets_later_main_shots_into_long_range():
+ quantity=7
  s={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
     'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
-    'defender':{'units':[{'unit_id':'hoplite','quantity':1},{'unit_id':fallback_unit,'quantity':quantity}]}}
+    'defender':{'units':[{'unit_id':'hoplite','quantity':1},
+                         {'unit_id':'sulphur_carabineer','quantity':quantity}]}}
  result=simulate(s); state=result['final_state']['defender']
- assert result['status']=='inconclusive' and result['outcome']=='inconclusive'
- assert result['rounds_completed']==1 and state['continuation_state']=='fallback_required'
- assert state['fallback_candidate_total']==quantity
- boundary=next(e for e in result['events'] if e['type']=='unsupported_mechanic' and e['details']['rule_id']=='UNKNOWN-FORMATION-FALLBACK')
- assert boundary['round']==1
- assert not any(e['type']=='attacking_matrix' and e['side']=='defender' and e['round']>1 for e in result['events'])
+ assert result['status']=='completed' and result['outcome']=='attacker'
+ assert result['rounds_completed']==1 and state['continuation_state']=='not_sustaining'
+ assert state['fallback_candidate_total']==0
+ assert result['casualties']['defender'].get('sulphur_carabineer')==quantity
+ assert any(e['type']=='damage' and e['side']=='defender'
+            and e['details'].get('source_unit_id')=='sulphur_carabineer'
+            and e['details'].get('firing_phase')=='second' for e in result['events'])
+ assert any(e['type']=='damage' and e['side']=='attacker'
+            and e['details'].get('target_unit_id')=='sulphur_carabineer'
+            and e['details'].get('firing_phase')=='first' for e in result['events'])
 
 
 def test_mixed_runtime_front_is_represented_but_never_fires():
@@ -397,3 +413,149 @@ def test_round_cap_emits_explicit_safety_event():
  assert result['rounds_completed']==2
  assert len(cap)==1 and cap[0]['round']==2
  assert cap[0]['details']=={'reason':'max_rounds_reached','limit':2}
+
+
+def test_round_combat_statistics_track_dealt_taken_and_cumulative_damage():
+ result=simulate(scenario())
+ assert result['rounds'][0]['combat_statistics']['attacker']=={
+  'damage_dealt':0,'damage_taken':0,'cumulative_damage_dealt':0,'cumulative_damage_taken':0,
+  'healing':0,'cumulative_healing':0,
+ }
+ assert result['rounds'][0]['combat_statistics']['defender']=={
+  'damage_dealt':0,'damage_taken':0,'cumulative_damage_dealt':0,'cumulative_damage_taken':0,
+  'healing':0,'cumulative_healing':0,
+ }
+ prev={'attacker':(0,0),'defender':(0,0)}
+ for row in result['rounds']:
+  stats=row['combat_statistics']
+  assert stats['attacker']['damage_dealt']==stats['defender']['damage_taken']
+  assert stats['defender']['damage_dealt']==stats['attacker']['damage_taken']
+  for side in ('attacker','defender'):
+   assert stats[side]['cumulative_damage_dealt']>=prev[side][0]
+   assert stats[side]['cumulative_damage_taken']>=prev[side][1]
+   prev[side]=(stats[side]['cumulative_damage_dealt'],stats[side]['cumulative_damage_taken'])
+ final=result['rounds'][-1]['combat_statistics']
+ for side in ('attacker','defender'):
+  assert final[side]['cumulative_damage_dealt']==result['combat_statistics'][side]['gross_damage_dealt']
+  assert final[side]['cumulative_damage_taken']==result['combat_statistics'][side]['gross_damage_taken']
+  assert result['combat_statistics'][side]['gross_healing']==0
+
+
+def test_doctor_healing_is_explicitly_unknown_not_zero():
+ s=scenario(); s['attacker']['units'].append({'unit_id':'doctor','quantity':2}); result=simulate(s)
+ healing=result['healing_status']
+ assert healing['modeled'] is False
+ assert healing['derived_capacity_per_doctor']==4000
+ assert healing['capacity_is_allocation_formula'] is False
+ assert healing['sides']['attacker']=={
+  'doctor_count':2,'status':'ignored_by_named_assumption','effect_applied':False,'healing_amount':None
+ }
+ assert result['combat_statistics']['attacker']['gross_healing'] is None
+ assert all(row['combat_statistics']['attacker']['healing'] is None for row in result['rounds'])
+ assert all(row['combat_statistics']['attacker']['cumulative_healing'] is None for row in result['rounds'])
+
+ strict=scenario('strict'); strict['attacker']['units'].append({'unit_id':'doctor','quantity':2}); blocked=simulate(strict)
+ assert blocked['healing_status']['sides']['attacker']['status']=='unsupported_boundary'
+ assert blocked['healing_status']['sides']['attacker']['healing_amount'] is None
+
+
+def test_art_of_warfare_firing_order_profile_and_artillery_targets_are_exact():
+ t=TargetingProfile.load()
+ assert t.firing_order==('anti-balloon','balloon','third','flank','second','first')
+ assert t.priorities['third']==('first','flank')
+ assert 'second' not in t.priorities['third'] and 'third' not in t.priorities['third']
+
+
+def test_flank_phase_can_kill_long_range_before_long_range_fires():
+ s={'policy':'experimental','battlefield':'land-max','max_rounds':1,
+    'attacker':{'units':[{'unit_id':'hoplite','quantity':350},
+                         {'unit_id':'swordsman','quantity':240,'attack_upgrade':30}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':350},
+                         {'unit_id':'sulphur_carabineer','quantity':84}]}}
+ result=simulate(s)
+ assert result['casualties']['defender'].get('sulphur_carabineer')==84
+ assert not any(e['type']=='damage' and e['side']=='defender'
+                and e['details'].get('source_unit_id')=='sulphur_carabineer'
+                for e in result['events'])
+
+
+def test_artillery_fires_before_flank_and_hits_front_only_while_front_exists():
+ s={'policy':'experimental','battlefield':'land-max','max_rounds':1,
+    'attacker':{'units':[{'unit_id':'hoplite','quantity':350},
+                         {'unit_id':'swordsman','quantity':240,'attack_upgrade':30}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':350},
+                         {'unit_id':'sulphur_carabineer','quantity':84},
+                         {'unit_id':'mortar','quantity':30}]}}
+ result=simulate(s)
+ mortar_events=[e for e in result['events'] if e['type']=='damage'
+                and e['side']=='defender' and e['details'].get('source_unit_id')=='mortar']
+ assert mortar_events
+ assert {e['details']['target_line'] for e in mortar_events}=={'first'}
+ assert sum(e['details']['casualties'] for e in mortar_events)==30
+ assert not any(e['type']=='damage' and e['side']=='defender'
+                and e['details'].get('source_unit_id')=='sulphur_carabineer'
+                for e in result['events'])
+ phases=[e['details']['firing_phase'] for e in result['events']
+         if e['type']=='formation_fire_phase']
+ assert phases.index('third') < phases.index('flank')
+
+
+def test_same_formation_both_sides_keep_phase_start_firing_eligibility():
+ s={'policy':'experimental','battlefield':'land-max','max_rounds':1,
+    'attacker':{'forge_level':5,'units':[{'unit_id':'hoplite','quantity':350},
+                         {'unit_id':'swordsman','quantity':240,'attack_upgrade':30}]},
+    'defender':{'forge_level':5,'units':[{'unit_id':'hoplite','quantity':350},
+                         {'unit_id':'swordsman','quantity':240,'attack_upgrade':30}]}}
+ result=simulate(s)
+ sword_damage=[e for e in result['events'] if e['type']=='damage'
+               and e['details'].get('source_unit_id')=='swordsman']
+ assert {e['side'] for e in sword_damage}=={'attacker','defender'}
+ attacker_losses=result['casualties']['attacker'].get('swordsman',0)
+ defender_losses=result['casualties']['defender'].get('swordsman',0)
+ assert attacker_losses>0
+ assert attacker_losses==defender_losses
+
+
+def test_zero_quantity_support_rows_do_not_create_blockers_or_assumptions():
+ for support,blocker,assumption,status_key,count_key in (
+  ('doctor','UNKNOWN-HEALING-ALLOCATION','EXP-HEAL-NONE-001','healing_status','doctor_count'),
+  ('cook','UNKNOWN-MORALE-SUPPORT','EXP-MORALE-NONE-001','morale_status','cook_count'),
+ ):
+  s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+     'attacker':{'units':[{'unit_id':'hoplite','quantity':30},
+                          {'unit_id':support,'quantity':0}]},
+     'defender':{'units':[{'unit_id':'hoplite','quantity':30}]}}
+  result=simulate(s)
+  rules={e['details'].get('rule_id') for e in result['events']
+         if e['type']=='unsupported_mechanic'}
+  ids={a['id'] for a in result['assumptions']}
+  assert blocker not in rules
+  assert assumption not in ids
+  side=result[status_key]['sides']['attacker']
+  assert side[count_key]==0 and side['status']=='not_present'
+
+
+def test_am_slot_addresses_stay_fixed_when_target_slot_empties_mid_volley():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+    'attacker':{'units':[{'unit_id':'hoplite','quantity':4}]},
+    'defender':{'units':[{'unit_id':'spearman','quantity':31}]}}
+ result=simulate(s)
+
+ # land-mini deploys 31 Spearmen as damage-position 1:30 and 2:1.
+ # Four Hoplite rows address 1,2,1,2. Once position 2 empties, row 4
+ # remains addressed to position 2 instead of being redirected to position 1.
+ assert result['casualties']['defender'].get('spearman')==3
+ wasted=[e for e in result['events']
+         if e['type']=='shot_addressed_empty_slot' and e['side']=='attacker']
+ assert len(wasted)==1
+ assert wasted[0]['details']['target_damage_position']==2
+ assert wasted[0]['details']['action']=='address_preserved_no_retarget'
+
+ matrix=next(e for e in result['events']
+             if e['type']=='attacking_matrix'
+             and e['side']=='attacker'
+             and e['details'].get('source_unit_id','hoplite')=='hoplite')
+ trace=matrix['details']['trace']
+ assert trace['target_damage_positions']==[1,2]
+ assert trace['hits_by_damage_position']=={1:2,2:2}
+ assert trace['empty_addressed_shots_by_damage_position']=={2:1}

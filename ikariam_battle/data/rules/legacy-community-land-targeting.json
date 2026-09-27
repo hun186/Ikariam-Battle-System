@@ -1,4 +1,90 @@
 {
-  "metadata":{"profile":"legacy-community-land-targeting","source_type":"COMMUNITY_REFERENCE","verification":"REVIEWER_WEB_VERIFIED","retrieved":"2026-09-24","current_applicability":"CALIBRATION_REQUIRED","line_role_contract":{"status":"KNOWN","rule":"Attack priority is selected by the unit's current runtime battlefield line.","source_type":"GAMEFORGE_IN_GAME_HELP","title":"Art of Warfare attack priorities","verification":"USER_SUPPLIED_AUTHORITY"},"weapon_selection":{"status":"UNKNOWN","blockers":["UNKNOWN-FALLBACK-LONG-RANGE-WEAPON","UNKNOWN-SECONDARY-WEAPON-TRIGGER"]}},
-  "priorities":{"third":["first","flank"],"second":["first","flank","second"],"first":["first","second","third","flank"],"flank":["flank","second","third","first"],"anti-balloon":["balloon","anti-balloon"],"balloon":["third","second","first","flank"]}
+  "metadata": {
+    "profile": "legacy-community-land-targeting",
+    "source_type": "GAMEFORGE_IN_GAME_HELP",
+    "verification": "USER_SUPPLIED_AUTHORITY",
+    "retrieved": "2026-09-24",
+    "current_applicability": "KNOWN_FOR_FORMATION_ORDER_AND_TARGET_PRIORITY",
+    "line_role_contract": {
+      "status": "KNOWN",
+      "rule": "Attack priority is selected by the unit's current runtime battlefield line.",
+      "source_type": "GAMEFORGE_IN_GAME_HELP",
+      "title": "Art of Warfare attack priorities",
+      "verification": "USER_SUPPLIED_AUTHORITY"
+    },
+    "weapon_selection": {
+      "status": "UNKNOWN",
+      "blockers": [
+        "UNKNOWN-FALLBACK-LONG-RANGE-WEAPON",
+        "UNKNOWN-SECONDARY-WEAPON-TRIGGER"
+      ]
+    },
+    "firing_order_contract": {
+      "status": "KNOWN",
+      "rule": "Same formations on both sides shoot simultaneously; formation phases execute in the listed shot sequence.",
+      "source_type": "GAMEFORGE_IN_GAME_HELP",
+      "title": "Art of Warfare shot sequence",
+      "verification": "USER_SUPPLIED_AUTHORITY"
+    },
+    "target_transfer_contract": {
+      "status": "KNOWN_AT_FORMATION_CLASS_LEVEL",
+      "rule": "Later individual shots select the next listed formation after a higher-priority formation is eliminated.",
+      "source_type": "GAMEFORGE_IN_GAME_HELP",
+      "verification": "USER_SUPPLIED_AUTHORITY"
+    },
+    "redistribution_triggers": {
+      "immediate_redistribution": "UNKNOWN_DISABLED",
+      "slot_redistribution": "UNKNOWN_DISABLED"
+    }
+  },
+  "priorities": {
+    "third": [
+      "first",
+      "flank"
+    ],
+    "second": [
+      "first",
+      "flank",
+      "second"
+    ],
+    "first": [
+      "first",
+      "second",
+      "third",
+      "flank"
+    ],
+    "flank": [
+      "flank",
+      "second",
+      "third",
+      "first"
+    ],
+    "anti-balloon": [
+      "balloon",
+      "anti-balloon"
+    ],
+    "balloon": [
+      "third",
+      "second",
+      "first",
+      "flank"
+    ]
+  },
+  "firing_order": [
+    "anti-balloon",
+    "balloon",
+    "third",
+    "flank",
+    "second",
+    "first"
+  ],
+  "formation_fill_order": [
+    "balloon",
+    "anti-balloon",
+    "third",
+    "second",
+    "first",
+    "flank"
+  ],
+  "same_formation_simultaneous": true
 }

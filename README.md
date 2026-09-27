@@ -8,7 +8,7 @@ A deterministic browser simulator combining current Infinite Horizons numerical 
 - v14 Workshop: unit-type-specific upgrades, land +5 and naval +10 per level. Levels are non-negative integers and can differ between Hoplites, Swordsmen, and other unit types on the same side.
 - v14 Forge: side-wide levels 0–5.
 - v17 support: Doctor/Tender healing ×20; 4000 is derived from legacy 200. Cook morale and healing allocation remain unknown.
-- Legacy empirical mechanics profile for formation labels, Am, and RR, with SR/IR/kill/chronology limitations retained.
+- Legacy empirical mechanics profile for Am and RR; Art of Warfare firing chronology and formation target priorities are executable, while SR/IR triggers and special kill selection remain unresolved.
 - Legacy/community battle-end profile distinguishes actual main-line holders, unresolved light/long-range fallback candidates, and definitely non-sustaining artillery, air, and support.
 - Current land military-economy profile derives General Score from the unmodified resource score basis at 1 point per 50 resources; Workshop, Forge, and combat buffs do not change score value.
 
@@ -18,7 +18,7 @@ Official changelog claims and exact community/PTS tables are not conflated. The 
 
 All five land battlefield geometries are executable through explicit scenario IDs: `land-mini` (Town Hall 1–4), `land-small` (5–9), `land-medium` (10–16), `land-large` (17–24), and `land-max` (25+). The Town Hall ranges are descriptive metadata only; the simulator does not infer battlefield size from Town Hall level, garrison limit, walls, or mid-battle state. Capacity is `floor(slot_space / unit size)`, not a unit constant, and the browser renders line/slot counts from the selected battlefield geometry. Naval geometry remains reserved/unsupported. Initial land formation supports the evidence-backed Heavy-before-Light rules and homogeneous single-weapon Light Infantry fallback already modeled; unresolved multi-line wave execution, cross-wave rebuild, ranged fallback, and related transitions remain guarded rather than guessed.
 
-Ammunition is pooled as shots across deployed and reserve units of a wave. Target priorities consider deployed slots only and use a versioned legacy/community experimental profile. Accuracy is per weapon but its algorithm is unresolved, so it is an explicit experimental assumption and a strict blocker. Doctor/Tender healing and Cook morale have separate boundaries and are represented as deployed support rather than ordinary reserve.
+Ammunition is pooled as shots across deployed and reserve units of a wave. Art of Warfare firing order and runtime-line target priorities are executable: same formations on both sides obtain firing eligibility simultaneously, earlier formation casualties suppress later firing, and individual shots may transfer to the next target formation only after the higher-priority formation is eliminated. Within a volley, Am row→slot addresses stay fixed; an emptied addressed slot does not cause the remaining rows to remap onto surviving slots. Accuracy is per weapon but its algorithm is unresolved, so it is an explicit experimental assumption and a strict blocker. Doctor/Tender healing and Cook morale have separate boundaries and are represented as deployed support rather than ordinary reserve.
 
 This remains a **unit-vs-unit Phase A** simulator. Town walls, wall targeting/damage, garrison-limit escalation of battlefield size, and complete city-battle behavior are not implemented.
 

@@ -65,6 +65,15 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  hoplite=next(u for u in data['units'] if u['id']=='hoplite')
  carabineer=next(u for u in data['units'] if u['id']=='sulphur_carabineer')
  assert (hoplite['size'],carabineer['size'])==(1,4)
+ assert hoplite['unit_class']=='human' and carabineer['unit_class']=='human'
+ machine_land={u['id'] for u in data['units'] if u['domain']=='land' and u['unit_class']=='machine'}
+ assert machine_land=={'steam_giant','battering_ram','catapult','mortar','gyrocopter','bombardier'}
+ assert data['combat_chronology']['firing_order']==['anti-balloon','balloon','third','flank','second','first']
+ assert data['combat_chronology']['formation_fill_order']==['balloon','anti-balloon','third','second','first','flank']
+ assert data['combat_chronology']['same_formation_simultaneous'] is True
+ assert data['combat_chronology']['target_priorities']['third']==['first','flank']
+ assert data['combat_chronology']['ir_trigger']=='UNKNOWN_DISABLED'
+ assert data['combat_chronology']['sr_trigger']=='UNKNOWN_DISABLED'
  assert (hoplite['resource_cost_basis_total'],hoplite['general_score'])==(70,'1.4')
  assert (carabineer['resource_cost_basis_total'],carabineer['general_score'])==(200,'4')
 
@@ -87,6 +96,21 @@ def test_conflicting_same_unit_upgrades_and_invalid_domain_rejected():
  assert post(value)[0]==400
  value=payload(); value['attacker']['units']=[{'unit_id':'rocket_ship','quantity':1}]
  assert post(value)[0]==400
+
+def test_healing_status_and_null_healing_are_preserved_in_http_reports():
+ value=payload('experimental'); value['attacker']['units'].append({'unit_id':'doctor','quantity':2})
+ status,summary=post(value)
+ assert status==200
+ assert summary['healing_status']['derived_capacity_per_doctor']==4000
+ assert summary['healing_status']['sides']['attacker']=={
+  'doctor_count':2,'status':'ignored_by_named_assumption','effect_applied':False,'healing_amount':None
+ }
+ assert summary['combat_statistics']['attacker']['gross_healing'] is None
+ status,page=post_page(value,0,10)
+ assert status==200
+ assert all(row['combat_statistics']['attacker']['healing'] is None for row in page['rounds'])
+ assert all(row['combat_statistics']['attacker']['cumulative_healing'] is None for row in page['rounds'])
+
 
 def test_doctor_and_cook_have_separate_boundaries():
  for unit,unknown,assumption in [('doctor','UNKNOWN-HEALING-ALLOCATION','EXP-HEAL-NONE-001'),('cook','UNKNOWN-MORALE-SUPPORT','EXP-MORALE-NONE-001')]:
@@ -112,11 +136,18 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  response=asyncio.run(request('GET','/')); body=response[1]['body'].decode()
  assert response[0]['status']==200 and "fetch('/api/simulate')" in body and 'const units=[' not in body
  assert '兵力設定' in body and '逐回合戰報' in body and '總戰報' in body
+ assert '戰鬥機制狀態 / Mechanics status' in body
+ assert 'Air defence → Air → Artillery → Flanks → Long-range → Main battle line' in body
+ assert 'P-kill' in body and 'IR / SR' in body and 'RR · Reserve Redistribution' in body
+ assert 'Steam Giant、Ram、Catapult、Mortar、Gyrocopter、Bombardier' in body
  assert 'id="maxRounds" type="number" min="1" max="1000" value="100"' in body
  assert '預設 100 回合；1000 回合是可手動提高的安全上限' in body
  assert 'Cook 士氣目前尚未完整建模' in body
- assert '士氣支援（尚未建模）' in body
+ assert '士氣支援（尚未建模）' in body and '治療支援（尚未建模）' in body
  assert 'Morale / 士氣尚未建模' in body and 'Cook / 士氣' in body
+ assert 'Healing / 治療尚未建模' in body and 'Doctor / 治療' in body
+ assert '攻擊方造成傷害' in body and '攻擊方承受傷害' in body and '攻擊方治療' in body
+ assert 'Gross damage taken' in body and 'derived capacity reference' in body
  assert '尚未到達士氣處理' in body and "not_reached:'尚未到達'" in body
  assert "morale_status" in body
  assert "e.type==='safety_limit_reached'" in body
@@ -165,7 +196,7 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert '.formation{min-width:790px}' not in body
  assert '.battle-half{grid-template-columns:1fr}.reserve-box{order:2}' not in body
  assert "reserveBox(state,name==='defender'?'Defender':'Attacker',geometry)+formation" in body
- assert '@media(max-width:900px){.setup-grid,.summary-grid{grid-template-columns:1fr}' in body
+ assert '@media(max-width:900px){.setup-grid,.summary-grid,.mechanics-grid{grid-template-columns:1fr}' in body
  assert '}\n@media(max-width:900px)' in body
  assert '}\\n@media(max-width:900px)' not in body
  assert '此戰場沒有 Flank slot；未能補入前線的側翼兵會留在 Reserve。' in body
@@ -196,25 +227,34 @@ def test_zero_unit_snapshot_slots_render_as_empty_and_static_copies_match():
  assert body==Path('public/index.html').read_text()
 
 def test_battle_end_survivors_round_boundary_and_unique_assumptions_api():
- for survivor,quantity in [('doctor',4),('catapult',6)]:
-  value={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
-    'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
-    'defender':{'units':[{'unit_id':'hoplite','quantity':1},{'unit_id':survivor,'quantity':quantity}]}}
-  status,data=post(value); assert status==200 and data['outcome']=='attacker' and data['rounds_completed']==1
-  assert data['final_state']['defender']['remaining'][survivor]==quantity
-  assert data['final_state']['defender']['main_line_holding_total']==0
-  assert data['final_state']['defender']['continuation_state']=='not_sustaining'
-  assert data['casualties']['defender'].get(survivor,0)==0
-  ids=[a['id'] for a in data['assumptions']]; assert len(ids)==len(set(ids))
+ value={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
+   'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
+   'defender':{'units':[{'unit_id':'hoplite','quantity':1},{'unit_id':'doctor','quantity':4}]}}
+ status,data=post(value); assert status==200 and data['outcome']=='attacker' and data['rounds_completed']==1
+ assert data['final_state']['defender']['remaining']['doctor']==4
+ assert data['final_state']['defender']['main_line_holding_total']==0
+ assert data['final_state']['defender']['continuation_state']=='not_sustaining'
+ assert data['casualties']['defender'].get('doctor',0)==0
+ ids=[a['id'] for a in data['assumptions']]; assert len(ids)==len(set(ids))
 
-def test_dynamic_fallback_boundary_api_stops_without_stale_round():
+ value={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
+   'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
+   'defender':{'units':[{'unit_id':'hoplite','quantity':1},{'unit_id':'catapult','quantity':6}]}}
+ status,data=post(value); assert status==200 and data['outcome']=='attacker'
+ assert data['final_state']['defender']['remaining'].get('catapult',0)==0
+ assert data['casualties']['defender'].get('catapult')==6
+
+def test_dynamic_front_collapse_api_retargets_main_into_long_range():
  value={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
    'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
    'defender':{'units':[{'unit_id':'hoplite','quantity':1},{'unit_id':'sulphur_carabineer','quantity':7}]}}
  status,data=post_page(value); assert status==200
- assert data['status']=='inconclusive' and data['rounds_completed']==1
- assert data['final_state']['defender']['continuation_state']=='fallback_required'
- assert not any(e['type']=='attacking_matrix' and e['side']=='defender' and e['round']>1 for e in data['events'])
+ assert data['status']=='completed' and data['rounds_completed']==1
+ assert data['outcome']=='attacker'
+ assert data['final_state']['defender']['continuation_state']=='not_sustaining'
+ assert data['casualties']['defender'].get('sulphur_carabineer')==7
+ assert any(e['type']=='damage' and e['side']=='defender'
+            and e['details'].get('source_unit_id')=='sulphur_carabineer' for e in data['events'])
  ids=[a['id'] for a in data['assumptions']]; assert len(ids)==len(set(ids))
 
 def test_front_alive_continuation_state_api():
@@ -298,6 +338,12 @@ def test_http_summary_default_and_bounded_round_pages():
  assert page['report']['rounds_returned']==len(page['rounds'])
  assert all(0 <= row['round'] <= 9 for row in page['rounds'])
  assert all(0 <= event['round'] <= 9 for event in page['events'])
+ assert all('combat_statistics' in row for row in page['rounds'])
+ for row in page['rounds']:
+  assert row['combat_statistics']['attacker']['damage_dealt']==row['combat_statistics']['defender']['damage_taken']
+  assert row['combat_statistics']['defender']['damage_dealt']==row['combat_statistics']['attacker']['damage_taken']
+ assert summary['combat_statistics']['attacker']['gross_damage_taken']==summary['combat_statistics']['defender']['gross_damage_dealt']
+ assert summary['combat_statistics']['defender']['gross_damage_taken']==summary['combat_statistics']['attacker']['gross_damage_dealt']
  status,error=post(value,{'mode':'round_page','round_start':0,'round_limit':21})
  assert status==400 and 'report.round_limit must be 1..20' in error['error']
 
@@ -317,3 +363,18 @@ def test_http_non_object_json_bodies_are_400_not_500():
   status,data=post_raw(value)
   assert status==400
   assert data=={'error':'request body must be an object'}
+
+
+def test_zero_quantity_support_rows_are_absent_from_http_support_status():
+ for support,status_key,count_key,assumption in (
+  ('doctor','healing_status','doctor_count','EXP-HEAL-NONE-001'),
+  ('cook','morale_status','cook_count','EXP-MORALE-NONE-001'),
+ ):
+  value={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+    'attacker':{'units':[{'unit_id':'hoplite','quantity':30},{'unit_id':support,'quantity':0}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':30}]}}
+  status,data=post(value)
+  assert status==200
+  side=data[status_key]['sides']['attacker']
+  assert side[count_key]==0 and side['status']=='not_present'
+  assert assumption not in {a['id'] for a in data['assumptions']}
