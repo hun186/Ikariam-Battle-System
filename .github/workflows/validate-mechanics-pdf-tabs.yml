@@ -1,4 +1,5 @@
 name: Validate mechanics and PDF tabs
+# rerun after updating legacy static assertions
 
 on:
   push:
