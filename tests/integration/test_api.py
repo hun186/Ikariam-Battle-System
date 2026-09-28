@@ -139,7 +139,7 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  response=asyncio.run(request('GET','/')); body=response[1]['body'].decode()
  assert response[0]['status']==200 and "fetch('/api/simulate')" in body and 'const units=[' not in body
  assert '兵力設定' in body and '逐回合戰報' in body and '總戰報' in body
- assert '戰鬥機制狀態 / Mechanics status' in body
+ assert '戰鬥機制狀態 / Mechanics Status' in body
  assert 'Air defence → Air → Artillery → Flanks → Long-range → Main battle line' in body
  assert 'P-kill' in body and 'IR / SR' in body and 'RR · Reserve Redistribution' in body
  assert 'Steam Giant、Ram、Catapult、Mortar、Gyrocopter、Bombardier' in body
@@ -205,7 +205,7 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert '.formation{min-width:790px}' not in body
  assert '.battle-half{grid-template-columns:1fr}.reserve-box{order:2}' not in body
  assert "reserveBox(state,name==='defender'?'Defender':'Attacker',geometry)+formation" in body
- assert '@media(max-width:900px){.setup-grid,.summary-grid,.mechanics-grid{grid-template-columns:1fr}' in body
+ assert '@media(max-width:900px){.setup-grid,.summary-grid,.mechanics-grid,.source-grid{grid-template-columns:1fr}' in body
  assert '}\n@media(max-width:900px)' in body
  assert '}\\n@media(max-width:900px)' not in body
  assert '此戰場沒有 Flank slot；未能補入前線的側翼兵會留在 Reserve。' in body
@@ -467,3 +467,37 @@ def test_top_simulate_action_surfaces_shared_errors_without_duplicate_live_regio
  assert "boot().catch(e=>setSimulationError(e.message));" in body
  assert body.count('role="alert"')==1
  assert body==Path('public/index.html').read_text()
+
+
+def test_mechanics_and_pdf_resources_are_first_class_tabs():
+ body=Path('index.html').read_text()
+ assert 'data-view="mechanics">戰鬥機制</button>' in body
+ assert 'data-view="source">Battle System PDF</button>' in body
+ assert 'id="mechanicsView" class="hidden"' in body
+ assert 'id="sourceView" class="hidden"' in body
+ assert "mechanics:'mechanicsView'" in body and "source:'sourceView'" in body
+ assert '戰鬥機制狀態 / Mechanics Status' in body
+ assert '這一頁是模擬器正確度的核心依據' in body
+ assert '已知 / 已實作' in body and '部分已知 / 仍需校準' in body and '未知 / 目前限制' in body
+ # Mechanics cards belong to the dedicated view, not the setup workbench.
+ assert '<details class="mechanics-reference panel">' not in body
+ setup=body.split('<section id="setupView">',1)[1].split('<section id="mechanicsView"',1)[0]
+ assert 'Air defence → Air → Artillery → Flanks → Long-range → Main battle line' not in setup
+ assert body==Path('public/index.html').read_text()
+
+
+def test_pdf_source_tab_credits_authors_and_links_original_sources():
+ body=Path('index.html').read_text()
+ assert 'AT Barbarossa' in body and 'Xanto' in body
+ assert 'PDF 署名：AT Barbarossa, Xanto · July 16, 2020' in body
+ assert 'https://forum.ikariam.gameforge.com/forum/thread/43268-ikariam-battle-system/' in body
+ assert 'href="/ikariam-battle-system.pdf"' in body
+ assert 'scenarios/tests 早於遊戲 version 13' in body
+ pdf=Path('ikariam-battle-system.pdf')
+ assert pdf.is_file()
+ with pdf.open('rb') as handle:
+  assert handle.read(4)==b'%PDF'
+ public_pdf=Path('public/ikariam-battle-system.pdf')
+ assert public_pdf.is_file()
+ with public_pdf.open('rb') as handle:
+  assert handle.read(4)==b'%PDF'
