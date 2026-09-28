@@ -3,8 +3,8 @@ import pytest
 from ikariam_battle import simulate
 from ikariam_battle.battlefield import LAND_MINI, deploy
 from ikariam_battle.engine import (
- _ir_trigger, _plan_fire, _preflight, _prepare_round_start, _redistribute,
- _resolve_volleys, _sr_trigger, _target,
+ _cross_wave_rebuild_requirements, _ir_trigger, _plan_fire, _preflight,
+ _prepare_round_start, _redistribute, _resolve_volleys, _sr_trigger, _target,
 )
 from ikariam_battle.formation import FormationRules
 from ikariam_battle.models import Army, ArmyUnit, ScenarioError, Slot, Wave
