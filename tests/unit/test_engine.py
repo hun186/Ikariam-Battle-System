@@ -2,7 +2,7 @@ from copy import deepcopy
 import pytest
 from ikariam_battle import simulate
 from ikariam_battle.battlefield import LAND_MINI, deploy
-from ikariam_battle.engine import _plan_fire, _preflight, _prepare_round_start, _target
+from ikariam_battle.engine import (\n _apply_sequential_hit, _ir_trigger, _plan_fire, _preflight, _prepare_round_start,\n _redistribute, _sr_trigger, _target,\n)
 from ikariam_battle.formation import FormationRules
 from ikariam_battle.models import Army, ArmyUnit, ScenarioError, Slot, Wave
 from ikariam_battle.profiles import ForgeProfile, TargetingProfile, WorkshopProfile
@@ -586,3 +586,61 @@ def test_snapshot_exposes_batch_reserve_damage_and_hp_percent():
  assert batch['reserve']==10
  assert batch['reserve_damage']==2*hp
  assert batch['reserve_hit_points_percent']==80
+
+
+def test_partial_flank_casualties_reduce_later_long_range_shots():
+ s={'policy':'experimental','battlefield':'land-max','max_rounds':1,
+    'attacker':{'units':[{'unit_id':'hoplite','quantity':350},
+                         {'unit_id':'swordsman','quantity':60,'attack_upgrade':30}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':350},
+                         {'unit_id':'sulphur_carabineer','quantity':84}]}}
+ result=simulate(s)
+ killed=result['casualties']['defender'].get('sulphur_carabineer',0)
+ assert 0 < killed < 84
+ second_phase=next(e for e in result['events']
+                   if e['type']=='formation_fire_phase'
+                   and e['details']['firing_phase']=='second')
+ assert second_phase['details']['defender_shots']==84-killed
+
+
+def test_sequential_hits_can_differ_from_legacy_pooled_casualty_math():
+ slot=Slot('first-1','first',1,1,'spearman','wave-1',2,2,90)
+ queue=[90,0]
+ hp=100
+ hit=90
+ killed=0
+ for _ in range(2):
+  _, casualty, _ = _apply_sequential_hit(slot,queue,hp,hit)
+  killed += casualty
+
+ pooled_casualties=(90 + 2*hit)//hp
+ assert pooled_casualties==2
+ assert killed==1
+ assert slot.units==1 and slot.damage==90 and queue==[90]
+
+
+def test_ir_and_sr_hooks_are_explicitly_disabled_at_baseline():
+ assert _ir_trigger(object()) is False
+ assert _sr_trigger('flank',[],[]) is False
+
+
+def test_round_redistribution_keeps_entry_waves_isolated():
+ wave_a=Wave(
+  ArmyUnit('hoplite',40,'wave-a'),10,
+  [Slot('first-a','first',1,1,'hoplite','wave-a',30,30,90)],
+  reserve_damage=10,
+ )
+ wave_b=Wave(
+  ArmyUnit('hoplite',40,'wave-b'),10,
+  [Slot('first-b','first',1,1,'hoplite','wave-b',30,30,5)],
+  reserve_damage=2,
+ )
+ events=[]
+ _redistribute([wave_a,wave_b],events,2,'attacker',{})
+
+ assert wave_a.reserve_damage + sum(slot.damage for slot in wave_a.slots)==100
+ assert wave_b.reserve_damage + sum(slot.damage for slot in wave_b.slots)==7
+ rr=[e for e in events if e.type=='redistribution']
+ assert {(e.details['wave_id'],e.details['total_wave_damage']) for e in rr}=={
+  ('wave-a',100),('wave-b',7),
+ }
