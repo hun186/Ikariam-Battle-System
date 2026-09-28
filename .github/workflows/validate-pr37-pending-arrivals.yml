@@ -1,0 +1,79 @@
+name: Validate PR37 pending pre-engagement arrivals
+
+on:
+  push:
+    branches:
+      - fix/setup-batches-layout-and-deferred-rebuild
+    paths:
+      - .github/workflows/validate-pr37-pending-arrivals.yml
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/setup-batches-layout-and-deferred-rebuild
+          fetch-depth: 0
+      - name: Validate pending-arrival semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -q pytest
+          python -m pytest -q tests/unit/test_models.py tests/unit/test_formation.py tests/unit/test_engine.py tests/integration/test_api.py
+          python -m pytest -q
+          python -m compileall -q ikariam_battle asgi.py web_simulator.py simulator.py
+          cmp index.html public/index.html
+          python - <<'PY'
+          from ikariam_battle.engine import simulate
+
+          delayed=simulate({
+              'policy':'experimental','battlefield':'land-mini','max_rounds':2,
+              'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'entry_batch_id':'a1','arrival_round':1}]},
+              'defender':{'units':[{'unit_id':'hoplite','quantity':90,'entry_batch_id':'d0','arrival_round':0}]},
+          })
+          assert delayed['status']=='inconclusive'
+          assert not any(e['type']=='battle_termination' and e['round']==0 for e in delayed['events'])
+          assert any(e['type']=='waiting_for_arrival' and e['round']==0 and e['side']=='attacker'
+                     for e in delayed['events'])
+          assert any(e['type']=='entry_batch_arrived' and e['round']==1 and e['side']=='attacker'
+                     for e in delayed['events'])
+
+          later=simulate({
+              'policy':'experimental','battlefield':'land-mini','max_rounds':3,
+              'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'entry_batch_id':'a3','arrival_round':3}]},
+              'defender':{'units':[{'unit_id':'hoplite','quantity':90,'entry_batch_id':'d0','arrival_round':0}]},
+          })
+          assert not any(e['type']=='battle_termination' for e in later['events'])
+          assert any(e['type']=='waiting_for_arrival' and e['round']==2 for e in later['events'])
+          assert any(e['type']=='entry_batch_arrived' and e['round']==3 for e in later['events'])
+
+          artillery=simulate({
+              'policy':'experimental','battlefield':'land-mini','max_rounds':2,
+              'attacker':{'units':[{'unit_id':'mortar','quantity':6,'entry_batch_id':'a1','arrival_round':1}]},
+              'defender':{'units':[{'unit_id':'hoplite','quantity':90,'entry_batch_id':'d0','arrival_round':0}]},
+          })
+          assert artillery['status']=='completed' and artillery['outcome']=='defender'
+          assert artillery['rounds_completed']==0
+          assert any(e['type']=='battle_termination' and e['round']==0 for e in artillery['events'])
+          PY
+          python - <<'PY'
+          from pathlib import Path
+          html=Path('index.html').read_text()
+          Path('/tmp/ikariam-inline.js').write_text(html.split('<script>',1)[1].split('</script>',1)[0])
+          PY
+          node --check /tmp/ikariam-inline.js
+          git diff --check origin/main...HEAD
+      - name: Remove one-time validation workflow
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/validate-pr37-pending-arrivals.yml
+          git commit -m "chore: remove PR37 pending-arrival validation"
+          git push origin HEAD:fix/setup-batches-layout-and-deferred-rebuild
