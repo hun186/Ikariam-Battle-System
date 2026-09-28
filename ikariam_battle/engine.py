@@ -38,12 +38,18 @@ def _event(events: list[Event], round_no: int, phase: str, kind: str, side: str 
 
 
 def _assume(applied: dict[str, dict[str, str]], events: list[Event], assumption_id: str,
-            round_no: int, phase: str) -> None:
-    if assumption_id in applied:
-        return
+            round_no: int, phase: str, side: str | None = None) -> None:
     assumption = {"id": assumption_id, "description": EXPERIMENTAL_POLICIES[assumption_id]}
-    applied[assumption_id] = assumption
-    _event(events, round_no, phase, "assumption_applied", None, **assumption)
+    if assumption_id not in applied:
+        applied[assumption_id] = assumption
+    # The public assumption list stays unique by policy ID, while events record
+    # where a side-specific support boundary was actually reached.
+    if any(event.type == "assumption_applied"
+           and event.side == side
+           and event.details.get("id") == assumption_id
+           for event in events):
+        return
+    _event(events, round_no, phase, "assumption_applied", side, **assumption)
 
 
 def _snapshot(waves: list[Wave], registry: UnitRegistry, battle_end: BattleEndProfile,
@@ -633,8 +639,9 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     initial = {"attacker": _snapshot(attacker, registry, battle_end),
                "defender": _snapshot(defender, registry, battle_end)}
     warnings = ["Legacy empirical mechanics are being applied to review-supplied current numeric profiles; calibration is required."]
-    blockers = sorted(set(_preflight(attacker, registry, formation_rules, field)
-                          + _preflight(defender, registry, formation_rules, field)))
+    attacker_blockers = _preflight(attacker, registry, formation_rules, field)
+    defender_blockers = _preflight(defender, registry, formation_rules, field)
+    blockers = sorted(set(attacker_blockers + defender_blockers))
     initial_states = {side: state["continuation_state"] for side, state in initial.items()}
     fallback_sides = [side for side, state in initial_states.items()
                       if state == ContinuationState.FALLBACK_REQUIRED.value]
@@ -654,10 +661,11 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         "UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT"} & set(blockers):
         return _unsupported(scenario, events, initial, blockers, warnings)
     applied: dict[str, dict[str, str]] = {}
-    if "UNKNOWN-HEALING-ALLOCATION" in blockers:
-        _assume(applied, events, "EXP-HEAL-NONE-001", 0, "preflight")
-    if "UNKNOWN-MORALE-SUPPORT" in blockers:
-        _assume(applied, events, "EXP-MORALE-NONE-001", 0, "preflight")
+    for side, side_blockers in (("attacker", attacker_blockers), ("defender", defender_blockers)):
+        if "UNKNOWN-HEALING-ALLOCATION" in side_blockers:
+            _assume(applied, events, "EXP-HEAL-NONE-001", 0, "preflight", side)
+        if "UNKNOWN-MORALE-SUPPORT" in side_blockers:
+            _assume(applied, events, "EXP-MORALE-NONE-001", 0, "preflight", side)
     if fallback_sides:
         _event(events, 0, "battle_end", "unsupported_mechanic", None,
                rule_id="UNKNOWN-FORMATION-FALLBACK", affected_sides=fallback_sides)
@@ -698,14 +706,15 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         defender_arrivals = _arrival_waves(scenario.defender, number, registry, events, "defender")
         attacker.extend(attacker_arrivals)
         defender.extend(defender_arrivals)
-        arrival_blockers = set(
-            _preflight(attacker_arrivals, registry, formation_rules, field)
-            + _preflight(defender_arrivals, registry, formation_rules, field)
-        )
-        if "UNKNOWN-HEALING-ALLOCATION" in arrival_blockers:
-            _assume(applied, events, "EXP-HEAL-NONE-001", number, "arrival")
-        if "UNKNOWN-MORALE-SUPPORT" in arrival_blockers:
-            _assume(applied, events, "EXP-MORALE-NONE-001", number, "arrival")
+        arrival_blockers = {
+            "attacker": _preflight(attacker_arrivals, registry, formation_rules, field),
+            "defender": _preflight(defender_arrivals, registry, formation_rules, field),
+        }
+        for side, side_blockers in arrival_blockers.items():
+            if "UNKNOWN-HEALING-ALLOCATION" in side_blockers:
+                _assume(applied, events, "EXP-HEAL-NONE-001", number, "arrival", side)
+            if "UNKNOWN-MORALE-SUPPORT" in side_blockers:
+                _assume(applied, events, "EXP-MORALE-NONE-001", number, "arrival", side)
         _prepare_round_start(attacker, events, number, "attacker", applied)
         _prepare_round_start(defender, events, number, "defender", applied)
         cross_wave = {
@@ -799,26 +808,44 @@ def _decimal_json(value: Decimal) -> int | float:
     return float(value)
 
 
+def _support_assumption_round(result: dict[str, Any], assumption_id: str,
+                              side: str) -> int | None:
+    rounds = [
+        int(event.get("round", 0))
+        for event in result.get("events", [])
+        if event.get("type") == "assumption_applied"
+        and event.get("side") == side
+        and event.get("details", {}).get("id") == assumption_id
+    ]
+    return min(rounds) if rounds else None
+
+
+def _strict_support_boundary_reached(scenario: Scenario, result: dict[str, Any],
+                                     side: str, unit_id: str, rule_id: str) -> bool:
+    if scenario.policy != Policy.STRICT:
+        return False
+    army = scenario.attacker if side == "attacker" else scenario.defender
+    present_at_start = any(unit.unit_id == unit_id and unit.quantity > 0 and unit.arrival_round == 0
+                           for unit in army.units)
+    if not present_at_start:
+        return False
+    return any(event.get("type") == "unsupported_mechanic"
+               and event.get("details", {}).get("rule_id") == rule_id
+               for event in result.get("events", []))
+
+
 def _morale_status(scenario: Scenario, result: dict[str, Any]) -> dict[str, Any]:
     assumption_id = "EXP-MORALE-NONE-001"
     strict_rule_id = "UNKNOWN-MORALE-SUPPORT"
-    applied_ids = {row.get("id") for row in result.get("assumptions", [])}
-    unsupported_ids = {
-        event.get("details", {}).get("rule_id")
-        for event in result.get("events", [])
-        if event.get("type") == "unsupported_mechanic"
-    }
-    morale_assumption_applied = assumption_id in applied_ids
-    morale_boundary_reported = strict_rule_id in unsupported_ids
-
     sides: dict[str, dict[str, Any]] = {}
     for side, army in (("attacker", scenario.attacker), ("defender", scenario.defender)):
         cook_count = sum(unit.quantity for unit in army.units if unit.unit_id == "cook")
+        reach_round = _support_assumption_round(result, assumption_id, side)
         if not cook_count:
             status = "not_present"
-        elif morale_assumption_applied:
+        elif reach_round is not None:
             status = "ignored_by_named_assumption"
-        elif scenario.policy == Policy.STRICT and morale_boundary_reported:
+        elif _strict_support_boundary_reached(scenario, result, side, "cook", strict_rule_id):
             status = "unsupported_boundary"
         else:
             status = "not_reached"
@@ -846,25 +873,17 @@ def _healing_status(
 ) -> dict[str, Any]:
     assumption_id = "EXP-HEAL-NONE-001"
     strict_rule_id = "UNKNOWN-HEALING-ALLOCATION"
-    applied_ids = {row.get("id") for row in result.get("assumptions", [])}
-    unsupported_ids = {
-        event.get("details", {}).get("rule_id")
-        for event in result.get("events", [])
-        if event.get("type") == "unsupported_mechanic"
-    }
-    healing_assumption_applied = assumption_id in applied_ids
-    healing_boundary_reported = strict_rule_id in unsupported_ids
-
     sides: dict[str, dict[str, Any]] = {}
     for side, army in (("attacker", scenario.attacker), ("defender", scenario.defender)):
         doctor_count = sum(unit.quantity for unit in army.units if unit.unit_id == "doctor")
+        reach_round = _support_assumption_round(result, assumption_id, side)
         if not doctor_count:
             status = "not_present"
             amount = 0
-        elif healing_assumption_applied:
+        elif reach_round is not None:
             status = "ignored_by_named_assumption"
             amount = None
-        elif scenario.policy == Policy.STRICT and healing_boundary_reported:
+        elif _strict_support_boundary_reached(scenario, result, side, "doctor", strict_rule_id):
             status = "unsupported_boundary"
             amount = None
         else:
@@ -914,6 +933,10 @@ def _attach_battle_statistics(
 
     support = SupportProfile.load(scenario.profiles.support)
     healing_status = _healing_status(scenario, result, support)
+    healing_reach_round = {
+        side: _support_assumption_round(result, "EXP-HEAL-NONE-001", side)
+        for side in ("attacker", "defender")
+    }
     gross_dealt = {"attacker": 0, "defender": 0}
     gross_taken = {"attacker": 0, "defender": 0}
     per_round: dict[int, dict[str, dict[str, int]]] = {}
@@ -953,7 +976,11 @@ def _attach_battle_statistics(
         for side in ("attacker", "defender"):
             cumulative[side]["damage_dealt"] += stats[side]["damage_dealt"]
             cumulative[side]["damage_taken"] += stats[side]["damage_taken"]
-            healing_unknown = healing_status["sides"][side]["doctor_count"] > 0
+            support_round = healing_reach_round[side]
+            healing_unknown = support_round is not None and number >= support_round
+            if scenario.policy == Policy.STRICT and _strict_support_boundary_reached(
+                    scenario, result, side, "doctor", "UNKNOWN-HEALING-ALLOCATION"):
+                healing_unknown = True
             row_combat[side] = {
                 "damage_dealt": stats[side]["damage_dealt"],
                 "damage_taken": stats[side]["damage_taken"],
@@ -968,7 +995,11 @@ def _attach_battle_statistics(
         side: {
             "gross_damage_dealt": gross_dealt[side],
             "gross_damage_taken": gross_taken[side],
-            "gross_healing": None if healing_status["sides"][side]["doctor_count"] else 0,
+            "gross_healing": None if (
+                healing_reach_round[side] is not None
+                or _strict_support_boundary_reached(
+                    scenario, result, side, "doctor", "UNKNOWN-HEALING-ALLOCATION")
+            ) else 0,
         }
         for side in ("attacker", "defender")
     }

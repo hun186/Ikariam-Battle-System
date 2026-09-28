@@ -55,17 +55,29 @@ class ArmyUnit:
         row = _object(value, "army unit")
         if not isinstance(row.get("unit_id"), str) or not row["unit_id"]:
             raise ScenarioError("unit_id must be a non-empty string")
-        explicit_wave = row.get("wave_id")
-        explicit_batch = row.get("entry_batch_id")
-        entry_batch_id = explicit_batch or explicit_wave or "batch-1"
-        if not isinstance(entry_batch_id, str) or not entry_batch_id:
-            raise ScenarioError("entry_batch_id must be a non-empty string")
-        # Preserve the historical implicit wave-1 contract for legacy callers.
-        # New callers that explicitly provide an arrival batch get a
-        # unit-specific state identity unless they also provide wave_id.
-        wave_id = explicit_wave or (f"{entry_batch_id}::{row['unit_id']}" if explicit_batch else "wave-1")
-        if not isinstance(wave_id, str) or not wave_id:
+        has_wave = "wave_id" in row
+        has_batch = "entry_batch_id" in row
+        explicit_wave = row.get("wave_id") if has_wave else None
+        explicit_batch = row.get("entry_batch_id") if has_batch else None
+        if has_wave and (not isinstance(explicit_wave, str) or not explicit_wave):
             raise ScenarioError("wave_id must be a non-empty string")
+        if has_batch and (not isinstance(explicit_batch, str) or not explicit_batch):
+            raise ScenarioError("entry_batch_id must be a non-empty string")
+        if has_batch:
+            entry_batch_id = explicit_batch
+        elif has_wave:
+            entry_batch_id = explicit_wave
+        else:
+            entry_batch_id = "batch-1"
+        # Preserve the historical implicit wave-1 contract for callers that
+        # omit both identity fields. Explicitly supplied invalid values are
+        # rejected above rather than treated as missing.
+        if has_wave:
+            wave_id = explicit_wave
+        elif has_batch:
+            wave_id = f"{entry_batch_id}::{row['unit_id']}"
+        else:
+            wave_id = "wave-1"
         return cls(row["unit_id"], _integer(row.get("quantity"), "quantity"), wave_id,
                    _integer(row.get("attack_upgrade", 0), "attack_upgrade"),
                    _integer(row.get("armor_upgrade", 0), "armor_upgrade"),

@@ -567,3 +567,15 @@ def test_setup_compact_layout_keeps_advanced_batch_controls_full_width_on_mobile
  assert '.unit-ident,.qty-control,.unit-statbox,.advanced{grid-column:1/-1}' in body
  assert '.advanced{margin:0}' in body
  assert body==Path('public/index.html').read_text()
+
+
+def test_http_rejects_explicit_invalid_batch_and_wave_ids_instead_of_defaulting():
+ for field,bad in (
+  ('entry_batch_id',''),('entry_batch_id',0),('entry_batch_id',False),('entry_batch_id',None),
+  ('wave_id',''),('wave_id',0),('wave_id',False),('wave_id',None),
+ ):
+  value=payload('experimental')
+  value['attacker']['units'][0][field]=bad
+  status,data=post(value)
+  assert status==400
+  assert data['error']==f'{field} must be a non-empty string'

@@ -88,3 +88,13 @@ def test_same_unit_wave_id_may_repeat_inside_one_entry_batch_and_aggregates():
  assert len(army.units)==1
  assert army.units[0].quantity==30
  assert army.units[0].batch_id=='batch-a'
+
+
+@pytest.mark.parametrize('field,bad',[
+ ('entry_batch_id',''),('entry_batch_id',0),('entry_batch_id',False),('entry_batch_id',None),
+ ('wave_id',''),('wave_id',0),('wave_id',False),('wave_id',None),
+])
+def test_explicit_invalid_batch_or_wave_identity_is_rejected(field,bad):
+ row={'unit_id':'hoplite','quantity':10,field:bad}
+ with pytest.raises(ScenarioError,match=f'{field} must be a non-empty string'):
+  Army.from_dict({'units':[row]})

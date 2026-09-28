@@ -769,3 +769,49 @@ def test_future_cook_arrival_applies_named_no_morale_assumption():
  assert result['morale_status']['sides']['attacker']=={
   'cook_count':15,'status':'ignored_by_named_assumption','effect_applied':False
  }
+
+
+def test_future_support_assumptions_are_side_and_round_specific():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+    'attacker':{'units':[
+      {'unit_id':'hoplite','quantity':90,'entry_batch_id':'a0','arrival_round':0},
+      {'unit_id':'doctor','quantity':2,'entry_batch_id':'a1','arrival_round':1},
+      {'unit_id':'cook','quantity':15,'entry_batch_id':'a1','arrival_round':1}]},
+    'defender':{'units':[
+      {'unit_id':'hoplite','quantity':90,'entry_batch_id':'d0','arrival_round':0},
+      {'unit_id':'doctor','quantity':3,'entry_batch_id':'d2','arrival_round':2},
+      {'unit_id':'cook','quantity':12,'entry_batch_id':'d2','arrival_round':2}]}}
+ result=simulate(s)
+ assumption_events=[e for e in result['events'] if e['type']=='assumption_applied']
+ assert any(e['side']=='attacker' and e['round']==1
+            and e['details']['id']=='EXP-HEAL-NONE-001' for e in assumption_events)
+ assert any(e['side']=='attacker' and e['round']==1
+            and e['details']['id']=='EXP-MORALE-NONE-001' for e in assumption_events)
+ assert not any(e['side']=='defender'
+                and e['details']['id'] in {'EXP-HEAL-NONE-001','EXP-MORALE-NONE-001'}
+                for e in assumption_events)
+ assert result['healing_status']['sides']['attacker']['status']=='ignored_by_named_assumption'
+ assert result['healing_status']['sides']['defender']['status']=='not_reached'
+ assert result['morale_status']['sides']['attacker']['status']=='ignored_by_named_assumption'
+ assert result['morale_status']['sides']['defender']['status']=='not_reached'
+ rounds={row['round']:row for row in result['rounds']}
+ assert rounds[0]['combat_statistics']['attacker']['healing']==0
+ assert rounds[0]['combat_statistics']['defender']['healing']==0
+ assert rounds[1]['combat_statistics']['attacker']['healing'] is None
+ assert rounds[1]['combat_statistics']['defender']['healing']==0
+ assert result['combat_statistics']['attacker']['gross_healing'] is None
+ assert result['combat_statistics']['defender']['gross_healing']==0
+
+
+def test_round_zero_support_assumptions_are_side_specific():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+    'attacker':{'units':[{'unit_id':'hoplite','quantity':90},{'unit_id':'doctor','quantity':1}]},
+    'defender':{'units':[
+      {'unit_id':'hoplite','quantity':90,'entry_batch_id':'d0','arrival_round':0},
+      {'unit_id':'doctor','quantity':1,'entry_batch_id':'d2','arrival_round':2}]}}
+ result=simulate(s)
+ events=[e for e in result['events'] if e['type']=='assumption_applied'
+         and e['details'].get('id')=='EXP-HEAL-NONE-001']
+ assert [(e['side'],e['round']) for e in events]==[('attacker',0)]
+ assert result['healing_status']['sides']['attacker']['status']=='ignored_by_named_assumption'
+ assert result['healing_status']['sides']['defender']['status']=='not_reached'
