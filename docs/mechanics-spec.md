@@ -1,6 +1,6 @@
 # Mechanics and current-data evidence register
 
-The simulator combines empirical mechanics with current numerical profiles; it is not Gameforge source code. Evidence classes remain separate: `OFFICIAL_CHANGELOG`, `GAMEFORGE_FORUM_PLAYER_TEST`, `COMMUNITY_PTS_TESTED`, `COMMUNITY_REFERENCE_CURRENT`, `USER_PROVIDED_BATTLE_OBSERVATION`, `EMPIRICAL_PAPER`, `DERIVED`, `HYPOTHESIS`, and `UNKNOWN`. A user observation is real calibration input but is **not** an official specification. Sources verified by the reviewer are marked `REVIEWER_WEB_VERIFIED`, not `CODEX_NETWORK_VERIFIED`.
+The simulator combines empirical mechanics with current numerical profiles; it is not Gameforge source code. The primary empirical paper is *Ikariam Battle System* (AT Barbarossa, Xanto; 2020-07-16), originally shared by AT Barbarossa in the Gameforge EN forum thread `https://forum.ikariam.gameforge.com/forum/thread/43268-ikariam-battle-system/`. The paper's own/forum warning that its scenarios and tests predate version 13 is preserved: it is an algorithmic/evidence source, not authority for current unit numbers. Evidence classes remain separate: `OFFICIAL_CHANGELOG`, `GAMEFORGE_FORUM_PLAYER_TEST`, `COMMUNITY_PTS_TESTED`, `COMMUNITY_REFERENCE_CURRENT`, `USER_PROVIDED_BATTLE_OBSERVATION`, `EMPIRICAL_PAPER`, `DERIVED`, `HYPOTHESIS`, and `UNKNOWN`. A user observation is real calibration input but is **not** an official specification. Sources verified by the reviewer are marked `REVIEWER_WEB_VERIFIED`, not `CODEX_NETWORK_VERIFIED`.
 
 ## Versioned profiles and source matrix
 

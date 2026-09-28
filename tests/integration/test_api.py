@@ -467,3 +467,37 @@ def test_top_simulate_action_surfaces_shared_errors_without_duplicate_live_regio
  assert "boot().catch(e=>setSimulationError(e.message));" in body
  assert body.count('role="alert"')==1
  assert body==Path('public/index.html').read_text()
+
+
+def test_mechanics_and_pdf_resources_are_first_class_tabs():
+ body=Path('index.html').read_text()
+ assert 'data-view="mechanics">戰鬥機制</button>' in body
+ assert 'data-view="source">Battle System PDF</button>' in body
+ assert 'id="mechanicsView" class="hidden"' in body
+ assert 'id="sourceView" class="hidden"' in body
+ assert "mechanics:'mechanicsView'" in body and "source:'sourceView'" in body
+ assert '戰鬥機制狀態 / Mechanics Status' in body
+ assert '這一頁是模擬器正確度的核心依據' in body
+ assert '已知 / 已實作' in body and '部分已知 / 仍需校準' in body and '未知 / 目前限制' in body
+ # Mechanics cards belong to the dedicated view, not the setup workbench.
+ assert '<details class="mechanics-reference panel">' not in body
+ setup=body.split('<section id="setupView">',1)[1].split('<section id="mechanicsView"',1)[0]
+ assert 'Air defence → Air → Artillery → Flanks → Long-range → Main battle line' not in setup
+ assert body==Path('public/index.html').read_text()
+
+
+def test_pdf_source_tab_credits_authors_and_links_original_sources():
+ body=Path('index.html').read_text()
+ assert 'AT Barbarossa' in body and 'Xanto' in body
+ assert 'PDF 署名：AT Barbarossa, Xanto · July 16, 2020' in body
+ assert 'https://forum.ikariam.gameforge.com/forum/thread/43268-ikariam-battle-system/' in body
+ assert 'href="/ikariam-battle-system.pdf"' in body
+ assert 'scenarios/tests 早於遊戲 version 13' in body
+ pdf=Path('ikariam-battle-system.pdf')
+ assert pdf.is_file()
+ with pdf.open('rb') as handle:
+  assert handle.read(4)==b'%PDF'
+ public_pdf=Path('public/ikariam-battle-system.pdf')
+ assert public_pdf.is_file()
+ with public_pdf.open('rb') as handle:
+  assert handle.read(4)==b'%PDF'
