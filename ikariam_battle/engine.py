@@ -226,9 +226,12 @@ def _arrival_waves(army: Army, round_no: int, registry: UnitRegistry,
             ammo = None if unit.primary_weapon.ammunition is None else item.quantity * unit.primary_weapon.ammunition
             result.append(Wave(item, item.quantity, [], 0, ammo, 0, ammo))
     for batch_id, batch_items in sorted(by_batch.items()):
+        units: dict[str, int] = defaultdict(int)
+        for item in batch_items:
+            units[item.unit_id] += item.quantity
         _event(events, round_no, "arrival", "entry_batch_arrived", side,
                entry_batch_id=batch_id, arrival_round=round_no,
-               units={item.unit_id: item.quantity for item in batch_items})
+               units=dict(sorted(units.items())))
     return result
 
 

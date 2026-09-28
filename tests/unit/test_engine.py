@@ -815,3 +815,19 @@ def test_round_zero_support_assumptions_are_side_specific():
  assert [(e['side'],e['round']) for e in events]==[('attacker',0)]
  assert result['healing_status']['sides']['attacker']['status']=='ignored_by_named_assumption'
  assert result['healing_status']['sides']['defender']['status']=='not_reached'
+
+
+def test_entry_batch_arrival_event_accumulates_repeated_unit_waves():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+    'attacker':{'units':[
+      {'unit_id':'hoplite','quantity':90,'entry_batch_id':'a0','arrival_round':0},
+      {'unit_id':'doctor','quantity':10,'entry_batch_id':'a1','wave_id':'doctor-a','arrival_round':1},
+      {'unit_id':'doctor','quantity':20,'entry_batch_id':'a1','wave_id':'doctor-b','arrival_round':1}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':90}]}}
+ result=simulate(s)
+ arrival=next(e for e in result['events']
+              if e['type']=='entry_batch_arrived'
+              and e['side']=='attacker'
+              and e['details']['entry_batch_id']=='a1')
+ assert arrival['details']['units']=={'doctor':30}
+ assert result['final_state']['attacker']['deployed_support']['doctor']==30
