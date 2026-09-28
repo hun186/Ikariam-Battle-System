@@ -3,8 +3,8 @@ import pytest
 from ikariam_battle import simulate
 from ikariam_battle.battlefield import LAND_MINI, deploy
 from ikariam_battle.engine import (
- _apply_sequential_hit, _ir_trigger, _plan_fire, _preflight, _prepare_round_start,
- _redistribute, _sr_trigger, _target,
+ _ir_trigger, _plan_fire, _preflight, _prepare_round_start, _redistribute,
+ _resolve_volleys, _sr_trigger, _target,
 )
 from ikariam_battle.formation import FormationRules
 from ikariam_battle.models import Army, ArmyUnit, ScenarioError, Slot, Wave
@@ -606,20 +606,40 @@ def test_partial_flank_casualties_reduce_later_long_range_shots():
  assert second_phase['details']['defender_shots']==84-killed
 
 
-def test_sequential_hits_can_differ_from_legacy_pooled_casualty_math():
- slot=Slot('first-1','first',1,1,'spearman','wave-1',2,2,90)
- queue=[90,0]
- hp=100
- hit=90
- killed=0
- for _ in range(2):
-  _, casualty, _ = _apply_sequential_hit(slot,queue,hp,hit)
-  killed += casualty
+def test_sequential_volley_resolution_differs_from_legacy_pooled_casualty_math():
+ registry=UnitRegistry.load()
+ target=Wave(
+  ArmyUnit('spearman',2,'target-wave'),0,
+  [Slot('first-1','first',1,1,'spearman','target-wave',2,2,130)],
+ )
+ queues={('spearman','target-wave','first-1'):[130,0]}
+ volleys=[{
+  'side':'attacker',
+  'source_unit':'swordsman',
+  'source_wave':'source-wave',
+  'runtime_line':'flank',
+  'weapon_id':'primary',
+  'attack_upgrade':0,
+  'row_numbers':[1,1],
+ }]
+ casualties={'spearman':0}
+ slot_casualties={('target-wave','first-1'):0}
+ events=[]
+ _resolve_volleys(
+  volleys,[target],queues,registry,WorkshopProfile.load(),ForgeProfile.load(),
+  TargetingProfile.load(),events,1,
+  Army((ArmyUnit('swordsman',2,'source-wave'),),0),
+  Army((ArmyUnit('spearman',2,'target-wave'),),0),
+  casualties,slot_casualties,{},
+ )
 
- pooled_casualties=(90 + 2*hit)//hp
- assert pooled_casualties==2
- assert killed==1
- assert slot.units==1 and slot.damage==90 and queue==[90]
+ hp=registry.get('spearman').hit_points
+ damage=registry.get('swordsman').weapons[0].damage
+ pooled_casualties=(130 + 2*damage)//hp
+ assert (hp,damage,pooled_casualties)==(260,200,2)
+ assert casualties['spearman']==1
+ assert target.slots[0].units==1 and target.slots[0].damage==200
+ assert queues[('spearman','target-wave','first-1')]==[200]
 
 
 def test_ir_and_sr_hooks_are_explicitly_disabled_at_baseline():
