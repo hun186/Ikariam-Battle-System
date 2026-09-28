@@ -858,3 +858,44 @@ def test_cross_wave_requirement_created_by_combat_stops_before_termination():
  assert not any(e['type']=='battle_termination' and e['round']==1
                 for e in result['events'])
  assert result['final_state']['defender']['reserve']['steam_giant']==10
+
+
+def test_post_combat_empty_slots_with_same_wave_reserve_refill_before_cross_wave_check():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':2,
+    'attacker':{'units':[
+      {'unit_id':'hoplite','quantity':90,'attack_upgrade':200}]},
+    'defender':{'units':[
+      {'unit_id':'steam_giant','quantity':40,'entry_batch_id':'d0','wave_id':'d-first'}]}}
+ result=simulate(s)
+ round1_boundaries=[e for e in result['events']
+                    if e['type']=='unsupported_mechanic'
+                    and e['round']==1
+                    and e['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD']
+ assert round1_boundaries==[]
+ assert result['rounds_completed']>=1
+ # The 30 deployed Giants die in Round 1, but the wave still owns its slots and
+ # its own 10-unit Reserve is refilled at the next supported round boundary.
+ assert result['rounds'][1]['casualties']['defender'].get('steam_giant')==30
+ assert any(e['type']=='slot_repacked' and e['round']==2 and e['side']=='defender'
+            and e['details']['units']==10 for e in result['events'])
+
+
+def test_post_combat_projection_still_exposes_vacancies_after_partial_same_wave_refill():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ waves=deploy(Army.from_dict({'units':[
+   {'unit_id':'steam_giant','quantity':40,'entry_batch_id':'d0','wave_id':'owner'},
+   {'unit_id':'steam_giant','quantity':10,'entry_batch_id':'d0','wave_id':'reserve'},
+ ]}),registry,LAND_MINI)
+ owner=next(w for w in waves if w.unit.wave_id=='owner')
+ reserve=next(w for w in waves if w.unit.wave_id=='reserve')
+ # Simulate combat wiping the 30 deployed owner units. Its own 10 Reserve can
+ # refill one slot, leaving two physical slots genuinely open to the other wave.
+ for slot in owner.slots:
+  slot.units=0
+ owner.reserve=10
+ assert reserve.slots==[] and reserve.reserve==10
+ requirements=_cross_wave_rebuild_requirements(waves,registry,rules,LAND_MINI)
+ candidate=next(r for r in requirements if r['wave_id']=='reserve')
+ assert candidate['runtime_line']=='first'
+ assert len(candidate['open_damage_positions'])==2
+ assert 'owner' not in {r['wave_id'] for r in requirements}

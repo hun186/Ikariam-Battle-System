@@ -239,18 +239,29 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
                                      rules: FormationRules, field) -> list[dict[str, Any]]:
     """Return only cross-wave placements that are required *now*.
 
-    A reserve-only wave is harmless while every eligible runtime line is full.
-    The evidence boundary is reached only after same-wave refill/repack leaves a
-    real empty physical slot that another active wave could occupy.
+    Existing slot ownership is same-wave state. Before considering a different
+    reserve-only wave, project the already-supported center-first refill of each
+    wave into its own slots. Only vacancies left after that projection are
+    candidates for an unimplemented cross-wave handoff.
     """
     occupied: dict[str, set[int]] = defaultdict(set)
     for wave in waves:
-        for slot in wave.slots:
-            if slot.units:
+        slots = sorted(wave.slots, key=lambda item: item.damage_position)
+        if not slots:
+            continue
+        remaining = wave.reserve + sum(slot.units for slot in slots)
+        for slot in slots:
+            projected_units = min(slot.capacity, remaining)
+            remaining -= projected_units
+            if projected_units:
                 occupied[slot.line].add(slot.damage_position)
+
     requirements: list[dict[str, Any]] = []
     for wave in waves:
-        if not wave.reserve or any(slot.units for slot in wave.slots):
+        # A wave that already owns slots is eligible for the supported same-wave
+        # refill above, even when combat has just emptied every one of them.
+        # Cross-wave placement concerns only reserve waves that own no slots.
+        if not wave.reserve or wave.slots:
             continue
         unit = registry.get(wave.unit.unit_id)
         if unit.role != "combat":
