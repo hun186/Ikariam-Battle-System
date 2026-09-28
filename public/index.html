@@ -56,6 +56,8 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
       <div class="settings-note">預設 100 回合；1000 回合是可手動提高的安全上限，不是固定戰鬥長度。長戰的逐回合資料會按需分頁載入，不會一次傳送全部回合。若提早分出勝負或遇到無法安全判定的機制，模擬會提早停止。Cook 士氣目前尚未完整建模；實戰常見約 15 Cook 的配置不會被當成已驗證的固定公式。</div>
     </section>
 
+    <div class="actions setup-actions-top"><button id="simulateTop" class="primary" type="button">開始模擬</button></div>
+
     <div class="setup-grid">
       <section class="panel side-setup attacker">
         <div class="side-title"><h2>攻擊方</h2><div class="side-toolbar"><label>熔爐神蹟 / Forge<select id="aForge"></select></label></div></div>
@@ -109,7 +111,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 <script>
 let metadata=null, units=[], lastResult=null, lastBattlefieldId=null, currentRoundNumber=0, roundRenderToken=0, simulationGeneration=0, simulationRequestGeneration=0;
 const roundPageCache=new Map(), scenarioByGeneration=new Map();
-const battlefield=document.getElementById('battlefield'),policy=document.getElementById('policy'),maxRounds=document.getElementById('maxRounds'),researchMode=document.getElementById('researchMode'),showUnitStats=document.getElementById('showUnitStats'),showUnitIdentity=document.getElementById('showUnitIdentity'),simulate=document.getElementById('simulate'),error=document.getElementById('error'),floatingTooltip=document.getElementById('floatingTooltip');
+const battlefield=document.getElementById('battlefield'),policy=document.getElementById('policy'),maxRounds=document.getElementById('maxRounds'),researchMode=document.getElementById('researchMode'),showUnitStats=document.getElementById('showUnitStats'),showUnitIdentity=document.getElementById('showUnitIdentity'),simulateTop=document.getElementById('simulateTop'),simulate=document.getElementById('simulate'),error=document.getElementById('error'),floatingTooltip=document.getElementById('floatingTooltip');
 const viewIds={setup:'setupView',round:'roundView',summary:'summaryView'};
 const groupOrder=['heavy_infantry','light_infantry','long_range','artillery','air','support'];
 const groupLabels={heavy_infantry:'Heavy Infantry',light_infantry:'Light Infantry',long_range:'Long Range',artillery:'Artillery',air:'Air / Anti-air',support:'Support'};
@@ -571,7 +573,7 @@ showUnitStats.addEventListener('change',()=>{document.body.classList.toggle('sho
 showUnitIdentity.addEventListener('change',()=>document.body.classList.toggle('show-unit-identity',showUnitIdentity.checked));
 document.getElementById('aForge').addEventListener('change',updateAllUnitStats);
 document.getElementById('dForge').addEventListener('change',updateAllUnitStats);
-simulate.addEventListener('click',async()=>{
+async function runSimulation(){
   error.textContent='';
   let requestGeneration=null;
   try{
@@ -608,7 +610,9 @@ simulate.addEventListener('click',async()=>{
       if(requestGeneration===simulationRequestGeneration)error.textContent=e.message;
     }
   }
-});
+}
+simulate.addEventListener('click',runSimulation);
+simulateTop.addEventListener('click',runSimulation);
 boot().catch(e=>error.textContent=e.message);
 </script>
 </body>

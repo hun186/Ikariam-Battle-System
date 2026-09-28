@@ -441,3 +441,14 @@ def test_compact_setup_identity_stats_and_shared_floating_tooltip_contract():
  assert '.slot:hover .slot-tooltip' not in body
  assert '.reserve-card:hover .slot-tooltip' not in body
  assert body==Path('public/index.html').read_text()
+
+
+def test_setup_exposes_top_and_bottom_simulate_buttons_with_one_handler():
+ body=Path('index.html').read_text()
+ assert 'id="simulateTop" class="primary" type="button">開始模擬</button>' in body
+ assert 'id="simulate" class="primary" type="button">開始模擬</button>' in body
+ assert body.count('>開始模擬</button>')==2
+ assert 'async function runSimulation(){' in body
+ assert "simulate.addEventListener('click',runSimulation)" in body
+ assert "simulateTop.addEventListener('click',runSimulation)" in body
+ assert body==Path('public/index.html').read_text()

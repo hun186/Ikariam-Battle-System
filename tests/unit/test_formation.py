@@ -253,3 +253,30 @@ def test_land_max_full_heavy_front_puts_light_in_native_flank_not_reserve():
  assert sum(slot.units for slot in hoplite.slots if slot.line=='first')==350
  assert [(slot.line,slot.units) for slot in swordsman.slots]==[('flank',40)]*6
  assert swordsman.reserve==0
+
+
+def test_land_max_front_deploys_center_out_by_pdf_damage_priority():
+ registry=UnitRegistry.load(); field=LAND_BATTLEFIELDS['land-max']
+ wave=deploy(army('hoplite',101),registry,field)[0]
+ assert [(slot.damage_position,slot.physical_position,slot.units) for slot in wave.slots]==[
+  (1,4,50),(2,3,50),(3,5,1)]
+
+
+def test_round_start_repacks_same_wave_survivors_center_first_before_rr():
+ registry=UnitRegistry.load(); field=LAND_BATTLEFIELDS['land-max']
+ wave=deploy(army('hoplite',350),registry,field)[0]
+ for slot in wave.slots:
+  slot.units=3 if slot.damage_position==7 else 0
+  slot.damage=10 if slot.damage_position==7 else 0
+ wave.reserve=100
+ events=[]; applied={}
+ _prepare_round_start([wave],events,2,'attacker',applied)
+
+ occupied=[slot for slot in wave.slots if slot.units]
+ assert [(slot.damage_position,slot.physical_position,slot.units) for slot in occupied]==[
+  (1,4,50),(2,3,50),(3,5,3)]
+ assert wave.reserve==0
+ assert sum(slot.damage for slot in wave.slots)+wave.reserve_damage==10
+ assert next(slot for slot in wave.slots if slot.damage_position==1).damage>0
+ assert all(slot.damage==0 for slot in wave.slots if not slot.units)
+ assert any(event.type=='slot_repacked' for event in events)
