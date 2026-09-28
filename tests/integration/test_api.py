@@ -176,7 +176,7 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert 'roundPageCache.clear();scenarioByGeneration.clear();scenarioByGeneration.set(simulationGeneration,scenario)' in body
  assert 'if(lastResult){' in body and 'await renderRound(currentRoundNumber)' in body
  assert 'Active report refresh failed' in body
- assert 'if(requestGeneration===simulationRequestGeneration)error.textContent=e.message' in body
+ assert 'if(requestGeneration===simulationRequestGeneration)setSimulationError(e.message)' in body
  assert 'function disableReports(){setReportsEnabled(false)}' in body
  assert 'lastScenario' not in body
  assert '熔爐神蹟 / Forge' in body and '攻擊' in body and '防禦' in body
@@ -440,4 +440,30 @@ def test_compact_setup_identity_stats_and_shared_floating_tooltip_contract():
  assert "window.addEventListener('resize',scheduleFloatingTooltipRefresh)" in body
  assert '.slot:hover .slot-tooltip' not in body
  assert '.reserve-card:hover .slot-tooltip' not in body
+ assert body==Path('public/index.html').read_text()
+
+
+def test_setup_exposes_top_and_bottom_simulate_buttons_with_one_handler():
+ body=Path('index.html').read_text()
+ assert 'id="simulateTop" class="primary" type="button">開始模擬</button>' in body
+ assert 'id="simulate" class="primary" type="button">開始模擬</button>' in body
+ assert body.count('>開始模擬</button>')==2
+ assert 'async function runSimulation(){' in body
+ assert "simulate.addEventListener('click',runSimulation)" in body
+ assert "simulateTop.addEventListener('click',runSimulation)" in body
+ assert body==Path('public/index.html').read_text()
+
+
+def test_top_simulate_action_surfaces_shared_errors_without_duplicate_live_region():
+ body=Path('index.html').read_text()
+ assert 'id="errorTop" class="error" aria-hidden="true"' in body
+ assert 'id="error" class="error" role="alert"' in body
+ assert 'function setSimulationError(message)' in body
+ assert 'errorTop.textContent=value;' in body
+ assert 'error.textContent=value;' in body
+ assert "async function runSimulation(){\n  setSimulationError('');" in body
+ assert "setSimulationError(e.message);" in body
+ assert "setSimulationError(e.message+' · Active report refresh failed: '+recoveryError.message);" in body
+ assert "boot().catch(e=>setSimulationError(e.message));" in body
+ assert body.count('role="alert"')==1
  assert body==Path('public/index.html').read_text()

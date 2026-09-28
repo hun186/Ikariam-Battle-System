@@ -155,9 +155,11 @@ def _redistribute(waves: list[Wave], events: list[Event], number: int, side: str
         total = wave.reserve_damage + sum(slot.damage for slot in wave.slots)
         if not total or not wave.alive: continue
         _assume(applied, events, "EXP-RR-ROUND-HALF-UP-001", number, "redistribute")
-        allocated, reserve = reserve_redistribution(total, wave.alive,
-            [SlotShare(slot.damage_position, slot.units) for slot in wave.slots])
-        for slot in wave.slots: slot.damage = allocated[slot.damage_position]
+        deployed = [SlotShare(slot.damage_position, slot.units)
+                    for slot in wave.slots if slot.units]
+        allocated, reserve = reserve_redistribution(total, wave.alive, deployed)
+        for slot in wave.slots:
+            slot.damage = allocated.get(slot.damage_position, 0)
         wave.reserve_damage = reserve
         _event(events, number, "redistribute", "redistribution", side, rule="RR", unit_id=wave.unit.unit_id,
                wave_id=wave.unit.wave_id, total_wave_damage=total, deployed_damage=allocated,
@@ -165,23 +167,35 @@ def _redistribute(waves: list[Wave], events: list[Event], number: int, side: str
 
 
 def _rebuild_formation(waves: list[Wave], events: list[Event], number: int, side: str) -> None:
-    """Re-establish existing runtime placements before RR.
+    """Re-pack each existing same-wave runtime line by PDF damage priority before RR.
 
-    Initial placement is owned by the pure formation planner. Cross-wave slot
-    replacement remains deliberately guarded until damage transfer is known.
+    Ascending damage position is the battlefield's center-first deployment order.
+    This may move same-wave survivors from outer physical slots back toward the
+    center, but it never creates new slots or crosses wave/line boundaries.
     """
     _guard_single_line_waves(waves)
     for wave in waves:
-        for slot in sorted(wave.slots, key=lambda item: item.damage_position):
-            moved = min(slot.capacity - slot.units, wave.reserve)
-            if moved:
-                slot.units += moved; wave.reserve -= moved
-                _event(events, number, "deploy", "slot_refilled", side, slot_id=slot.slot_id, quantity=moved)
+        slots = sorted(wave.slots, key=lambda item: item.damage_position)
+        if not slots:
+            continue
+        deployable = wave.reserve + sum(slot.units for slot in slots)
+        previous = {slot.slot_id: slot.units for slot in slots}
+        remaining = deployable
+        for slot in slots:
+            slot.units = min(slot.capacity, remaining)
+            remaining -= slot.units
+        wave.reserve = remaining
+        for slot in slots:
+            prior = previous[slot.slot_id]
+            if slot.units != prior:
+                _event(events, number, "deploy", "slot_repacked", side,
+                       slot_id=slot.slot_id, damage_position=slot.damage_position,
+                       previous_units=prior, units=slot.units)
 
 
 def _prepare_round_start(waves: list[Wave], events: list[Event], number: int, side: str,
                          applied: dict[str, dict[str, str]]) -> None:
-    """Establish the following-round deployment before applying PDF RR."""
+    """Center-first re-pack same-wave placements, then apply PDF RR."""
     _rebuild_formation(waves, events, number, side)
     _redistribute(waves, events, number, side, applied)
 

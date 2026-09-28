@@ -20,6 +20,7 @@
 - 主要技術：Python 3.11+ domain package、無 framework ASGI／Vercel adapter、vanilla HTML/CSS/JS
 - 主要入口：`ikariam_battle.simulate()`、`POST /api/simulate`、`asgi:application`
 - Land 戰場 UI 以遊戲實戰畫面排列為基準：前排為 `Flank | First/Main | Flank`，後排為 `Air defense | Third/Artillery | Air bomber`；這只是 presentation，不得藉此改動 engine slot identity、capacity 或 targeting。
+- Slot 填入／同 wave 回合重建要依 PDF damage priority 的中央優先實體順序；回合開始不得把同 wave 倖存兵留在外側舊格，且不得藉重排跨 wave、跨 line 或新增 slot。
 - 最快驗證：`pytest -q`
 <!-- END CODEX PROJECT QUICKSTART -->
 
