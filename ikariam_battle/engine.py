@@ -614,6 +614,34 @@ def _termination(attacker: dict[str, Any], defender: dict[str, Any]) -> tuple[st
     return None, None
 
 
+def _pending_sustaining_arrivals(army: Army, after_round: int, registry: UnitRegistry,
+                                 battle_end: BattleEndProfile) -> list[dict[str, Any]]:
+    """Future arrivals that could participate in battle-end continuation.
+
+    This is intentionally used only before an engagement has started. Once both
+    sides have reached a battle-sustaining state, normal round-boundary battle
+    termination remains authoritative; later reinforcements do not retroactively
+    keep an already-started battle alive.
+    """
+    sustaining_lines = battle_end.main_line_classes | battle_end.fallback_candidate_classes
+    pending: list[dict[str, Any]] = []
+    for item in army.units:
+        if item.quantity <= 0 or item.arrival_round <= after_round:
+            continue
+        unit = registry.get(item.unit_id)
+        if unit.role != "combat" or unit.native_line not in sustaining_lines:
+            continue
+        pending.append({
+            "unit_id": unit.id,
+            "quantity": item.quantity,
+            "entry_batch_id": item.batch_id,
+            "wave_id": item.wave_id,
+            "arrival_round": item.arrival_round,
+        })
+    return sorted(pending, key=lambda row: (
+        row["arrival_round"], row["entry_batch_id"], row["unit_id"], row["wave_id"]))
+
+
 def _non_sustaining(snapshot: dict[str, Any]) -> dict[str, int]:
     sustaining = {**snapshot["main_line_holding_remaining"], **snapshot["fallback_candidate_remaining"]}
     return {unit: count for unit, count in snapshot["remaining"].items()
@@ -659,12 +687,24 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     initial_states = {side: state["continuation_state"] for side, state in initial.items()}
     fallback_sides = [side for side, state in initial_states.items()
                       if state == ContinuationState.FALLBACK_REQUIRED.value]
-    initial_outcome, _ = _termination(initial["attacker"], initial["defender"])
+    initial_pending = {
+        "attacker": _pending_sustaining_arrivals(
+            scenario.attacker, 0, registry, battle_end),
+        "defender": _pending_sustaining_arrivals(
+            scenario.defender, 0, registry, battle_end),
+    }
+    initial_outcome, initial_losing = _termination(initial["attacker"], initial["defender"])
+    initial_waiting = initial_outcome is not None and bool(initial_pending.get(initial_losing or ""))
+    both_initially_empty_but_pending = (
+        all(state == ContinuationState.NOT_SUSTAINING.value for state in initial_states.values())
+        and any(initial_pending.values())
+    )
     if fallback_sides:
         blockers.append("UNKNOWN-FORMATION-FALLBACK")
-    if initial_outcome is not None:
+    if initial_outcome is not None and not initial_waiting:
         blockers.append("UNKNOWN-INITIAL-BATTLE-END-TIMING")
-    if all(state == ContinuationState.NOT_SUSTAINING.value for state in initial_states.values()):
+    if (all(state == ContinuationState.NOT_SUSTAINING.value for state in initial_states.values())
+            and not both_initially_empty_but_pending):
         blockers.append("UNKNOWN-BOTH-SIDES-NO-MAIN-LINE-OUTCOME")
     if scenario.policy is Policy.STRICT:
         blockers += ["UNKNOWN-KILL-SELECTION", "UNKNOWN-ROUNDING-SELECTOR",
@@ -688,7 +728,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 "initial_state":initial,"final_state":initial,
                 "rounds":[{"round":0,**deepcopy(initial),"casualties":{"attacker":{},"defender":{}}}],
                 "events":[e.as_dict() for e in events],"assumptions":list(applied.values()),"warnings":warnings}
-    if all(state == ContinuationState.NOT_SUSTAINING.value for state in initial_states.values()):
+    if (all(state == ContinuationState.NOT_SUSTAINING.value for state in initial_states.values())
+            and not both_initially_empty_but_pending):
         _event(events, 0, "battle_end", "unsupported_mechanic", None,
                rule_id="UNKNOWN-BOTH-SIDES-NO-MAIN-LINE-OUTCOME")
         return {"profiles":scenario.profiles.__dict__,"policy":scenario.policy.value,"status":"inconclusive",
@@ -696,7 +737,11 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 "initial_state":initial,"final_state":initial,
                 "rounds":[{"round":0,**deepcopy(initial),"casualties":{"attacker":{},"defender":{}}}],
                 "events":[e.as_dict() for e in events],"assumptions":list(applied.values()),"warnings":warnings}
-    if initial_outcome is not None:
+    if initial_waiting:
+        _event(events, 0, "battle_start", "waiting_for_arrival", initial_losing,
+               pending=initial_pending[initial_losing],
+               next_arrival_round=min(row["arrival_round"] for row in initial_pending[initial_losing]))
+    elif initial_outcome is not None:
         _assume(applied, events, "EXP-BATTLE-END-ROUND-BOUNDARY-001", 0, "battle_end")
         _, losing = _termination(initial["attacker"], initial["defender"])
         _event(events, 0, "battle_end", "battle_termination", None,
@@ -715,6 +760,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     fallback_boundary = False
     both_zero_boundary = False
     cross_wave_boundary = False
+    engagement_started = all(
+        state == ContinuationState.SUSTAINING.value for state in initial_states.values())
     for number in range(1, scenario.max_rounds + 1):
         attacker_arrivals = _arrival_waves(scenario.attacker, number, registry, events, "attacker")
         defender_arrivals = _arrival_waves(scenario.defender, number, registry, events, "defender")
@@ -743,8 +790,16 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                            requirements=requirements)
             cross_wave_boundary = True
             break
+        round_start_states = {
+            "attacker": _snapshot(attacker, registry, battle_end)["continuation_state"],
+            "defender": _snapshot(defender, registry, battle_end)["continuation_state"],
+        }
+        if all(state == ContinuationState.SUSTAINING.value
+               for state in round_start_states.values()):
+            engagement_started = True
         # Art of Warfare: same formations on both sides shoot simultaneously;
         # casualties from an earlier formation suppress firing in later phases.
+        round_had_fire = False
         a_dead, d_dead = defaultdict(int), defaultdict(int)
         a_slot_dead, d_slot_dead = defaultdict(int), defaultdict(int)
         a_queues = _build_damage_queues(attacker, registry, events, number, "attacker", applied)
@@ -758,6 +813,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 firing_phase, applied)
             if not a_volleys and not d_volleys:
                 continue
+            round_had_fire = True
             _event(events, number, "fire", "formation_fire_phase", None,
                    firing_phase=firing_phase, simultaneous=True,
                    attacker_shots=sum(len(v["row_numbers"]) for v in a_volleys),
@@ -808,26 +864,56 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                    rule_id="UNKNOWN-FORMATION-FALLBACK", affected_sides=fallback_sides)
             fallback_boundary = True
             break
+        pending_now = {
+            "attacker": _pending_sustaining_arrivals(
+                scenario.attacker, number, registry, battle_end),
+            "defender": _pending_sustaining_arrivals(
+                scenario.defender, number, registry, battle_end),
+        }
         if all(state == ContinuationState.NOT_SUSTAINING.value for state in states.values()):
-            _event(events, number, "battle_end", "unsupported_mechanic", None,
-                   rule_id="UNKNOWN-BOTH-SIDES-NO-MAIN-LINE-OUTCOME")
-            both_zero_boundary = True
-            break
+            if not engagement_started and any(pending_now.values()):
+                _event(events, number, "battle_start", "waiting_for_arrival", None,
+                       pending_sides=[side for side, rows in pending_now.items() if rows],
+                       next_arrival_round=min(
+                           row["arrival_round"] for rows in pending_now.values() for row in rows))
+            else:
+                _event(events, number, "battle_end", "unsupported_mechanic", None,
+                       rule_id="UNKNOWN-BOTH-SIDES-NO-MAIN-LINE-OUTCOME")
+                both_zero_boundary = True
+                break
         outcome, losing = _termination(attacker_state, defender_state)
         if outcome is not None:
-            _assume(applied, events, "EXP-BATTLE-END-ROUND-BOUNDARY-001", number, "battle_end")
-            _event(events, number, "battle_end", "battle_termination", None,
-                   reason="no_battle_sustaining_units", losing_side=losing,
-                   surviving_non_sustaining={"attacker":_non_sustaining(attacker_state),
-                                             "defender":_non_sustaining(defender_state)})
+            losing_pending = pending_now.get(losing or "", [])
+            if not engagement_started and losing_pending:
+                _event(events, number, "battle_start", "waiting_for_arrival", losing,
+                       pending=losing_pending,
+                       next_arrival_round=min(row["arrival_round"] for row in losing_pending))
+            else:
+                _assume(applied, events, "EXP-BATTLE-END-ROUND-BOUNDARY-001", number, "battle_end")
+                _event(events, number, "battle_end", "battle_termination", None,
+                       reason="no_battle_sustaining_units", losing_side=losing,
+                       surviving_non_sustaining={"attacker":_non_sustaining(attacker_state),
+                                                 "defender":_non_sustaining(defender_state)})
+                break
+        if not a_dead and not d_dead and not round_had_fire:
+            if not engagement_started and any(pending_now.values()):
+                continue
             break
-        if not a_dead and not d_dead and not a_plan and not d_plan: break
     else:
         _event(events, scenario.max_rounds, "battle_end", "safety_limit_reached", None,
                reason="max_rounds_reached", limit=scenario.max_rounds)
     final = {"attacker":_snapshot(attacker,registry,battle_end),"defender":_snapshot(defender,registry,battle_end)}
-    outcome, _ = _termination(final["attacker"], final["defender"])
-    if fallback_boundary or both_zero_boundary or cross_wave_boundary:
+    outcome, final_losing = _termination(final["attacker"], final["defender"])
+    pending_after_horizon = {
+        "attacker": _pending_sustaining_arrivals(
+            scenario.attacker, scenario.max_rounds, registry, battle_end),
+        "defender": _pending_sustaining_arrivals(
+            scenario.defender, scenario.max_rounds, registry, battle_end),
+    }
+    if (fallback_boundary or both_zero_boundary or cross_wave_boundary
+            or (not engagement_started
+                and final_losing is not None
+                and pending_after_horizon.get(final_losing))):
         outcome = None
     outcome = outcome or "inconclusive"
     return {"profiles":scenario.profiles.__dict__,"policy":scenario.policy.value,"status":"completed" if outcome != "inconclusive" else "inconclusive",

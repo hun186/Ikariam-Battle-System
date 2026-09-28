@@ -899,3 +899,55 @@ def test_post_combat_projection_still_exposes_vacancies_after_partial_same_wave_
  assert candidate['runtime_line']=='first'
  assert len(candidate['open_damage_positions'])==2
  assert 'owner' not in {r['wave_id'] for r in requirements}
+
+
+def test_round_zero_empty_side_waits_for_scheduled_combat_arrival_instead_of_losing():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':2,
+    'attacker':{'units':[
+      {'unit_id':'hoplite','quantity':90,'entry_batch_id':'a1','arrival_round':1}]},
+    'defender':{'units':[
+      {'unit_id':'hoplite','quantity':90,'entry_batch_id':'d0','arrival_round':0}]}}
+ result=simulate(s)
+ assert result['status']=='inconclusive'
+ assert result['outcome']=='inconclusive'
+ assert not any(e['type']=='battle_termination' and e['round']==0 for e in result['events'])
+ wait=next(e for e in result['events'] if e['type']=='waiting_for_arrival' and e['round']==0)
+ assert wait['side']=='attacker'
+ assert wait['details']['next_arrival_round']==1
+ assert any(e['type']=='entry_batch_arrived' and e['round']==1
+            and e['side']=='attacker' and e['details']['entry_batch_id']=='a1'
+            for e in result['events'])
+ assert any(e['type']=='unsupported_mechanic' and e['round']==1
+            and e['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD'
+            for e in result['events'])
+
+
+def test_pre_engagement_wait_can_span_empty_rounds_until_future_arrival():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':3,
+    'attacker':{'units':[
+      {'unit_id':'hoplite','quantity':90,'entry_batch_id':'a3','arrival_round':3}]},
+    'defender':{'units':[
+      {'unit_id':'hoplite','quantity':90,'entry_batch_id':'d0','arrival_round':0}]}}
+ result=simulate(s)
+ assert not any(e['type']=='battle_termination' for e in result['events'])
+ waits=[e for e in result['events'] if e['type']=='waiting_for_arrival']
+ assert waits and waits[0]['round']==0
+ assert any(e['round']==1 and e['side']=='attacker' for e in waits)
+ assert any(e['round']==2 and e['side']=='attacker' for e in waits)
+ assert any(e['type']=='entry_batch_arrived' and e['round']==3
+            and e['side']=='attacker' for e in result['events'])
+ assert result['status']=='inconclusive'
+
+
+def test_future_non_sustaining_artillery_does_not_delay_round_zero_loss():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':2,
+    'attacker':{'units':[
+      {'unit_id':'mortar','quantity':6,'entry_batch_id':'a1','arrival_round':1}]},
+    'defender':{'units':[
+      {'unit_id':'hoplite','quantity':90,'entry_batch_id':'d0','arrival_round':0}]}}
+ result=simulate(s)
+ assert result['status']=='completed'
+ assert result['outcome']=='defender'
+ assert result['rounds_completed']==0
+ assert any(e['type']=='battle_termination' and e['round']==0 for e in result['events'])
+ assert not any(e['type']=='waiting_for_arrival' for e in result['events'])
