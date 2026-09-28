@@ -559,3 +559,11 @@ def test_setup_entry_batches_group_different_units_and_keep_unit_state_identity_
  assert "wave_id:entryBatchId+'::'+row.dataset.unitId" in body
  assert "batchRounds.get(item.entry_batch_id)!==item.arrival_round" in body
  assert body==Path('public/index.html').read_text()
+
+
+def test_setup_compact_layout_keeps_advanced_batch_controls_full_width_on_mobile():
+ body=Path('index.html').read_text()
+ assert '@media(max-width:600px)' in body
+ assert '.unit-ident,.qty-control,.unit-statbox,.advanced{grid-column:1/-1}' in body
+ assert '.advanced{margin:0}' in body
+ assert body==Path('public/index.html').read_text()
