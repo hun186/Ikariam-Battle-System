@@ -45,3 +45,5 @@ jobs:
           git rm .github/workflows/validate-pr30-combat-regressions.yml
           git commit -m "chore: remove one-time combat regression validation"
           git push origin HEAD:test/pr30-combat-regression-hardening
+
+# retry after import-format fix
