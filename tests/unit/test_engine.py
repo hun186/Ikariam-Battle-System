@@ -738,3 +738,34 @@ def test_future_entry_batch_arrives_as_reserve_at_its_configured_round():
  assert not any(e['type']=='unsupported_mechanic' and e['round']==0
                 and e['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD'
                 for e in result['events'])
+
+
+def test_future_doctor_arrival_applies_named_no_healing_assumption():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+    'attacker':{'units':[
+      {'unit_id':'hoplite','quantity':90,'entry_batch_id':'a0','arrival_round':0},
+      {'unit_id':'doctor','quantity':2,'entry_batch_id':'a1','arrival_round':1}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':90}]}}
+ result=simulate(s)
+ assert any(e['type']=='entry_batch_arrived' and e['round']==1
+            and e['details']['entry_batch_id']=='a1' for e in result['events'])
+ assert 'EXP-HEAL-NONE-001' in {a['id'] for a in result['assumptions']}
+ assert result['healing_status']['sides']['attacker']=={
+  'doctor_count':2,'status':'ignored_by_named_assumption',
+  'effect_applied':False,'healing_amount':None
+ }
+
+
+def test_future_cook_arrival_applies_named_no_morale_assumption():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+    'attacker':{'units':[
+      {'unit_id':'hoplite','quantity':90,'entry_batch_id':'a0','arrival_round':0},
+      {'unit_id':'cook','quantity':15,'entry_batch_id':'a1','arrival_round':1}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':90}]}}
+ result=simulate(s)
+ assert any(e['type']=='entry_batch_arrived' and e['round']==1
+            and e['details']['entry_batch_id']=='a1' for e in result['events'])
+ assert 'EXP-MORALE-NONE-001' in {a['id'] for a in result['assumptions']}
+ assert result['morale_status']['sides']['attacker']=={
+  'cook_count':15,'status':'ignored_by_named_assumption','effect_applied':False
+ }

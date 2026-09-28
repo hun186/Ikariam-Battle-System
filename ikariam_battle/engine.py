@@ -694,8 +694,18 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     both_zero_boundary = False
     cross_wave_boundary = False
     for number in range(1, scenario.max_rounds + 1):
-        attacker.extend(_arrival_waves(scenario.attacker, number, registry, events, "attacker"))
-        defender.extend(_arrival_waves(scenario.defender, number, registry, events, "defender"))
+        attacker_arrivals = _arrival_waves(scenario.attacker, number, registry, events, "attacker")
+        defender_arrivals = _arrival_waves(scenario.defender, number, registry, events, "defender")
+        attacker.extend(attacker_arrivals)
+        defender.extend(defender_arrivals)
+        arrival_blockers = set(
+            _preflight(attacker_arrivals, registry, formation_rules, field)
+            + _preflight(defender_arrivals, registry, formation_rules, field)
+        )
+        if "UNKNOWN-HEALING-ALLOCATION" in arrival_blockers:
+            _assume(applied, events, "EXP-HEAL-NONE-001", number, "arrival")
+        if "UNKNOWN-MORALE-SUPPORT" in arrival_blockers:
+            _assume(applied, events, "EXP-MORALE-NONE-001", number, "arrival")
         _prepare_round_start(attacker, events, number, "attacker", applied)
         _prepare_round_start(defender, events, number, "defender", applied)
         cross_wave = {

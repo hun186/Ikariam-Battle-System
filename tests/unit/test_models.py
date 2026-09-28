@@ -70,3 +70,21 @@ def test_legacy_wave_id_remains_backward_compatible_as_batch_identity():
  army=Army.from_dict({'units':[{'unit_id':'hoplite','quantity':30,'wave_id':'legacy-w1'}]})
  unit=army.units[0]
  assert unit.wave_id=='legacy-w1' and unit.batch_id=='legacy-w1' and unit.arrival_round==0
+
+
+def test_same_unit_wave_id_cannot_be_reused_across_entry_batches():
+ with pytest.raises(ScenarioError,match='cannot be reused across entry batches'):
+  Army.from_dict({'units':[
+   {'unit_id':'hoplite','quantity':10,'entry_batch_id':'batch-a','wave_id':'same'},
+   {'unit_id':'hoplite','quantity':20,'entry_batch_id':'batch-b','wave_id':'same'},
+  ]})
+
+
+def test_same_unit_wave_id_may_repeat_inside_one_entry_batch_and_aggregates():
+ army=Army.from_dict({'units':[
+  {'unit_id':'hoplite','quantity':10,'entry_batch_id':'batch-a','wave_id':'same'},
+  {'unit_id':'hoplite','quantity':20,'entry_batch_id':'batch-a','wave_id':'same'},
+ ]})
+ assert len(army.units)==1
+ assert army.units[0].quantity==30
+ assert army.units[0].batch_id=='batch-a'

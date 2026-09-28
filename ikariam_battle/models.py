@@ -89,6 +89,7 @@ class Army:
             raise ScenarioError("an army must contain at least one unit")
         upgrades: dict[str, tuple[int, int]] = {}
         batch_rounds: dict[str, int] = {}
+        wave_batches: dict[tuple[str, str], str] = {}
         for item in parsed:
             pair = (item.attack_upgrade, item.armor_upgrade)
             if item.unit_id in upgrades and upgrades[item.unit_id] != pair:
@@ -97,6 +98,12 @@ class Army:
             if item.batch_id in batch_rounds and batch_rounds[item.batch_id] != item.arrival_round:
                 raise ScenarioError(f"entry batch {item.batch_id} has conflicting arrival_round values")
             batch_rounds[item.batch_id] = item.arrival_round
+            wave_key = (item.unit_id, item.wave_id)
+            if wave_key in wave_batches and wave_batches[wave_key] != item.batch_id:
+                raise ScenarioError(
+                    f"wave_id {item.wave_id} for {item.unit_id} cannot be reused across entry batches"
+                )
+            wave_batches[wave_key] = item.batch_id
         # State is unit-specific even when multiple unit types share one arrival
         # batch. Duplicate presentation rows aggregate only when both identities
         # and upgrades/timing agree.
