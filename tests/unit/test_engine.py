@@ -591,6 +591,36 @@ def test_snapshot_exposes_batch_reserve_damage_and_hp_percent():
  assert batch['reserve_hit_points_percent']==80
 
 
+def test_destroyed_slot_identity_is_round_local_not_a_persistent_tombstone():
+ from ikariam_battle.engine import _snapshot
+ from ikariam_battle.profiles import BattleEndProfile
+ registry=UnitRegistry.load(); battle_end=BattleEndProfile.load()
+ wave=Wave(ArmyUnit('hoplite',3,'batch'),0,
+           [Slot('first-1','first',2,1,'hoplite','batch',0,30)])
+
+ death_round=_snapshot([wave],registry,battle_end,{('batch','first-1'):3})
+ assert len(death_round['slots'])==1
+ assert death_round['slots'][0]['units']==0
+ assert death_round['slots'][0]['casualties']==3
+ assert death_round['slots'][0]['hit_points_percent']==0
+
+ following_round=_snapshot([wave],registry,battle_end)
+ assert following_round['slots']==[]
+
+
+def test_round_start_refill_replaces_destroyed_marker_with_live_current_state():
+ from ikariam_battle.engine import _prepare_round_start, _snapshot
+ from ikariam_battle.profiles import BattleEndProfile
+ registry=UnitRegistry.load(); battle_end=BattleEndProfile.load()
+ wave=Wave(ArmyUnit('hoplite',5,'batch'),5,
+           [Slot('first-1','first',2,1,'hoplite','batch',0,30)])
+ _prepare_round_start([wave],[],2,'attacker',{})
+ state=_snapshot([wave],registry,battle_end)
+ assert len(state['slots'])==1
+ assert state['slots'][0]['units']==5
+ assert state['slots'][0]['casualties']==0
+ assert state['slots'][0]['hit_points_percent']==100
+
 def test_partial_flank_casualties_reduce_later_long_range_shots():
  s={'policy':'experimental','battlefield':'land-max','max_rounds':1,
     'attacker':{'units':[{'unit_id':'hoplite','quantity':350},
