@@ -501,3 +501,38 @@ def test_pdf_source_tab_credits_authors_and_links_original_sources():
  assert public_pdf.is_file()
  with public_pdf.open('rb') as handle:
   assert handle.read(4)==b'%PDF'
+
+
+def test_setup_debug_json_download_uses_the_exact_simulation_scenario_builder():
+ body=Path('index.html').read_text()
+ assert 'id="downloadSetupTop" class="secondary" type="button">下載兵力設定 Debug JSON</button>' in body
+ assert 'id="downloadSetup" class="secondary" type="button">下載兵力設定 Debug JSON</button>' in body
+ assert 'function scenarioFromSetup(){' in body
+ assert "const scenario=scenarioFromSetup(),submittedBattlefield=scenario.battlefield;" in body
+ assert 'function setupDebugPayload(){' in body
+ assert "debug_format:'ikariam-battle-simulator',debug_version:1,kind:'setup'" in body
+ assert "scenario,context:{battlefield:currentField(),combat_chronology:metadata.combat_chronology}" in body
+ assert "downloadJson('ikariam-setup-debug.json',setupDebugPayload())" in body
+ assert "downloadSetup.addEventListener('click',downloadSetupDebug)" in body
+ assert "downloadSetupTop.addEventListener('click',downloadSetupDebug)" in body
+ assert 'Debug JSON 可直接貼回來協助重現問題；不包含 API key。' in body
+ assert body==Path('public/index.html').read_text()
+
+
+def test_round_debug_json_download_contains_reproducible_round_process_and_diagnostics():
+ body=Path('index.html').read_text()
+ assert 'id="downloadRoundDebug" class="secondary" type="button">下載本回合 Debug JSON</button>' in body
+ assert 'function roundDebugPayload(){' in body
+ assert 'simulation_summary:lastResult' in body
+ assert 'current_round_number:round.round' in body
+ assert 'current_round:round' in body
+ assert 'current_round_events:currentRoundEvents' in body
+ assert 'unsupported_mechanics:unsupportedMechanics' in body
+ assert 'warnings:lastResult.warnings||[]' in body
+ assert 'assumptions:lastResult.assumptions||[]' in body
+ assert "page.report||null" in body
+ assert "suffix=payload.current_round_number===0?'deployment':'round-'+payload.current_round_number" in body
+ assert "downloadRoundDebug.addEventListener('click',downloadCurrentRoundDebug)" in body
+ assert 'JSON.stringify(payload,null,2)' in body
+ assert "type:'application/json;charset=utf-8'" in body
+ assert body==Path('public/index.html').read_text()
