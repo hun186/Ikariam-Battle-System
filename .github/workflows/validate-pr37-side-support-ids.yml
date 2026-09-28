@@ -1,0 +1,83 @@
+name: Validate PR37 side support and identity fixes
+
+on:
+  push:
+    branches:
+      - fix/setup-batches-layout-and-deferred-rebuild
+    paths:
+      - .github/workflows/validate-pr37-side-support-ids.yml
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/setup-batches-layout-and-deferred-rebuild
+          fetch-depth: 0
+      - name: Validate latest review fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -q pytest
+          python -m pytest -q tests/unit/test_models.py tests/unit/test_formation.py tests/unit/test_engine.py tests/integration/test_api.py
+          python -m pytest -q
+          python -m compileall -q ikariam_battle asgi.py web_simulator.py simulator.py
+          cmp index.html public/index.html
+          python - <<'PY'
+          from ikariam_battle.models import Army, ScenarioError
+          from ikariam_battle.engine import simulate
+
+          for field,bad in (
+              ('entry_batch_id',''),('entry_batch_id',0),('entry_batch_id',False),('entry_batch_id',None),
+              ('wave_id',''),('wave_id',0),('wave_id',False),('wave_id',None),
+          ):
+              try:
+                  Army.from_dict({'units':[{'unit_id':'hoplite','quantity':10,field:bad}]})
+              except ScenarioError as exc:
+                  assert str(exc)==f'{field} must be a non-empty string'
+              else:
+                  raise AssertionError((field,bad))
+
+          result=simulate({
+              'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+              'attacker':{'units':[
+                  {'unit_id':'hoplite','quantity':90,'entry_batch_id':'a0','arrival_round':0},
+                  {'unit_id':'doctor','quantity':2,'entry_batch_id':'a1','arrival_round':1},
+                  {'unit_id':'cook','quantity':15,'entry_batch_id':'a1','arrival_round':1},
+              ]},
+              'defender':{'units':[
+                  {'unit_id':'hoplite','quantity':90,'entry_batch_id':'d0','arrival_round':0},
+                  {'unit_id':'doctor','quantity':3,'entry_batch_id':'d2','arrival_round':2},
+                  {'unit_id':'cook','quantity':12,'entry_batch_id':'d2','arrival_round':2},
+              ]},
+          })
+          assert result['healing_status']['sides']['attacker']['status']=='ignored_by_named_assumption'
+          assert result['healing_status']['sides']['defender']['status']=='not_reached'
+          assert result['morale_status']['sides']['attacker']['status']=='ignored_by_named_assumption'
+          assert result['morale_status']['sides']['defender']['status']=='not_reached'
+          rounds={row['round']:row for row in result['rounds']}
+          assert rounds[0]['combat_statistics']['attacker']['healing']==0
+          assert rounds[1]['combat_statistics']['attacker']['healing'] is None
+          assert rounds[1]['combat_statistics']['defender']['healing']==0
+          PY
+          python - <<'PY'
+          from pathlib import Path
+          html=Path('index.html').read_text()
+          Path('/tmp/ikariam-inline.js').write_text(html.split('<script>',1)[1].split('</script>',1)[0])
+          PY
+          node --check /tmp/ikariam-inline.js
+          git diff --check origin/main...HEAD
+      - name: Remove one-time validation workflow
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/validate-pr37-side-support-ids.yml
+          git commit -m "chore: remove PR37 side-support validation"
+          git push origin HEAD:fix/setup-batches-layout-and-deferred-rebuild
