@@ -139,7 +139,7 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  response=asyncio.run(request('GET','/')); body=response[1]['body'].decode()
  assert response[0]['status']==200 and "fetch('/api/simulate')" in body and 'const units=[' not in body
  assert '兵力設定' in body and '逐回合戰報' in body and '總戰報' in body
- assert '戰鬥機制狀態 / Mechanics status' in body
+ assert '戰鬥機制狀態 / Mechanics Status' in body
  assert 'Air defence → Air → Artillery → Flanks → Long-range → Main battle line' in body
  assert 'P-kill' in body and 'IR / SR' in body and 'RR · Reserve Redistribution' in body
  assert 'Steam Giant、Ram、Catapult、Mortar、Gyrocopter、Bombardier' in body
@@ -205,7 +205,7 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert '.formation{min-width:790px}' not in body
  assert '.battle-half{grid-template-columns:1fr}.reserve-box{order:2}' not in body
  assert "reserveBox(state,name==='defender'?'Defender':'Attacker',geometry)+formation" in body
- assert '@media(max-width:900px){.setup-grid,.summary-grid,.mechanics-grid{grid-template-columns:1fr}' in body
+ assert '@media(max-width:900px){.setup-grid,.summary-grid,.mechanics-grid,.source-grid{grid-template-columns:1fr}' in body
  assert '}\n@media(max-width:900px)' in body
  assert '}\\n@media(max-width:900px)' not in body
  assert '此戰場沒有 Flank slot；未能補入前線的側翼兵會留在 Reserve。' in body
