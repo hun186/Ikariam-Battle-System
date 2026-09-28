@@ -176,7 +176,7 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert 'roundPageCache.clear();scenarioByGeneration.clear();scenarioByGeneration.set(simulationGeneration,scenario)' in body
  assert 'if(lastResult){' in body and 'await renderRound(currentRoundNumber)' in body
  assert 'Active report refresh failed' in body
- assert 'if(requestGeneration===simulationRequestGeneration)error.textContent=e.message' in body
+ assert 'if(requestGeneration===simulationRequestGeneration)setSimulationError(e.message)' in body
  assert 'function disableReports(){setReportsEnabled(false)}' in body
  assert 'lastScenario' not in body
  assert '熔爐神蹟 / Forge' in body and '攻擊' in body and '防禦' in body
