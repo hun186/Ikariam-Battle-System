@@ -2,7 +2,10 @@ from copy import deepcopy
 import pytest
 from ikariam_battle import simulate
 from ikariam_battle.battlefield import LAND_MINI, deploy
-from ikariam_battle.engine import _plan_fire, _preflight, _prepare_round_start, _target
+from ikariam_battle.engine import (
+ _ir_trigger, _plan_fire, _preflight, _prepare_round_start, _redistribute,
+ _resolve_volleys, _sr_trigger, _target,
+)
 from ikariam_battle.formation import FormationRules
 from ikariam_battle.models import Army, ArmyUnit, ScenarioError, Slot, Wave
 from ikariam_battle.profiles import ForgeProfile, TargetingProfile, WorkshopProfile
@@ -586,3 +589,81 @@ def test_snapshot_exposes_batch_reserve_damage_and_hp_percent():
  assert batch['reserve']==10
  assert batch['reserve_damage']==2*hp
  assert batch['reserve_hit_points_percent']==80
+
+
+def test_partial_flank_casualties_reduce_later_long_range_shots():
+ s={'policy':'experimental','battlefield':'land-max','max_rounds':1,
+    'attacker':{'units':[{'unit_id':'hoplite','quantity':350},
+                         {'unit_id':'swordsman','quantity':60,'attack_upgrade':30}]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':350},
+                         {'unit_id':'sulphur_carabineer','quantity':84}]}}
+ result=simulate(s)
+ killed=result['casualties']['defender'].get('sulphur_carabineer',0)
+ assert 0 < killed < 84
+ second_phase=next(e for e in result['events']
+                   if e['type']=='formation_fire_phase'
+                   and e['details']['firing_phase']=='second')
+ assert second_phase['details']['defender_shots']==84-killed
+
+
+def test_sequential_volley_resolution_differs_from_legacy_pooled_casualty_math():
+ registry=UnitRegistry.load()
+ target=Wave(
+  ArmyUnit('spearman',2,'target-wave'),0,
+  [Slot('first-1','first',1,1,'spearman','target-wave',2,2,130)],
+ )
+ queues={('spearman','target-wave','first-1'):[130,0]}
+ volleys=[{
+  'side':'attacker',
+  'source_unit':'swordsman',
+  'source_wave':'source-wave',
+  'runtime_line':'flank',
+  'weapon_id':'primary',
+  'attack_upgrade':0,
+  'row_numbers':[1,1],
+ }]
+ casualties={'spearman':0}
+ slot_casualties={('target-wave','first-1'):0}
+ events=[]
+ _resolve_volleys(
+  volleys,[target],queues,registry,WorkshopProfile.load(),ForgeProfile.load(),
+  TargetingProfile.load(),events,1,
+  Army((ArmyUnit('swordsman',2,'source-wave'),),0),
+  Army((ArmyUnit('spearman',2,'target-wave'),),0),
+  casualties,slot_casualties,{},
+ )
+
+ hp=registry.get('spearman').hit_points
+ damage=registry.get('swordsman').weapons[0].damage
+ pooled_casualties=(130 + 2*damage)//hp
+ assert (hp,damage,pooled_casualties)==(260,200,2)
+ assert casualties['spearman']==1
+ assert target.slots[0].units==1 and target.slots[0].damage==200
+ assert queues[('spearman','target-wave','first-1')]==[200]
+
+
+def test_ir_and_sr_hooks_are_explicitly_disabled_at_baseline():
+ assert _ir_trigger(object()) is False
+ assert _sr_trigger('flank',[],[]) is False
+
+
+def test_round_redistribution_keeps_entry_waves_isolated():
+ wave_a=Wave(
+  ArmyUnit('hoplite',40,'wave-a'),10,
+  [Slot('first-a','first',1,1,'hoplite','wave-a',30,30,90)],
+  reserve_damage=10,
+ )
+ wave_b=Wave(
+  ArmyUnit('hoplite',40,'wave-b'),10,
+  [Slot('first-b','first',1,1,'hoplite','wave-b',30,30,5)],
+  reserve_damage=2,
+ )
+ events=[]
+ _redistribute([wave_a,wave_b],events,2,'attacker',{})
+
+ assert wave_a.reserve_damage + sum(slot.damage for slot in wave_a.slots)==100
+ assert wave_b.reserve_damage + sum(slot.damage for slot in wave_b.slots)==7
+ rr=[e for e in events if e.type=='redistribution']
+ assert {(e.details['wave_id'],e.details['total_wave_damage']) for e in rr}=={
+  ('wave-a',100),('wave-b',7),
+ }
