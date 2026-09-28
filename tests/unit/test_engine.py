@@ -2,7 +2,10 @@ from copy import deepcopy
 import pytest
 from ikariam_battle import simulate
 from ikariam_battle.battlefield import LAND_MINI, deploy
-from ikariam_battle.engine import (\n _apply_sequential_hit, _ir_trigger, _plan_fire, _preflight, _prepare_round_start,\n _redistribute, _sr_trigger, _target,\n)
+from ikariam_battle.engine import (
+ _apply_sequential_hit, _ir_trigger, _plan_fire, _preflight, _prepare_round_start,
+ _redistribute, _sr_trigger, _target,
+)
 from ikariam_battle.formation import FormationRules
 from ikariam_battle.models import Army, ArmyUnit, ScenarioError, Slot, Wave
 from ikariam_battle.profiles import ForgeProfile, TargetingProfile, WorkshopProfile
