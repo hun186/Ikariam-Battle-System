@@ -1,4 +1,5 @@
 name: Validate mixed entry batches and deferred rebuild
+# rerun after preserving legacy wave-1 compatibility
 
 on:
   push:
