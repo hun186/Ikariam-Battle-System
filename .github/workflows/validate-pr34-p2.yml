@@ -1,4 +1,5 @@
 name: Validate PR34 P2 fix
+# rerun after updating the legacy static error assertion
 
 on:
   push:
