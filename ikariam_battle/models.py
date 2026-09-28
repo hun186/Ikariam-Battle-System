@@ -40,18 +40,33 @@ class ArmyUnit:
     wave_id: str = "wave-1"
     attack_upgrade: int = 0
     armor_upgrade: int = 0
+    # entry_batch_id is the real arrival-group identity: different unit types may
+    # share it when they enter the battle together. wave_id remains the
+    # unit-specific state identity used for ammo/damage ownership.
+    entry_batch_id: str | None = None
+    arrival_round: int = 0
+
+    @property
+    def batch_id(self) -> str:
+        return self.entry_batch_id or self.wave_id
 
     @classmethod
     def from_dict(cls, value: Any) -> "ArmyUnit":
         row = _object(value, "army unit")
         if not isinstance(row.get("unit_id"), str) or not row["unit_id"]:
             raise ScenarioError("unit_id must be a non-empty string")
-        wave_id = row.get("wave_id", "wave-1")
+        explicit_wave = row.get("wave_id")
+        entry_batch_id = row.get("entry_batch_id", explicit_wave or "batch-1")
+        if not isinstance(entry_batch_id, str) or not entry_batch_id:
+            raise ScenarioError("entry_batch_id must be a non-empty string")
+        wave_id = explicit_wave or f"{entry_batch_id}::{row['unit_id']}"
         if not isinstance(wave_id, str) or not wave_id:
             raise ScenarioError("wave_id must be a non-empty string")
         return cls(row["unit_id"], _integer(row.get("quantity"), "quantity"), wave_id,
                    _integer(row.get("attack_upgrade", 0), "attack_upgrade"),
-                   _integer(row.get("armor_upgrade", 0), "armor_upgrade"))
+                   _integer(row.get("armor_upgrade", 0), "armor_upgrade"),
+                   entry_batch_id,
+                   _integer(row.get("arrival_round", 0), "arrival_round", 0, MAX_ROUNDS))
 
 
 @dataclass(frozen=True)
@@ -69,19 +84,25 @@ class Army:
         if not any(item.quantity for item in parsed):
             raise ScenarioError("an army must contain at least one unit")
         upgrades: dict[str, tuple[int, int]] = {}
+        batch_rounds: dict[str, int] = {}
         for item in parsed:
             pair = (item.attack_upgrade, item.armor_upgrade)
             if item.unit_id in upgrades and upgrades[item.unit_id] != pair:
                 raise ScenarioError(f"conflicting Workshop upgrades for {item.unit_id}")
             upgrades[item.unit_id] = pair
-        # A wave is identified by (unit_id, wave_id); duplicate UI/API rows are
-        # presentation only and cannot change mechanics.
-        totals: dict[tuple[str, str, int, int], int] = {}
+            if item.batch_id in batch_rounds and batch_rounds[item.batch_id] != item.arrival_round:
+                raise ScenarioError(f"entry batch {item.batch_id} has conflicting arrival_round values")
+            batch_rounds[item.batch_id] = item.arrival_round
+        # State is unit-specific even when multiple unit types share one arrival
+        # batch. Duplicate presentation rows aggregate only when both identities
+        # and upgrades/timing agree.
+        totals: dict[tuple[str, str, int, int, str, int], int] = {}
         for item in parsed:
-            key = (item.unit_id, item.wave_id, item.attack_upgrade, item.armor_upgrade)
+            key = (item.unit_id, item.wave_id, item.attack_upgrade, item.armor_upgrade,
+                   item.batch_id, item.arrival_round)
             totals[key] = totals.get(key, 0) + item.quantity
-        units = tuple(ArmyUnit(unit, quantity, wave, attack, armor)
-                      for (unit, wave, attack, armor), quantity in sorted(totals.items()))
+        units = tuple(ArmyUnit(unit, quantity, wave, attack, armor, batch, arrival)
+                      for (unit, wave, attack, armor, batch, arrival), quantity in sorted(totals.items()))
         return cls(units, _integer(data.get("forge_level", 0), "forge_level", 0, 5))
 
 

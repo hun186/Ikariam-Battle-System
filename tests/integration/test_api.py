@@ -228,7 +228,7 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert 'roundSafetyNotices' in body and 'summarySafetyNotices' in body
  assert "data.events.filter(e=>e.type==='unsupported_mechanic')" in body
  assert 'Experimental assumptions actually used' in body and 'Evidence warnings' in body
- assert "不同的 Batch ID" in body and "batchIds.get(key).has(item.wave_id)" in body
+ assert "不同的 Batch ID" in body and "batchIds.get(key).has(item.entry_batch_id)" in body
  assert "Object.entries(state.deployed_support||{})" in body and 'No deployed support' in body
  assert '<summary>Continuation state</summary>' in body
  assert 'round.attacker.continuation_state' in body and 'round.defender.continuation_state' in body
@@ -535,4 +535,27 @@ def test_round_debug_json_download_contains_reproducible_round_process_and_diagn
  assert "downloadRoundDebug.addEventListener('click',downloadCurrentRoundDebug)" in body
  assert 'JSON.stringify(payload,null,2)' in body
  assert "type:'application/json;charset=utf-8'" in body
+ assert body==Path('public/index.html').read_text()
+
+
+def test_setup_layout_reclaims_hidden_identity_space_and_uses_compact_stat_strip():
+ body=Path('index.html').read_text()
+ assert '.unit-setup-row{display:grid;grid-template-columns:52px minmax(190px,1fr) 74px 74px' in body
+ assert '.show-unit-identity .unit-setup-row{grid-template-columns:minmax(150px,.9fr)' in body
+ assert '.unit-statbox{display:none;grid-column:2/-1' in body
+ assert '.unit-statbox span:not(.stat-note)' in body
+ assert '.advanced{grid-column:2/-1;margin:0}' in body
+ assert '.unit-statbox{display:none;grid-column:3/5' not in body
+ assert 'margin:0 0 4px 50px' not in body
+ assert body==Path('public/index.html').read_text()
+
+
+def test_setup_entry_batches_group_different_units_and_keep_unit_state_identity_separate():
+ body=Path('index.html').read_text()
+ assert "batchId=options.batchId||side+'-batch-'+batchIndex" in body
+ assert 'class="entry-batch"' in body and 'class="arrival-round"' in body
+ assert '同一時間抵達的不同兵種請使用相同 Batch ID 與進場回合' in body
+ assert "entry_batch_id:entryBatchId,arrival_round:arrivalRound" in body
+ assert "wave_id:entryBatchId+'::'+row.dataset.unitId" in body
+ assert "batchRounds.get(item.entry_batch_id)!==item.arrival_round" in body
  assert body==Path('public/index.html').read_text()
