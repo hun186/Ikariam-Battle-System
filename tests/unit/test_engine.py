@@ -831,3 +831,30 @@ def test_entry_batch_arrival_event_accumulates_repeated_unit_waves():
               and e['details']['entry_batch_id']=='a1')
  assert arrival['details']['units']=={'doctor':30}
  assert result['final_state']['attacker']['deployed_support']['doctor']==30
+
+
+def test_cross_wave_requirement_created_by_combat_stops_before_termination():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':3,
+    'attacker':{'units':[
+      {'unit_id':'hoplite','quantity':90,'attack_upgrade':200}]},
+    'defender':{'units':[
+      {'unit_id':'steam_giant','quantity':30,'entry_batch_id':'d0','wave_id':'d-first'},
+      {'unit_id':'steam_giant','quantity':10,'entry_batch_id':'d0','wave_id':'d-reserve'}]}}
+ result=simulate(s)
+ assert result['status']=='inconclusive'
+ assert result['outcome']=='inconclusive'
+ assert result['rounds_completed']==1
+ assert result['casualties']['defender'].get('steam_giant')==30
+ boundary=[e for e in result['events']
+           if e['type']=='unsupported_mechanic'
+           and e['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD']
+ assert boundary
+ assert boundary[-1]['round']==1
+ assert boundary[-1]['phase']=='round_end'
+ assert boundary[-1]['side']=='defender'
+ requirements=boundary[-1]['details']['requirements']
+ assert any(r['wave_id']=='d-reserve' and r['runtime_line']=='first'
+            for r in requirements)
+ assert not any(e['type']=='battle_termination' and e['round']==1
+                for e in result['events'])
+ assert result['final_state']['defender']['reserve']['steam_giant']==10

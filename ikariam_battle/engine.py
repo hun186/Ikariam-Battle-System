@@ -768,6 +768,26 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         defender_state = _snapshot(defender, registry, battle_end, d_slot_dead)
         rounds.append({"round":number,"attacker":attacker_state,"defender":defender_state,
                        "casualties":{"attacker":dict(a_dead),"defender":dict(d_dead)}})
+
+        # Combat itself can create the first real vacancy that requires a
+        # different reserve-only wave to enter. Recheck before any continuation
+        # or termination decision so an unimplemented cross-wave replacement
+        # can never be mistaken for an exact battle outcome.
+        post_combat_cross_wave = {
+            "attacker": _cross_wave_rebuild_requirements(
+                attacker, registry, formation_rules, field),
+            "defender": _cross_wave_rebuild_requirements(
+                defender, registry, formation_rules, field),
+        }
+        if any(post_combat_cross_wave.values()):
+            for side, requirements in post_combat_cross_wave.items():
+                if requirements:
+                    _event(events, number, "round_end", "unsupported_mechanic", side,
+                           rule_id="UNKNOWN-CROSS-WAVE-FORMATION-REBUILD",
+                           requirements=requirements)
+            cross_wave_boundary = True
+            break
+
         states = {"attacker": attacker_state["continuation_state"],
                   "defender": defender_state["continuation_state"]}
         fallback_sides = [side for side, state in states.items()
