@@ -328,6 +328,17 @@ function refreshFloatingTooltip(){
 function resetFloatingTooltipState(){
   hoveredTooltipTrigger=null;focusedTooltipTrigger=null;hideFloatingTooltip();
 }
+let floatingTooltipRefreshFrame=0;
+function scheduleFloatingTooltipRefresh(){
+  if(!hoveredTooltipTrigger&&!focusedTooltipTrigger)return;
+  if(floatingTooltipRefreshFrame)return;
+  floatingTooltipRefreshFrame=requestAnimationFrame(()=>{
+    floatingTooltipRefreshFrame=0;
+    refreshFloatingTooltip();
+  });
+}
+window.addEventListener('scroll',scheduleFloatingTooltipRefresh,true);
+window.addEventListener('resize',scheduleFloatingTooltipRefresh);
 function bindFloatingTooltips(root){
   root.querySelectorAll('[data-tooltip]').forEach(trigger=>{
     if(trigger.dataset.tooltipBound)return;trigger.dataset.tooltipBound='1';

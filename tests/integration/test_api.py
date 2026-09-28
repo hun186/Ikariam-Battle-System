@@ -432,6 +432,12 @@ def test_compact_setup_identity_stats_and_shared_floating_tooltip_contract():
  assert "trigger.addEventListener('blur',()=>{if(focusedTooltipTrigger===trigger)focusedTooltipTrigger=null;refreshFloatingTooltip()})" in body
  assert 'function resetFloatingTooltipState()' in body
  assert 'resetFloatingTooltipState();' in body
+ # Fixed tooltips must stay attached to focused/hovered triggers as any scroll
+ # container moves or the viewport is resized. Capture=true covers battle-board scroll.
+ assert 'function scheduleFloatingTooltipRefresh()' in body
+ assert 'requestAnimationFrame(()=>{' in body
+ assert "window.addEventListener('scroll',scheduleFloatingTooltipRefresh,true)" in body
+ assert "window.addEventListener('resize',scheduleFloatingTooltipRefresh)" in body
  assert '.slot:hover .slot-tooltip' not in body
  assert '.reserve-card:hover .slot-tooltip' not in body
  assert body==Path('public/index.html').read_text()
