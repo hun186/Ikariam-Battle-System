@@ -452,3 +452,18 @@ def test_setup_exposes_top_and_bottom_simulate_buttons_with_one_handler():
  assert "simulate.addEventListener('click',runSimulation)" in body
  assert "simulateTop.addEventListener('click',runSimulation)" in body
  assert body==Path('public/index.html').read_text()
+
+
+def test_top_simulate_action_surfaces_shared_errors_without_duplicate_live_region():
+ body=Path('index.html').read_text()
+ assert 'id="errorTop" class="error" aria-hidden="true"' in body
+ assert 'id="error" class="error" role="alert"' in body
+ assert 'function setSimulationError(message)' in body
+ assert 'errorTop.textContent=value;' in body
+ assert 'error.textContent=value;' in body
+ assert "async function runSimulation(){\n  setSimulationError('');" in body
+ assert "setSimulationError(e.message);" in body
+ assert "setSimulationError(e.message+' · Active report refresh failed: '+recoveryError.message);" in body
+ assert "boot().catch(e=>setSimulationError(e.message));" in body
+ assert body.count('role="alert"')==1
+ assert body==Path('public/index.html').read_text()

@@ -56,7 +56,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
       <div class="settings-note">預設 100 回合；1000 回合是可手動提高的安全上限，不是固定戰鬥長度。長戰的逐回合資料會按需分頁載入，不會一次傳送全部回合。若提早分出勝負或遇到無法安全判定的機制，模擬會提早停止。Cook 士氣目前尚未完整建模；實戰常見約 15 Cook 的配置不會被當成已驗證的固定公式。</div>
     </section>
 
-    <div class="actions setup-actions-top"><button id="simulateTop" class="primary" type="button">開始模擬</button></div>
+    <div class="actions setup-actions-top"><button id="simulateTop" class="primary" type="button">開始模擬</button><div id="errorTop" class="error" aria-hidden="true"></div></div>
 
     <div class="setup-grid">
       <section class="panel side-setup attacker">
@@ -111,7 +111,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 <script>
 let metadata=null, units=[], lastResult=null, lastBattlefieldId=null, currentRoundNumber=0, roundRenderToken=0, simulationGeneration=0, simulationRequestGeneration=0;
 const roundPageCache=new Map(), scenarioByGeneration=new Map();
-const battlefield=document.getElementById('battlefield'),policy=document.getElementById('policy'),maxRounds=document.getElementById('maxRounds'),researchMode=document.getElementById('researchMode'),showUnitStats=document.getElementById('showUnitStats'),showUnitIdentity=document.getElementById('showUnitIdentity'),simulateTop=document.getElementById('simulateTop'),simulate=document.getElementById('simulate'),error=document.getElementById('error'),floatingTooltip=document.getElementById('floatingTooltip');
+const battlefield=document.getElementById('battlefield'),policy=document.getElementById('policy'),maxRounds=document.getElementById('maxRounds'),researchMode=document.getElementById('researchMode'),showUnitStats=document.getElementById('showUnitStats'),showUnitIdentity=document.getElementById('showUnitIdentity'),simulateTop=document.getElementById('simulateTop'),simulate=document.getElementById('simulate'),errorTop=document.getElementById('errorTop'),error=document.getElementById('error'),floatingTooltip=document.getElementById('floatingTooltip');
 const viewIds={setup:'setupView',round:'roundView',summary:'summaryView'};
 const groupOrder=['heavy_infantry','light_infantry','long_range','artillery','air','support'];
 const groupLabels={heavy_infantry:'Heavy Infantry',light_infantry:'Light Infantry',long_range:'Long Range',artillery:'Artillery',air:'Air / Anti-air',support:'Support'};
@@ -558,6 +558,11 @@ function setReportsEnabled(enabled){
 }
 function enableReports(){setReportsEnabled(true)}
 function disableReports(){setReportsEnabled(false)}
+function setSimulationError(message){
+  const value=message||'';
+  errorTop.textContent=value;
+  error.textContent=value;
+}
 async function boot(){
   const response=await fetch('/api/simulate'),data=await response.json();metadata=data;
   units=data.units.filter(u=>u.domain==='land'&&(u.numerically_supported||u.role==='support'));
@@ -574,7 +579,7 @@ showUnitIdentity.addEventListener('change',()=>document.body.classList.toggle('s
 document.getElementById('aForge').addEventListener('change',updateAllUnitStats);
 document.getElementById('dForge').addEventListener('change',updateAllUnitStats);
 async function runSimulation(){
-  error.textContent='';
+  setSimulationError('');
   let requestGeneration=null;
   try{
     const submittedBattlefield=battlefield.value,attacker=army('attacker'),defender=army('defender');
@@ -592,7 +597,7 @@ async function runSimulation(){
     if(requestGeneration===simulationRequestGeneration&&simulationGeneration===requestGeneration)showView('round');
   }catch(e){
     if(requestGeneration===null){
-      error.textContent=e.message;
+      setSimulationError(e.message);
       return;
     }
     if(requestGeneration===simulationRequestGeneration){
@@ -601,19 +606,19 @@ async function runSimulation(){
         try{
           await renderRound(currentRoundNumber);
         }catch(recoveryError){
-          if(requestGeneration===simulationRequestGeneration)error.textContent=e.message+' · Active report refresh failed: '+recoveryError.message;
+          if(requestGeneration===simulationRequestGeneration)setSimulationError(e.message+' · Active report refresh failed: '+recoveryError.message);
           return;
         }
       }else{
         disableReports();
       }
-      if(requestGeneration===simulationRequestGeneration)error.textContent=e.message;
+      if(requestGeneration===simulationRequestGeneration)setSimulationError(e.message);
     }
   }
 }
 simulate.addEventListener('click',runSimulation);
 simulateTop.addEventListener('click',runSimulation);
-boot().catch(e=>error.textContent=e.message);
+boot().catch(e=>setSimulationError(e.message));
 </script>
 </body>
 </html>
