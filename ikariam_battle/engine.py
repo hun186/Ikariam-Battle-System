@@ -367,7 +367,7 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
     supported handoff will already occupy at the next round boundary.
     """
     occupied: dict[str, set[int]] = defaultdict(set)
-    projected_reserve: dict[str, int] = {}
+    projected_reserve: dict[tuple[str, str], int] = {}
     first_owners: dict[int, Wave] = {}
 
     for wave in waves:
@@ -380,14 +380,14 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
                 occupied[slot.line].add(slot.damage_position)
             if slot.line == "first":
                 first_owners[slot.damage_position] = wave
-        projected_reserve[wave.unit.wave_id] = remaining
+        projected_reserve[(wave.unit.unit_id, wave.unit.wave_id)] = remaining
 
     geometry = field.lines.get("first")
     if geometry is not None:
         candidates = sorted(
             (
                 wave for wave in waves
-                if projected_reserve.get(wave.unit.wave_id, 0)
+                if projected_reserve.get((wave.unit.unit_id, wave.unit.wave_id), 0)
                 and registry.get(wave.unit.unit_id).role == "combat"
                 and registry.get(wave.unit.unit_id).semantic_class == "heavy_infantry"
                 and "first" in eligible_runtime_lines(
@@ -400,7 +400,7 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
         for candidate in candidates:
             unit = registry.get(candidate.unit.unit_id)
             capacity = geometry.slot_space // unit.size
-            remaining = projected_reserve[candidate.unit.wave_id]
+            remaining = projected_reserve[(candidate.unit.unit_id, candidate.unit.wave_id)]
             if capacity <= 0:
                 continue
             for position in geometry.damage_priority:
@@ -419,14 +419,14 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
                 remaining -= quantity
                 if quantity:
                     occupied["first"].add(position)
-            projected_reserve[candidate.unit.wave_id] = remaining
+            projected_reserve[(candidate.unit.unit_id, candidate.unit.wave_id)] = remaining
 
     requirements: list[dict[str, Any]] = []
     for wave in waves:
         # A wave that already owns slots is handled by supported same-wave refill.
         # Only the reserve left after all supported projections can create an
         # unsupported cross-wave placement requirement.
-        reserve = projected_reserve.get(wave.unit.wave_id, wave.reserve)
+        reserve = projected_reserve.get((wave.unit.unit_id, wave.unit.wave_id), wave.reserve)
         if not reserve or wave.slots:
             continue
         unit = registry.get(wave.unit.unit_id)
