@@ -737,7 +737,16 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 "initial_state":initial,"final_state":initial,
                 "rounds":[{"round":0,**deepcopy(initial),"casualties":{"attacker":{},"defender":{}}}],
                 "events":[e.as_dict() for e in events],"assumptions":list(applied.values()),"warnings":warnings}
-    if initial_waiting:
+    if both_initially_empty_but_pending:
+        pending_sides = [side for side, rows in initial_pending.items() if rows]
+        _event(events, 0, "battle_start", "waiting_for_arrival", None,
+               pending_sides=pending_sides,
+               pending={side: initial_pending[side] for side in pending_sides},
+               next_arrival_round=min(
+                   row["arrival_round"]
+                   for side in pending_sides
+                   for row in initial_pending[side]))
+    elif initial_waiting:
         _event(events, 0, "battle_start", "waiting_for_arrival", initial_losing,
                pending=initial_pending[initial_losing],
                next_arrival_round=min(row["arrival_round"] for row in initial_pending[initial_losing]))

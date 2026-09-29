@@ -951,3 +951,26 @@ def test_future_non_sustaining_artillery_does_not_delay_round_zero_loss():
  assert result['rounds_completed']==0
  assert any(e['type']=='battle_termination' and e['round']==0 for e in result['events'])
  assert not any(e['type']=='waiting_for_arrival' for e in result['events'])
+
+
+def test_both_round_zero_empty_armies_emit_combined_initial_wait_event():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':3,
+    'attacker':{'units':[
+      {'unit_id':'hoplite','quantity':90,'entry_batch_id':'a3','arrival_round':3}]},
+    'defender':{'units':[
+      {'unit_id':'hoplite','quantity':90,'entry_batch_id':'d3','arrival_round':3}]}}
+ result=simulate(s)
+ wait=next(e for e in result['events']
+           if e['type']=='waiting_for_arrival' and e['round']==0)
+ assert wait['side'] is None
+ assert wait['details']['pending_sides']==['attacker','defender']
+ assert wait['details']['next_arrival_round']==3
+ assert set(wait['details']['pending'])=={'attacker','defender'}
+ assert wait['details']['pending']['attacker'][0]['entry_batch_id']=='a3'
+ assert wait['details']['pending']['defender'][0]['entry_batch_id']=='d3'
+ assert not any(e['type']=='battle_termination' and e['round']==0
+                for e in result['events'])
+ assert any(e['type']=='entry_batch_arrived' and e['round']==3
+            and e['side']=='attacker' for e in result['events'])
+ assert any(e['type']=='entry_batch_arrived' and e['round']==3
+            and e['side']=='defender' for e in result['events'])
