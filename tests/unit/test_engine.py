@@ -636,11 +636,11 @@ def test_mixed_first_formation_keeps_frozen_addresses_after_one_wave_dies_mid_vo
  registry=UnitRegistry.load()
  hoplite_hp=registry.get('hoplite').hit_points
  hoplite=Wave(
-  ArmyUnit('hoplite',1,'hop','batch-1'),0,
+  ArmyUnit('hoplite',1,'hop',entry_batch_id='batch-1'),0,
   [Slot('first-1','first',1,1,'hoplite','hop',1,30,hoplite_hp-1)],
  )
  steam=Wave(
-  ArmyUnit('steam_giant',1,'steam','batch-1'),0,
+  ArmyUnit('steam_giant',1,'steam',entry_batch_id='batch-1'),0,
   [Slot('first-2','first',2,2,'steam_giant','steam',1,10,0)],
  )
  queues={
@@ -663,8 +663,8 @@ def test_mixed_first_formation_keeps_frozen_addresses_after_one_wave_dies_mid_vo
   volleys,[hoplite,steam],queues,registry,WorkshopProfile.load(),ForgeProfile.load(),
   TargetingProfile.load(),events,1,
   Army((ArmyUnit('swordsman',2,'source-wave'),),0),
-  Army((ArmyUnit('hoplite',1,'hop','batch-1'),
-        ArmyUnit('steam_giant',1,'steam','batch-1')),0),
+  Army((ArmyUnit('hoplite',1,'hop',entry_batch_id='batch-1'),
+        ArmyUnit('steam_giant',1,'steam',entry_batch_id='batch-1')),0),
   casualties,slot_casualties,{},
  )
  assert casualties.get('hoplite')==1
@@ -679,11 +679,11 @@ def test_same_batch_heavy_handoff_runs_before_rr_and_conserves_reserve_damage():
  from ikariam_battle.engine import _prepare_round_start
  registry=UnitRegistry.load(); rules=FormationRules.load()
  owner=Wave(
-  ArmyUnit('hoplite',0,'hop','batch-1'),0,
+  ArmyUnit('hoplite',0,'hop',entry_batch_id='batch-1'),0,
   [Slot('first-1','first',2,1,'hoplite','hop',0,30,0)],
  )
  steam=Wave(
-  ArmyUnit('steam_giant',10,'steam','batch-1'),10,[],
+  ArmyUnit('steam_giant',10,'steam',entry_batch_id='batch-1'),10,[],
   reserve_damage=100,
  )
  events=[]; applied={}
