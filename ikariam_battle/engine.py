@@ -676,11 +676,22 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             matrix_key = (enemy.unit.unit_id, enemy.unit.wave_id, target_class)
             matrix = matrix_groups.setdefault(matrix_key, {
                 "target_unit_id": enemy.unit.unit_id,
+                "target_wave": enemy.unit.wave_id,
                 "target_class": target_class,
                 "rows": defaultdict(int),
                 "hits": defaultdict(int),
                 "empty_hits": defaultdict(int),
-                "positions": {slot.damage_position for _, _, slot in addressed},
+                "formation_positions": {
+                    slot.damage_position for _, _, slot in addressed
+                },
+                "wave_positions": {
+                    slot.damage_position
+                    for _, addressed_enemy, slot in addressed
+                    if (
+                        addressed_enemy.unit.unit_id == enemy.unit.unit_id
+                        and addressed_enemy.unit.wave_id == enemy.unit.wave_id
+                    )
+                },
             })
             matrix["rows"][row_number] += 1
             matrix["hits"][target_slot.damage_position] += 1
@@ -749,12 +760,15 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             _event(events, number, "fire", "attacking_matrix", volley["side"],
                    firing_phase=volley["runtime_line"], unit_id=source_unit.id,
                    target_unit_id=matrix["target_unit_id"],
+                   target_wave=matrix["target_wave"],
                    target_class=matrix["target_class"], weapon_id=weapon.id,
                    targeting_authority="GAMEFORGE_IN_GAME_HELP",
                    trace={
                        "row_populations": [matrix["rows"].get(row, 0)
                                            for row in range(1, max_row + 1)],
-                       "target_damage_positions": sorted(matrix["positions"]),
+                       "target_damage_positions": sorted(matrix["wave_positions"]),
+                       "formation_target_damage_positions": sorted(
+                           matrix["formation_positions"]),
                        "hits_by_damage_position": dict(matrix["hits"]),
                        "empty_addressed_shots_by_damage_position": dict(matrix["empty_hits"]),
                    })
