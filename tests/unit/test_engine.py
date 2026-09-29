@@ -680,7 +680,7 @@ def test_mixed_first_formation_keeps_frozen_addresses_after_one_wave_dies_mid_vo
   'runtime_line':'flank',
   'weapon_id':'primary',
   'attack_upgrade':0,
-  'row_numbers':[1,1],
+  'row_numbers':[1,2,1],
  }]
  casualties=defaultdict(int)
  slot_casualties=defaultdict(int)
@@ -688,7 +688,7 @@ def test_mixed_first_formation_keeps_frozen_addresses_after_one_wave_dies_mid_vo
  _resolve_volleys(
   volleys,[hoplite,steam],queues,registry,WorkshopProfile.load(),ForgeProfile.load(),
   TargetingProfile.load(),events,1,
-  Army((ArmyUnit('swordsman',2,'source-wave'),),0),
+  Army((ArmyUnit('swordsman',3,'source-wave'),),0),
   Army((ArmyUnit('hoplite',1,'hop',entry_batch_id='batch-1'),
         ArmyUnit('steam_giant',1,'steam',entry_batch_id='batch-1')),0),
   casualties,slot_casualties,{},
@@ -699,6 +699,15 @@ def test_mixed_first_formation_keeps_frozen_addresses_after_one_wave_dies_mid_vo
  assert len(wasted)==1
  assert wasted[0].details['target_damage_position']==1
  assert wasted[0].details['target_wave']=='hop'
+ matrices=[event for event in events if event.type=='attacking_matrix']
+ by_wave={event.details['target_wave']:event.details for event in matrices}
+ assert set(by_wave)=={'hop','steam'}
+ assert by_wave['hop']['target_unit_id']=='hoplite'
+ assert by_wave['steam']['target_unit_id']=='steam_giant'
+ assert by_wave['hop']['trace']['target_damage_positions']==[1]
+ assert by_wave['steam']['trace']['target_damage_positions']==[2]
+ assert by_wave['hop']['trace']['formation_target_damage_positions']==[1,2]
+ assert by_wave['steam']['trace']['formation_target_damage_positions']==[1,2]
 
 
 def test_same_batch_heavy_handoff_runs_before_rr_and_conserves_reserve_damage():
