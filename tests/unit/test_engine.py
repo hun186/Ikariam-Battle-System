@@ -198,6 +198,69 @@ def test_reserve_only_same_line_wave_is_not_blocked_until_an_open_slot_exists():
  assert requirements[0]['runtime_line']=='first'
 
 
+def test_same_batch_heavy_reserve_takes_over_open_front_slots_and_battle_continues():
+ s={'policy':'experimental','battlefield':'land-max','max_rounds':3,
+    'attacker':{'forge_level':5,'units':[
+      {'unit_id':'hoplite','quantity':500,'entry_batch_id':'attacker-batch-1','arrival_round':0},
+      {'unit_id':'steam_giant','quantity':48,'entry_batch_id':'attacker-batch-1','arrival_round':0},
+      {'unit_id':'swordsman','quantity':280,'entry_batch_id':'attacker-batch-1','arrival_round':0},
+      {'unit_id':'sulphur_carabineer','quantity':36,'entry_batch_id':'attacker-batch-1','arrival_round':0},
+    ]},
+    'defender':{'forge_level':5,'units':[
+      {'unit_id':'hoplite','quantity':500,'entry_batch_id':'defender-batch-1','arrival_round':0},
+      {'unit_id':'steam_giant','quantity':48,'entry_batch_id':'defender-batch-1','arrival_round':0},
+      {'unit_id':'swordsman','quantity':280,'entry_batch_id':'defender-batch-1','arrival_round':0},
+      {'unit_id':'sulphur_carabineer','quantity':24,'entry_batch_id':'defender-batch-1','arrival_round':0},
+    ]}}
+ result=simulate(s)
+ assert result['rounds_completed']>=3
+ assert not any(
+  event['type']=='unsupported_mechanic'
+  and event['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD'
+  and event['round']<=2
+  for event in result['events']
+ )
+ round3=next(row for row in result['rounds'] if row['round']==3)
+ attacker_steam=[
+  slot for slot in round3['attacker']['slots']
+  if slot['line']=='first' and slot['unit_id']=='steam_giant'
+ ]
+ defender_steam=[
+  slot for slot in round3['defender']['slots']
+  if slot['line']=='first' and slot['unit_id']=='steam_giant'
+ ]
+ assert attacker_steam and defender_steam
+ assert all(slot['capacity']==16 for slot in attacker_steam+defender_steam)
+ assert any(
+  event['type']=='slot_handoff'
+  and event['details'].get('reason')=='same_batch_heavy_front_replacement'
+  for event in result['events']
+ )
+ assert any(
+  event['type']=='attacking_matrix'
+  and event['round']==3
+  and event['details'].get('unit_id')=='steam_giant'
+  for event in result['events']
+ )
+
+
+def test_different_entry_batch_heavy_reserve_still_hits_cross_wave_boundary():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':3,
+    'attacker':{'units':[
+      {'unit_id':'hoplite','quantity':90,'entry_batch_id':'a-hop','arrival_round':0},
+      {'unit_id':'steam_giant','quantity':10,'entry_batch_id':'a-steam','arrival_round':0},
+    ]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':90}]}}
+ result=simulate(s)
+ # Different arrival batches are intentionally not covered by the narrow
+ # same-batch heavy handoff rule.
+ assert any(
+  event['type']=='unsupported_mechanic'
+  and event['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD'
+  for event in result['events']
+ )
+
+
 def test_reserve_light_fallback_candidate_does_not_block_a_full_front_at_preflight():
  s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
     'attacker':{'units':[{'unit_id':'hoplite','quantity':90}]},
