@@ -1,3 +1,4 @@
+from collections import defaultdict
 from copy import deepcopy
 import pytest
 from ikariam_battle import simulate
@@ -1047,6 +1048,29 @@ def test_post_combat_projection_consumes_supported_same_batch_heavy_handoff():
  assert reserve.slots==[] and reserve.reserve==10
  requirements=_cross_wave_rebuild_requirements(waves,registry,rules,LAND_MINI)
  assert requirements==[]
+
+
+def test_projected_reserve_uses_complete_unit_and_wave_identity():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ waves=deploy(Army.from_dict({'units':[
+   {'unit_id':'hoplite','quantity':90,'entry_batch_id':'d0','wave_id':'shared'},
+   {'unit_id':'steam_giant','quantity':30,'entry_batch_id':'d0','wave_id':'shared'},
+   {'unit_id':'swordsman','quantity':30,'entry_batch_id':'d1','wave_id':'shared'},
+ ]}),registry,LAND_MINI)
+ hoplite=next(w for w in waves if w.unit.unit_id=='hoplite')
+ steam=next(w for w in waves if w.unit.unit_id=='steam_giant')
+ swordsman=next(w for w in waves if w.unit.unit_id=='swordsman')
+ for slot in hoplite.slots:
+  slot.units=0
+ hoplite.reserve=0
+ steam.reserve=30
+ assert steam.slots==[]
+ assert swordsman.reserve==30 and swordsman.slots==[]
+ requirements=_cross_wave_rebuild_requirements(waves,registry,rules,LAND_MINI)
+ assert not any(r['unit_id']=='steam_giant' for r in requirements)
+ assert any(r['unit_id']=='swordsman' and r['wave_id']=='shared'
+            and r['runtime_line']=='first'
+            for r in requirements)
 
 
 def test_supported_same_batch_handoff_is_projected_before_other_batch_requirement():
