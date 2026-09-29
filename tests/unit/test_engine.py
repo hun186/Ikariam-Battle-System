@@ -1054,7 +1054,7 @@ def test_projected_reserve_uses_complete_unit_and_wave_identity():
  registry=UnitRegistry.load(); rules=FormationRules.load()
  waves=deploy(Army.from_dict({'units':[
    {'unit_id':'hoplite','quantity':90,'entry_batch_id':'d0','wave_id':'shared'},
-   {'unit_id':'steam_giant','quantity':30,'entry_batch_id':'d0','wave_id':'shared'},
+   {'unit_id':'steam_giant','quantity':10,'entry_batch_id':'d0','wave_id':'shared'},
    {'unit_id':'swordsman','quantity':30,'entry_batch_id':'d1','wave_id':'shared'},
  ]}),registry,LAND_MINI)
  hoplite=next(w for w in waves if w.unit.unit_id=='hoplite')
