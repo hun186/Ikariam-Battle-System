@@ -282,10 +282,18 @@ def _supported_same_batch_heavy_first_handoffs(
             )
 
 
-def _prepare_round_start(waves: list[Wave], events: list[Event], number: int, side: str,
-                         applied: dict[str, dict[str, str]]) -> None:
-    """Center-first re-pack same-wave placements, then apply PDF RR."""
+def _prepare_round_start(
+    waves: list[Wave], events: list[Event], number: int, side: str,
+    applied: dict[str, dict[str, str]], registry: UnitRegistry | None = None,
+    rules: FormationRules | None = None, field=None,
+) -> None:
+    """Re-pack, apply supported slot handoffs, then redistribute persistent damage."""
     _rebuild_formation(waves, events, number, side)
+    if registry is not None and rules is not None and field is not None:
+        _supported_same_batch_heavy_first_handoffs(
+            waves, registry, rules, field, events, number, side)
+    # RR must see the final deployment after any supported handoff so persistent
+    # damage remains conserved between Reserve and newly deployed slots.
     _redistribute(waves, events, number, side, applied)
 
 
@@ -587,7 +595,11 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
         matrix_groups: dict[tuple[str, str, str], dict[str, Any]] = {}
         damage_groups: dict[tuple[str, str, str, str, int], dict[str, Any]] = {}
         calculation_keys: set[tuple[str, str, str, int]] = set()
-        address_books: dict[tuple[Any, ...], tuple[Any, ...]] = {}
+        # Freeze row -> damage-position addresses once per target formation
+        # for this volley. If one constituent wave dies, later rows keep their
+        # original concrete slot address; only complete formation elimination
+        # permits transfer to the next target class.
+        address_books: dict[str, tuple[Any, ...]] = {}
 
         for row_number in volley["row_numbers"]:
             enemies, target_class = _target_waves_for_line(
@@ -595,21 +607,16 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             if not enemies or target_class is None:
                 break
 
-            address_key = (
-                target_class,
-                tuple((enemy.unit.unit_id, enemy.unit.wave_id) for enemy in enemies),
-                "formation",
-            )
-            if address_key not in address_books:
+            if target_class not in address_books:
                 addressed_slots = []
                 for enemy in enemies:
                     addressed_slots.extend(
                         (slot.damage_position, enemy, slot)
                         for slot in enemy.slots if slot.units
                     )
-                address_books[address_key] = tuple(
+                address_books[target_class] = tuple(
                     sorted(addressed_slots, key=lambda item: item[0]))
-            addressed = address_books[address_key]
+            addressed = address_books[target_class]
             if not addressed:
                 continue
             _, enemy, target_slot = addressed[(row_number - 1) % len(addressed)]
@@ -911,12 +918,12 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 _assume(applied, events, "EXP-HEAL-NONE-001", number, "arrival", side)
             if "UNKNOWN-MORALE-SUPPORT" in side_blockers:
                 _assume(applied, events, "EXP-MORALE-NONE-001", number, "arrival", side)
-        _prepare_round_start(attacker, events, number, "attacker", applied)
-        _prepare_round_start(defender, events, number, "defender", applied)
-        _supported_same_batch_heavy_first_handoffs(
-            attacker, registry, formation_rules, field, events, number, "attacker")
-        _supported_same_batch_heavy_first_handoffs(
-            defender, registry, formation_rules, field, events, number, "defender")
+        _prepare_round_start(
+            attacker, events, number, "attacker", applied,
+            registry, formation_rules, field)
+        _prepare_round_start(
+            defender, events, number, "defender", applied,
+            registry, formation_rules, field)
         cross_wave = {
             "attacker": _cross_wave_rebuild_requirements(attacker, registry, formation_rules, field),
             "defender": _cross_wave_rebuild_requirements(defender, registry, formation_rules, field),
