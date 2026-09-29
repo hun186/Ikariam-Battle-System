@@ -282,6 +282,35 @@ def _supported_same_batch_heavy_first_handoffs(
             )
 
 
+def _has_supported_same_batch_heavy_first_handoff(
+    waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field,
+) -> bool:
+    """Whether the next round can restore First with the supported heavy handoff."""
+    geometry = field.lines.get("first")
+    if geometry is None:
+        return False
+    for candidate in waves:
+        if not candidate.reserve:
+            continue
+        candidate_unit = registry.get(candidate.unit.unit_id)
+        if (
+            candidate_unit.role != "combat"
+            or candidate_unit.semantic_class != "heavy_infantry"
+            or "first" not in eligible_runtime_lines(candidate_unit, rules, field)
+        ):
+            continue
+        for owner_wave in waves:
+            owner_unit = registry.get(owner_wave.unit.unit_id)
+            if (
+                owner_wave.unit.batch_id != candidate.unit.batch_id
+                or owner_unit.semantic_class != "heavy_infantry"
+            ):
+                continue
+            if any(slot.line == "first" and not slot.units for slot in owner_wave.slots):
+                return True
+    return False
+
+
 def _prepare_round_start(
     waves: list[Wave], events: list[Event], number: int, side: str,
     applied: dict[str, dict[str, str]], registry: UnitRegistry | None = None,
@@ -1015,6 +1044,20 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
 
         states = {"attacker": attacker_state["continuation_state"],
                   "defender": defender_state["continuation_state"]}
+        # A same-entry-batch Heavy-Infantry reserve that can take over an emptied
+        # Heavy-Infantry First slot on the next round must keep the battle alive.
+        # Do not mutate the just-completed round snapshot; only project
+        # continuation so battle-end evaluation cannot fire before the supported
+        # round-start handoff has a chance to occur.
+        for side, side_waves in (("attacker", attacker), ("defender", defender)):
+            if (states[side] != ContinuationState.SUSTAINING.value
+                    and _has_supported_same_batch_heavy_first_handoff(
+                        side_waves, registry, formation_rules, field)):
+                states[side] = ContinuationState.SUSTAINING.value
+        effective_attacker_state = dict(attacker_state)
+        effective_defender_state = dict(defender_state)
+        effective_attacker_state["continuation_state"] = states["attacker"]
+        effective_defender_state["continuation_state"] = states["defender"]
         fallback_sides = [side for side, state in states.items()
                           if state == ContinuationState.FALLBACK_REQUIRED.value]
         if fallback_sides:
@@ -1039,7 +1082,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                        rule_id="UNKNOWN-BOTH-SIDES-NO-MAIN-LINE-OUTCOME")
                 both_zero_boundary = True
                 break
-        outcome, losing = _termination(attacker_state, defender_state)
+        outcome, losing = _termination(
+            effective_attacker_state, effective_defender_state)
         if outcome is not None:
             losing_pending = pending_now.get(losing or "", [])
             if not engagement_started and losing_pending:
