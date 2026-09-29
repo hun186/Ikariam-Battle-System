@@ -579,3 +579,27 @@ def test_http_rejects_explicit_invalid_batch_and_wave_ids_instead_of_defaulting(
   status,data=post(value)
   assert status==400
   assert data['error']==f'{field} must be a non-empty string'
+
+
+def test_round_page_exposes_arrival_boundary_round_and_events():
+ value={'policy':'experimental','battlefield':'land-mini','max_rounds':3,
+   'attacker':{'units':[
+     {'unit_id':'hoplite','quantity':90,'entry_batch_id':'a3','arrival_round':3}]},
+   'defender':{'units':[
+     {'unit_id':'hoplite','quantity':90,'entry_batch_id':'d3','arrival_round':3}]}}
+ status,data=post_page(value,start=3,limit=1)
+ assert status==200
+ assert data['status']=='inconclusive'
+ assert data['rounds_completed']==3
+ assert data['report']['round_start']==3
+ assert data['report']['round_end']==3
+ assert [row['round'] for row in data['rounds']]==[3]
+ assert data['rounds'][0]['attacker']['reserve']['hoplite']==90
+ assert data['rounds'][0]['defender']['reserve']['hoplite']==90
+ assert any(e['type']=='entry_batch_arrived' and e['round']==3
+            and e['side']=='attacker' for e in data['events'])
+ assert any(e['type']=='entry_batch_arrived' and e['round']==3
+            and e['side']=='defender' for e in data['events'])
+ assert any(e['type']=='unsupported_mechanic' and e['round']==3
+            and e['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD'
+            for e in data['events'])

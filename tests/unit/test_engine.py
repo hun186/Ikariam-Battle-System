@@ -974,3 +974,26 @@ def test_both_round_zero_empty_armies_emit_combined_initial_wait_event():
             and e['side']=='attacker' for e in result['events'])
  assert any(e['type']=='entry_batch_arrived' and e['round']==3
             and e['side']=='defender' for e in result['events'])
+
+
+def test_arrival_cross_wave_boundary_preserves_boundary_round_snapshot():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':3,
+    'attacker':{'units':[
+      {'unit_id':'hoplite','quantity':90,'entry_batch_id':'a3','arrival_round':3}]},
+    'defender':{'units':[
+      {'unit_id':'hoplite','quantity':90,'entry_batch_id':'d3','arrival_round':3}]}}
+ result=simulate(s)
+ assert result['status']=='inconclusive'
+ assert result['rounds_completed']==3
+ round3=next(row for row in result['rounds'] if row['round']==3)
+ assert round3['casualties']=={'attacker':{},'defender':{}}
+ assert round3['attacker']['reserve']['hoplite']==90
+ assert round3['defender']['reserve']['hoplite']==90
+ assert any(e['type']=='entry_batch_arrived' and e['round']==3
+            and e['side']=='attacker' for e in result['events'])
+ assert any(e['type']=='entry_batch_arrived' and e['round']==3
+            and e['side']=='defender' for e in result['events'])
+ assert any(e['type']=='unsupported_mechanic' and e['round']==3
+            and e['phase']=='round_start'
+            and e['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD'
+            for e in result['events'])

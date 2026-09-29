@@ -797,6 +797,18 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                     _event(events, number, "round_start", "unsupported_mechanic", side,
                            rule_id="UNKNOWN-CROSS-WAVE-FORMATION-REBUILD",
                            requirements=requirements)
+            # Arrival and same-wave round-start state for this round are already
+            # observable even though cross-wave placement cannot continue.
+            # Preserve that boundary round for paging/debug export before exit.
+            completed = number
+            attacker_state = _snapshot(attacker, registry, battle_end)
+            defender_state = _snapshot(defender, registry, battle_end)
+            rounds.append({
+                "round": number,
+                "attacker": attacker_state,
+                "defender": defender_state,
+                "casualties": {"attacker": {}, "defender": {}},
+            })
             cross_wave_boundary = True
             break
         round_start_states = {
