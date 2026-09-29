@@ -228,7 +228,7 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert 'roundSafetyNotices' in body and 'summarySafetyNotices' in body
  assert "data.events.filter(e=>e.type==='unsupported_mechanic')" in body
  assert 'Experimental assumptions actually used' in body and 'Evidence warnings' in body
- assert "不同的 Batch ID" in body and "batchIds.get(key).has(item.wave_id)" in body
+ assert "不同的 Batch ID" in body and "batchIds.get(key).has(item.entry_batch_id)" in body
  assert "Object.entries(state.deployed_support||{})" in body and 'No deployed support' in body
  assert '<summary>Continuation state</summary>' in body
  assert 'round.attacker.continuation_state' in body and 'round.defender.continuation_state' in body
@@ -536,3 +536,70 @@ def test_round_debug_json_download_contains_reproducible_round_process_and_diagn
  assert 'JSON.stringify(payload,null,2)' in body
  assert "type:'application/json;charset=utf-8'" in body
  assert body==Path('public/index.html').read_text()
+
+
+def test_setup_layout_reclaims_hidden_identity_space_and_uses_compact_stat_strip():
+ body=Path('index.html').read_text()
+ assert '.unit-setup-row{display:grid;grid-template-columns:52px minmax(190px,1fr) 74px 74px' in body
+ assert '.show-unit-identity .unit-setup-row{grid-template-columns:minmax(150px,.9fr)' in body
+ assert '.unit-statbox{display:none;grid-column:2/-1' in body
+ assert '.unit-statbox span:not(.stat-note)' in body
+ assert '.advanced{grid-column:2/-1;margin:0}' in body
+ assert '.unit-statbox{display:none;grid-column:3/5' not in body
+ assert 'margin:0 0 4px 50px' not in body
+ assert body==Path('public/index.html').read_text()
+
+
+def test_setup_entry_batches_group_different_units_and_keep_unit_state_identity_separate():
+ body=Path('index.html').read_text()
+ assert "batchId=options.batchId||side+'-batch-'+batchIndex" in body
+ assert 'class="entry-batch"' in body and 'class="arrival-round"' in body
+ assert '同一時間抵達的不同兵種請使用相同 Batch ID 與進場回合' in body
+ assert "entry_batch_id:entryBatchId,arrival_round:arrivalRound" in body
+ assert "wave_id:entryBatchId+'::'+row.dataset.unitId" in body
+ assert "batchRounds.get(item.entry_batch_id)!==item.arrival_round" in body
+ assert body==Path('public/index.html').read_text()
+
+
+def test_setup_compact_layout_keeps_advanced_batch_controls_full_width_on_mobile():
+ body=Path('index.html').read_text()
+ assert '@media(max-width:600px)' in body
+ assert '.unit-ident,.qty-control,.unit-statbox,.advanced{grid-column:1/-1}' in body
+ assert '.advanced{margin:0}' in body
+ assert body==Path('public/index.html').read_text()
+
+
+def test_http_rejects_explicit_invalid_batch_and_wave_ids_instead_of_defaulting():
+ for field,bad in (
+  ('entry_batch_id',''),('entry_batch_id',0),('entry_batch_id',False),('entry_batch_id',None),
+  ('wave_id',''),('wave_id',0),('wave_id',False),('wave_id',None),
+ ):
+  value=payload('experimental')
+  value['attacker']['units'][0][field]=bad
+  status,data=post(value)
+  assert status==400
+  assert data['error']==f'{field} must be a non-empty string'
+
+
+def test_round_page_exposes_arrival_boundary_round_and_events():
+ value={'policy':'experimental','battlefield':'land-mini','max_rounds':3,
+   'attacker':{'units':[
+     {'unit_id':'hoplite','quantity':90,'entry_batch_id':'a3','arrival_round':3}]},
+   'defender':{'units':[
+     {'unit_id':'hoplite','quantity':90,'entry_batch_id':'d3','arrival_round':3}]}}
+ status,data=post_page(value,start=3,limit=1)
+ assert status==200
+ assert data['status']=='inconclusive'
+ assert data['rounds_completed']==3
+ assert data['report']['round_start']==3
+ assert data['report']['round_end']==3
+ assert [row['round'] for row in data['rounds']]==[3]
+ assert data['rounds'][0]['attacker']['reserve']['hoplite']==90
+ assert data['rounds'][0]['defender']['reserve']['hoplite']==90
+ assert any(e['type']=='entry_batch_arrived' and e['round']==3
+            and e['side']=='attacker' for e in data['events'])
+ assert any(e['type']=='entry_batch_arrived' and e['round']==3
+            and e['side']=='defender' for e in data['events'])
+ assert any(e['type']=='unsupported_mechanic' and e['round']==3
+            and e['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD'
+            for e in data['events'])

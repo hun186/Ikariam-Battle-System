@@ -47,3 +47,54 @@ def test_max_rounds_defaults_to_100_and_allows_1000_safety_cap():
  assert Scenario.from_dict({**BASE,'max_rounds':1000}).max_rounds==1000
  with pytest.raises(ScenarioError,match='max_rounds must be 1..1000'):
   Scenario.from_dict({**BASE,'max_rounds':1001})
+
+
+def test_entry_batch_can_group_multiple_unit_types_without_merging_unit_state():
+ army=Army.from_dict({'units':[
+  {'unit_id':'hoplite','quantity':30,'entry_batch_id':'batch-a','arrival_round':0},
+  {'unit_id':'swordsman','quantity':20,'entry_batch_id':'batch-a','arrival_round':0},
+ ]})
+ assert {u.batch_id for u in army.units}=={'batch-a'}
+ assert {u.wave_id for u in army.units}=={'batch-a::hoplite','batch-a::swordsman'}
+
+
+def test_entry_batch_requires_one_shared_arrival_round():
+ with pytest.raises(ScenarioError,match='conflicting arrival_round'):
+  Army.from_dict({'units':[
+   {'unit_id':'hoplite','quantity':30,'entry_batch_id':'batch-a','arrival_round':0},
+   {'unit_id':'swordsman','quantity':20,'entry_batch_id':'batch-a','arrival_round':2},
+  ]})
+
+
+def test_legacy_wave_id_remains_backward_compatible_as_batch_identity():
+ army=Army.from_dict({'units':[{'unit_id':'hoplite','quantity':30,'wave_id':'legacy-w1'}]})
+ unit=army.units[0]
+ assert unit.wave_id=='legacy-w1' and unit.batch_id=='legacy-w1' and unit.arrival_round==0
+
+
+def test_same_unit_wave_id_cannot_be_reused_across_entry_batches():
+ with pytest.raises(ScenarioError,match='cannot be reused across entry batches'):
+  Army.from_dict({'units':[
+   {'unit_id':'hoplite','quantity':10,'entry_batch_id':'batch-a','wave_id':'same'},
+   {'unit_id':'hoplite','quantity':20,'entry_batch_id':'batch-b','wave_id':'same'},
+  ]})
+
+
+def test_same_unit_wave_id_may_repeat_inside_one_entry_batch_and_aggregates():
+ army=Army.from_dict({'units':[
+  {'unit_id':'hoplite','quantity':10,'entry_batch_id':'batch-a','wave_id':'same'},
+  {'unit_id':'hoplite','quantity':20,'entry_batch_id':'batch-a','wave_id':'same'},
+ ]})
+ assert len(army.units)==1
+ assert army.units[0].quantity==30
+ assert army.units[0].batch_id=='batch-a'
+
+
+@pytest.mark.parametrize('field,bad',[
+ ('entry_batch_id',''),('entry_batch_id',0),('entry_batch_id',False),('entry_batch_id',None),
+ ('wave_id',''),('wave_id',0),('wave_id',False),('wave_id',None),
+])
+def test_explicit_invalid_batch_or_wave_identity_is_rejected(field,bad):
+ row={'unit_id':'hoplite','quantity':10,field:bad}
+ with pytest.raises(ScenarioError,match=f'{field} must be a non-empty string'):
+  Army.from_dict({'units':[row]})

@@ -10,7 +10,7 @@ from .damage import RoundingPolicy, calculate_damage
 from .economy import MilitaryEconomyProfile
 from .events import Event
 from .formation import FormationRules, eligible_runtime_lines
-from .models import Policy, Scenario, ScenarioError, Wave
+from .models import Army, Policy, Scenario, ScenarioError, Wave
 from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 from .redistribution import SlotShare, reserve_redistribution
 from .units import UnitRegistry
@@ -38,12 +38,18 @@ def _event(events: list[Event], round_no: int, phase: str, kind: str, side: str 
 
 
 def _assume(applied: dict[str, dict[str, str]], events: list[Event], assumption_id: str,
-            round_no: int, phase: str) -> None:
-    if assumption_id in applied:
-        return
+            round_no: int, phase: str, side: str | None = None) -> None:
     assumption = {"id": assumption_id, "description": EXPERIMENTAL_POLICIES[assumption_id]}
-    applied[assumption_id] = assumption
-    _event(events, round_no, phase, "assumption_applied", None, **assumption)
+    if assumption_id not in applied:
+        applied[assumption_id] = assumption
+    # The public assumption list stays unique by policy ID, while events record
+    # where a side-specific support boundary was actually reached.
+    if any(event.type == "assumption_applied"
+           and event.side == side
+           and event.details.get("id") == assumption_id
+           for event in events):
+        return
+    _event(events, round_no, phase, "assumption_applied", side, **assumption)
 
 
 def _snapshot(waves: list[Wave], registry: UnitRegistry, battle_end: BattleEndProfile,
@@ -70,7 +76,8 @@ def _snapshot(waves: list[Wave], registry: UnitRegistry, battle_end: BattleEndPr
                 100 * (wave.reserve * unit.hit_points - wave.reserve_damage) /
                 (wave.reserve * unit.hit_points), 2)
         wave_states.append({"unit_id": unit.id, "wave_id": wave.unit.wave_id,
-                            "entry_batch_id": wave.unit.wave_id, "alive": wave.alive,
+                            "entry_batch_id": wave.unit.batch_id,
+                            "arrival_round": wave.unit.arrival_round, "alive": wave.alive,
                             "reserve": wave.reserve, "reserve_damage": wave.reserve_damage,
                             "reserve_hit_points_percent": reserve_hp_percent,
                             "ammo_pool_shots": wave.ammo_pool_shots,
@@ -80,7 +87,8 @@ def _snapshot(waves: list[Wave], registry: UnitRegistry, battle_end: BattleEndPr
         slots.extend({"slot_id": s.slot_id, "line": s.line, "physical_position": s.physical_position,
                       "damage_position": s.damage_position, "unit_id": s.unit_id, "wave_id": s.wave_id,
                       "units": s.units, "capacity": s.capacity, "damage": s.damage,
-                      "entry_batch_id": s.wave_id, "display_name": unit.display_name,
+                      "entry_batch_id": wave.unit.batch_id,
+                      "arrival_round": wave.unit.arrival_round, "display_name": unit.display_name,
                       "semantic_class": unit.semantic_class, "native_line": unit.native_line,
                       "attack_upgrade": wave.unit.attack_upgrade,
                       "armor_upgrade": wave.unit.armor_upgrade,
@@ -116,7 +124,6 @@ def _preflight(waves: list[Wave], registry: UnitRegistry, rules: FormationRules,
     blockers = []
     line_types: dict[str, set[str]] = defaultdict(set)
     line_waves: dict[str, int] = defaultdict(int)
-    deployed_lines = {slot.line for wave in waves for slot in wave.slots if slot.units}
     for wave in waves:
         if not wave.alive:
             continue
@@ -126,9 +133,6 @@ def _preflight(waves: list[Wave], registry: UnitRegistry, rules: FormationRules,
         if unit.support_effect == "healing": blockers.append("UNKNOWN-HEALING-ALLOCATION")
         elif unit.support_effect == "morale": blockers.append("UNKNOWN-MORALE-SUPPORT")
         else:
-            if (wave.reserve and not any(slot.units for slot in wave.slots)
-                    and deployed_lines.intersection(eligible_runtime_lines(unit, rules, field))):
-                blockers.append("UNKNOWN-CROSS-WAVE-FORMATION-REBUILD")
             for runtime_line in {slot.line for slot in wave.slots if slot.units}:
                 line_types[runtime_line].add(unit.id)
                 line_waves[runtime_line] += 1
@@ -198,6 +202,88 @@ def _prepare_round_start(waves: list[Wave], events: list[Event], number: int, si
     """Center-first re-pack same-wave placements, then apply PDF RR."""
     _rebuild_formation(waves, events, number, side)
     _redistribute(waves, events, number, side, applied)
+
+
+def _arrival_waves(army: Army, round_no: int, registry: UnitRegistry,
+                   events: list[Event], side: str) -> list[Wave]:
+    """Activate unit-specific state waves for entry batches that arrive this round.
+
+    Arrival is modeled independently from formation replacement: newly arrived
+    combat units begin in Reserve. If they immediately need an open runtime slot,
+    the deferred cross-wave boundary below stops rather than inventing placement.
+    """
+    items = [item for item in army.units if item.arrival_round == round_no]
+    if not items:
+        return []
+    by_batch: dict[str, list[Any]] = defaultdict(list)
+    result: list[Wave] = []
+    for item in items:
+        unit = registry.get(item.unit_id)
+        by_batch[item.batch_id].append(item)
+        if unit.role == "support":
+            result.append(Wave(item, 0, [], 0, None, item.quantity))
+        else:
+            ammo = None if unit.primary_weapon.ammunition is None else item.quantity * unit.primary_weapon.ammunition
+            result.append(Wave(item, item.quantity, [], 0, ammo, 0, ammo))
+    for batch_id, batch_items in sorted(by_batch.items()):
+        units: dict[str, int] = defaultdict(int)
+        for item in batch_items:
+            units[item.unit_id] += item.quantity
+        _event(events, round_no, "arrival", "entry_batch_arrived", side,
+               entry_batch_id=batch_id, arrival_round=round_no,
+               units=dict(sorted(units.items())))
+    return result
+
+
+def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
+                                     rules: FormationRules, field) -> list[dict[str, Any]]:
+    """Return only cross-wave placements that are required *now*.
+
+    Existing slot ownership is same-wave state. Before considering a different
+    reserve-only wave, project the already-supported center-first refill of each
+    wave into its own slots. Only vacancies left after that projection are
+    candidates for an unimplemented cross-wave handoff.
+    """
+    occupied: dict[str, set[int]] = defaultdict(set)
+    for wave in waves:
+        slots = sorted(wave.slots, key=lambda item: item.damage_position)
+        if not slots:
+            continue
+        remaining = wave.reserve + sum(slot.units for slot in slots)
+        for slot in slots:
+            projected_units = min(slot.capacity, remaining)
+            remaining -= projected_units
+            if projected_units:
+                occupied[slot.line].add(slot.damage_position)
+
+    requirements: list[dict[str, Any]] = []
+    for wave in waves:
+        # A wave that already owns slots is eligible for the supported same-wave
+        # refill above, even when combat has just emptied every one of them.
+        # Cross-wave placement concerns only reserve waves that own no slots.
+        if not wave.reserve or wave.slots:
+            continue
+        unit = registry.get(wave.unit.unit_id)
+        if unit.role != "combat":
+            continue
+        for runtime_line in eligible_runtime_lines(unit, rules, field):
+            geometry = field.lines.get(runtime_line)
+            if geometry is None:
+                continue
+            open_positions = [position for position in geometry.damage_priority
+                              if position not in occupied[runtime_line]]
+            if not open_positions:
+                continue
+            requirements.append({
+                "runtime_line": runtime_line,
+                "unit_id": unit.id,
+                "wave_id": wave.unit.wave_id,
+                "entry_batch_id": wave.unit.batch_id,
+                "arrival_round": wave.unit.arrival_round,
+                "reserve": wave.reserve,
+                "open_damage_positions": open_positions,
+            })
+    return requirements
 
 
 def _runtime_line(wave: Wave, registry: UnitRegistry) -> str:
@@ -528,6 +614,34 @@ def _termination(attacker: dict[str, Any], defender: dict[str, Any]) -> tuple[st
     return None, None
 
 
+def _pending_sustaining_arrivals(army: Army, after_round: int, registry: UnitRegistry,
+                                 battle_end: BattleEndProfile) -> list[dict[str, Any]]:
+    """Future arrivals that could participate in battle-end continuation.
+
+    This is intentionally used only before an engagement has started. Once both
+    sides have reached a battle-sustaining state, normal round-boundary battle
+    termination remains authoritative; later reinforcements do not retroactively
+    keep an already-started battle alive.
+    """
+    sustaining_lines = battle_end.main_line_classes | battle_end.fallback_candidate_classes
+    pending: list[dict[str, Any]] = []
+    for item in army.units:
+        if item.quantity <= 0 or item.arrival_round <= after_round:
+            continue
+        unit = registry.get(item.unit_id)
+        if unit.role != "combat" or unit.native_line not in sustaining_lines:
+            continue
+        pending.append({
+            "unit_id": unit.id,
+            "quantity": item.quantity,
+            "entry_batch_id": item.batch_id,
+            "wave_id": item.wave_id,
+            "arrival_round": item.arrival_round,
+        })
+    return sorted(pending, key=lambda row: (
+        row["arrival_round"], row["entry_batch_id"], row["unit_id"], row["wave_id"]))
+
+
 def _non_sustaining(snapshot: dict[str, Any]) -> dict[str, int]:
     sustaining = {**snapshot["main_line_holding_remaining"], **snapshot["fallback_candidate_remaining"]}
     return {unit: count for unit, count in snapshot["remaining"].items()
@@ -540,29 +654,57 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     field = battlefield(scenario.battlefield)
     formation_rules = FormationRules.load(scenario.profiles.formation)
     battle_end = BattleEndProfile.load(scenario.profiles.battle_end)
-    attacker = deploy(scenario.attacker, registry, field, scenario.profiles.formation)
-    defender = deploy(scenario.defender, registry, field, scenario.profiles.formation)
+    # Validate every scheduled unit now, but only round-0 entry batches are
+    # present on the battlefield initially.
+    for army in (scenario.attacker, scenario.defender):
+        for item in army.units:
+            unit = registry.get(item.unit_id)
+            if unit.domain != field.domain:
+                raise ScenarioError(f"{unit.id} is {unit.domain} and cannot enter {field.id}")
+            if unit.role != "support" and not unit.numerically_supported:
+                raise ScenarioError(f"{unit.id} has unverified numerical fields and cannot be simulated")
+    attacker = deploy(Army(tuple(item for item in scenario.attacker.units if item.arrival_round == 0),
+                           scenario.attacker.forge_level),
+                      registry, field, scenario.profiles.formation)
+    defender = deploy(Army(tuple(item for item in scenario.defender.units if item.arrival_round == 0),
+                           scenario.defender.forge_level),
+                      registry, field, scenario.profiles.formation)
     events: list[Event] = []
     for side, waves in (("attacker", attacker), ("defender", defender)):
         for wave in waves:
             for slot in wave.slots:
                 _event(events, 0, "deploy", "deployment", side, slot_id=slot.slot_id, line=slot.line,
                        physical_position=slot.physical_position, damage_position=slot.damage_position,
-                       unit_id=slot.unit_id, wave_id=slot.wave_id, quantity=slot.units, reserve=wave.reserve)
+                       unit_id=slot.unit_id, wave_id=slot.wave_id,
+                       entry_batch_id=wave.unit.batch_id, arrival_round=wave.unit.arrival_round,
+                       quantity=slot.units, reserve=wave.reserve)
     initial = {"attacker": _snapshot(attacker, registry, battle_end),
                "defender": _snapshot(defender, registry, battle_end)}
     warnings = ["Legacy empirical mechanics are being applied to review-supplied current numeric profiles; calibration is required."]
-    blockers = sorted(set(_preflight(attacker, registry, formation_rules, field)
-                          + _preflight(defender, registry, formation_rules, field)))
+    attacker_blockers = _preflight(attacker, registry, formation_rules, field)
+    defender_blockers = _preflight(defender, registry, formation_rules, field)
+    blockers = sorted(set(attacker_blockers + defender_blockers))
     initial_states = {side: state["continuation_state"] for side, state in initial.items()}
     fallback_sides = [side for side, state in initial_states.items()
                       if state == ContinuationState.FALLBACK_REQUIRED.value]
-    initial_outcome, _ = _termination(initial["attacker"], initial["defender"])
+    initial_pending = {
+        "attacker": _pending_sustaining_arrivals(
+            scenario.attacker, 0, registry, battle_end),
+        "defender": _pending_sustaining_arrivals(
+            scenario.defender, 0, registry, battle_end),
+    }
+    initial_outcome, initial_losing = _termination(initial["attacker"], initial["defender"])
+    initial_waiting = initial_outcome is not None and bool(initial_pending.get(initial_losing or ""))
+    both_initially_empty_but_pending = (
+        all(state == ContinuationState.NOT_SUSTAINING.value for state in initial_states.values())
+        and any(initial_pending.values())
+    )
     if fallback_sides:
         blockers.append("UNKNOWN-FORMATION-FALLBACK")
-    if initial_outcome is not None:
+    if initial_outcome is not None and not initial_waiting:
         blockers.append("UNKNOWN-INITIAL-BATTLE-END-TIMING")
-    if all(state == ContinuationState.NOT_SUSTAINING.value for state in initial_states.values()):
+    if (all(state == ContinuationState.NOT_SUSTAINING.value for state in initial_states.values())
+            and not both_initially_empty_but_pending):
         blockers.append("UNKNOWN-BOTH-SIDES-NO-MAIN-LINE-OUTCOME")
     if scenario.policy is Policy.STRICT:
         blockers += ["UNKNOWN-KILL-SELECTION", "UNKNOWN-ROUNDING-SELECTOR",
@@ -570,14 +712,14 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         return _unsupported(scenario, events, initial, sorted(set(blockers)), warnings)
     if {"UNKNOWN-MIXED-UNIT-AM-ROWS", "UNKNOWN-MULTIPLE-TARGET-WAVES",
         "UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS",
-        "UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT",
-        "UNKNOWN-CROSS-WAVE-FORMATION-REBUILD"} & set(blockers):
+        "UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT"} & set(blockers):
         return _unsupported(scenario, events, initial, blockers, warnings)
     applied: dict[str, dict[str, str]] = {}
-    if "UNKNOWN-HEALING-ALLOCATION" in blockers:
-        _assume(applied, events, "EXP-HEAL-NONE-001", 0, "preflight")
-    if "UNKNOWN-MORALE-SUPPORT" in blockers:
-        _assume(applied, events, "EXP-MORALE-NONE-001", 0, "preflight")
+    for side, side_blockers in (("attacker", attacker_blockers), ("defender", defender_blockers)):
+        if "UNKNOWN-HEALING-ALLOCATION" in side_blockers:
+            _assume(applied, events, "EXP-HEAL-NONE-001", 0, "preflight", side)
+        if "UNKNOWN-MORALE-SUPPORT" in side_blockers:
+            _assume(applied, events, "EXP-MORALE-NONE-001", 0, "preflight", side)
     if fallback_sides:
         _event(events, 0, "battle_end", "unsupported_mechanic", None,
                rule_id="UNKNOWN-FORMATION-FALLBACK", affected_sides=fallback_sides)
@@ -586,7 +728,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 "initial_state":initial,"final_state":initial,
                 "rounds":[{"round":0,**deepcopy(initial),"casualties":{"attacker":{},"defender":{}}}],
                 "events":[e.as_dict() for e in events],"assumptions":list(applied.values()),"warnings":warnings}
-    if all(state == ContinuationState.NOT_SUSTAINING.value for state in initial_states.values()):
+    if (all(state == ContinuationState.NOT_SUSTAINING.value for state in initial_states.values())
+            and not both_initially_empty_but_pending):
         _event(events, 0, "battle_end", "unsupported_mechanic", None,
                rule_id="UNKNOWN-BOTH-SIDES-NO-MAIN-LINE-OUTCOME")
         return {"profiles":scenario.profiles.__dict__,"policy":scenario.policy.value,"status":"inconclusive",
@@ -594,7 +737,20 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 "initial_state":initial,"final_state":initial,
                 "rounds":[{"round":0,**deepcopy(initial),"casualties":{"attacker":{},"defender":{}}}],
                 "events":[e.as_dict() for e in events],"assumptions":list(applied.values()),"warnings":warnings}
-    if initial_outcome is not None:
+    if both_initially_empty_but_pending:
+        pending_sides = [side for side, rows in initial_pending.items() if rows]
+        _event(events, 0, "battle_start", "waiting_for_arrival", None,
+               pending_sides=pending_sides,
+               pending={side: initial_pending[side] for side in pending_sides},
+               next_arrival_round=min(
+                   row["arrival_round"]
+                   for side in pending_sides
+                   for row in initial_pending[side]))
+    elif initial_waiting:
+        _event(events, 0, "battle_start", "waiting_for_arrival", initial_losing,
+               pending=initial_pending[initial_losing],
+               next_arrival_round=min(row["arrival_round"] for row in initial_pending[initial_losing]))
+    elif initial_outcome is not None:
         _assume(applied, events, "EXP-BATTLE-END-ROUND-BOUNDARY-001", 0, "battle_end")
         _, losing = _termination(initial["attacker"], initial["defender"])
         _event(events, 0, "battle_end", "battle_termination", None,
@@ -612,10 +768,59 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     completed = 0
     fallback_boundary = False
     both_zero_boundary = False
+    cross_wave_boundary = False
+    engagement_started = all(
+        state == ContinuationState.SUSTAINING.value for state in initial_states.values())
     for number in range(1, scenario.max_rounds + 1):
-        _prepare_round_start(attacker, events, number, "attacker", applied); _prepare_round_start(defender, events, number, "defender", applied)
+        attacker_arrivals = _arrival_waves(scenario.attacker, number, registry, events, "attacker")
+        defender_arrivals = _arrival_waves(scenario.defender, number, registry, events, "defender")
+        attacker.extend(attacker_arrivals)
+        defender.extend(defender_arrivals)
+        arrival_blockers = {
+            "attacker": _preflight(attacker_arrivals, registry, formation_rules, field),
+            "defender": _preflight(defender_arrivals, registry, formation_rules, field),
+        }
+        for side, side_blockers in arrival_blockers.items():
+            if "UNKNOWN-HEALING-ALLOCATION" in side_blockers:
+                _assume(applied, events, "EXP-HEAL-NONE-001", number, "arrival", side)
+            if "UNKNOWN-MORALE-SUPPORT" in side_blockers:
+                _assume(applied, events, "EXP-MORALE-NONE-001", number, "arrival", side)
+        _prepare_round_start(attacker, events, number, "attacker", applied)
+        _prepare_round_start(defender, events, number, "defender", applied)
+        cross_wave = {
+            "attacker": _cross_wave_rebuild_requirements(attacker, registry, formation_rules, field),
+            "defender": _cross_wave_rebuild_requirements(defender, registry, formation_rules, field),
+        }
+        if any(cross_wave.values()):
+            for side, requirements in cross_wave.items():
+                if requirements:
+                    _event(events, number, "round_start", "unsupported_mechanic", side,
+                           rule_id="UNKNOWN-CROSS-WAVE-FORMATION-REBUILD",
+                           requirements=requirements)
+            # Arrival and same-wave round-start state for this round are already
+            # observable even though cross-wave placement cannot continue.
+            # Preserve that boundary round for paging/debug export before exit.
+            completed = number
+            attacker_state = _snapshot(attacker, registry, battle_end)
+            defender_state = _snapshot(defender, registry, battle_end)
+            rounds.append({
+                "round": number,
+                "attacker": attacker_state,
+                "defender": defender_state,
+                "casualties": {"attacker": {}, "defender": {}},
+            })
+            cross_wave_boundary = True
+            break
+        round_start_states = {
+            "attacker": _snapshot(attacker, registry, battle_end)["continuation_state"],
+            "defender": _snapshot(defender, registry, battle_end)["continuation_state"],
+        }
+        if all(state == ContinuationState.SUSTAINING.value
+               for state in round_start_states.values()):
+            engagement_started = True
         # Art of Warfare: same formations on both sides shoot simultaneously;
         # casualties from an earlier formation suppress firing in later phases.
+        round_had_fire = False
         a_dead, d_dead = defaultdict(int), defaultdict(int)
         a_slot_dead, d_slot_dead = defaultdict(int), defaultdict(int)
         a_queues = _build_damage_queues(attacker, registry, events, number, "attacker", applied)
@@ -629,6 +834,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 firing_phase, applied)
             if not a_volleys and not d_volleys:
                 continue
+            round_had_fire = True
             _event(events, number, "fire", "formation_fire_phase", None,
                    firing_phase=firing_phase, simultaneous=True,
                    attacker_shots=sum(len(v["row_numbers"]) for v in a_volleys),
@@ -650,6 +856,26 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         defender_state = _snapshot(defender, registry, battle_end, d_slot_dead)
         rounds.append({"round":number,"attacker":attacker_state,"defender":defender_state,
                        "casualties":{"attacker":dict(a_dead),"defender":dict(d_dead)}})
+
+        # Combat itself can create the first real vacancy that requires a
+        # different reserve-only wave to enter. Recheck before any continuation
+        # or termination decision so an unimplemented cross-wave replacement
+        # can never be mistaken for an exact battle outcome.
+        post_combat_cross_wave = {
+            "attacker": _cross_wave_rebuild_requirements(
+                attacker, registry, formation_rules, field),
+            "defender": _cross_wave_rebuild_requirements(
+                defender, registry, formation_rules, field),
+        }
+        if any(post_combat_cross_wave.values()):
+            for side, requirements in post_combat_cross_wave.items():
+                if requirements:
+                    _event(events, number, "round_end", "unsupported_mechanic", side,
+                           rule_id="UNKNOWN-CROSS-WAVE-FORMATION-REBUILD",
+                           requirements=requirements)
+            cross_wave_boundary = True
+            break
+
         states = {"attacker": attacker_state["continuation_state"],
                   "defender": defender_state["continuation_state"]}
         fallback_sides = [side for side, state in states.items()
@@ -659,26 +885,56 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                    rule_id="UNKNOWN-FORMATION-FALLBACK", affected_sides=fallback_sides)
             fallback_boundary = True
             break
+        pending_now = {
+            "attacker": _pending_sustaining_arrivals(
+                scenario.attacker, number, registry, battle_end),
+            "defender": _pending_sustaining_arrivals(
+                scenario.defender, number, registry, battle_end),
+        }
         if all(state == ContinuationState.NOT_SUSTAINING.value for state in states.values()):
-            _event(events, number, "battle_end", "unsupported_mechanic", None,
-                   rule_id="UNKNOWN-BOTH-SIDES-NO-MAIN-LINE-OUTCOME")
-            both_zero_boundary = True
-            break
+            if not engagement_started and any(pending_now.values()):
+                _event(events, number, "battle_start", "waiting_for_arrival", None,
+                       pending_sides=[side for side, rows in pending_now.items() if rows],
+                       next_arrival_round=min(
+                           row["arrival_round"] for rows in pending_now.values() for row in rows))
+            else:
+                _event(events, number, "battle_end", "unsupported_mechanic", None,
+                       rule_id="UNKNOWN-BOTH-SIDES-NO-MAIN-LINE-OUTCOME")
+                both_zero_boundary = True
+                break
         outcome, losing = _termination(attacker_state, defender_state)
         if outcome is not None:
-            _assume(applied, events, "EXP-BATTLE-END-ROUND-BOUNDARY-001", number, "battle_end")
-            _event(events, number, "battle_end", "battle_termination", None,
-                   reason="no_battle_sustaining_units", losing_side=losing,
-                   surviving_non_sustaining={"attacker":_non_sustaining(attacker_state),
-                                             "defender":_non_sustaining(defender_state)})
+            losing_pending = pending_now.get(losing or "", [])
+            if not engagement_started and losing_pending:
+                _event(events, number, "battle_start", "waiting_for_arrival", losing,
+                       pending=losing_pending,
+                       next_arrival_round=min(row["arrival_round"] for row in losing_pending))
+            else:
+                _assume(applied, events, "EXP-BATTLE-END-ROUND-BOUNDARY-001", number, "battle_end")
+                _event(events, number, "battle_end", "battle_termination", None,
+                       reason="no_battle_sustaining_units", losing_side=losing,
+                       surviving_non_sustaining={"attacker":_non_sustaining(attacker_state),
+                                                 "defender":_non_sustaining(defender_state)})
+                break
+        if not a_dead and not d_dead and not round_had_fire:
+            if not engagement_started and any(pending_now.values()):
+                continue
             break
-        if not a_dead and not d_dead and not a_plan and not d_plan: break
     else:
         _event(events, scenario.max_rounds, "battle_end", "safety_limit_reached", None,
                reason="max_rounds_reached", limit=scenario.max_rounds)
     final = {"attacker":_snapshot(attacker,registry,battle_end),"defender":_snapshot(defender,registry,battle_end)}
-    outcome, _ = _termination(final["attacker"], final["defender"])
-    if fallback_boundary or both_zero_boundary:
+    outcome, final_losing = _termination(final["attacker"], final["defender"])
+    pending_after_horizon = {
+        "attacker": _pending_sustaining_arrivals(
+            scenario.attacker, scenario.max_rounds, registry, battle_end),
+        "defender": _pending_sustaining_arrivals(
+            scenario.defender, scenario.max_rounds, registry, battle_end),
+    }
+    if (fallback_boundary or both_zero_boundary or cross_wave_boundary
+            or (not engagement_started
+                and final_losing is not None
+                and pending_after_horizon.get(final_losing))):
         outcome = None
     outcome = outcome or "inconclusive"
     return {"profiles":scenario.profiles.__dict__,"policy":scenario.policy.value,"status":"completed" if outcome != "inconclusive" else "inconclusive",
@@ -693,26 +949,44 @@ def _decimal_json(value: Decimal) -> int | float:
     return float(value)
 
 
+def _support_assumption_round(result: dict[str, Any], assumption_id: str,
+                              side: str) -> int | None:
+    rounds = [
+        int(event.get("round", 0))
+        for event in result.get("events", [])
+        if event.get("type") == "assumption_applied"
+        and event.get("side") == side
+        and event.get("details", {}).get("id") == assumption_id
+    ]
+    return min(rounds) if rounds else None
+
+
+def _strict_support_boundary_reached(scenario: Scenario, result: dict[str, Any],
+                                     side: str, unit_id: str, rule_id: str) -> bool:
+    if scenario.policy != Policy.STRICT:
+        return False
+    army = scenario.attacker if side == "attacker" else scenario.defender
+    present_at_start = any(unit.unit_id == unit_id and unit.quantity > 0 and unit.arrival_round == 0
+                           for unit in army.units)
+    if not present_at_start:
+        return False
+    return any(event.get("type") == "unsupported_mechanic"
+               and event.get("details", {}).get("rule_id") == rule_id
+               for event in result.get("events", []))
+
+
 def _morale_status(scenario: Scenario, result: dict[str, Any]) -> dict[str, Any]:
     assumption_id = "EXP-MORALE-NONE-001"
     strict_rule_id = "UNKNOWN-MORALE-SUPPORT"
-    applied_ids = {row.get("id") for row in result.get("assumptions", [])}
-    unsupported_ids = {
-        event.get("details", {}).get("rule_id")
-        for event in result.get("events", [])
-        if event.get("type") == "unsupported_mechanic"
-    }
-    morale_assumption_applied = assumption_id in applied_ids
-    morale_boundary_reported = strict_rule_id in unsupported_ids
-
     sides: dict[str, dict[str, Any]] = {}
     for side, army in (("attacker", scenario.attacker), ("defender", scenario.defender)):
         cook_count = sum(unit.quantity for unit in army.units if unit.unit_id == "cook")
+        reach_round = _support_assumption_round(result, assumption_id, side)
         if not cook_count:
             status = "not_present"
-        elif morale_assumption_applied:
+        elif reach_round is not None:
             status = "ignored_by_named_assumption"
-        elif scenario.policy == Policy.STRICT and morale_boundary_reported:
+        elif _strict_support_boundary_reached(scenario, result, side, "cook", strict_rule_id):
             status = "unsupported_boundary"
         else:
             status = "not_reached"
@@ -740,25 +1014,17 @@ def _healing_status(
 ) -> dict[str, Any]:
     assumption_id = "EXP-HEAL-NONE-001"
     strict_rule_id = "UNKNOWN-HEALING-ALLOCATION"
-    applied_ids = {row.get("id") for row in result.get("assumptions", [])}
-    unsupported_ids = {
-        event.get("details", {}).get("rule_id")
-        for event in result.get("events", [])
-        if event.get("type") == "unsupported_mechanic"
-    }
-    healing_assumption_applied = assumption_id in applied_ids
-    healing_boundary_reported = strict_rule_id in unsupported_ids
-
     sides: dict[str, dict[str, Any]] = {}
     for side, army in (("attacker", scenario.attacker), ("defender", scenario.defender)):
         doctor_count = sum(unit.quantity for unit in army.units if unit.unit_id == "doctor")
+        reach_round = _support_assumption_round(result, assumption_id, side)
         if not doctor_count:
             status = "not_present"
             amount = 0
-        elif healing_assumption_applied:
+        elif reach_round is not None:
             status = "ignored_by_named_assumption"
             amount = None
-        elif scenario.policy == Policy.STRICT and healing_boundary_reported:
+        elif _strict_support_boundary_reached(scenario, result, side, "doctor", strict_rule_id):
             status = "unsupported_boundary"
             amount = None
         else:
@@ -808,6 +1074,10 @@ def _attach_battle_statistics(
 
     support = SupportProfile.load(scenario.profiles.support)
     healing_status = _healing_status(scenario, result, support)
+    healing_reach_round = {
+        side: _support_assumption_round(result, "EXP-HEAL-NONE-001", side)
+        for side in ("attacker", "defender")
+    }
     gross_dealt = {"attacker": 0, "defender": 0}
     gross_taken = {"attacker": 0, "defender": 0}
     per_round: dict[int, dict[str, dict[str, int]]] = {}
@@ -847,7 +1117,11 @@ def _attach_battle_statistics(
         for side in ("attacker", "defender"):
             cumulative[side]["damage_dealt"] += stats[side]["damage_dealt"]
             cumulative[side]["damage_taken"] += stats[side]["damage_taken"]
-            healing_unknown = healing_status["sides"][side]["doctor_count"] > 0
+            support_round = healing_reach_round[side]
+            healing_unknown = support_round is not None and number >= support_round
+            if scenario.policy == Policy.STRICT and _strict_support_boundary_reached(
+                    scenario, result, side, "doctor", "UNKNOWN-HEALING-ALLOCATION"):
+                healing_unknown = True
             row_combat[side] = {
                 "damage_dealt": stats[side]["damage_dealt"],
                 "damage_taken": stats[side]["damage_taken"],
@@ -862,7 +1136,11 @@ def _attach_battle_statistics(
         side: {
             "gross_damage_dealt": gross_dealt[side],
             "gross_damage_taken": gross_taken[side],
-            "gross_healing": None if healing_status["sides"][side]["doctor_count"] else 0,
+            "gross_healing": None if (
+                healing_reach_round[side] is not None
+                or _strict_support_boundary_reached(
+                    scenario, result, side, "doctor", "UNKNOWN-HEALING-ALLOCATION")
+            ) else 0,
         }
         for side in ("attacker", "defender")
     }
