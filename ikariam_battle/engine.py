@@ -359,31 +359,75 @@ def _arrival_waves(army: Army, round_no: int, registry: UnitRegistry,
 
 def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
                                      rules: FormationRules, field) -> list[dict[str, Any]]:
-    """Return only cross-wave placements that are required *now*.
+    """Return only cross-wave placements that remain unsupported *now*.
 
-    Existing slot ownership is same-wave state. Before considering a different
-    reserve-only wave, project the already-supported center-first refill of each
-    wave into its own slots. Only vacancies left after that projection are
-    candidates for an unimplemented cross-wave handoff.
+    Project both supported same-wave refill and the narrow same-entry-batch
+    Heavy-Infantry First-line handoff before evaluating unrelated reserve waves.
+    This prevents a later unsupported candidate from claiming a vacancy that a
+    supported handoff will already occupy at the next round boundary.
     """
     occupied: dict[str, set[int]] = defaultdict(set)
+    projected_reserve: dict[str, int] = {}
+    first_owners: dict[int, Wave] = {}
+
     for wave in waves:
         slots = sorted(wave.slots, key=lambda item: item.damage_position)
-        if not slots:
-            continue
         remaining = wave.reserve + sum(slot.units for slot in slots)
         for slot in slots:
             projected_units = min(slot.capacity, remaining)
             remaining -= projected_units
             if projected_units:
                 occupied[slot.line].add(slot.damage_position)
+            if slot.line == "first":
+                first_owners[slot.damage_position] = wave
+        projected_reserve[wave.unit.wave_id] = remaining
+
+    geometry = field.lines.get("first")
+    if geometry is not None:
+        candidates = sorted(
+            (
+                wave for wave in waves
+                if projected_reserve.get(wave.unit.wave_id, 0)
+                and registry.get(wave.unit.unit_id).role == "combat"
+                and registry.get(wave.unit.unit_id).semantic_class == "heavy_infantry"
+                and "first" in eligible_runtime_lines(
+                    registry.get(wave.unit.unit_id), rules, field)
+            ),
+            key=lambda wave: (
+                wave.unit.arrival_round, wave.unit.batch_id,
+                wave.unit.unit_id, wave.unit.wave_id),
+        )
+        for candidate in candidates:
+            unit = registry.get(candidate.unit.unit_id)
+            capacity = geometry.slot_space // unit.size
+            remaining = projected_reserve[candidate.unit.wave_id]
+            if capacity <= 0:
+                continue
+            for position in geometry.damage_priority:
+                if not remaining or position in occupied["first"]:
+                    continue
+                owner_wave = first_owners.get(position)
+                if owner_wave is None:
+                    continue
+                owner_unit = registry.get(owner_wave.unit.unit_id)
+                if (
+                    owner_wave.unit.batch_id != candidate.unit.batch_id
+                    or owner_unit.semantic_class != "heavy_infantry"
+                ):
+                    continue
+                quantity = min(remaining, capacity)
+                remaining -= quantity
+                if quantity:
+                    occupied["first"].add(position)
+            projected_reserve[candidate.unit.wave_id] = remaining
 
     requirements: list[dict[str, Any]] = []
     for wave in waves:
-        # A wave that already owns slots is eligible for the supported same-wave
-        # refill above, even when combat has just emptied every one of them.
-        # Cross-wave placement concerns only reserve waves that own no slots.
-        if not wave.reserve or wave.slots:
+        # A wave that already owns slots is handled by supported same-wave refill.
+        # Only the reserve left after all supported projections can create an
+        # unsupported cross-wave placement requirement.
+        reserve = projected_reserve.get(wave.unit.wave_id, wave.reserve)
+        if not reserve or wave.slots:
             continue
         unit = registry.get(wave.unit.unit_id)
         if unit.role != "combat":
@@ -392,31 +436,10 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
             geometry = field.lines.get(runtime_line)
             if geometry is None:
                 continue
-            open_positions = [position for position in geometry.damage_priority
-                              if position not in occupied[runtime_line]]
-            if runtime_line == "first" and unit.semantic_class == "heavy_infantry":
-                # Same-entry-batch heavy infantry handoff is implemented at the
-                # next round boundary. Exclude only vacancies currently owned by
-                # same-batch heavy infantry; all other cross-wave cases remain
-                # explicit unsupported boundaries.
-                supported_positions: set[int] = set()
-                for owner_wave in waves:
-                    owner_unit = registry.get(owner_wave.unit.unit_id)
-                    if (
-                        owner_wave.unit.batch_id != wave.unit.batch_id
-                        or owner_unit.semantic_class != "heavy_infantry"
-                    ):
-                        continue
-                    supported_positions.update(
-                        slot.damage_position
-                        for slot in owner_wave.slots
-                        if slot.line == "first"
-                        and slot.damage_position in open_positions
-                    )
-                open_positions = [
-                    position for position in open_positions
-                    if position not in supported_positions
-                ]
+            open_positions = [
+                position for position in geometry.damage_priority
+                if position not in occupied[runtime_line]
+            ]
             if not open_positions:
                 continue
             requirements.append({
@@ -425,7 +448,7 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
                 "wave_id": wave.unit.wave_id,
                 "entry_batch_id": wave.unit.batch_id,
                 "arrival_round": wave.unit.arrival_round,
-                "reserve": wave.reserve,
+                "reserve": reserve,
                 "open_damage_positions": open_positions,
             })
     return requirements
@@ -1106,6 +1129,12 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                reason="max_rounds_reached", limit=scenario.max_rounds)
     final = {"attacker":_snapshot(attacker,registry,battle_end),"defender":_snapshot(defender,registry,battle_end)}
     outcome, final_losing = _termination(final["attacker"], final["defender"])
+    pending_handoff_after_horizon = {
+        "attacker": _has_supported_same_batch_heavy_first_handoff(
+            attacker, registry, formation_rules, field),
+        "defender": _has_supported_same_batch_heavy_first_handoff(
+            defender, registry, formation_rules, field),
+    }
     pending_after_horizon = {
         "attacker": _pending_sustaining_arrivals(
             scenario.attacker, scenario.max_rounds, registry, battle_end),
@@ -1113,6 +1142,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             scenario.defender, scenario.max_rounds, registry, battle_end),
     }
     if (fallback_boundary or both_zero_boundary or cross_wave_boundary
+            or (final_losing is not None
+                and pending_handoff_after_horizon.get(final_losing))
             or (not engagement_started
                 and final_losing is not None
                 and pending_after_horizon.get(final_losing))):
