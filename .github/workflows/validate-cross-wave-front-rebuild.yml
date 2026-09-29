@@ -1,0 +1,72 @@
+name: Validate cross-wave front rebuild
+
+on:
+  push:
+    branches:
+      - fix/execute-cross-wave-front-rebuild
+    paths:
+      - .github/workflows/validate-cross-wave-front-rebuild.yml
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/execute-cross-wave-front-rebuild
+          fetch-depth: 0
+      - name: Validate cross-wave rebuild and mixed front
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -q pytest
+          python -m pytest -q tests/unit/test_formation.py tests/unit/test_engine.py tests/integration/test_api.py
+          python -m pytest -q
+          python -m compileall -q ikariam_battle asgi.py web_simulator.py simulator.py
+          cmp index.html public/index.html
+          python - <<'PY'
+          from ikariam_battle.engine import simulate
+          s={'policy':'experimental','battlefield':'land-max','max_rounds':4,
+             'attacker':{'forge_level':5,'units':[
+               {'unit_id':'hoplite','quantity':500,'entry_batch_id':'attacker-batch-1'},
+               {'unit_id':'steam_giant','quantity':48,'entry_batch_id':'attacker-batch-1'},
+               {'unit_id':'swordsman','quantity':280,'entry_batch_id':'attacker-batch-1'},
+               {'unit_id':'sulphur_carabineer','quantity':36,'entry_batch_id':'attacker-batch-1'}]},
+             'defender':{'forge_level':5,'units':[
+               {'unit_id':'hoplite','quantity':500,'entry_batch_id':'defender-batch-1'},
+               {'unit_id':'steam_giant','quantity':48,'entry_batch_id':'defender-batch-1'},
+               {'unit_id':'swordsman','quantity':280,'entry_batch_id':'defender-batch-1'},
+               {'unit_id':'sulphur_carabineer','quantity':24,'entry_batch_id':'defender-batch-1'}]}}
+          r=simulate(s)
+          assert r['rounds_completed'] >= 3
+          assert not any(e['type']=='unsupported_mechanic' and e['round']==2
+                         and e['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD'
+                         for e in r['events'])
+          fills=[e for e in r['events'] if e['type']=='cross_wave_slot_filled'
+                 and e['round']==3 and e['details']['unit_id']=='steam_giant']
+          assert {e['side'] for e in fills}=={'attacker','defender'}
+          assert any(e['type']=='assumption_applied'
+                     and e['details'].get('id')=='EXP-MIXED-UNIT-AM-ROWS-PER-WAVE-001'
+                     and e['round']==3 for e in r['events'])
+          assert any(e['type']=='attacking_matrix' and e['round']==3 for e in r['events'])
+          PY
+          python - <<'PY'
+          from pathlib import Path
+          html=Path('index.html').read_text()
+          Path('/tmp/ikariam-inline.js').write_text(html.split('<script>',1)[1].split('</script>',1)[0])
+          PY
+          node --check /tmp/ikariam-inline.js
+          git diff --check origin/main...HEAD
+      - name: Remove one-time validation workflow
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/validate-cross-wave-front-rebuild.yml
+          git commit -m "chore: remove cross-wave validation"
+          git push origin HEAD:fix/execute-cross-wave-front-rebuild
