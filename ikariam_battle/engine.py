@@ -621,7 +621,7 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                 "rows": defaultdict(int),
                 "hits": defaultdict(int),
                 "empty_hits": defaultdict(int),
-                "positions": {slot.damage_position for slot in addressed},
+                "positions": {slot.damage_position for _, _, slot in addressed},
             })
             matrix["rows"][row_number] += 1
             matrix["hits"][target_slot.damage_position] += 1
