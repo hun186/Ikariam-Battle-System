@@ -632,6 +632,78 @@ def test_am_slot_addresses_stay_fixed_when_target_slot_empties_mid_volley():
  assert trace['empty_addressed_shots_by_damage_position']=={2:1}
 
 
+def test_mixed_first_formation_keeps_frozen_addresses_after_one_wave_dies_mid_volley():
+ registry=UnitRegistry.load()
+ hoplite_hp=registry.get('hoplite').hit_points
+ hoplite=Wave(
+  ArmyUnit('hoplite',1,'hop','batch-1'),0,
+  [Slot('first-1','first',1,1,'hoplite','hop',1,30,hoplite_hp-1)],
+ )
+ steam=Wave(
+  ArmyUnit('steam_giant',1,'steam','batch-1'),0,
+  [Slot('first-2','first',2,2,'steam_giant','steam',1,10,0)],
+ )
+ queues={
+  ('hoplite','hop','first-1'):[hoplite_hp-1],
+  ('steam_giant','steam','first-2'):[0],
+ }
+ volleys=[{
+  'side':'attacker',
+  'source_unit':'swordsman',
+  'source_wave':'source-wave',
+  'runtime_line':'flank',
+  'weapon_id':'primary',
+  'attack_upgrade':0,
+  'row_numbers':[1,1],
+ }]
+ casualties={}
+ slot_casualties={}
+ events=[]
+ _resolve_volleys(
+  volleys,[hoplite,steam],queues,registry,WorkshopProfile.load(),ForgeProfile.load(),
+  TargetingProfile.load(),events,1,
+  Army((ArmyUnit('swordsman',2,'source-wave'),),0),
+  Army((ArmyUnit('hoplite',1,'hop','batch-1'),
+        ArmyUnit('steam_giant',1,'steam','batch-1')),0),
+  casualties,slot_casualties,{},
+ )
+ assert casualties.get('hoplite')==1
+ assert casualties.get('steam_giant',0)==0
+ wasted=[event for event in events if event.type=='shot_addressed_empty_slot']
+ assert len(wasted)==1
+ assert wasted[0].details['target_damage_position']==1
+ assert wasted[0].details['target_wave']=='hop'
+
+
+def test_same_batch_heavy_handoff_runs_before_rr_and_conserves_reserve_damage():
+ from ikariam_battle.engine import _prepare_round_start
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ owner=Wave(
+  ArmyUnit('hoplite',0,'hop','batch-1'),0,
+  [Slot('first-1','first',2,1,'hoplite','hop',0,30,0)],
+ )
+ steam=Wave(
+  ArmyUnit('steam_giant',10,'steam','batch-1'),10,[],
+  reserve_damage=100,
+ )
+ events=[]; applied={}
+ _prepare_round_start(
+  [owner,steam],events,2,'attacker',applied,
+  registry,rules,LAND_MINI,
+ )
+ assert owner.slots==[]
+ assert len(steam.slots)==1
+ assert steam.slots[0].line=='first'
+ assert steam.slots[0].capacity==10
+ assert steam.slots[0].units==10
+ assert steam.reserve==0
+ assert steam.reserve_damage==0
+ assert steam.slots[0].damage==100
+ assert steam.reserve_damage + sum(slot.damage for slot in steam.slots)==100
+ assert any(event.type=='slot_handoff' for event in events)
+ assert any(event.type=='redistribution' for event in events)
+
+
 def test_round_snapshot_keeps_destroyed_slot_identity_and_round_casualties():
  s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
     'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
