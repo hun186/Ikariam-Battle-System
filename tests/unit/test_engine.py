@@ -1063,7 +1063,7 @@ def test_projected_reserve_uses_complete_unit_and_wave_identity():
  for slot in hoplite.slots:
   slot.units=0
  hoplite.reserve=0
- steam.reserve=30
+ steam.reserve=10
  assert steam.slots==[]
  assert swordsman.reserve==30 and swordsman.slots==[]
  requirements=_cross_wave_rebuild_requirements(waves,registry,rules,LAND_MINI)
