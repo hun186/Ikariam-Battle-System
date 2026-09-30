@@ -1482,3 +1482,34 @@ def test_arrival_cross_wave_boundary_preserves_boundary_round_snapshot():
             and e['phase']=='round_start'
             and e['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD'
             for e in result['events'])
+
+
+def test_barbarian_land_army_can_fight_player_army_and_scores_zero():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+    'attacker':{'army_kind':'player','forge_level':0,'units':[
+      {'unit_id':'hoplite','quantity':90}]},
+    'defender':{'army_kind':'barbarian','forge_level':0,'units':[
+      {'unit_id':'barbarian_axe_swinger','quantity':90,
+       'entry_batch_id':'barbarian-garrison'}]}}
+ result=simulate(s)
+ assert result['rounds_completed']==1
+ initial=result['initial_state']['defender']
+ assert initial['remaining']['barbarian_axe_swinger']==90
+ assert any(
+  slot['unit_id']=='barbarian_axe_swinger'
+  for slot in initial['slots']
+ )
+ assert result['military_score']['defender']['general_score_lost']==0
+
+
+def test_army_package_rejects_player_and_barbarian_unit_mixing():
+ with pytest.raises(ScenarioError,match='belongs to the barbarian army package'):
+  simulate({'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+            'attacker':{'army_kind':'player','units':[
+              {'unit_id':'barbarian_clubman','quantity':30}]},
+            'defender':{'units':[{'unit_id':'hoplite','quantity':30}]}})
+ with pytest.raises(ScenarioError,match='belongs to the player army package'):
+  simulate({'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+            'attacker':{'army_kind':'barbarian','units':[
+              {'unit_id':'hoplite','quantity':30,'entry_batch_id':'barbarian'}]},
+            'defender':{'units':[{'unit_id':'hoplite','quantity':30}]}})
