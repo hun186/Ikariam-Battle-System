@@ -98,3 +98,35 @@ def test_explicit_invalid_batch_or_wave_identity_is_rejected(field,bad):
  row={'unit_id':'hoplite','quantity':10,field:bad}
  with pytest.raises(ScenarioError,match=f'{field} must be a non-empty string'):
   Army.from_dict({'units':[row]})
+
+
+def test_barbarian_army_package_rejects_player_only_controls():
+ army=Army.from_dict({'army_kind':'barbarian','forge_level':0,'units':[
+  {'unit_id':'barbarian_clubman','quantity':30,'entry_batch_id':'barbarian'}]})
+ assert army.army_kind=='barbarian'
+ assert army.forge_level==0
+ with pytest.raises(ScenarioError,match='do not use Forge'):
+  Army.from_dict({'army_kind':'barbarian','forge_level':1,'units':[
+   {'unit_id':'barbarian_clubman','quantity':30,'entry_batch_id':'barbarian'}]})
+ with pytest.raises(ScenarioError,match='do not use Workshop'):
+  Army.from_dict({'army_kind':'barbarian','units':[
+   {'unit_id':'barbarian_clubman','quantity':30,'entry_batch_id':'barbarian','attack_upgrade':1}]})
+ with pytest.raises(ScenarioError,match='delayed entry'):
+  Army.from_dict({'army_kind':'barbarian','units':[
+   {'unit_id':'barbarian_clubman','quantity':30,'entry_batch_id':'barbarian','arrival_round':1}]})
+
+
+def test_barbarian_army_uses_one_batch_and_one_wave_per_unit_type():
+ with pytest.raises(ScenarioError,match='one fixed entry batch'):
+  Army.from_dict({'army_kind':'barbarian','units':[
+   {'unit_id':'barbarian_clubman','quantity':10,'entry_batch_id':'a'},
+   {'unit_id':'barbarian_ram','quantity':1,'entry_batch_id':'b'}]})
+ with pytest.raises(ScenarioError,match='cannot be split across waves'):
+  Army.from_dict({'army_kind':'barbarian','units':[
+   {'unit_id':'barbarian_clubman','quantity':10,'entry_batch_id':'barbarian','wave_id':'w1'},
+   {'unit_id':'barbarian_clubman','quantity':10,'entry_batch_id':'barbarian','wave_id':'w2'}]})
+
+
+def test_invalid_army_kind_is_rejected():
+ with pytest.raises(ScenarioError,match='army_kind must be player or barbarian'):
+  Army.from_dict({'army_kind':'pirate','units':[{'unit_id':'hoplite','quantity':1}]})
