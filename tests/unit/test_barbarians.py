@@ -14,13 +14,18 @@ IDS = {
 }
 
 
-def test_barbarian_catalog_is_separate_and_catalog_only():
+def test_barbarian_catalog_is_separate_but_simulator_ready():
     registry = BarbarianRegistry.load()
     assert {unit.id for unit in registry.all()} == IDS
-    assert registry.metadata["simulation_status"] == "CATALOG_ONLY"
+    assert registry.metadata["simulation_status"] == "LAND_COMBAT_READY"
     assert registry.metadata["selectable_by_player"] is False
-    assert all(unit.public()["selectable_by_player"] is False for unit in registry.all())
-    assert all(unit.public()["simulation_ready"] is False for unit in registry.all())
+    assert registry.metadata["selectable_in_simulator"] is True
+    public = [unit.public() for unit in registry.all()]
+    assert all(row["selectable_by_player"] is False for row in public)
+    assert all(row["selectable_in_simulator"] is True for row in public)
+    assert all(row["simulation_ready"] is True for row in public)
+    assert all(row["domain"] == "land" and row["army_kind"] == "barbarian" for row in public)
+    assert all(row["general_score"] == "0" and row["resource_cost_basis_total"] == 0 for row in public)
 
 
 def test_barbarian_lines_and_first_appearance_levels():
