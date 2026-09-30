@@ -50,6 +50,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
   <section id="setupView">
     <section class="settings panel">
       <label>Policy<select id="policy"><option value="experimental">Experimental / named assumptions</option><option value="strict">Strict / evidence-safe</option></select></label>
+      <label>Battle type<select id="battleDomain"></select></label>
       <label>Battlefield<select id="battlefield"></select></label>
       <label>Max rounds / safety cap<input id="maxRounds" type="number" min="1" max="1000" value="100"></label>
       <label style="text-transform:none"><span><input id="researchMode" type="checkbox"> Research mode</span></label>
@@ -62,17 +63,17 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 
     <div class="setup-grid">
       <section class="panel side-setup attacker">
-        <div class="side-title"><h2>攻擊方</h2><div class="side-toolbar"><label>熔爐神蹟 / Forge<select id="aForge"></select></label></div></div>
+        <div class="side-title"><h2>攻擊方</h2><div class="side-toolbar"><label>兵種套裝<select id="aArmyKind" class="army-kind"><option value="player">Player</option><option value="barbarian">Barbarian</option></select></label><label id="aForgeWrap">熔爐神蹟 / Forge<select id="aForge"></select></label></div></div>
         <div id="attackerUnits" class="unit-list"></div>
       </section>
       <section class="panel side-setup defender">
-        <div class="side-title"><h2>防守方</h2><div class="side-toolbar"><label>熔爐神蹟 / Forge<select id="dForge"></select></label></div></div>
+        <div class="side-title"><h2>防守方</h2><div class="side-toolbar"><label>兵種套裝<select id="dArmyKind" class="army-kind"><option value="player">Player</option><option value="barbarian">Barbarian</option></select></label><label id="dForgeWrap">熔爐神蹟 / Forge<select id="dForge"></select></label></div></div>
         <div id="defenderUnits" class="unit-list"></div>
       </section>
     </div>
 
-    <div class="setup-note">預設使用最大戰場與 Lv5 熔爐；初始 Hoplite 數量會填滿預設戰場前線，方便直接測側翼。每列的 ±一格 由目前戰場的 slot space ÷ unit size 動態計算；攻擊／防禦為該兵種 Workshop 等級，進場批次收在進階設定內。</div>
-    <details class="barbarian-reference"><summary>野蠻人兵種參考（9 種，catalog-only）</summary><div class="barbarian-note">這裡只呈現 Barbarian Village 兵種資料與目前證據狀態；尚未把野蠻人 NPC 編成、城牆、targeting 或升級規則接入戰鬥模擬。</div><div id="barbarianCatalog" class="barbarian-grid"></div></details>
+    <div class="setup-note">預設使用最大陸戰戰場與 Player Lv5 熔爐；Player 初始 Hoplite、Barbarian 初始 Clubman 都會填滿前線，方便直接測試。每列的 ±一格 由目前戰場的 slot space ÷ unit size 動態計算。Barbarian 套裝固定無 Workshop、無 Forge、無分批進場，軍分為 0；目前兵力數量仍由使用者手動輸入，不會依村落等級自動產生。</div>
+    <details class="barbarian-reference"><summary>野蠻人兵種資料與出現等級（9 種）</summary><div class="barbarian-note">Barbarian Village 陸軍兵種已可作為獨立 Army package 進入模擬；這裡保留來源、數值與首次出現等級參考。村落等級對應的完整守軍數量、城牆等仍未自動生成。</div><div id="barbarianCatalog" class="barbarian-grid"></div></details>
     <div class="actions"><div class="action-row"><button id="simulate" class="primary" type="button">開始模擬</button><button id="downloadSetup" class="secondary" type="button">下載兵力設定 Debug JSON</button></div><div id="error" class="error" role="alert"></div></div>
   </section>
 
@@ -152,9 +153,9 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 <div id="floatingTooltip" class="floating-tooltip" role="tooltip" hidden></div>
 
 <script>
-let metadata=null, units=[], lastResult=null, lastBattlefieldId=null, currentRoundNumber=0, roundRenderToken=0, simulationGeneration=0, simulationRequestGeneration=0;
+let metadata=null, units=[], playerUnits=[], barbarianUnits=[], lastResult=null, lastBattlefieldId=null, currentRoundNumber=0, roundRenderToken=0, simulationGeneration=0, simulationRequestGeneration=0;
 const roundPageCache=new Map(), scenarioByGeneration=new Map();
-const battlefield=document.getElementById('battlefield'),policy=document.getElementById('policy'),maxRounds=document.getElementById('maxRounds'),researchMode=document.getElementById('researchMode'),showUnitStats=document.getElementById('showUnitStats'),showUnitIdentity=document.getElementById('showUnitIdentity'),simulateTop=document.getElementById('simulateTop'),simulate=document.getElementById('simulate'),downloadSetupTop=document.getElementById('downloadSetupTop'),downloadSetup=document.getElementById('downloadSetup'),downloadRoundDebug=document.getElementById('downloadRoundDebug'),roundDebugError=document.getElementById('roundDebugError'),errorTop=document.getElementById('errorTop'),error=document.getElementById('error'),floatingTooltip=document.getElementById('floatingTooltip');
+const battlefield=document.getElementById('battlefield'),battleDomain=document.getElementById('battleDomain'),policy=document.getElementById('policy'),maxRounds=document.getElementById('maxRounds'),researchMode=document.getElementById('researchMode'),showUnitStats=document.getElementById('showUnitStats'),showUnitIdentity=document.getElementById('showUnitIdentity'),simulateTop=document.getElementById('simulateTop'),simulate=document.getElementById('simulate'),downloadSetupTop=document.getElementById('downloadSetupTop'),downloadSetup=document.getElementById('downloadSetup'),downloadRoundDebug=document.getElementById('downloadRoundDebug'),roundDebugError=document.getElementById('roundDebugError'),errorTop=document.getElementById('errorTop'),error=document.getElementById('error'),floatingTooltip=document.getElementById('floatingTooltip');
 const viewIds={setup:'setupView',round:'roundView',summary:'summaryView',mechanics:'mechanicsView',source:'sourceView'};
 const groupOrder=['heavy_infantry','light_infantry','long_range','artillery','air','support'];
 const groupLabels={heavy_infantry:'Heavy Infantry',light_infantry:'Light Infantry',long_range:'Long Range',artillery:'Artillery',air:'Air / Anti-air',support:'Support'};
