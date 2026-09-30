@@ -2,7 +2,7 @@ from collections import defaultdict
 from copy import deepcopy
 import pytest
 from ikariam_battle import simulate
-from ikariam_battle.battlefield import LAND_MINI, deploy
+from ikariam_battle.battlefield import LAND_BATTLEFIELDS, LAND_MINI, deploy
 from ikariam_battle.engine import (
  _cross_wave_rebuild_requirements, _ir_trigger, _plan_fire, _preflight,
  _prepare_round_start, _redistribute, _resolve_volleys, _sr_trigger, _target,
@@ -220,6 +220,97 @@ def test_supported_same_batch_heavy_handoff_prevents_premature_round_end_loss():
   and event['round']==2
   and event['side']=='defender'
   and event['details'].get('to_wave_id')=='reserve'
+  for event in result['events']
+ )
+
+
+def test_same_batch_heavy_front_compacts_across_mixed_waves_without_internal_gap():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ field=LAND_BATTLEFIELDS['land-max']
+ hoplite=Wave(
+  ArmyUnit('hoplite',46,'hop',entry_batch_id='batch-1'),0,
+  [
+   Slot('first-1','first',field.lines['first'].physical_position(1),1,
+        'hoplite','hop',32,50,100),
+   Slot('first-2','first',field.lines['first'].physical_position(2),2,
+        'hoplite','hop',14,50,200),
+  ],
+ )
+ steam=Wave(
+  ArmyUnit('steam_giant',68,'steam',entry_batch_id='batch-1'),8,
+  [
+   Slot('first-3','first',field.lines['first'].physical_position(3),3,
+        'steam_giant','steam',11,16,300),
+   Slot('first-4','first',field.lines['first'].physical_position(4),4,
+        'steam_giant','steam',11,16,400),
+   Slot('first-5','first',field.lines['first'].physical_position(5),5,
+        'steam_giant','steam',12,16,500),
+   Slot('first-6','first',field.lines['first'].physical_position(6),6,
+        'steam_giant','steam',13,16,600),
+   Slot('first-7','first',field.lines['first'].physical_position(7),7,
+        'steam_giant','steam',13,16,700),
+  ],
+  reserve_damage=800,
+ )
+ before_damage={
+  'hop':hoplite.reserve_damage+sum(slot.damage for slot in hoplite.slots),
+  'steam':steam.reserve_damage+sum(slot.damage for slot in steam.slots),
+ }
+ events=[]; applied={}
+ _prepare_round_start(
+  [hoplite,steam],events,5,'attacker',applied,registry,rules,field,
+ )
+ by_position={
+  slot.damage_position:slot
+  for wave in (hoplite,steam) for slot in wave.slots
+ }
+ assert by_position[1].wave_id=='hop'
+ assert by_position[1].units==46
+ assert by_position[2].wave_id=='steam'
+ assert [by_position[position].units for position in (2,3,4,5,6,7)]==[
+  16,16,16,16,4,0
+ ]
+ assert hoplite.reserve==0 and steam.reserve==0
+ assert hoplite.reserve_damage+sum(slot.damage for slot in hoplite.slots)==before_damage['hop']
+ assert steam.reserve_damage+sum(slot.damage for slot in steam.slots)==before_damage['steam']
+ assert any(
+  event.type=='slot_handoff'
+  and event.details.get('damage_position')==2
+  and event.details.get('from_wave_id')=='hop'
+  and event.details.get('to_wave_id')=='steam'
+  for event in events
+ )
+
+
+def test_round_five_debug_scenario_keeps_center_first_heavy_front_contiguous():
+ s={'policy':'experimental','battlefield':'land-max','max_rounds':5,
+    'attacker':{'forge_level':5,'units':[
+      {'unit_id':'hoplite','quantity':350,'entry_batch_id':'attacker-batch-1'},
+      {'unit_id':'steam_giant','quantity':112,'entry_batch_id':'attacker-batch-1'},
+      {'unit_id':'swordsman','quantity':280,'entry_batch_id':'attacker-batch-1'},
+      {'unit_id':'sulphur_carabineer','quantity':132,'entry_batch_id':'attacker-batch-1'},
+    ]},
+    'defender':{'forge_level':5,'units':[
+      {'unit_id':'hoplite','quantity':350,'entry_batch_id':'defender-batch-1'},
+      {'unit_id':'steam_giant','quantity':128,'entry_batch_id':'defender-batch-1'},
+      {'unit_id':'swordsman','quantity':320,'entry_batch_id':'defender-batch-1'},
+      {'unit_id':'sulphur_carabineer','quantity':156,'entry_batch_id':'defender-batch-1'},
+    ]}}
+ result=simulate(s)
+ round5=next(row for row in result['rounds'] if row['round']==5)
+ attacker_front={
+  slot['damage_position']:slot
+  for slot in round5['attacker']['slots'] if slot['line']=='first'
+ }
+ # Regression from ikariam-round-5-debug.json: damage position 2 used to be
+ # absent while an outer Steam-Giant slot at position 7 still held the tail.
+ assert 2 in attacker_front
+ assert any(
+  event['type']=='slot_handoff'
+  and event['round']==5
+  and event['side']=='attacker'
+  and event['details'].get('damage_position')==2
+  and event['details'].get('to_unit_id')=='steam_giant'
   for event in result['events']
  )
 

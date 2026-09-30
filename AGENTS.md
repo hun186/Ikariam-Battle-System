@@ -20,7 +20,7 @@
 - 主要技術：Python 3.11+ domain package、無 framework ASGI／Vercel adapter、vanilla HTML/CSS/JS
 - 主要入口：`ikariam_battle.simulate()`、`POST /api/simulate`、`asgi:application`
 - Land 戰場 UI 以遊戲實戰畫面排列為基準：前排為 `Flank | First/Main | Flank`，後排為 `Air defense | Third/Artillery | Air bomber`；這只是 presentation，不得藉此改動 engine slot identity、capacity 或 targeting。
-- Slot 填入／同 wave 回合重建要依 PDF damage priority 的中央優先實體順序；回合開始不得把同 wave 倖存兵留在外側舊格，且同-wave rebuild 本身不得跨 wave、跨 line 或新增 slot。另有一條獨立、窄化的已實作 handoff：同一 entry batch 的 Heavy Infantry Reserve 可在回合開始接手同批 Heavy Infantry 已空出的 First-line 實體 slot；此 handoff 不是 same-wave rebuild，容量必須依接手兵種 size 重新計算，其他跨 wave 情境仍保持 unsupported boundary。
+- Slot 填入／同 wave 回合重建要依 PDF damage priority 的中央優先實體順序；回合開始不得把倖存兵留在可由同一已支援 formation 規則消除的內側空洞。Same-wave rebuild 本身仍不得跨 wave、跨 line 或新增 slot；其後另有一條獨立、窄化的同批 Heavy Infantry First-line compaction：同一 entry batch 的 Heavy Infantry waves 會在既有 First-line 實體 slots 內依 damage priority 整體中央優先重排，較早 wave 保持優先、partial slot 不混兵，必要時可轉移 slot ownership 並按接手兵種 size 重算 capacity。不得藉此跨 entry batch、跨 line、新增 physical slot 或推導 Light Infantry fallback；其他跨 wave 情境仍保持 unsupported boundary。
 - 最快驗證：`pytest -q`
 <!-- END CODEX PROJECT QUICKSTART -->
 
