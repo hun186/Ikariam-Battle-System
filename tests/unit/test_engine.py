@@ -276,6 +276,38 @@ def test_same_unit_long_range_cross_batch_fills_existing_second_slots_and_keeps_
  assert _cross_wave_rebuild_requirements(waves,registry,rules,field)==[]
 
 
+def test_initial_and_round_start_same_unit_precedence_do_not_swap_full_slots():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ field=LAND_BATTLEFIELDS['land-max']
+ army=Army.from_dict({'units':[
+  {'unit_id':'sulphur_carabineer','quantity':12,
+   'entry_batch_id':'batch-a','wave_id':'wave-z'},
+  {'unit_id':'sulphur_carabineer','quantity':12,
+   'entry_batch_id':'batch-b','wave_id':'wave-a'},
+ ]})
+ assert [item.batch_id for item in army.units]==['batch-a','batch-b']
+ waves=deploy(army,registry,field)
+ before={
+  slot.damage_position:wave.unit.wave_id
+  for wave in waves for slot in wave.slots if slot.units
+ }
+ assert before=={6:'wave-z',4:'wave-a'}
+ events=[]; applied={}
+ _prepare_round_start(
+  waves,events,1,'attacker',applied,registry,rules,field,
+ )
+ after={
+  slot.damage_position:wave.unit.wave_id
+  for wave in waves for slot in wave.slots if slot.units
+ }
+ assert after==before
+ assert not any(
+  event.type=='slot_handoff'
+  and event.details.get('reason')=='same_unit_same_line_wave_replacement'
+  for event in events
+ )
+
+
 def test_same_unit_multiple_initial_waves_on_one_line_are_supported():
  registry=UnitRegistry.load(); rules=FormationRules.load()
  field=LAND_BATTLEFIELDS['land-max']
