@@ -33,6 +33,9 @@ class MilitaryEconomyProfile:
                     f"economy profile mismatch for {unit_id}: general_score={score} but basis/50={derived}"
                 )
             units[unit_id] = UnitEconomy(basis, score)
+        from .barbarians import BarbarianRegistry
+        for barbarian in BarbarianRegistry.load().all():
+            units[barbarian.id] = UnitEconomy(0, Decimal(0))
         return cls(units, raw["metadata"])
 
     def score(self, unit_id: str) -> Decimal:
