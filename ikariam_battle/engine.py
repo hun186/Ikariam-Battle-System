@@ -405,9 +405,7 @@ def _supported_same_unit_same_line_handoffs(
         if geometry is None:
             continue
 
-        group.sort(key=lambda wave: (
-            wave.unit.arrival_round, wave.unit.batch_id, wave.unit.wave_id
-        ))
+        group.sort(key=lambda wave: wave.unit.formation_order_key)
 
         owners: dict[int, tuple[Wave, Slot]] = {}
         for wave in group:
