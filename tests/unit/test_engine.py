@@ -224,6 +224,111 @@ def test_supported_same_batch_heavy_handoff_prevents_premature_round_end_loss():
  )
 
 
+def test_same_unit_long_range_cross_batch_fills_existing_second_slots_and_keeps_ammo_separate():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'sulphur_carabineer','quantity':132,
+   'entry_batch_id':'attacker-batch-1'},
+  {'unit_id':'sulphur_carabineer','quantity':60,
+   'entry_batch_id':'attacker-batch-2'},
+ ]}),registry,field)
+ first=next(w for w in waves if w.unit.batch_id=='attacker-batch-1')
+ second=next(w for w in waves if w.unit.batch_id=='attacker-batch-2')
+ # Reproduce the uploaded Round-5 boundary: batch 1 has 59 survivors total,
+ # while batch 2 is still a pristine reserve-only wave with 180 shots.
+ first.reserve=15
+ for slot,units in zip(sorted(first.slots,key=lambda s:s.damage_position),
+                       [6,6,6,6,6,7,7]):
+  slot.units=units
+  slot.damage=units
+ first.ammo_pool_shots=49
+ second.reserve=60
+ second.ammo_pool_shots=180
+ before_damage={
+  first.unit.wave_id:first.reserve_damage+sum(slot.damage for slot in first.slots),
+  second.unit.wave_id:second.reserve_damage+sum(slot.damage for slot in second.slots),
+ }
+ events=[]; applied={}
+ _prepare_round_start(
+  waves,events,6,'attacker',applied,registry,rules,field,
+ )
+ first_positions=sorted(
+  (slot.damage_position,slot.units) for slot in first.slots if slot.units)
+ second_positions=sorted(
+  (slot.damage_position,slot.units) for slot in second.slots if slot.units)
+ assert first_positions==[(1,12),(2,12),(3,12),(4,12),(5,11)]
+ assert second_positions==[(6,12),(7,12)]
+ assert first.reserve==0
+ assert second.reserve==36
+ assert first.ammo_pool_shots==49
+ assert second.ammo_pool_shots==180
+ assert first.reserve_damage+sum(slot.damage for slot in first.slots)==before_damage[first.unit.wave_id]
+ assert second.reserve_damage+sum(slot.damage for slot in second.slots)==before_damage[second.unit.wave_id]
+ assert any(
+  event.type=='slot_handoff'
+  and event.details.get('reason')=='same_unit_same_line_wave_replacement'
+  and event.details.get('line')=='second'
+  and event.details.get('from_wave_id')==first.unit.wave_id
+  and event.details.get('to_wave_id')==second.unit.wave_id
+  for event in events
+ )
+ assert _cross_wave_rebuild_requirements(waves,registry,rules,field)==[]
+
+
+def test_same_unit_multiple_initial_waves_on_one_line_are_supported():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'sulphur_carabineer','quantity':24,
+   'entry_batch_id':'batch-1'},
+  {'unit_id':'sulphur_carabineer','quantity':24,
+   'entry_batch_id':'batch-2'},
+ ]}),registry,field)
+ deployed=[wave for wave in waves if any(slot.units for slot in wave.slots)]
+ assert len(deployed)==2
+ assert 'UNKNOWN-MULTIPLE-TARGET-WAVES' not in _preflight(
+  waves,registry,rules,field)
+
+
+def test_uploaded_multi_batch_scenario_continues_past_round_five_cross_wave_boundary():
+ s={'policy':'experimental','battlefield':'land-max','max_rounds':6,
+    'attacker':{'forge_level':5,'units':[
+      {'unit_id':'hoplite','quantity':600,'entry_batch_id':'attacker-batch-1'},
+      {'unit_id':'steam_giant','quantity':160,'entry_batch_id':'attacker-batch-1'},
+      {'unit_id':'swordsman','quantity':280,'entry_batch_id':'attacker-batch-1'},
+      {'unit_id':'sulphur_carabineer','quantity':132,
+       'entry_batch_id':'attacker-batch-1','attack_upgrade':3},
+      {'unit_id':'sulphur_carabineer','quantity':60,
+       'entry_batch_id':'attacker-batch-2','attack_upgrade':3},
+    ]},
+    'defender':{'forge_level':5,'units':[
+      {'unit_id':'hoplite','quantity':500,'entry_batch_id':'defender-batch-1'},
+      {'unit_id':'steam_giant','quantity':192,'entry_batch_id':'defender-batch-1'},
+      {'unit_id':'steam_giant','quantity':128,'entry_batch_id':'defender-batch-2'},
+      {'unit_id':'swordsman','quantity':320,'entry_batch_id':'defender-batch-1'},
+      {'unit_id':'sulphur_carabineer','quantity':156,
+       'entry_batch_id':'defender-batch-1'},
+    ]}}
+ result=simulate(s)
+ assert result['rounds_completed']>=6
+ assert not any(
+  event['type']=='unsupported_mechanic'
+  and event['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD'
+  and any(
+   req.get('wave_id')=='attacker-batch-2::sulphur_carabineer'
+   for req in event['details'].get('requirements',[])
+  )
+  for event in result['events']
+ )
+ assert any(
+  event['type']=='slot_handoff'
+  and event['details'].get('reason')=='same_unit_same_line_wave_replacement'
+  and event['details'].get('to_wave_id')=='attacker-batch-2::sulphur_carabineer'
+  for event in result['events']
+ )
+
+
 def test_same_batch_heavy_front_compacts_across_mixed_waves_without_internal_gap():
  registry=UnitRegistry.load(); rules=FormationRules.load()
  field=LAND_BATTLEFIELDS['land-max']
