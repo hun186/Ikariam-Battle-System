@@ -201,85 +201,153 @@ def _supported_same_batch_heavy_first_handoffs(
     waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field,
     events: list[Event], number: int, side: str,
 ) -> None:
-    """Fill newly empty front slots from same-entry-batch heavy infantry reserves.
+    """Center-pack same-entry-batch Heavy Infantry across existing First slots.
 
-    This is a narrow, evidence-backed handoff: only first-line heavy infantry may
-    replace an empty first-line slot previously owned by heavy infantry from the
-    same entry batch. Different entry batches and light-infantry fallback remain
-    behind the existing UNKNOWN-CROSS-WAVE-FORMATION-REBUILD boundary.
+    Same-wave rebuild runs first. This second, deliberately narrow pass then
+    treats Heavy Infantry waves from one entry batch as one First-line formation
+    for physical placement only: earlier waves keep precedence, a partial earlier
+    wave keeps its own slot, and later Heavy Infantry may take ownership of the
+    next center-first slots. No new physical slot, cross-batch move, cross-line
+    move, or Light-Infantry fallback is inferred here.
+
+    Persistent damage remains owned by its concrete unit-state wave. Because
+    ownership may move between physical slots, each participating wave's total
+    damage is preserved temporarily on Reserve and RR immediately redistributes
+    it over the final deployment.
     """
     geometry = field.lines.get("first")
     if geometry is None:
         return
 
-    owners: dict[int, tuple[Wave, Slot]] = {}
-    occupied: set[int] = set()
+    groups: dict[str, list[Wave]] = defaultdict(list)
     for wave in waves:
-        for slot in wave.slots:
-            if slot.line != "first":
-                continue
-            owners[slot.damage_position] = (wave, slot)
-            if slot.units:
-                occupied.add(slot.damage_position)
+        unit = registry.get(wave.unit.unit_id)
+        if (
+            unit.role == "combat"
+            and unit.semantic_class == "heavy_infantry"
+            and "first" in eligible_runtime_lines(unit, rules, field)
+        ):
+            groups[wave.unit.batch_id].append(wave)
 
-    candidates = sorted(
-        (
-            wave for wave in waves
-            if wave.reserve
-            and registry.get(wave.unit.unit_id).role == "combat"
-            and registry.get(wave.unit.unit_id).semantic_class == "heavy_infantry"
-            and "first" in eligible_runtime_lines(
-                registry.get(wave.unit.unit_id), rules, field)
-        ),
-        key=lambda wave: (
-            wave.unit.arrival_round, wave.unit.batch_id,
-            wave.unit.unit_id, wave.unit.wave_id),
-    )
-    for candidate in candidates:
-        unit = registry.get(candidate.unit.unit_id)
-        capacity = geometry.slot_space // unit.size
-        if capacity <= 0:
+    for batch_id, group in groups.items():
+        if len(group) < 2:
             continue
-        for position in geometry.damage_priority:
-            if not candidate.reserve or position in occupied:
+
+        owners: dict[int, tuple[Wave, Slot]] = {}
+        for wave in group:
+            for slot in wave.slots:
+                if slot.line != "first":
+                    continue
+                if slot.damage_position in owners:
+                    raise ScenarioError(
+                        f"duplicate First-line ownership at damage position "
+                        f"{slot.damage_position} in entry batch {batch_id}"
+                    )
+                owners[slot.damage_position] = (wave, slot)
+        if not owners:
+            continue
+
+        positions = [
+            position for position in geometry.damage_priority
+            if position in owners
+        ]
+        totals: dict[tuple[str, str], int] = {}
+        damage_totals: dict[tuple[str, str], int] = {}
+        for wave in group:
+            key = (wave.unit.unit_id, wave.unit.wave_id)
+            totals[key] = wave.reserve + sum(
+                slot.units for slot in wave.slots if slot.line == "first"
+            )
+            damage_totals[key] = wave.reserve_damage + sum(
+                slot.damage for slot in wave.slots
+            )
+
+        desired: dict[int, tuple[Wave, int, int]] = {}
+        for wave in group:
+            key = (wave.unit.unit_id, wave.unit.wave_id)
+            remaining = totals[key]
+            unit = registry.get(wave.unit.unit_id)
+            capacity = geometry.slot_space // unit.size
+            if capacity <= 0:
                 continue
-            previous = owners.get(position)
-            if previous is None:
-                continue
-            previous_wave, previous_slot = previous
-            previous_unit = registry.get(previous_wave.unit.unit_id)
-            if (
-                previous_slot.units
-                or previous_wave.unit.batch_id != candidate.unit.batch_id
-                or previous_unit.semantic_class != "heavy_infantry"
-            ):
+            for position in positions:
+                if not remaining:
+                    break
+                if position in desired:
+                    continue
+                quantity = min(remaining, capacity)
+                desired[position] = (wave, quantity, capacity)
+                remaining -= quantity
+            wave.reserve = remaining
+
+        # Ownership changes below may remove a damaged slot from one wave and
+        # recreate it for another. Preserve per-wave damage before that mutation;
+        # _redistribute() immediately reapportions it after this function returns.
+        for wave in group:
+            key = (wave.unit.unit_id, wave.unit.wave_id)
+            wave.reserve_damage = damage_totals[key]
+            for slot in wave.slots:
+                slot.damage = 0
+
+        for position in positions:
+            previous_wave, previous_slot = owners[position]
+            assignment = desired.get(position)
+            if assignment is None:
+                prior = previous_slot.units
+                previous_slot.units = 0
+                previous_slot.damage = 0
+                if prior:
+                    _event(
+                        events, number, "deploy", "slot_repacked", side,
+                        slot_id=previous_slot.slot_id,
+                        damage_position=position,
+                        previous_units=prior, units=0,
+                        reason="same_batch_heavy_front_compaction",
+                    )
                 continue
 
-            # Transfer ownership of the now-empty physical slot. The prior slot
-            # carries no surviving units and therefore no persistent damage.
+            target_wave, quantity, capacity = assignment
+            if previous_wave is target_wave:
+                prior = previous_slot.units
+                previous_slot.units = quantity
+                previous_slot.capacity = capacity
+                previous_slot.damage = 0
+                if prior != quantity:
+                    _event(
+                        events, number, "deploy", "slot_repacked", side,
+                        slot_id=previous_slot.slot_id,
+                        damage_position=position,
+                        previous_units=prior, units=quantity,
+                        reason="same_batch_heavy_front_compaction",
+                    )
+                continue
+
+            previous_unit = registry.get(previous_wave.unit.unit_id)
+            target_unit = registry.get(target_wave.unit.unit_id)
             previous_wave.slots.remove(previous_slot)
-            quantity = min(candidate.reserve, capacity)
-            candidate.reserve -= quantity
             slot = Slot(
                 f"first-{position}", "first",
                 geometry.physical_position(position), position,
-                unit.id, candidate.unit.wave_id, quantity, capacity,
+                target_unit.id, target_wave.unit.wave_id, quantity, capacity,
             )
-            candidate.slots.append(slot)
-            owners[position] = (candidate, slot)
-            occupied.add(position)
+            target_wave.slots.append(slot)
+            owners[position] = (target_wave, slot)
             _event(
                 events, number, "deploy", "slot_handoff", side,
                 line="first", damage_position=position,
                 physical_position=slot.physical_position,
                 from_unit_id=previous_unit.id,
                 from_wave_id=previous_wave.unit.wave_id,
-                to_unit_id=unit.id,
-                to_wave_id=candidate.unit.wave_id,
-                entry_batch_id=candidate.unit.batch_id,
+                to_unit_id=target_unit.id,
+                to_wave_id=target_wave.unit.wave_id,
+                entry_batch_id=batch_id,
                 quantity=quantity, capacity=capacity,
                 reason="same_batch_heavy_front_replacement",
+                compaction=True,
             )
+
+        for wave in group:
+            wave.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
 
 
 def _has_supported_same_batch_heavy_first_handoff(
