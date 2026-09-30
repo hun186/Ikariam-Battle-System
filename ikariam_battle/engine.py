@@ -1057,10 +1057,10 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             if unit.role != "support" and not unit.numerically_supported:
                 raise ScenarioError(f"{unit.id} has unverified numerical fields and cannot be simulated")
     attacker = deploy(Army(tuple(item for item in scenario.attacker.units if item.arrival_round == 0),
-                           scenario.attacker.forge_level),
+                           scenario.attacker.forge_level, scenario.attacker.army_kind),
                       registry, field, scenario.profiles.formation)
     defender = deploy(Army(tuple(item for item in scenario.defender.units if item.arrival_round == 0),
-                           scenario.defender.forge_level),
+                           scenario.defender.forge_level, scenario.defender.army_kind),
                       registry, field, scenario.profiles.formation)
     events: list[Event] = []
     for side, waves in (("attacker", attacker), ("defender", defender)):
