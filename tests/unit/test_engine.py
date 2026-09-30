@@ -8,7 +8,7 @@ from ikariam_battle.engine import (
  _prepare_round_start, _redistribute, _resolve_volleys, _sr_trigger, _target,
 )
 from ikariam_battle.formation import FormationRules
-from ikariam_battle.models import Army, ArmyUnit, ScenarioError, Slot, Wave
+from ikariam_battle.models import Army, ArmyUnit, Policy, Scenario, ScenarioError, Slot, Wave
 from ikariam_battle.profiles import ForgeProfile, TargetingProfile, WorkshopProfile
 from ikariam_battle.units import UnitRegistry
 
@@ -1513,3 +1513,46 @@ def test_army_package_rejects_player_and_barbarian_unit_mixing():
             'attacker':{'army_kind':'barbarian','units':[
               {'unit_id':'hoplite','quantity':30,'entry_batch_id':'barbarian'}]},
             'defender':{'units':[{'unit_id':'hoplite','quantity':30}]}})
+
+
+def test_typed_barbarian_scenario_cannot_bypass_package_invariants():
+ defender=Army((
+  ArmyUnit('hoplite',30),
+ ),0,'player')
+
+ invalid_armies=[
+  Army((ArmyUnit('barbarian_axe_swinger',30,entry_batch_id='barbarian'),),5,'barbarian'),
+  Army((ArmyUnit('barbarian_axe_swinger',30,attack_upgrade=1,entry_batch_id='barbarian'),),0,'barbarian'),
+  Army((ArmyUnit('barbarian_axe_swinger',30,entry_batch_id='barbarian',arrival_round=1),),0,'barbarian'),
+  Army((
+   ArmyUnit('barbarian_axe_swinger',15,wave_id='w1',entry_batch_id='a'),
+   ArmyUnit('barbarian_ram',1,wave_id='w2',entry_batch_id='b'),
+  ),0,'barbarian'),
+  Army((
+   ArmyUnit('barbarian_axe_swinger',15,wave_id='w1',entry_batch_id='barbarian'),
+   ArmyUnit('barbarian_axe_swinger',15,wave_id='w2',entry_batch_id='barbarian'),
+  ),0,'barbarian'),
+ ]
+ messages=[
+  'do not use Forge',
+  'do not use Workshop',
+  'do not use delayed entry',
+  'one fixed entry batch',
+  'cannot be split across waves',
+ ]
+ for army,message in zip(invalid_armies,messages):
+  with pytest.raises(ScenarioError,match=message):
+   simulate(Scenario(
+    attacker=army,defender=defender,policy=Policy.EXPERIMENTAL,
+    battlefield='land-mini',max_rounds=1,
+   ))
+
+
+def test_typed_scenario_rejects_invalid_army_kind():
+ attacker=Army((ArmyUnit('hoplite',30),),0,'pirate')
+ defender=Army((ArmyUnit('hoplite',30),),0,'player')
+ with pytest.raises(ScenarioError,match='army_kind must be player or barbarian'):
+  simulate(Scenario(
+   attacker=attacker,defender=defender,policy=Policy.EXPERIMENTAL,
+   battlefield='land-mini',max_rounds=1,
+  ))
