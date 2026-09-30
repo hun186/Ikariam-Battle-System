@@ -524,33 +524,22 @@ def _supported_same_unit_same_line_handoffs(
             wave.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
 
 
-def _has_supported_same_batch_heavy_first_handoff(
+def _has_supported_round_start_first_placement(
     waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field,
 ) -> bool:
-    """Whether the next round can restore First with the supported heavy handoff."""
-    geometry = field.lines.get("first")
-    if geometry is None:
-        return False
-    for candidate in waves:
-        if not candidate.reserve:
-            continue
-        candidate_unit = registry.get(candidate.unit.unit_id)
-        if (
-            candidate_unit.role != "combat"
-            or candidate_unit.semantic_class != "heavy_infantry"
-            or "first" not in eligible_runtime_lines(candidate_unit, rules, field)
-        ):
-            continue
-        for owner_wave in waves:
-            owner_unit = registry.get(owner_wave.unit.unit_id)
-            if (
-                owner_wave.unit.batch_id != candidate.unit.batch_id
-                or owner_unit.semantic_class != "heavy_infantry"
-            ):
-                continue
-            if any(slot.line == "first" and not slot.units for slot in owner_wave.slots):
-                return True
-    return False
+    """Whether supported round-start placement can restore the First line."""
+    projected = deepcopy(waves)
+    projection_events: list[Event] = []
+    _rebuild_formation(projected, projection_events, 0, "projection")
+    _supported_same_batch_heavy_first_handoffs(
+        projected, registry, rules, field, projection_events, 0, "projection")
+    _supported_same_unit_same_line_handoffs(
+        projected, registry, rules, field, projection_events, 0, "projection")
+    return any(
+        slot.line == "first" and slot.units
+        for wave in projected
+        for slot in wave.slots
+    )
 
 
 def _prepare_round_start(
@@ -1283,14 +1272,13 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
 
         states = {"attacker": attacker_state["continuation_state"],
                   "defender": defender_state["continuation_state"]}
-        # A same-entry-batch Heavy-Infantry reserve that can take over an emptied
-        # Heavy-Infantry First slot on the next round must keep the battle alive.
-        # Do not mutate the just-completed round snapshot; only project
-        # continuation so battle-end evaluation cannot fire before the supported
-        # round-start handoff has a chance to occur.
+        # Any already-supported round-start placement that can restore First on
+        # the next round must keep the battle alive. This includes same-wave
+        # refill, same-batch mixed-Heavy compaction, and same-unit same-line
+        # replacement across entry batches. Do not mutate the completed snapshot.
         for side, side_waves in (("attacker", attacker), ("defender", defender)):
             if (states[side] != ContinuationState.SUSTAINING.value
-                    and _has_supported_same_batch_heavy_first_handoff(
+                    and _has_supported_round_start_first_placement(
                         side_waves, registry, formation_rules, field)):
                 states[side] = ContinuationState.SUSTAINING.value
         effective_attacker_state = dict(attacker_state)
@@ -1346,9 +1334,9 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     final = {"attacker":_snapshot(attacker,registry,battle_end),"defender":_snapshot(defender,registry,battle_end)}
     outcome, final_losing = _termination(final["attacker"], final["defender"])
     pending_handoff_after_horizon = {
-        "attacker": _has_supported_same_batch_heavy_first_handoff(
+        "attacker": _has_supported_round_start_first_placement(
             attacker, registry, formation_rules, field),
-        "defender": _has_supported_same_batch_heavy_first_handoff(
+        "defender": _has_supported_round_start_first_placement(
             defender, registry, formation_rules, field),
     }
     pending_after_horizon = {
