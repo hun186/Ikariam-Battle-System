@@ -420,6 +420,34 @@ def test_round_five_debug_scenario_keeps_center_first_heavy_front_contiguous():
  )
 
 
+def test_same_unit_cross_batch_heavy_replacement_prevents_premature_round_end_loss():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':2,
+    'attacker':{'units':[
+      {'unit_id':'hoplite','quantity':90,'attack_upgrade':200}]},
+    'defender':{'units':[
+      {'unit_id':'steam_giant','quantity':30,
+       'wave_id':'front','entry_batch_id':'d-batch-1'},
+      {'unit_id':'steam_giant','quantity':10,
+       'wave_id':'reserve','entry_batch_id':'d-batch-2'},
+    ]}}
+ result=simulate(s)
+ assert result['rounds_completed']>=2
+ assert not any(
+  event['type']=='battle_termination'
+  and event['round']==1
+  and event['details'].get('losing_side')=='defender'
+  for event in result['events']
+ )
+ assert any(
+  event['type']=='slot_handoff'
+  and event['round']==2
+  and event['side']=='defender'
+  and event['details'].get('reason')=='same_unit_same_line_wave_replacement'
+  and event['details'].get('to_wave_id')=='reserve'
+  for event in result['events']
+ )
+
+
 def test_same_batch_heavy_reserve_takes_over_open_front_slots_and_battle_continues():
  s={'policy':'experimental','battlefield':'land-max','max_rounds':3,
     'attacker':{'forge_level':5,'units':[
