@@ -97,16 +97,35 @@ class ArmyUnit:
 class Army:
     units: tuple[ArmyUnit, ...]
     forge_level: int = 0
+    army_kind: str = "player"
 
     @classmethod
     def from_dict(cls, value: Any) -> "Army":
         data = _object(value, "army")
+        army_kind = data.get("army_kind", "player")
+        if army_kind not in {"player", "barbarian"}:
+            raise ScenarioError("army_kind must be player or barbarian")
         raw = data.get("units")
         if not isinstance(raw, list) or not raw:
             raise ScenarioError("army.units must be a non-empty list")
         parsed = [ArmyUnit.from_dict(item) for item in raw]
         if not any(item.quantity for item in parsed):
             raise ScenarioError("an army must contain at least one unit")
+        forge_level = _integer(data.get("forge_level", 0), "forge_level", 0, 5)
+        if army_kind == "barbarian":
+            if forge_level != 0:
+                raise ScenarioError("barbarian armies do not use Forge levels")
+            if any(item.attack_upgrade or item.armor_upgrade for item in parsed):
+                raise ScenarioError("barbarian armies do not use Workshop upgrades")
+            if any(item.arrival_round != 0 for item in parsed):
+                raise ScenarioError("barbarian armies do not use delayed entry batches")
+            if len({item.batch_id for item in parsed}) != 1:
+                raise ScenarioError("barbarian armies use one fixed entry batch")
+            waves_by_unit: dict[str, set[str]] = {}
+            for item in parsed:
+                waves_by_unit.setdefault(item.unit_id, set()).add(item.wave_id)
+            if any(len(waves) != 1 for waves in waves_by_unit.values()):
+                raise ScenarioError("barbarian unit types cannot be split across waves")
         upgrades: dict[str, tuple[int, int]] = {}
         batch_rounds: dict[str, int] = {}
         wave_batches: dict[tuple[str, str], str] = {}
@@ -139,7 +158,7 @@ class Army:
             ),
             key=lambda item: item.formation_order_key,
         ))
-        return cls(units, _integer(data.get("forge_level", 0), "forge_level", 0, 5))
+        return cls(units, forge_level, army_kind)
 
 
 @dataclass(frozen=True)
