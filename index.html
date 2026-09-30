@@ -318,13 +318,13 @@ function updateArmyPackageAvailability(){
 }
 function toggleArmyPackage(side,rerender=true){
   const kind=armyKind(side),forge=document.getElementById(side==='attacker'?'aForge':'dForge');
-  const wrap=document.getElementById(side==='attacker'?'aForgeWrap':'dForgeWrap');
+  const wrap=document.getElementById(side==='attacker'?'aForgeWrap':'dForgeWrap'),wasDisabled=forge.disabled;
   if(kind==='barbarian'){
     if(!forge.disabled)forge.dataset.playerValue=forge.value;
     forge.value='0';forge.disabled=true;wrap.classList.add('hidden');
   }else{
     forge.disabled=false;wrap.classList.remove('hidden');
-    if(forge.dataset.playerValue)forge.value=forge.dataset.playerValue;
+    if(wasDisabled&&forge.dataset.playerValue)forge.value=forge.dataset.playerValue;
   }
   if(rerender){renderArmy(side);updateSlotButtons();updateAllUnitStats()}
 }
