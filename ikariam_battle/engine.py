@@ -1038,7 +1038,7 @@ def _non_sustaining(snapshot: dict[str, Any]) -> dict[str, int]:
 
 def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     if isinstance(scenario, dict): scenario = Scenario.from_dict(scenario)
-    registry = UnitRegistry.load(scenario.profiles.unit_stats)
+    registry = UnitRegistry.load(scenario.profiles.unit_stats, include_barbarians=True)
     field = battlefield(scenario.battlefield)
     formation_rules = FormationRules.load(scenario.profiles.formation)
     battle_end = BattleEndProfile.load(scenario.profiles.battle_end)
@@ -1047,6 +1047,11 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     for army in (scenario.attacker, scenario.defender):
         for item in army.units:
             unit = registry.get(item.unit_id)
+            if unit.army_kind != army.army_kind:
+                raise ScenarioError(
+                    f"{unit.id} belongs to the {unit.army_kind} army package, "
+                    f"not {army.army_kind}"
+                )
             if unit.domain != field.domain:
                 raise ScenarioError(f"{unit.id} is {unit.domain} and cannot enter {field.id}")
             if unit.role != "support" and not unit.numerically_supported:
