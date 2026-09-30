@@ -50,6 +50,14 @@ class ArmyUnit:
     def batch_id(self) -> str:
         return self.entry_batch_id or self.wave_id
 
+    @property
+    def formation_order_key(self) -> tuple[int, str, str, str, int, int]:
+        """Deterministic precedence shared by initial placement and rebuilds."""
+        return (
+            self.arrival_round, self.batch_id, self.unit_id, self.wave_id,
+            self.attack_upgrade, self.armor_upgrade,
+        )
+
     @classmethod
     def from_dict(cls, value: Any) -> "ArmyUnit":
         row = _object(value, "army unit")
@@ -124,8 +132,13 @@ class Army:
             key = (item.unit_id, item.wave_id, item.attack_upgrade, item.armor_upgrade,
                    item.batch_id, item.arrival_round)
             totals[key] = totals.get(key, 0) + item.quantity
-        units = tuple(ArmyUnit(unit, quantity, wave, attack, armor, batch, arrival)
-                      for (unit, wave, attack, armor, batch, arrival), quantity in sorted(totals.items()))
+        units = tuple(sorted(
+            (
+                ArmyUnit(unit, quantity, wave, attack, armor, batch, arrival)
+                for (unit, wave, attack, armor, batch, arrival), quantity in totals.items()
+            ),
+            key=lambda item: item.formation_order_key,
+        ))
         return cls(units, _integer(data.get("forge_level", 0), "forge_level", 0, 5))
 
 
