@@ -180,7 +180,7 @@ def test_round_start_refills_before_rr_uses_following_deployment():
  assert (wave.slots[0].units,wave.slots[0].damage,wave.reserve,wave.reserve_damage)==(30,15,10,5)
 
 
-def test_reserve_only_same_line_wave_is_not_blocked_until_an_open_slot_exists():
+def test_reserve_only_same_line_wave_fills_open_slot_without_cross_wave_boundary():
  from ikariam_battle.engine import _cross_wave_rebuild_requirements
  registry=UnitRegistry.load(); rules=FormationRules.load()
  waves=deploy(Army.from_dict({'units':[
@@ -188,15 +188,27 @@ def test_reserve_only_same_line_wave_is_not_blocked_until_an_open_slot_exists():
   {'unit_id':'hoplite','quantity':90,'wave_id':'wave-b'}]}),registry,LAND_MINI)
  assert _preflight(waves,registry,rules,LAND_MINI)==[]
  assert _cross_wave_rebuild_requirements(waves,registry,rules,LAND_MINI)==[]
- # Once the deployed wave can occupy only two of the three physical slots, the
- # reserve-only second wave becomes an actual replacement requirement.
  deployed=next(w for w in waves if w.unit.wave_id=='wave-a')
+ reserve=next(w for w in waves if w.unit.wave_id=='wave-b')
  for slot in deployed.slots:
   slot.units=0
  deployed.slots[0].units=30; deployed.slots[1].units=30; deployed.reserve=0
- requirements=_cross_wave_rebuild_requirements(waves,registry,rules,LAND_MINI)
- assert requirements and requirements[0]['wave_id']=='wave-b'
- assert requirements[0]['runtime_line']=='first'
+ # Same-unit, same-line replacement is now an executable round-start rule, so
+ # the guard must project it instead of reporting an unsupported requirement.
+ assert _cross_wave_rebuild_requirements(waves,registry,rules,LAND_MINI)==[]
+ events=[]; applied={}
+ _prepare_round_start(
+  waves,events,2,'attacker',applied,registry,rules,LAND_MINI,
+ )
+ assert sum(slot.units for slot in reserve.slots)==30
+ assert reserve.reserve==60
+ assert any(
+  event.type=='slot_handoff'
+  and event.details.get('reason')=='same_unit_same_line_wave_replacement'
+  and event.details.get('from_wave_id')=='wave-a'
+  and event.details.get('to_wave_id')=='wave-b'
+  for event in events
+ )
 
 
 def test_supported_same_batch_heavy_handoff_prevents_premature_round_end_loss():
@@ -291,7 +303,7 @@ def test_initial_and_round_start_same_unit_precedence_do_not_swap_full_slots():
   slot.damage_position:wave.unit.wave_id
   for wave in waves for slot in wave.slots if slot.units
  }
- assert before=={6:'wave-z',4:'wave-a'}
+ assert before=={1:'wave-z',2:'wave-a'}
  events=[]; applied={}
  _prepare_round_start(
   waves,events,1,'attacker',applied,registry,rules,field,
