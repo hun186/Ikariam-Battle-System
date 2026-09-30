@@ -127,6 +127,11 @@ def deploy(army: Army, registry: UnitRegistry, field: Battlefield,
     from .formation import FormationRules, build_initial_formation
     for item in army.units:
         unit = registry.get(item.unit_id)
+        if unit.army_kind != army.army_kind:
+            raise ScenarioError(
+                f"{unit.id} belongs to the {unit.army_kind} army package, "
+                f"not {army.army_kind}"
+            )
         if unit.domain != field.domain:
             raise ScenarioError(f"{unit.id} is {unit.domain} and cannot enter {field.id}")
         if unit.role != "support" and not unit.numerically_supported:
