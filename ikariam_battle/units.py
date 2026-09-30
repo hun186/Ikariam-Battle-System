@@ -36,6 +36,7 @@ class UnitDefinition:
     weapons: tuple[Weapon, ...]
     counts_toward_garrison_limit: bool
     provenance: dict[str, Any]
+    army_kind: str = "player"
 
     @property
     def primary_weapon(self) -> Weapon:
@@ -52,7 +53,9 @@ class UnitRegistry:
         self.metadata = metadata
 
     @classmethod
-    def load(cls, profile: str = "infinite-horizons-current") -> "UnitRegistry":
+    def load(
+        cls, profile: str = "infinite-horizons-current", *, include_barbarians: bool = False
+    ) -> "UnitRegistry":
         resource = files("ikariam_battle.data.units").joinpath(f"{profile}.json")
         raw = json.loads(resource.read_text(encoding="utf-8"))
         definitions = {}
@@ -64,6 +67,35 @@ class UnitRegistry:
                 tuple(Weapon(w["id"], w.get("damage"), w.get("ammunition"), w.get("trigger", "primary"),
                              w.get("accuracy"), w.get("provenance", {})) for w in row.get("weapons", [])),
                 row.get("counts_toward_garrison_limit", True), row["provenance"])
+        if include_barbarians:
+            from .barbarians import BarbarianRegistry
+            barbarian_registry = BarbarianRegistry.load()
+            for barbarian in barbarian_registry.all():
+                equivalent = definitions.get(barbarian.equivalent_player_unit or "")
+                definitions[barbarian.id] = UnitDefinition(
+                    id=barbarian.id,
+                    display_name=barbarian.display_name,
+                    domain="land",
+                    role="combat",
+                    support_effect=None,
+                    battlefield_class=barbarian.native_line,
+                    semantic_class=barbarian.semantic_class,
+                    native_line=barbarian.native_line,
+                    unit_class=equivalent.unit_class if equivalent else None,
+                    hit_points=barbarian.hit_points,
+                    base_armor=barbarian.base_armor,
+                    accuracy=barbarian.accuracy,
+                    size=barbarian.size,
+                    weapons=(
+                        Weapon(
+                            "primary", barbarian.damage, barbarian.ammunition,
+                            "primary", barbarian.accuracy, barbarian.provenance,
+                        ),
+                    ),
+                    counts_toward_garrison_limit=True,
+                    provenance=barbarian.provenance,
+                    army_kind="barbarian",
+                )
         return cls(definitions, raw["metadata"])
 
     def get(self, unit_id: str) -> UnitDefinition:
@@ -77,6 +109,7 @@ class UnitRegistry:
 
     def public(self) -> list[dict[str, Any]]:
         return [{"id": u.id, "display_name": u.display_name, "domain": u.domain, "role": u.role,
+                 "army_kind":u.army_kind,
                  "support_effect":u.support_effect, "battlefield_class": u.battlefield_class,
                  "semantic_class":u.semantic_class, "native_line":u.native_line,
                  "unit_class":u.unit_class, "size":u.size,
