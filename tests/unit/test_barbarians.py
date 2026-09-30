@@ -1,4 +1,7 @@
+import pytest
 from ikariam_battle.barbarians import BarbarianRegistry
+from ikariam_battle.models import ScenarioError
+from ikariam_battle.units import UnitRegistry
 
 
 IDS = {
@@ -68,3 +71,16 @@ def test_barbarian_current_catalog_stats_and_explicit_derivation():
     assert actual == expected
     assert "CURRENT_HP_OBSERVED" in registry.get("barbarian_knifeman").provenance["confidence"]
     assert "DIRECT_LEGACY_CORE_X20" in registry.get("barbarian_ram").provenance["confidence"]
+
+
+def test_combat_registry_can_opt_in_barbarian_definitions():
+    player_only = UnitRegistry.load()
+    with pytest.raises(ScenarioError, match="unsupported unit_id"):
+        player_only.get("barbarian_clubman")
+    combined = UnitRegistry.load(include_barbarians=True)
+    clubman = combined.get("barbarian_clubman")
+    assert clubman.army_kind == "barbarian"
+    assert clubman.domain == "land"
+    assert clubman.role == "combat"
+    assert clubman.primary_weapon.damage == 100
+    assert clubman.primary_weapon.accuracy == 70
