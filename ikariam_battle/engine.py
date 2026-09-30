@@ -10,7 +10,7 @@ from .damage import RoundingPolicy, calculate_damage
 from .economy import MilitaryEconomyProfile
 from .events import Event
 from .formation import FormationRules, eligible_runtime_lines
-from .models import Army, Policy, Scenario, ScenarioError, Wave
+from .models import Army, Policy, Scenario, ScenarioError, Slot, Wave
 from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 from .redistribution import SlotShare, reserve_redistribution
 from .units import UnitRegistry
@@ -197,10 +197,132 @@ def _rebuild_formation(waves: list[Wave], events: list[Event], number: int, side
                        previous_units=prior, units=slot.units)
 
 
-def _prepare_round_start(waves: list[Wave], events: list[Event], number: int, side: str,
-                         applied: dict[str, dict[str, str]]) -> None:
-    """Center-first re-pack same-wave placements, then apply PDF RR."""
+def _supported_same_batch_heavy_first_handoffs(
+    waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field,
+    events: list[Event], number: int, side: str,
+) -> None:
+    """Fill newly empty front slots from same-entry-batch heavy infantry reserves.
+
+    This is a narrow, evidence-backed handoff: only first-line heavy infantry may
+    replace an empty first-line slot previously owned by heavy infantry from the
+    same entry batch. Different entry batches and light-infantry fallback remain
+    behind the existing UNKNOWN-CROSS-WAVE-FORMATION-REBUILD boundary.
+    """
+    geometry = field.lines.get("first")
+    if geometry is None:
+        return
+
+    owners: dict[int, tuple[Wave, Slot]] = {}
+    occupied: set[int] = set()
+    for wave in waves:
+        for slot in wave.slots:
+            if slot.line != "first":
+                continue
+            owners[slot.damage_position] = (wave, slot)
+            if slot.units:
+                occupied.add(slot.damage_position)
+
+    candidates = sorted(
+        (
+            wave for wave in waves
+            if wave.reserve
+            and registry.get(wave.unit.unit_id).role == "combat"
+            and registry.get(wave.unit.unit_id).semantic_class == "heavy_infantry"
+            and "first" in eligible_runtime_lines(
+                registry.get(wave.unit.unit_id), rules, field)
+        ),
+        key=lambda wave: (
+            wave.unit.arrival_round, wave.unit.batch_id,
+            wave.unit.unit_id, wave.unit.wave_id),
+    )
+    for candidate in candidates:
+        unit = registry.get(candidate.unit.unit_id)
+        capacity = geometry.slot_space // unit.size
+        if capacity <= 0:
+            continue
+        for position in geometry.damage_priority:
+            if not candidate.reserve or position in occupied:
+                continue
+            previous = owners.get(position)
+            if previous is None:
+                continue
+            previous_wave, previous_slot = previous
+            previous_unit = registry.get(previous_wave.unit.unit_id)
+            if (
+                previous_slot.units
+                or previous_wave.unit.batch_id != candidate.unit.batch_id
+                or previous_unit.semantic_class != "heavy_infantry"
+            ):
+                continue
+
+            # Transfer ownership of the now-empty physical slot. The prior slot
+            # carries no surviving units and therefore no persistent damage.
+            previous_wave.slots.remove(previous_slot)
+            quantity = min(candidate.reserve, capacity)
+            candidate.reserve -= quantity
+            slot = Slot(
+                f"first-{position}", "first",
+                geometry.physical_position(position), position,
+                unit.id, candidate.unit.wave_id, quantity, capacity,
+            )
+            candidate.slots.append(slot)
+            owners[position] = (candidate, slot)
+            occupied.add(position)
+            _event(
+                events, number, "deploy", "slot_handoff", side,
+                line="first", damage_position=position,
+                physical_position=slot.physical_position,
+                from_unit_id=previous_unit.id,
+                from_wave_id=previous_wave.unit.wave_id,
+                to_unit_id=unit.id,
+                to_wave_id=candidate.unit.wave_id,
+                entry_batch_id=candidate.unit.batch_id,
+                quantity=quantity, capacity=capacity,
+                reason="same_batch_heavy_front_replacement",
+            )
+
+
+def _has_supported_same_batch_heavy_first_handoff(
+    waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field,
+) -> bool:
+    """Whether the next round can restore First with the supported heavy handoff."""
+    geometry = field.lines.get("first")
+    if geometry is None:
+        return False
+    for candidate in waves:
+        if not candidate.reserve:
+            continue
+        candidate_unit = registry.get(candidate.unit.unit_id)
+        if (
+            candidate_unit.role != "combat"
+            or candidate_unit.semantic_class != "heavy_infantry"
+            or "first" not in eligible_runtime_lines(candidate_unit, rules, field)
+        ):
+            continue
+        for owner_wave in waves:
+            owner_unit = registry.get(owner_wave.unit.unit_id)
+            if (
+                owner_wave.unit.batch_id != candidate.unit.batch_id
+                or owner_unit.semantic_class != "heavy_infantry"
+            ):
+                continue
+            if any(slot.line == "first" and not slot.units for slot in owner_wave.slots):
+                return True
+    return False
+
+
+def _prepare_round_start(
+    waves: list[Wave], events: list[Event], number: int, side: str,
+    applied: dict[str, dict[str, str]], registry: UnitRegistry | None = None,
+    rules: FormationRules | None = None, field=None,
+) -> None:
+    """Re-pack, apply supported slot handoffs, then redistribute persistent damage."""
     _rebuild_formation(waves, events, number, side)
+    if registry is not None and rules is not None and field is not None:
+        _supported_same_batch_heavy_first_handoffs(
+            waves, registry, rules, field, events, number, side)
+    # RR must see the final deployment after any supported handoff so persistent
+    # damage remains conserved between Reserve and newly deployed slots.
     _redistribute(waves, events, number, side, applied)
 
 
@@ -237,31 +359,75 @@ def _arrival_waves(army: Army, round_no: int, registry: UnitRegistry,
 
 def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
                                      rules: FormationRules, field) -> list[dict[str, Any]]:
-    """Return only cross-wave placements that are required *now*.
+    """Return only cross-wave placements that remain unsupported *now*.
 
-    Existing slot ownership is same-wave state. Before considering a different
-    reserve-only wave, project the already-supported center-first refill of each
-    wave into its own slots. Only vacancies left after that projection are
-    candidates for an unimplemented cross-wave handoff.
+    Project both supported same-wave refill and the narrow same-entry-batch
+    Heavy-Infantry First-line handoff before evaluating unrelated reserve waves.
+    This prevents a later unsupported candidate from claiming a vacancy that a
+    supported handoff will already occupy at the next round boundary.
     """
     occupied: dict[str, set[int]] = defaultdict(set)
+    projected_reserve: dict[tuple[str, str], int] = {}
+    first_owners: dict[int, Wave] = {}
+
     for wave in waves:
         slots = sorted(wave.slots, key=lambda item: item.damage_position)
-        if not slots:
-            continue
         remaining = wave.reserve + sum(slot.units for slot in slots)
         for slot in slots:
             projected_units = min(slot.capacity, remaining)
             remaining -= projected_units
             if projected_units:
                 occupied[slot.line].add(slot.damage_position)
+            if slot.line == "first":
+                first_owners[slot.damage_position] = wave
+        projected_reserve[(wave.unit.unit_id, wave.unit.wave_id)] = remaining
+
+    geometry = field.lines.get("first")
+    if geometry is not None:
+        candidates = sorted(
+            (
+                wave for wave in waves
+                if projected_reserve.get((wave.unit.unit_id, wave.unit.wave_id), 0)
+                and registry.get(wave.unit.unit_id).role == "combat"
+                and registry.get(wave.unit.unit_id).semantic_class == "heavy_infantry"
+                and "first" in eligible_runtime_lines(
+                    registry.get(wave.unit.unit_id), rules, field)
+            ),
+            key=lambda wave: (
+                wave.unit.arrival_round, wave.unit.batch_id,
+                wave.unit.unit_id, wave.unit.wave_id),
+        )
+        for candidate in candidates:
+            unit = registry.get(candidate.unit.unit_id)
+            capacity = geometry.slot_space // unit.size
+            remaining = projected_reserve[(candidate.unit.unit_id, candidate.unit.wave_id)]
+            if capacity <= 0:
+                continue
+            for position in geometry.damage_priority:
+                if not remaining or position in occupied["first"]:
+                    continue
+                owner_wave = first_owners.get(position)
+                if owner_wave is None:
+                    continue
+                owner_unit = registry.get(owner_wave.unit.unit_id)
+                if (
+                    owner_wave.unit.batch_id != candidate.unit.batch_id
+                    or owner_unit.semantic_class != "heavy_infantry"
+                ):
+                    continue
+                quantity = min(remaining, capacity)
+                remaining -= quantity
+                if quantity:
+                    occupied["first"].add(position)
+            projected_reserve[(candidate.unit.unit_id, candidate.unit.wave_id)] = remaining
 
     requirements: list[dict[str, Any]] = []
     for wave in waves:
-        # A wave that already owns slots is eligible for the supported same-wave
-        # refill above, even when combat has just emptied every one of them.
-        # Cross-wave placement concerns only reserve waves that own no slots.
-        if not wave.reserve or wave.slots:
+        # A wave that already owns slots is handled by supported same-wave refill.
+        # Only the reserve left after all supported projections can create an
+        # unsupported cross-wave placement requirement.
+        reserve = projected_reserve.get((wave.unit.unit_id, wave.unit.wave_id), wave.reserve)
+        if not reserve or wave.slots:
             continue
         unit = registry.get(wave.unit.unit_id)
         if unit.role != "combat":
@@ -270,8 +436,10 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
             geometry = field.lines.get(runtime_line)
             if geometry is None:
                 continue
-            open_positions = [position for position in geometry.damage_priority
-                              if position not in occupied[runtime_line]]
+            open_positions = [
+                position for position in geometry.damage_priority
+                if position not in occupied[runtime_line]
+            ]
             if not open_positions:
                 continue
             requirements.append({
@@ -280,7 +448,7 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
                 "wave_id": wave.unit.wave_id,
                 "entry_batch_id": wave.unit.batch_id,
                 "arrival_round": wave.unit.arrival_round,
-                "reserve": wave.reserve,
+                "reserve": reserve,
                 "open_damage_positions": open_positions,
             })
     return requirements
@@ -300,18 +468,27 @@ def _combat_waves(waves: list[Wave], registry: UnitRegistry) -> list[Wave]:
                   key=lambda w: (_runtime_line(w, registry), w.unit.unit_id, w.unit.wave_id))
 
 
-def _target_for_line(source_line: str, targets: list[Wave], registry: UnitRegistry,
-                     targeting: TargetingProfile) -> tuple[Wave | None, str | None]:
+def _target_waves_for_line(source_line: str, targets: list[Wave], registry: UnitRegistry,
+                           targeting: TargetingProfile) -> tuple[list[Wave], str | None]:
+    """Return every deployed wave in the highest-priority target formation."""
     _guard_single_line_waves(targets)
     for target_line in targeting.priorities[source_line]:
         choices = [w for w in _combat_waves(targets, registry)
                    if _runtime_line(w, registry) == target_line
                    and any(slot.units > 0 for slot in w.slots)]
-        if len(choices) == 1:
-            return choices[0], target_line
-        if len(choices) > 1:
-            return None, target_line
-    return None, None
+        if choices:
+            return choices, target_line
+    return [], None
+
+
+def _target_for_line(source_line: str, targets: list[Wave], registry: UnitRegistry,
+                     targeting: TargetingProfile) -> tuple[Wave | None, str | None]:
+    """Compatibility view for callers that require a unique target wave."""
+    choices, target_line = _target_waves_for_line(
+        source_line, targets, registry, targeting)
+    if len(choices) == 1:
+        return choices[0], target_line
+    return None, target_line
 
 
 def _target(source: Wave, targets: list[Wave], registry: UnitRegistry,
@@ -335,8 +512,8 @@ def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitR
     for wave in _combat_waves(source, registry):
         if _runtime_line(wave, registry) != runtime_line or not wave.slots or not wave.alive:
             continue
-        enemy, _ = _target_for_line(runtime_line, target, registry, targeting)
-        if enemy is None:
+        enemies, _ = _target_waves_for_line(runtime_line, target, registry, targeting)
+        if not enemies:
             continue
         unit = registry.get(wave.unit.unit_id)
         weapon = select_active_weapon(unit, runtime_line)
@@ -470,32 +647,51 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
         matrix_groups: dict[tuple[str, str, str], dict[str, Any]] = {}
         damage_groups: dict[tuple[str, str, str, str, int], dict[str, Any]] = {}
         calculation_keys: set[tuple[str, str, str, int]] = set()
-        address_books: dict[tuple[str, str, str], tuple[Any, ...]] = {}
+        # Freeze row -> damage-position addresses once per target formation
+        # for this volley. If one constituent wave dies, later rows keep their
+        # original concrete slot address; only complete formation elimination
+        # permits transfer to the next target class.
+        address_books: dict[str, tuple[Any, ...]] = {}
 
         for row_number in volley["row_numbers"]:
-            enemy, target_class = _target_for_line(
+            enemies, target_class = _target_waves_for_line(
                 volley["runtime_line"], targets, registry, targeting)
-            if enemy is None or target_class is None:
+            if not enemies or target_class is None:
                 break
 
-            address_key = (enemy.unit.unit_id, enemy.unit.wave_id, target_class)
-            if address_key not in address_books:
-                address_books[address_key] = tuple(sorted(
-                    (slot for slot in enemy.slots if slot.units),
-                    key=lambda slot: slot.damage_position))
-            addressed = address_books[address_key]
+            if target_class not in address_books:
+                addressed_slots = []
+                for enemy in enemies:
+                    addressed_slots.extend(
+                        (slot.damage_position, enemy, slot)
+                        for slot in enemy.slots if slot.units
+                    )
+                address_books[target_class] = tuple(
+                    sorted(addressed_slots, key=lambda item: item[0]))
+            addressed = address_books[target_class]
             if not addressed:
                 continue
-            target_slot = addressed[(row_number - 1) % len(addressed)]
+            _, enemy, target_slot = addressed[(row_number - 1) % len(addressed)]
 
             matrix_key = (enemy.unit.unit_id, enemy.unit.wave_id, target_class)
             matrix = matrix_groups.setdefault(matrix_key, {
                 "target_unit_id": enemy.unit.unit_id,
+                "target_wave": enemy.unit.wave_id,
                 "target_class": target_class,
                 "rows": defaultdict(int),
                 "hits": defaultdict(int),
                 "empty_hits": defaultdict(int),
-                "positions": {slot.damage_position for slot in addressed},
+                "formation_positions": {
+                    slot.damage_position for _, _, slot in addressed
+                },
+                "wave_positions": {
+                    slot.damage_position
+                    for _, addressed_enemy, slot in addressed
+                    if (
+                        addressed_enemy.unit.unit_id == enemy.unit.unit_id
+                        and addressed_enemy.unit.wave_id == enemy.unit.wave_id
+                    )
+                },
             })
             matrix["rows"][row_number] += 1
             matrix["hits"][target_slot.damage_position] += 1
@@ -564,12 +760,15 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             _event(events, number, "fire", "attacking_matrix", volley["side"],
                    firing_phase=volley["runtime_line"], unit_id=source_unit.id,
                    target_unit_id=matrix["target_unit_id"],
+                   target_wave=matrix["target_wave"],
                    target_class=matrix["target_class"], weapon_id=weapon.id,
                    targeting_authority="GAMEFORGE_IN_GAME_HELP",
                    trace={
                        "row_populations": [matrix["rows"].get(row, 0)
                                            for row in range(1, max_row + 1)],
-                       "target_damage_positions": sorted(matrix["positions"]),
+                       "target_damage_positions": sorted(matrix["wave_positions"]),
+                       "formation_target_damage_positions": sorted(
+                           matrix["formation_positions"]),
                        "hits_by_damage_position": dict(matrix["hits"]),
                        "empty_addressed_shots_by_damage_position": dict(matrix["empty_hits"]),
                    })
@@ -785,8 +984,12 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 _assume(applied, events, "EXP-HEAL-NONE-001", number, "arrival", side)
             if "UNKNOWN-MORALE-SUPPORT" in side_blockers:
                 _assume(applied, events, "EXP-MORALE-NONE-001", number, "arrival", side)
-        _prepare_round_start(attacker, events, number, "attacker", applied)
-        _prepare_round_start(defender, events, number, "defender", applied)
+        _prepare_round_start(
+            attacker, events, number, "attacker", applied,
+            registry, formation_rules, field)
+        _prepare_round_start(
+            defender, events, number, "defender", applied,
+            registry, formation_rules, field)
         cross_wave = {
             "attacker": _cross_wave_rebuild_requirements(attacker, registry, formation_rules, field),
             "defender": _cross_wave_rebuild_requirements(defender, registry, formation_rules, field),
@@ -878,6 +1081,20 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
 
         states = {"attacker": attacker_state["continuation_state"],
                   "defender": defender_state["continuation_state"]}
+        # A same-entry-batch Heavy-Infantry reserve that can take over an emptied
+        # Heavy-Infantry First slot on the next round must keep the battle alive.
+        # Do not mutate the just-completed round snapshot; only project
+        # continuation so battle-end evaluation cannot fire before the supported
+        # round-start handoff has a chance to occur.
+        for side, side_waves in (("attacker", attacker), ("defender", defender)):
+            if (states[side] != ContinuationState.SUSTAINING.value
+                    and _has_supported_same_batch_heavy_first_handoff(
+                        side_waves, registry, formation_rules, field)):
+                states[side] = ContinuationState.SUSTAINING.value
+        effective_attacker_state = dict(attacker_state)
+        effective_defender_state = dict(defender_state)
+        effective_attacker_state["continuation_state"] = states["attacker"]
+        effective_defender_state["continuation_state"] = states["defender"]
         fallback_sides = [side for side, state in states.items()
                           if state == ContinuationState.FALLBACK_REQUIRED.value]
         if fallback_sides:
@@ -902,7 +1119,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                        rule_id="UNKNOWN-BOTH-SIDES-NO-MAIN-LINE-OUTCOME")
                 both_zero_boundary = True
                 break
-        outcome, losing = _termination(attacker_state, defender_state)
+        outcome, losing = _termination(
+            effective_attacker_state, effective_defender_state)
         if outcome is not None:
             losing_pending = pending_now.get(losing or "", [])
             if not engagement_started and losing_pending:
@@ -925,6 +1143,12 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                reason="max_rounds_reached", limit=scenario.max_rounds)
     final = {"attacker":_snapshot(attacker,registry,battle_end),"defender":_snapshot(defender,registry,battle_end)}
     outcome, final_losing = _termination(final["attacker"], final["defender"])
+    pending_handoff_after_horizon = {
+        "attacker": _has_supported_same_batch_heavy_first_handoff(
+            attacker, registry, formation_rules, field),
+        "defender": _has_supported_same_batch_heavy_first_handoff(
+            defender, registry, formation_rules, field),
+    }
     pending_after_horizon = {
         "attacker": _pending_sustaining_arrivals(
             scenario.attacker, scenario.max_rounds, registry, battle_end),
@@ -932,6 +1156,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             scenario.defender, scenario.max_rounds, registry, battle_end),
     }
     if (fallback_boundary or both_zero_boundary or cross_wave_boundary
+            or (final_losing is not None
+                and pending_handoff_after_horizon.get(final_losing))
             or (not engagement_started
                 and final_losing is not None
                 and pending_after_horizon.get(final_losing))):

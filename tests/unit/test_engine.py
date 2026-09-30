@@ -1,3 +1,4 @@
+from collections import defaultdict
 from copy import deepcopy
 import pytest
 from ikariam_battle import simulate
@@ -196,6 +197,94 @@ def test_reserve_only_same_line_wave_is_not_blocked_until_an_open_slot_exists():
  requirements=_cross_wave_rebuild_requirements(waves,registry,rules,LAND_MINI)
  assert requirements and requirements[0]['wave_id']=='wave-b'
  assert requirements[0]['runtime_line']=='first'
+
+
+def test_supported_same_batch_heavy_handoff_prevents_premature_round_end_loss():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':2,
+    'attacker':{'units':[
+      {'unit_id':'hoplite','quantity':90,'attack_upgrade':200}]},
+    'defender':{'units':[
+      {'unit_id':'steam_giant','quantity':30,'wave_id':'front','entry_batch_id':'d-batch'},
+      {'unit_id':'steam_giant','quantity':10,'wave_id':'reserve','entry_batch_id':'d-batch'},
+    ]}}
+ result=simulate(s)
+ assert result['rounds_completed']>=2
+ assert not any(
+  event['type']=='battle_termination'
+  and event['round']==1
+  and event['details'].get('losing_side')=='defender'
+  for event in result['events']
+ )
+ assert any(
+  event['type']=='slot_handoff'
+  and event['round']==2
+  and event['side']=='defender'
+  and event['details'].get('to_wave_id')=='reserve'
+  for event in result['events']
+ )
+
+
+def test_same_batch_heavy_reserve_takes_over_open_front_slots_and_battle_continues():
+ s={'policy':'experimental','battlefield':'land-max','max_rounds':3,
+    'attacker':{'forge_level':5,'units':[
+      {'unit_id':'hoplite','quantity':500,'entry_batch_id':'attacker-batch-1','arrival_round':0},
+      {'unit_id':'steam_giant','quantity':48,'entry_batch_id':'attacker-batch-1','arrival_round':0},
+      {'unit_id':'swordsman','quantity':280,'entry_batch_id':'attacker-batch-1','arrival_round':0},
+      {'unit_id':'sulphur_carabineer','quantity':36,'entry_batch_id':'attacker-batch-1','arrival_round':0},
+    ]},
+    'defender':{'forge_level':5,'units':[
+      {'unit_id':'hoplite','quantity':500,'entry_batch_id':'defender-batch-1','arrival_round':0},
+      {'unit_id':'steam_giant','quantity':48,'entry_batch_id':'defender-batch-1','arrival_round':0},
+      {'unit_id':'swordsman','quantity':280,'entry_batch_id':'defender-batch-1','arrival_round':0},
+      {'unit_id':'sulphur_carabineer','quantity':24,'entry_batch_id':'defender-batch-1','arrival_round':0},
+    ]}}
+ result=simulate(s)
+ assert result['rounds_completed']>=3
+ assert not any(
+  event['type']=='unsupported_mechanic'
+  and event['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD'
+  and event['round']<=2
+  for event in result['events']
+ )
+ round3=next(row for row in result['rounds'] if row['round']==3)
+ attacker_steam=[
+  slot for slot in round3['attacker']['slots']
+  if slot['line']=='first' and slot['unit_id']=='steam_giant'
+ ]
+ defender_steam=[
+  slot for slot in round3['defender']['slots']
+  if slot['line']=='first' and slot['unit_id']=='steam_giant'
+ ]
+ assert attacker_steam and defender_steam
+ assert all(slot['capacity']==16 for slot in attacker_steam+defender_steam)
+ assert any(
+  event['type']=='slot_handoff'
+  and event['details'].get('reason')=='same_batch_heavy_front_replacement'
+  for event in result['events']
+ )
+ assert any(
+  event['type']=='attacking_matrix'
+  and event['round']==3
+  and event['details'].get('unit_id')=='steam_giant'
+  for event in result['events']
+ )
+
+
+def test_different_entry_batch_heavy_reserve_still_hits_cross_wave_boundary():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':3,
+    'attacker':{'units':[
+      {'unit_id':'hoplite','quantity':90,'entry_batch_id':'a-hop','arrival_round':0},
+      {'unit_id':'steam_giant','quantity':10,'entry_batch_id':'a-steam','arrival_round':0},
+    ]},
+    'defender':{'units':[{'unit_id':'hoplite','quantity':90}]}}
+ result=simulate(s)
+ # Different arrival batches are intentionally not covered by the narrow
+ # same-batch heavy handoff rule.
+ assert any(
+  event['type']=='unsupported_mechanic'
+  and event['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD'
+  for event in result['events']
+ )
 
 
 def test_reserve_light_fallback_candidate_does_not_block_a_full_front_at_preflight():
@@ -569,6 +658,87 @@ def test_am_slot_addresses_stay_fixed_when_target_slot_empties_mid_volley():
  assert trace['empty_addressed_shots_by_damage_position']=={2:1}
 
 
+def test_mixed_first_formation_keeps_frozen_addresses_after_one_wave_dies_mid_volley():
+ registry=UnitRegistry.load()
+ hoplite_hp=registry.get('hoplite').hit_points
+ hoplite=Wave(
+  ArmyUnit('hoplite',1,'hop',entry_batch_id='batch-1'),0,
+  [Slot('first-1','first',1,1,'hoplite','hop',1,30,hoplite_hp-1)],
+ )
+ steam=Wave(
+  ArmyUnit('steam_giant',1,'steam',entry_batch_id='batch-1'),0,
+  [Slot('first-2','first',2,2,'steam_giant','steam',1,10,0)],
+ )
+ queues={
+  ('hoplite','hop','first-1'):[hoplite_hp-1],
+  ('steam_giant','steam','first-2'):[0],
+ }
+ volleys=[{
+  'side':'attacker',
+  'source_unit':'swordsman',
+  'source_wave':'source-wave',
+  'runtime_line':'flank',
+  'weapon_id':'primary',
+  'attack_upgrade':0,
+  'row_numbers':[1,2,1],
+ }]
+ casualties=defaultdict(int)
+ slot_casualties=defaultdict(int)
+ events=[]
+ _resolve_volleys(
+  volleys,[hoplite,steam],queues,registry,WorkshopProfile.load(),ForgeProfile.load(),
+  TargetingProfile.load(),events,1,
+  Army((ArmyUnit('swordsman',3,'source-wave'),),0),
+  Army((ArmyUnit('hoplite',1,'hop',entry_batch_id='batch-1'),
+        ArmyUnit('steam_giant',1,'steam',entry_batch_id='batch-1')),0),
+  casualties,slot_casualties,{},
+ )
+ assert casualties.get('hoplite')==1
+ assert casualties.get('steam_giant',0)==0
+ wasted=[event for event in events if event.type=='shot_addressed_empty_slot']
+ assert len(wasted)==1
+ assert wasted[0].details['target_damage_position']==1
+ assert wasted[0].details['target_wave']=='hop'
+ matrices=[event for event in events if event.type=='attacking_matrix']
+ by_wave={event.details['target_wave']:event.details for event in matrices}
+ assert set(by_wave)=={'hop','steam'}
+ assert by_wave['hop']['target_unit_id']=='hoplite'
+ assert by_wave['steam']['target_unit_id']=='steam_giant'
+ assert by_wave['hop']['trace']['target_damage_positions']==[1]
+ assert by_wave['steam']['trace']['target_damage_positions']==[2]
+ assert by_wave['hop']['trace']['formation_target_damage_positions']==[1,2]
+ assert by_wave['steam']['trace']['formation_target_damage_positions']==[1,2]
+
+
+def test_same_batch_heavy_handoff_runs_before_rr_and_conserves_reserve_damage():
+ from ikariam_battle.engine import _prepare_round_start
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ owner=Wave(
+  ArmyUnit('hoplite',0,'hop',entry_batch_id='batch-1'),0,
+  [Slot('first-1','first',2,1,'hoplite','hop',0,30,0)],
+ )
+ steam=Wave(
+  ArmyUnit('steam_giant',10,'steam',entry_batch_id='batch-1'),10,[],
+  reserve_damage=100,
+ )
+ events=[]; applied={}
+ _prepare_round_start(
+  [owner,steam],events,2,'attacker',applied,
+  registry,rules,LAND_MINI,
+ )
+ assert owner.slots==[]
+ assert len(steam.slots)==1
+ assert steam.slots[0].line=='first'
+ assert steam.slots[0].capacity==10
+ assert steam.slots[0].units==10
+ assert steam.reserve==0
+ assert steam.reserve_damage==0
+ assert steam.slots[0].damage==100
+ assert steam.reserve_damage + sum(slot.damage for slot in steam.slots)==100
+ assert any(event.type=='slot_handoff' for event in events)
+ assert any(event.type=='redistribution' for event in events)
+
+
 def test_round_snapshot_keeps_destroyed_slot_identity_and_round_casualties():
  s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
     'attacker':{'units':[{'unit_id':'hoplite','quantity':90,'attack_upgrade':30}]},
@@ -833,7 +1003,7 @@ def test_entry_batch_arrival_event_accumulates_repeated_unit_waves():
  assert result['final_state']['attacker']['deployed_support']['doctor']==30
 
 
-def test_cross_wave_requirement_created_by_combat_stops_before_termination():
+def test_same_batch_heavy_requirement_created_by_combat_is_supported_next_round():
  s={'policy':'experimental','battlefield':'land-mini','max_rounds':3,
     'attacker':{'units':[
       {'unit_id':'hoplite','quantity':90,'attack_upgrade':200}]},
@@ -841,23 +1011,16 @@ def test_cross_wave_requirement_created_by_combat_stops_before_termination():
       {'unit_id':'steam_giant','quantity':30,'entry_batch_id':'d0','wave_id':'d-first'},
       {'unit_id':'steam_giant','quantity':10,'entry_batch_id':'d0','wave_id':'d-reserve'}]}}
  result=simulate(s)
- assert result['status']=='inconclusive'
- assert result['outcome']=='inconclusive'
- assert result['rounds_completed']==1
- assert result['casualties']['defender'].get('steam_giant')==30
- boundary=[e for e in result['events']
-           if e['type']=='unsupported_mechanic'
-           and e['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD']
- assert boundary
- assert boundary[-1]['round']==1
- assert boundary[-1]['phase']=='round_end'
- assert boundary[-1]['side']=='defender'
- requirements=boundary[-1]['details']['requirements']
- assert any(r['wave_id']=='d-reserve' and r['runtime_line']=='first'
-            for r in requirements)
- assert not any(e['type']=='battle_termination' and e['round']==1
+ assert result['rounds_completed']>=2
+ assert result['casualties']['defender'].get('steam_giant')>=30
+ assert not any(e['type']=='unsupported_mechanic'
+                and e['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD'
+                and e['side']=='defender'
                 for e in result['events'])
- assert result['final_state']['defender']['reserve']['steam_giant']==10
+ assert any(e['type']=='slot_handoff' and e['round']==2
+            and e['side']=='defender'
+            and e['details'].get('to_wave_id')=='d-reserve'
+            for e in result['events'])
 
 
 def test_post_combat_empty_slots_with_same_wave_reserve_refill_before_cross_wave_check():
@@ -880,7 +1043,7 @@ def test_post_combat_empty_slots_with_same_wave_reserve_refill_before_cross_wave
             and e['details']['units']==10 for e in result['events'])
 
 
-def test_post_combat_projection_still_exposes_vacancies_after_partial_same_wave_refill():
+def test_post_combat_projection_consumes_supported_same_batch_heavy_handoff():
  registry=UnitRegistry.load(); rules=FormationRules.load()
  waves=deploy(Army.from_dict({'units':[
    {'unit_id':'steam_giant','quantity':40,'entry_batch_id':'d0','wave_id':'owner'},
@@ -888,17 +1051,71 @@ def test_post_combat_projection_still_exposes_vacancies_after_partial_same_wave_
  ]}),registry,LAND_MINI)
  owner=next(w for w in waves if w.unit.wave_id=='owner')
  reserve=next(w for w in waves if w.unit.wave_id=='reserve')
- # Simulate combat wiping the 30 deployed owner units. Its own 10 Reserve can
- # refill one slot, leaving two physical slots genuinely open to the other wave.
  for slot in owner.slots:
   slot.units=0
  owner.reserve=10
  assert reserve.slots==[] and reserve.reserve==10
  requirements=_cross_wave_rebuild_requirements(waves,registry,rules,LAND_MINI)
- candidate=next(r for r in requirements if r['wave_id']=='reserve')
- assert candidate['runtime_line']=='first'
- assert len(candidate['open_damage_positions'])==2
- assert 'owner' not in {r['wave_id'] for r in requirements}
+ assert requirements==[]
+
+
+def test_projected_reserve_uses_complete_unit_and_wave_identity():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ waves=deploy(Army.from_dict({'units':[
+   {'unit_id':'hoplite','quantity':90,'entry_batch_id':'d0','wave_id':'shared'},
+   {'unit_id':'steam_giant','quantity':10,'entry_batch_id':'d0','wave_id':'shared'},
+   {'unit_id':'swordsman','quantity':30,'entry_batch_id':'d1','wave_id':'shared'},
+ ]}),registry,LAND_MINI)
+ hoplite=next(w for w in waves if w.unit.unit_id=='hoplite')
+ steam=next(w for w in waves if w.unit.unit_id=='steam_giant')
+ swordsman=next(w for w in waves if w.unit.unit_id=='swordsman')
+ for slot in hoplite.slots:
+  slot.units=0
+ hoplite.reserve=0
+ steam.reserve=10
+ assert steam.slots==[]
+ assert swordsman.reserve==30 and swordsman.slots==[]
+ requirements=_cross_wave_rebuild_requirements(waves,registry,rules,LAND_MINI)
+ assert not any(r['unit_id']=='steam_giant' for r in requirements)
+ assert any(r['unit_id']=='swordsman' and r['wave_id']=='shared'
+            and r['runtime_line']=='first'
+            for r in requirements)
+
+
+def test_supported_same_batch_handoff_is_projected_before_other_batch_requirement():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ waves=deploy(Army.from_dict({'units':[
+   {'unit_id':'steam_giant','quantity':30,'entry_batch_id':'d0','wave_id':'front'},
+   {'unit_id':'steam_giant','quantity':30,'entry_batch_id':'d0','wave_id':'same-batch'},
+   {'unit_id':'steam_giant','quantity':10,'entry_batch_id':'d1','wave_id':'other-batch'},
+ ]}),registry,LAND_MINI)
+ front=next(w for w in waves if w.unit.wave_id=='front')
+ same_batch=next(w for w in waves if w.unit.wave_id=='same-batch')
+ other_batch=next(w for w in waves if w.unit.wave_id=='other-batch')
+ for slot in front.slots:
+  slot.units=0
+ front.reserve=0
+ assert same_batch.slots==[] and same_batch.reserve==30
+ assert other_batch.slots==[] and other_batch.reserve==10
+ requirements=_cross_wave_rebuild_requirements(waves,registry,rules,LAND_MINI)
+ assert requirements==[]
+
+
+def test_pending_supported_handoff_at_max_rounds_keeps_outcome_inconclusive():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+    'attacker':{'units':[
+      {'unit_id':'hoplite','quantity':90,'attack_upgrade':200}]},
+    'defender':{'units':[
+      {'unit_id':'steam_giant','quantity':30,'entry_batch_id':'d0','wave_id':'front'},
+      {'unit_id':'steam_giant','quantity':10,'entry_batch_id':'d0','wave_id':'reserve'}]}}
+ result=simulate(s)
+ assert result['rounds_completed']==1
+ assert result['status']=='inconclusive'
+ assert result['outcome']=='inconclusive'
+ assert result['final_state']['defender']['reserve']['steam_giant']==10
+ assert any(e['type']=='safety_limit_reached' for e in result['events'])
+ assert not any(e['type']=='battle_termination' and e['round']==1
+                for e in result['events'])
 
 
 def test_round_zero_empty_side_waits_for_scheduled_combat_arrival_instead_of_losing():
