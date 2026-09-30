@@ -736,14 +736,16 @@ function setSimulationError(message){
 }
 async function boot(){
   const response=await fetch('/api/simulate'),data=await response.json();metadata=data;
-  units=data.units.filter(u=>u.domain==='land'&&(u.numerically_supported||u.role==='support'));
-  data.battlefields.forEach(f=>battlefield.add(new Option(f.display_name+(f.supported?'':' (unsupported)'),f.id)));
-  [...battlefield.options].forEach(option=>option.disabled=!data.battlefields.find(f=>f.id===option.value).supported);
-  const maxField=data.battlefields.find(f=>f.id==='land-max'&&f.supported);
-  if(maxField)battlefield.value=maxField.id;
-  populateForge('aForge');populateForge('dForge');renderArmy('attacker');renderArmy('defender');renderBarbarianCatalog();updateSlotButtons();updateAllUnitStats();
+  playerUnits=(data.units||[]).filter(u=>u.numerically_supported||u.role==='support');
+  barbarianUnits=(data.barbarian_units||[]).filter(u=>u.simulation_ready);
+  units=[...playerUnits,...barbarianUnits];
+  populateForge('aForge');populateForge('dForge');
+  renderBarbarianCatalog();populateBattleDomains();
 }
-battlefield.addEventListener('change',()=>{updateSlotButtons();updateAllUnitStats()});
+battleDomain.addEventListener('change',()=>refreshBattlefieldOptions());
+battlefield.addEventListener('change',()=>{updateArmyPackageAvailability();renderArmy('attacker');renderArmy('defender');updateSlotButtons();updateAllUnitStats()});
+document.getElementById('aArmyKind').addEventListener('change',()=>toggleArmyPackage('attacker'));
+document.getElementById('dArmyKind').addEventListener('change',()=>toggleArmyPackage('defender'));
 researchMode.addEventListener('change',()=>document.body.classList.toggle('research',researchMode.checked));
 showUnitStats.addEventListener('change',()=>{document.body.classList.toggle('show-unit-stats',showUnitStats.checked);if(showUnitStats.checked)updateAllUnitStats()});
 showUnitIdentity.addEventListener('change',()=>document.body.classList.toggle('show-unit-identity',showUnitIdentity.checked));
