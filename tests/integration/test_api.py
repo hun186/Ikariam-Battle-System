@@ -86,6 +86,17 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert (hoplite['resource_cost_basis_total'],hoplite['general_score'])==(70,'1.4')
  assert (carabineer['resource_cost_basis_total'],carabineer['general_score'])==(200,'4')
 
+def test_barbarian_army_package_api_smoke():
+ value={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+   'attacker':{'army_kind':'player','units':[{'unit_id':'hoplite','quantity':90}]},
+   'defender':{'army_kind':'barbarian','forge_level':0,'units':[
+     {'unit_id':'barbarian_axe_swinger','quantity':90,'entry_batch_id':'barbarian-garrison'}]}}
+ status,data=post(value)
+ assert status==200
+ assert data['initial_state']['defender']['remaining']['barbarian_axe_swinger']==90
+ assert data['military_score']['defender']['general_score_lost']==0
+
+
 def test_per_unit_workshop_forge_five_mini_api_smoke():
  status,data=post_page(payload()); assert status==200
  calculations=[e['details'] for e in data['events'] if e['type']=='damage_calculation' and e['side']=='attacker']
