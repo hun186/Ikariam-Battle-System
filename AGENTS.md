@@ -20,7 +20,7 @@
 - 主要技術：Python 3.11+ domain package、無 framework ASGI／Vercel adapter、vanilla HTML/CSS/JS
 - 主要入口：`ikariam_battle.simulate()`、`POST /api/simulate`、`asgi:application`
 - Land 戰場 UI 以遊戲實戰畫面排列為基準：前排為 `Flank | First/Main | Flank`，後排為 `Air defense | Third/Artillery | Air bomber`；這只是 presentation，不得藉此改動 engine slot identity、capacity 或 targeting。
-- Slot 填入／同 wave 回合重建要依 PDF damage priority 的中央優先實體順序；回合開始不得把倖存兵留在可由同一已支援 formation 規則消除的內側空洞。Same-wave rebuild 本身仍不得跨 wave、跨 line 或新增 slot；其後另有一條獨立、窄化的同批 Heavy Infantry First-line compaction：同一 entry batch 的 Heavy Infantry waves 會在既有 First-line 實體 slots 內依 damage priority 整體中央優先重排，較早 wave 保持優先、partial slot 不混兵，必要時可轉移 slot ownership 並按接手兵種 size 重算 capacity。不得藉此跨 entry batch、跨 line、新增 physical slot 或推導 Light Infantry fallback；其他跨 wave 情境仍保持 unsupported boundary。
+- Slot 填入／同 wave 回合重建要依 PDF damage priority 的中央優先實體順序；回合開始不得把倖存兵留在可由已支援 formation 規則消除的內側空洞。Same-wave rebuild 本身仍不得跨 wave、跨 line 或新增 slot。其後有兩條窄化的 cross-wave compaction：(1) 同一 entry batch 的 Heavy Infantry 可在既有 First-line slots 內跨兵種中央優先重排；(2) 相同 unit_id 的不同 waves／entry batches 可在相同既有 runtime line slots 內依 arrival/batch 順序接替，ammo、damage、upgrade 與 wave identity 必須各自保留。兩者都不得新增 physical slot；第二條不得跨 line 或推導 fallback，且不同兵種跨 entry batch 仍 unsupported。
 - 最快驗證：`pytest -q`
 <!-- END CODEX PROJECT QUICKSTART -->
 
