@@ -743,7 +743,7 @@ async function boot(){
   renderBarbarianCatalog();populateBattleDomains();
 }
 battleDomain.addEventListener('change',()=>refreshBattlefieldOptions());
-battlefield.addEventListener('change',()=>{updateArmyPackageAvailability();renderArmy('attacker');renderArmy('defender');updateSlotButtons();updateAllUnitStats()});
+battlefield.addEventListener('change',()=>{updateArmyPackageAvailability();updateSlotButtons();updateAllUnitStats()});
 document.getElementById('aArmyKind').addEventListener('change',()=>toggleArmyPackage('attacker'));
 document.getElementById('dArmyKind').addEventListener('change',()=>toggleArmyPackage('defender'));
 researchMode.addEventListener('change',()=>document.body.classList.toggle('research',researchMode.checked));
