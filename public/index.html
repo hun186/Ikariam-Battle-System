@@ -50,6 +50,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
   <section id="setupView">
     <section class="settings panel">
       <label>Policy<select id="policy"><option value="experimental">Experimental / named assumptions</option><option value="strict">Strict / evidence-safe</option></select></label>
+      <label>Battle type<select id="battleDomain"></select></label>
       <label>Battlefield<select id="battlefield"></select></label>
       <label>Max rounds / safety cap<input id="maxRounds" type="number" min="1" max="1000" value="100"></label>
       <label style="text-transform:none"><span><input id="researchMode" type="checkbox"> Research mode</span></label>
@@ -62,17 +63,17 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 
     <div class="setup-grid">
       <section class="panel side-setup attacker">
-        <div class="side-title"><h2>攻擊方</h2><div class="side-toolbar"><label>熔爐神蹟 / Forge<select id="aForge"></select></label></div></div>
+        <div class="side-title"><h2>攻擊方</h2><div class="side-toolbar"><label>兵種套裝<select id="aArmyKind" class="army-kind"><option value="player">Player</option><option value="barbarian">Barbarian</option></select></label><label id="aForgeWrap">熔爐神蹟 / Forge<select id="aForge"></select></label></div></div>
         <div id="attackerUnits" class="unit-list"></div>
       </section>
       <section class="panel side-setup defender">
-        <div class="side-title"><h2>防守方</h2><div class="side-toolbar"><label>熔爐神蹟 / Forge<select id="dForge"></select></label></div></div>
+        <div class="side-title"><h2>防守方</h2><div class="side-toolbar"><label>兵種套裝<select id="dArmyKind" class="army-kind"><option value="player">Player</option><option value="barbarian">Barbarian</option></select></label><label id="dForgeWrap">熔爐神蹟 / Forge<select id="dForge"></select></label></div></div>
         <div id="defenderUnits" class="unit-list"></div>
       </section>
     </div>
 
-    <div class="setup-note">預設使用最大戰場與 Lv5 熔爐；初始 Hoplite 數量會填滿預設戰場前線，方便直接測側翼。每列的 ±一格 由目前戰場的 slot space ÷ unit size 動態計算；攻擊／防禦為該兵種 Workshop 等級，進場批次收在進階設定內。</div>
-    <details class="barbarian-reference"><summary>野蠻人兵種參考（9 種，catalog-only）</summary><div class="barbarian-note">這裡只呈現 Barbarian Village 兵種資料與目前證據狀態；尚未把野蠻人 NPC 編成、城牆、targeting 或升級規則接入戰鬥模擬。</div><div id="barbarianCatalog" class="barbarian-grid"></div></details>
+    <div class="setup-note">預設使用最大陸戰戰場與 Player Lv5 熔爐；Player 初始 Hoplite、Barbarian 初始 Clubman 都會填滿前線，方便直接測試。每列的 ±一格 由目前戰場的 slot space ÷ unit size 動態計算。Barbarian 套裝固定無 Workshop、無 Forge、無分批進場，軍分為 0；目前兵力數量仍由使用者手動輸入，不會依村落等級自動產生。</div>
+    <details class="barbarian-reference"><summary>野蠻人兵種資料與出現等級（9 種）</summary><div class="barbarian-note">Barbarian Village 陸軍兵種已可作為獨立 Army package 進入模擬；這裡保留來源、數值與首次出現等級參考。村落等級對應的完整守軍數量、城牆等仍未自動生成。</div><div id="barbarianCatalog" class="barbarian-grid"></div></details>
     <div class="actions"><div class="action-row"><button id="simulate" class="primary" type="button">開始模擬</button><button id="downloadSetup" class="secondary" type="button">下載兵力設定 Debug JSON</button></div><div id="error" class="error" role="alert"></div></div>
   </section>
 
@@ -152,9 +153,9 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 <div id="floatingTooltip" class="floating-tooltip" role="tooltip" hidden></div>
 
 <script>
-let metadata=null, units=[], lastResult=null, lastBattlefieldId=null, currentRoundNumber=0, roundRenderToken=0, simulationGeneration=0, simulationRequestGeneration=0;
+let metadata=null, units=[], playerUnits=[], barbarianUnits=[], lastResult=null, lastBattlefieldId=null, currentRoundNumber=0, roundRenderToken=0, simulationGeneration=0, simulationRequestGeneration=0;
 const roundPageCache=new Map(), scenarioByGeneration=new Map();
-const battlefield=document.getElementById('battlefield'),policy=document.getElementById('policy'),maxRounds=document.getElementById('maxRounds'),researchMode=document.getElementById('researchMode'),showUnitStats=document.getElementById('showUnitStats'),showUnitIdentity=document.getElementById('showUnitIdentity'),simulateTop=document.getElementById('simulateTop'),simulate=document.getElementById('simulate'),downloadSetupTop=document.getElementById('downloadSetupTop'),downloadSetup=document.getElementById('downloadSetup'),downloadRoundDebug=document.getElementById('downloadRoundDebug'),roundDebugError=document.getElementById('roundDebugError'),errorTop=document.getElementById('errorTop'),error=document.getElementById('error'),floatingTooltip=document.getElementById('floatingTooltip');
+const battlefield=document.getElementById('battlefield'),battleDomain=document.getElementById('battleDomain'),policy=document.getElementById('policy'),maxRounds=document.getElementById('maxRounds'),researchMode=document.getElementById('researchMode'),showUnitStats=document.getElementById('showUnitStats'),showUnitIdentity=document.getElementById('showUnitIdentity'),simulateTop=document.getElementById('simulateTop'),simulate=document.getElementById('simulate'),downloadSetupTop=document.getElementById('downloadSetupTop'),downloadSetup=document.getElementById('downloadSetup'),downloadRoundDebug=document.getElementById('downloadRoundDebug'),roundDebugError=document.getElementById('roundDebugError'),errorTop=document.getElementById('errorTop'),error=document.getElementById('error'),floatingTooltip=document.getElementById('floatingTooltip');
 const viewIds={setup:'setupView',round:'roundView',summary:'summaryView',mechanics:'mechanicsView',source:'sourceView'};
 const groupOrder=['heavy_infantry','light_infantry','long_range','artillery','air','support'];
 const groupLabels={heavy_infantry:'Heavy Infantry',light_infantry:'Light Infantry',long_range:'Long Range',artillery:'Artillery',air:'Air / Anti-air',support:'Support'};
@@ -213,6 +214,8 @@ async function loadRoundPage(number,generation=simulationGeneration){
 document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>{if(!btn.disabled)showView(btn.dataset.view)}));
 
 function currentField(){return metadata.battlefields.find(f=>f.id===battlefield.value)}
+function currentDomain(){return currentField()?.domain||battleDomain.value||'land'}
+function armyKind(side){return document.getElementById(side==='attacker'?'aArmyKind':'dArmyKind').value}
 function unitById(id){return units.find(u=>u.id===id)}
 function preferredSetupLine(unit,field){
   if(!field||!field.lines)return null;
@@ -231,20 +234,22 @@ function statNumber(value){
   const n=Number(value);return Number.isInteger(n)?String(n):n.toFixed(2).replace(/\.00$/,'').replace(/(\.\d)0$/,'$1');
 }
 function effectiveSetupStats(row){
-  const unit=unitById(row.dataset.unitId),side=row.dataset.side;
-  const attackLevel=Math.max(0,+row.querySelector('.attack').value||0),armorLevel=Math.max(0,+row.querySelector('.armor').value||0);
-  const forgeLevel=+(document.getElementById(side==='attacker'?'aForge':'dForge').value||0);
+  const unit=unitById(row.dataset.unitId),side=row.dataset.side,barbarian=unit?.army_kind==='barbarian';
+  const attackLevel=barbarian?0:Math.max(0,+row.querySelector('.attack')?.value||0);
+  const armorLevel=barbarian?0:Math.max(0,+row.querySelector('.armor')?.value||0);
+  const forgeLevel=barbarian?0:+(document.getElementById(side==='attacker'?'aForge':'dForge').value||0);
   const forge=metadata.forge_levels?.[String(forgeLevel)]||{damage_multiplier:'1',armor_bonus:0};
-  const increment=Number(metadata.workshop_increments?.[unit.domain]||0);
+  const increment=barbarian?0:Number(metadata.workshop_increments?.[unit.domain]||0);
   const primary=(unit.weapons||[]).find(w=>w.trigger==='primary')||(unit.weapons||[])[0];
   const attack=primary?.damage==null?null:(Number(primary.damage)+attackLevel*increment)*Number(forge.damage_multiplier);
   const defense=unit.base_armor==null?null:Number(unit.base_armor)+armorLevel*increment+Number(forge.armor_bonus||0);
-  return {hp:unit.hit_points,attack,defense,forgeLevel};
+  return {hp:unit.hit_points,attack,defense,forgeLevel,barbarian};
 }
 function updateUnitStatRow(row){
   const box=row.querySelector('.unit-statbox');if(!box)return;
   const stats=effectiveSetupStats(row);
-  box.innerHTML='<span>HP <b>'+statNumber(stats.hp)+'</b></span><span>ATK <b>'+statNumber(stats.attack)+'</b></span><span>DEF <b>'+statNumber(stats.defense)+'</b></span><span class="stat-note">含 Workshop + Forge Lv'+stats.forgeLevel+'</span>';
+  const note=stats.barbarian?'Barbarian 固定基礎數值 · 無 Workshop / Forge':'含 Workshop + Forge Lv'+stats.forgeLevel;
+  box.innerHTML='<span>HP <b>'+statNumber(stats.hp)+'</b></span><span>ATK <b>'+statNumber(stats.attack)+'</b></span><span>DEF <b>'+statNumber(stats.defense)+'</b></span><span class="stat-note">'+note+'</span>';
 }
 function updateAllUnitStats(){document.querySelectorAll('.unit-setup-row').forEach(updateUnitStatRow)}
 
@@ -262,43 +267,99 @@ function renderBarbarianCatalog(){
     const ammo=unit.ammunition==null?'∞/—':unit.ammunition;
     const stats='HP '+unit.hit_points+' · Armor '+unit.base_armor+' · Dmg '+unit.damage+' · Acc '+unit.accuracy+'% · Ammo '+ammo+' · Size '+unit.size;
     const levels='Lv'+unit.first_appearance_level+(unit.last_appearance_level?'–'+unit.last_appearance_level:'+');
-    return '<div class="barbarian-card"><div class="unit-icon" aria-hidden="true">'+unitIconHtml(unit,'barbarian-card-icon')+'</div><div><b>'+esc(unit.display_name)+'</b><small>'+esc(lineLabel(unit.native_line))+' · '+levels+'</small><small>'+stats+'</small><small>≈ '+esc(unit.equivalent_player_unit||'custom')+' · catalog only</small></div></div>';
+    return '<div class="barbarian-card"><div class="unit-icon" aria-hidden="true">'+unitIconHtml(unit,'barbarian-card-icon')+'</div><div><b>'+esc(unit.display_name)+'</b><small>'+esc(lineLabel(unit.native_line))+' · '+levels+'</small><small>'+stats+'</small><small>≈ '+esc(unit.equivalent_player_unit||'custom')+' · 可模擬 · 軍分 0</small></div></div>';
   }).join('');
 }
 
 function populateForge(id){
-  const select=document.getElementById(id);
+  const select=document.getElementById(id);select.innerHTML='';
   Object.entries(metadata.forge_levels).forEach(([level,e])=>select.add(new Option('Lv'+level+' · dmg ×'+e.damage_multiplier+' · armor +'+e.armor_bonus,level)));
   if(metadata.forge_levels['5'])select.value='5';
 }
-function defaultQuantity(unit){
-  if(unit.id!=='hoplite')return 0;
+function populateBattleDomains(){
+  battleDomain.innerHTML='';
+  const domains=[...new Set(metadata.battlefields.map(f=>f.domain).filter(Boolean))];
+  for(const domain of domains){
+    const supported=metadata.battlefields.some(f=>f.domain===domain&&f.supported);
+    const label=domain==='land'?'陸戰 / Land':domain==='naval'?'海戰 / Naval':domain;
+    const option=new Option(label+(supported?'':'（尚未支援）'),domain);
+    option.disabled=!supported;battleDomain.add(option);
+  }
+  const land=[...battleDomain.options].find(option=>option.value==='land'&&!option.disabled);
+  if(land)battleDomain.value='land';
+  refreshBattlefieldOptions();
+}
+function refreshBattlefieldOptions(preferredId=null){
+  const domain=battleDomain.value||'land';
+  battlefield.innerHTML='';
+  const fields=metadata.battlefields.filter(f=>f.domain===domain);
+  fields.forEach(f=>{
+    const option=new Option(f.display_name+(f.supported?'':' (unsupported)'),f.id);
+    option.disabled=!f.supported;battlefield.add(option);
+  });
+  const preferred=fields.find(f=>f.id===preferredId&&f.supported);
+  const maxField=fields.find(f=>f.id===domain+'-max'&&f.supported);
+  const first=fields.find(f=>f.supported);
+  if(preferred)battlefield.value=preferred.id;
+  else if(maxField)battlefield.value=maxField.id;
+  else if(first)battlefield.value=first.id;
+  updateArmyPackageAvailability();
+  renderArmy('attacker');renderArmy('defender');updateSlotButtons();updateAllUnitStats();
+}
+function updateArmyPackageAvailability(){
+  const domain=currentDomain();
+  for(const side of ['attacker','defender']){
+    const select=document.getElementById(side==='attacker'?'aArmyKind':'dArmyKind');
+    const barbarian=[...select.options].find(option=>option.value==='barbarian');
+    if(barbarian)barbarian.disabled=domain!=='land';
+    if(select.value==='barbarian'&&barbarian?.disabled)select.value='player';
+    toggleArmyPackage(side,false);
+  }
+}
+function toggleArmyPackage(side,rerender=true){
+  const kind=armyKind(side),forge=document.getElementById(side==='attacker'?'aForge':'dForge');
+  const wrap=document.getElementById(side==='attacker'?'aForgeWrap':'dForgeWrap');
+  if(kind==='barbarian'){
+    if(!forge.disabled)forge.dataset.playerValue=forge.value;
+    forge.value='0';forge.disabled=true;wrap.classList.add('hidden');
+  }else{
+    forge.disabled=false;wrap.classList.remove('hidden');
+    if(forge.dataset.playerValue)forge.value=forge.dataset.playerValue;
+  }
+  if(rerender){renderArmy(side);updateSlotButtons();updateAllUnitStats()}
+}
+function defaultQuantity(unit,side){
+  const defaultId=armyKind(side)==='barbarian'?'barbarian_clubman':'hoplite';
+  if(unit.id!==defaultId)return 0;
   const field=currentField(),line=field?.lines?.first;
   return line&&unit.size?line.physical_order.length*Math.floor(line.slot_space/unit.size):0;
 }
 function setupRow(unit,side,options={}){
-  const extra=Boolean(options.extra),batchIndex=options.batchIndex||1;
+  const barbarian=unit.army_kind==='barbarian',extra=Boolean(options.extra),batchIndex=options.batchIndex||1;
   const row=document.createElement('div');row.className='unit-setup-row'+(extra?' extra-batch':'');row.dataset.unitId=unit.id;row.dataset.side=side;row.dataset.batchIndex=String(batchIndex);
-  const quantity=extra?0:defaultQuantity(unit),batchId=options.batchId||side+'-batch-'+batchIndex,arrivalRound=options.arrivalRound??0;
+  const quantity=extra?0:defaultQuantity(unit,side),batchId=options.batchId||side+'-batch-'+batchIndex,arrivalRound=options.arrivalRound??0;
   const supportNote=unit.support_effect==='morale'?' · 士氣支援（尚未建模）':unit.support_effect==='healing'?' · 治療支援（尚未建模）':'';
+  const packageNote=barbarian?' · Barbarian':'';
+  const levels=barbarian?
+    '<label class="level-field hidden">攻擊<input class="attack" type="number" min="0" value="0" disabled></label><label class="level-field hidden">防禦<input class="armor" type="number" min="0" value="0" disabled></label>':
+    '<label class="level-field">攻擊<input class="attack" type="number" min="0" value="'+(options.attack??0)+'"></label><label class="level-field">防禦<input class="armor" type="number" min="0" value="'+(options.armor??0)+'"></label>';
+  const advanced=barbarian?'':'<details class="advanced"><summary>進階：進場批次</summary><div class="advanced-fields"><label class="batch-field">Batch ID<input class="entry-batch" value="'+esc(batchId)+'"></label><label class="arrival-field">進場回合<input class="arrival-round" type="number" min="0" max="1000" value="'+arrivalRound+'"></label><div class="batch-help">同一時間抵達的不同兵種請使用相同 Batch ID 與進場回合；各兵種的彈藥與傷害狀態仍分開保存。</div></div><div class="batch-actions"><button type="button" class="batch-btn batch-add">＋ 新增進場批次</button>'+(extra?'<button type="button" class="batch-btn batch-remove">移除此批次</button>':'')+'</div></details>';
   row.innerHTML=
-    '<div class="unit-ident"><div class="unit-icon" aria-hidden="true">'+unitIconHtml(unit)+'</div><div class="unit-ident-copy"><div class="unit-name">'+esc(unit.display_name)+(extra?' · batch '+batchIndex:'')+'</div><div class="unit-meta">'+esc(lineLabel(unit.native_line))+' · size '+esc(unit.size??'—')+(unit.general_score==null?'':' · 軍分 '+esc(unit.general_score))+supportNote+'</div></div></div>'+
+    '<div class="unit-ident"><div class="unit-icon" aria-hidden="true">'+unitIconHtml(unit)+'</div><div class="unit-ident-copy"><div class="unit-name">'+esc(unit.display_name)+(extra?' · batch '+batchIndex:'')+'</div><div class="unit-meta">'+esc(lineLabel(unit.native_line))+' · size '+esc(unit.size??'—')+(unit.general_score==null?'':' · 軍分 '+esc(unit.general_score))+packageNote+supportNote+'</div></div></div>'+
     '<div class="qty-control"><button type="button" class="slot-btn slot-minus">−格</button><input class="qty" type="number" min="0" value="'+quantity+'" aria-label="'+esc(unit.display_name)+' quantity"><button type="button" class="slot-btn slot-plus">＋格</button></div>'+
-    '<label class="level-field">攻擊<input class="attack" type="number" min="0" value="'+(options.attack??0)+'"></label>'+
-    '<label class="level-field">防禦<input class="armor" type="number" min="0" value="'+(options.armor??0)+'"></label>'+
-    '<div class="unit-statbox" aria-live="polite"></div>'+
-    '<details class="advanced"><summary>進階：進場批次</summary><div class="advanced-fields"><label class="batch-field">Batch ID<input class="entry-batch" value="'+esc(batchId)+'"></label><label class="arrival-field">進場回合<input class="arrival-round" type="number" min="0" max="1000" value="'+arrivalRound+'"></label><div class="batch-help">同一時間抵達的不同兵種請使用相同 Batch ID 與進場回合；各兵種的彈藥與傷害狀態仍分開保存。</div></div><div class="batch-actions"><button type="button" class="batch-btn batch-add">＋ 新增進場批次</button>'+(extra?'<button type="button" class="batch-btn batch-remove">移除此批次</button>':'')+'</div></details>';
+    levels+'<div class="unit-statbox" aria-live="polite"></div>'+advanced;
   row.querySelector('.slot-plus').addEventListener('click',()=>adjustBySlot(row,1));
   row.querySelector('.slot-minus').addEventListener('click',()=>adjustBySlot(row,-1));
-  row.querySelector('.attack').addEventListener('input',()=>updateUnitStatRow(row));
-  row.querySelector('.armor').addEventListener('input',()=>updateUnitStatRow(row));
-  row.querySelector('.batch-add').addEventListener('click',()=>addBatchRow(row));
+  row.querySelector('.attack')?.addEventListener('input',()=>updateUnitStatRow(row));
+  row.querySelector('.armor')?.addEventListener('input',()=>updateUnitStatRow(row));
+  row.querySelector('.batch-add')?.addEventListener('click',()=>addBatchRow(row));
   const remove=row.querySelector('.batch-remove');if(remove)remove.addEventListener('click',()=>row.remove());
   updateUnitStatRow(row);
   return row;
 }
 function addBatchRow(sourceRow){
-  const side=sourceRow.dataset.side,unit=unitById(sourceRow.dataset.unitId),group=sourceRow.closest('.unit-group');
+  const side=sourceRow.dataset.side,unit=unitById(sourceRow.dataset.unitId);if(unit.army_kind==='barbarian')return;
+  const group=sourceRow.closest('.unit-group');
   const matching=[...group.querySelectorAll('.unit-setup-row')].filter(row=>row.dataset.unitId===unit.id);
   const batchIndex=Math.max(...matching.map(row=>Number(row.dataset.batchIndex)||1))+1,last=matching[matching.length-1];
   const row=setupRow(unit,side,{extra:true,batchIndex,batchId:side+'-batch-'+batchIndex,arrivalRound:0,
@@ -307,13 +368,15 @@ function addBatchRow(sourceRow){
 }
 function renderArmy(side){
   const root=document.getElementById(side+'Units');root.innerHTML='';
+  const kind=armyKind(side),domain=currentDomain(),source=kind==='barbarian'?barbarianUnits:playerUnits;
   groupOrder.forEach(group=>{
-    const members=units.filter(u=>u.domain==='land'&&u.semantic_class===group&&(u.numerically_supported||u.role==='support'));
+    const members=source.filter(u=>u.domain===domain&&u.semantic_class===group&&(u.numerically_supported||u.role==='support'));
     if(!members.length)return;
     const section=document.createElement('section');section.className='unit-group';
     const title=document.createElement('div');title.className='unit-group-title';title.textContent=groupLabels[group]||group;section.append(title);
     members.forEach(unit=>section.append(setupRow(unit,side)));root.append(section);
   });
+  if(!root.children.length)root.innerHTML='<div class="reserve-note">此 battle type / army package 目前沒有可執行兵種。</div>';
 }
 function updateSlotButtons(){
   document.querySelectorAll('.unit-setup-row').forEach(row=>{
@@ -329,7 +392,18 @@ function adjustBySlot(row,direction){
   const input=row.querySelector('.qty'),value=Math.max(0,(Number(input.value)||0)+direction*step);input.value=value;
 }
 function army(side){
-  const rows=[...document.querySelectorAll('#'+side+'Units .unit-setup-row')];
+  const kind=armyKind(side),rows=[...document.querySelectorAll('#'+side+'Units .unit-setup-row')];
+  if(kind==='barbarian'){
+    const entryBatchId=side+'-barbarian-garrison';
+    const items=rows.map(row=>({
+      unit_id:row.dataset.unitId,
+      quantity:Math.max(0,+row.querySelector('.qty').value||0),
+      entry_batch_id:entryBatchId,arrival_round:0,
+      wave_id:entryBatchId+'::'+row.dataset.unitId,
+      attack_upgrade:0,armor_upgrade:0,
+    })).filter(item=>item.quantity>0);
+    return {army_kind:'barbarian',forge_level:0,units:items};
+  }
   const items=rows.map(row=>{
     const entryBatchId=(row.querySelector('.entry-batch').value||side+'-batch-1').trim();
     const arrivalRound=Math.max(0,Math.trunc(+row.querySelector('.arrival-round').value||0));
@@ -350,11 +424,13 @@ function army(side){
     if(batchRounds.has(item.entry_batch_id)&&batchRounds.get(item.entry_batch_id)!==item.arrival_round)throw Error('同一 Batch ID 的不同兵種必須使用相同的進場回合。');
     batchRounds.set(item.entry_batch_id,item.arrival_round);
   }
-  return {forge_level:+document.getElementById(side==='attacker'?'aForge':'dForge').value,units:items};
+  return {army_kind:'player',forge_level:+document.getElementById(side==='attacker'?'aForge':'dForge').value,units:items};
 }
 function scenarioFromSetup(){
   if(!metadata)throw Error('模擬器資料尚未載入完成。');
-  const submittedBattlefield=battlefield.value,attacker=army('attacker'),defender=army('defender');
+  const submittedBattlefield=battlefield.value,field=currentField();
+  if(!field?.supported)throw Error('目前選擇的戰場尚未開放執行。');
+  const attacker=army('attacker'),defender=army('defender');
   if(!attacker.units.length||!defender.units.length)throw Error('攻擊方與防守方都至少要設定一種兵力。');
   return {profiles:metadata.profiles,policy:policy.value,battlefield:submittedBattlefield,max_rounds:+maxRounds.value,attacker,defender};
 }
@@ -660,14 +736,16 @@ function setSimulationError(message){
 }
 async function boot(){
   const response=await fetch('/api/simulate'),data=await response.json();metadata=data;
-  units=data.units.filter(u=>u.domain==='land'&&(u.numerically_supported||u.role==='support'));
-  data.battlefields.forEach(f=>battlefield.add(new Option(f.display_name+(f.supported?'':' (unsupported)'),f.id)));
-  [...battlefield.options].forEach(option=>option.disabled=!data.battlefields.find(f=>f.id===option.value).supported);
-  const maxField=data.battlefields.find(f=>f.id==='land-max'&&f.supported);
-  if(maxField)battlefield.value=maxField.id;
-  populateForge('aForge');populateForge('dForge');renderArmy('attacker');renderArmy('defender');renderBarbarianCatalog();updateSlotButtons();updateAllUnitStats();
+  playerUnits=(data.units||[]).filter(u=>u.numerically_supported||u.role==='support');
+  barbarianUnits=(data.barbarian_units||[]).filter(u=>u.simulation_ready);
+  units=[...playerUnits,...barbarianUnits];
+  populateForge('aForge');populateForge('dForge');
+  renderBarbarianCatalog();populateBattleDomains();
 }
-battlefield.addEventListener('change',()=>{updateSlotButtons();updateAllUnitStats()});
+battleDomain.addEventListener('change',()=>refreshBattlefieldOptions());
+battlefield.addEventListener('change',()=>{updateArmyPackageAvailability();renderArmy('attacker');renderArmy('defender');updateSlotButtons();updateAllUnitStats()});
+document.getElementById('aArmyKind').addEventListener('change',()=>toggleArmyPackage('attacker'));
+document.getElementById('dArmyKind').addEventListener('change',()=>toggleArmyPackage('defender'));
 researchMode.addEventListener('change',()=>document.body.classList.toggle('research',researchMode.checked));
 showUnitStats.addEventListener('change',()=>{document.body.classList.toggle('show-unit-stats',showUnitStats.checked);if(showUnitStats.checked)updateAllUnitStats()});
 showUnitIdentity.addEventListener('change',()=>document.body.classList.toggle('show-unit-identity',showUnitIdentity.checked));
