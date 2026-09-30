@@ -27,9 +27,10 @@ def post_raw(value):
 def test_barbarian_metadata_contract_is_documented():
  contract=Path('.codex/contracts.md').read_text()
  assert 'barbarian_profile_metadata' in contract and 'barbarian_units' in contract
- assert 'selectable_by_player = false' in contract and 'simulation_ready = false' in contract
+ assert 'selectable_by_player = false' in contract and 'simulation_ready = true' in contract
  assert 'never members of the player `units` collection' in contract
- assert 'do not make Barbarian units valid `POST /api/simulate` army `unit_id` values' in contract
+ assert 'army_kind = player|barbarian' in contract
+ assert 'cannot be mixed on one side' in contract
 
 def test_get_metadata_drives_complete_land_ui_and_profiles():
  response=asyncio.run(request('GET','/api/simulate')); data=json.loads(response[1]['body'])
@@ -40,12 +41,13 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert set(data['profiles'])==set(Profiles().__dict__)
  assert data['profile_metadata']['verified_through_game_version']=='17.5.0'
  assert data['economy_metadata']['profile']=='military-economy-current'
- assert [(f['id'],f['display_name'],f['supported']) for f in data['battlefields']]==[
-  ('land-mini','Land mini / Town Hall 1–4',True),
-  ('land-small','Land small / Town Hall 5–9',True),
-  ('land-medium','Land medium / Town Hall 10–16',True),
-  ('land-large','Land large / Town Hall 17–24',True),
-  ('land-max','Land max / Town Hall 25+',True),
+ assert [(f['id'],f['domain'],f['display_name'],f['supported']) for f in data['battlefields']]==[
+  ('land-mini','land','Land mini / Town Hall 1–4',True),
+  ('land-small','land','Land small / Town Hall 5–9',True),
+  ('land-medium','land','Land medium / Town Hall 10–16',True),
+  ('land-large','land','Land large / Town Hall 17–24',True),
+  ('land-max','land','Land max / Town Hall 25+',True),
+  ('naval-mini','naval','Naval battlefield / geometry pending',False),
  ]
  medium=next(f for f in data['battlefields'] if f['id']=='land-medium')
  assert {line:len(spec['physical_order']) for line,spec in medium['lines'].items()}=={
@@ -58,9 +60,13 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert len([u for u in data['units'] if u['domain']=='land' and u['numerically_supported']])==15
  assert len(data['units'])==26
  assert len(data['barbarian_units'])==9
- assert data['barbarian_profile_metadata']['simulation_status']=='CATALOG_ONLY'
+ assert data['barbarian_profile_metadata']['simulation_status']=='LAND_COMBAT_READY'
  assert data['report_transport']=={'default_mode':'summary','default_round_page_size':10,'max_round_page_size':20}
- assert all(u['domain']=='barbarian' and not u['selectable_by_player'] and not u['simulation_ready'] for u in data['barbarian_units'])
+ assert all(
+  u['domain']=='land' and u['army_kind']=='barbarian'
+  and not u['selectable_by_player'] and u['selectable_in_simulator'] and u['simulation_ready']
+  and u['general_score']=='0'
+  for u in data['barbarian_units'])
  assert not ({u['id'] for u in data['barbarian_units']} & {u['id'] for u in data['units']})
  hoplite=next(u for u in data['units'] if u['id']=='hoplite')
  carabineer=next(u for u in data['units'] if u['id']=='sulphur_carabineer')
@@ -180,6 +186,9 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert 'function disableReports(){setReportsEnabled(false)}' in body
  assert 'lastScenario' not in body
  assert '熔爐神蹟 / Forge' in body and '攻擊' in body and '防禦' in body
+ assert 'id="battleDomain"' in body and 'id="aArmyKind"' in body and 'id="dArmyKind"' in body
+ assert "army_kind:'barbarian'" in body and "army_kind:'player'" in body
+ assert 'Barbarian 固定基礎數值 · 無 Workshop / Forge' in body
  assert '進階：進場批次' in body and 'Research mode' in body and 'floating-tooltip' in body
  assert 'id="showUnitStats" type="checkbox"' in body
  assert 'function effectiveSetupStats(row)' in body and 'workshop_increments' in body
@@ -340,7 +349,7 @@ def test_local_unit_icon_assets_and_shared_ui_mapping():
    assert local in body
    assert Path(local.lstrip('/')).is_file()
    assert Path('public'+local).is_file()
- assert '野蠻人兵種參考（9 種，catalog-only）' in body
+ assert '野蠻人兵種資料與出現等級（9 種）' in body
  assert 'function renderBarbarianCatalog()' in body
  assert body==Path('public/index.html').read_text()
 
