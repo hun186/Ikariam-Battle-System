@@ -28,9 +28,9 @@ def test_barbarian_metadata_contract_is_documented():
  contract=Path('.codex/contracts.md').read_text()
  assert 'barbarian_profile_metadata' in contract and 'barbarian_units' in contract
  assert 'selectable_by_player = false' in contract and 'simulation_ready = true' in contract
- assert 'never members of the player `units` collection' in contract
+ assert 'remain outside the player `units` collection' in contract
  assert 'army_kind = player|barbarian' in contract
- assert 'cannot be mixed on one side' in contract
+ assert 'no mixing with player unit IDs on the same side' in contract
 
 def test_get_metadata_drives_complete_land_ui_and_profiles():
  response=asyncio.run(request('GET','/api/simulate')); data=json.loads(response[1]['body'])
