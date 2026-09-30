@@ -113,16 +113,17 @@ class Army:
             raise ScenarioError("an army must contain at least one unit")
         forge_level = _integer(data.get("forge_level", 0), "forge_level", 0, 5)
         if army_kind == "barbarian":
+            active = [item for item in parsed if item.quantity]
             if forge_level != 0:
                 raise ScenarioError("barbarian armies do not use Forge levels")
-            if any(item.attack_upgrade or item.armor_upgrade for item in parsed):
+            if any(item.attack_upgrade or item.armor_upgrade for item in active):
                 raise ScenarioError("barbarian armies do not use Workshop upgrades")
-            if any(item.arrival_round != 0 for item in parsed):
+            if any(item.arrival_round != 0 for item in active):
                 raise ScenarioError("barbarian armies do not use delayed entry batches")
-            if len({item.batch_id for item in parsed}) != 1:
+            if len({item.batch_id for item in active}) != 1:
                 raise ScenarioError("barbarian armies use one fixed entry batch")
             waves_by_unit: dict[str, set[str]] = {}
-            for item in parsed:
+            for item in active:
                 waves_by_unit.setdefault(item.unit_id, set()).add(item.wave_id)
             if any(len(waves) != 1 for waves in waves_by_unit.values()):
                 raise ScenarioError("barbarian unit types cannot be split across waves")
