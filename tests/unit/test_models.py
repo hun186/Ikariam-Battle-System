@@ -127,6 +127,7 @@ def test_barbarian_army_uses_one_batch_and_one_wave_per_unit_type():
    {'unit_id':'barbarian_clubman','quantity':10,'entry_batch_id':'barbarian','wave_id':'w2'}]})
 
 
-def test_invalid_army_kind_is_rejected():
+@pytest.mark.parametrize('bad',['pirate',[],{},None,False])
+def test_invalid_army_kind_is_rejected(bad):
  with pytest.raises(ScenarioError,match='army_kind must be player or barbarian'):
-  Army.from_dict({'army_kind':'pirate','units':[{'unit_id':'hoplite','quantity':1}]})
+  Army.from_dict({'army_kind':bad,'units':[{'unit_id':'hoplite','quantity':1}]})
