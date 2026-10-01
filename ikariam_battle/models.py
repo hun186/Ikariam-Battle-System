@@ -103,7 +103,7 @@ class Army:
     def from_dict(cls, value: Any) -> "Army":
         data = _object(value, "army")
         army_kind = data.get("army_kind", "player")
-        if army_kind not in {"player", "barbarian"}:
+        if not isinstance(army_kind, str) or army_kind not in {"player", "barbarian"}:
             raise ScenarioError("army_kind must be player or barbarian")
         raw = data.get("units")
         if not isinstance(raw, list) or not raw:
