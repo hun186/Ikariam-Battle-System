@@ -27,4 +27,5 @@ def test_wall_metadata_is_input_supported_but_combat_guarded():
  assert metadata['input_supported'] is True
  assert metadata['combat_model_status']=='INPUT_CAPTURED_COMBAT_UNSUPPORTED'
  assert metadata['rule_id']=='UNKNOWN-TOWN-WALL-COMBAT'
- assert metadata['source_type']=='GAMEFORGE_CURRENT_REFERENCE'
+ assert metadata['source_type']=='GAMEFORGE_CURRENT_REFERENCE_PLUS_COMMUNITY_FORMULA'
+ assert len(metadata['source_urls'])==2
