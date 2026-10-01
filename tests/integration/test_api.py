@@ -128,31 +128,49 @@ def test_conflicting_same_unit_upgrades_and_invalid_domain_rejected():
  value=payload(); value['attacker']['units']=[{'unit_id':'rocket_ship','quantity':1}]
  assert post(value)[0]==400
 
-def test_healing_status_and_null_healing_are_preserved_in_http_reports():
- value=payload('experimental'); value['attacker']['units'].append({'unit_id':'doctor','quantity':2})
+def test_healing_status_and_exact_subset_are_preserved_in_http_reports():
+ value=payload('experimental'); value['attacker']['units'].append({'unit_id':'doctor','quantity':100})
  status,summary=post(value)
  assert status==200
- assert summary['healing_status']['derived_capacity_per_doctor']==4000
- assert summary['healing_status']['sides']['attacker']=={
-  'doctor_count':2,'status':'ignored_by_named_assumption','effect_applied':False,'healing_amount':None
- }
- assert summary['combat_statistics']['attacker']['gross_healing'] is None
+ healing=summary['healing_status']
+ assert healing['derived_capacity_per_doctor']==4000
+ assert healing['partial_model'] is True
+ assert healing['model_status']=='EXACT_FULL_CLEAR_SUBSET_ONLY'
+ assert healing['timing_contract']=='per_round_before_next_round_combat'
+ side=healing['sides']['attacker']
+ assert side['doctor_count']==100
+ assert side['status']=='applied_exact_subset'
+ assert side['effect_applied'] is True
+ assert side['healing_amount']>0
+ assert summary['combat_statistics']['attacker']['gross_healing']==side['healing_amount']
  status,page=post_page(value,0,10)
  assert status==200
- assert all(row['combat_statistics']['attacker']['healing'] is None for row in page['rounds'])
- assert all(row['combat_statistics']['attacker']['cumulative_healing'] is None for row in page['rounds'])
+ assert all(row['combat_statistics']['attacker']['healing'] is not None for row in page['rounds'])
+ assert any(row['combat_statistics']['attacker']['healing']>0 for row in page['rounds'])
+ assert page['rounds'][-1]['combat_statistics']['attacker']['cumulative_healing']==side['healing_amount']
 
 
 def test_doctor_and_cook_have_separate_boundaries():
- for unit,unknown,assumption in [('doctor','UNKNOWN-HEALING-ALLOCATION','EXP-HEAL-NONE-001'),('cook','UNKNOWN-MORALE-SUPPORT','EXP-MORALE-NONE-001')]:
+ for unit,unknown in [('doctor','UNKNOWN-HEALING-ALLOCATION'),('cook','UNKNOWN-MORALE-SUPPORT')]:
   value=payload('strict'); value['attacker']['units'].append({'unit_id':unit,'quantity':1}); status,data=post(value)
   assert status==200 and unknown in {e['details'].get('rule_id') for e in data['events'] if e['type']=='unsupported_mechanic'}
   if unit=='cook':
    assert data['morale_status']['sides']['attacker']=={'cook_count':1,'status':'unsupported_boundary','effect_applied':False}
-  value['policy']='experimental'; status,data=post(value); assert assumption in {a['id'] for a in data['assumptions']}
-  if unit=='cook':
-   assert data['morale_status']['modeled'] is False
-   assert data['morale_status']['sides']['attacker']=={'cook_count':1,'status':'ignored_by_named_assumption','effect_applied':False}
+
+ value=payload('experimental'); value['attacker']['units'].append({'unit_id':'doctor','quantity':100})
+ status,data=post(value); assert status==200
+ assert 'EXP-HEAL-NONE-001' not in {a['id'] for a in data['assumptions']}
+ assert data['healing_status']['partial_model'] is True
+ assert data['healing_status']['sides']['attacker']['status']=='applied_exact_subset'
+ assert data['healing_status']['sides']['attacker']['effect_applied'] is True
+
+ value=payload('experimental'); value['attacker']['units'].append({'unit_id':'cook','quantity':1})
+ status,data=post(value); assert status==200
+ assert 'EXP-MORALE-NONE-001' in {a['id'] for a in data['assumptions']}
+ assert data['morale_status']['modeled'] is False
+ assert data['morale_status']['sides']['attacker']=={
+  'cook_count':1,'status':'ignored_by_named_assumption','effect_applied':False
+ }
 
 
  value={'policy':'experimental','battlefield':'land-small','max_rounds':2,
