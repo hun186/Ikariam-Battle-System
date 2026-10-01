@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
-from .garrison import MAX_TOWN_HALL_LEVEL
+from .garrison import MAX_BARBARIAN_VILLAGE_LEVEL, MAX_TOWN_HALL_LEVEL
 from .wall import MAX_TOWN_WALL_LEVEL
 
 
@@ -209,6 +209,7 @@ class Scenario:
     max_rounds: int = DEFAULT_MAX_ROUNDS
     wall_level: int = 0
     town_hall_level: int | None = None
+    barbarian_village_level: int | None = None
 
     @classmethod
     def from_dict(cls, value: Any) -> "Scenario":
@@ -225,12 +226,20 @@ class Scenario:
             None if town_hall_raw is None
             else _integer(town_hall_raw, "town_hall_level", 1, MAX_TOWN_HALL_LEVEL)
         )
+        barbarian_raw = data.get("barbarian_village_level")
+        barbarian_village_level = (
+            None if barbarian_raw is None
+            else _integer(
+                barbarian_raw, "barbarian_village_level",
+                1, MAX_BARBARIAN_VILLAGE_LEVEL,
+            )
+        )
         try:
             return cls(Army.from_dict(data["attacker"]), Army.from_dict(data["defender"]),
                        Profiles.from_dict(data.get("profiles", {})), policy, battlefield,
                        _integer(data.get("max_rounds", DEFAULT_MAX_ROUNDS), "max_rounds", 1, MAX_ROUNDS),
                        _integer(data.get("wall_level", 0), "wall_level", 0, MAX_TOWN_WALL_LEVEL),
-                       town_hall_level)
+                       town_hall_level, barbarian_village_level)
         except KeyError as exc:
             raise ScenarioError(f"missing field: {exc.args[0]}") from exc
 
