@@ -1,6 +1,63 @@
 {
-  "metadata":{"profile":"battle-system-paper-2020","source_type":"EMPIRICAL_PAPER","source":"ikariam battle system.pdf","current_version_applicability":"CALIBRATION_REQUIRED"},
-  "physical_order":{"first":[6,4,2,1,3,5,7],"second":[6,4,2,1,3,5,7],"third":[5,3,1,2,4],"flank-left":[6,4,2],"flank-right":[1,3,5],"balloon":[1,2],"anti-balloon":[2,1]},
-  "damage_priority":"ascending damage_position",
-  "unknown":["kill_selection","rounding_selector","sr_trigger","ir_trigger","complete_chronology","retargeting","mixed_unit_rows","healing_allocation"]
+  "metadata": {
+    "profile": "battle-system-paper-2020",
+    "source_type": "EMPIRICAL_PAPER",
+    "source": "ikariam battle system.pdf",
+    "current_version_applicability": "CALIBRATION_REQUIRED"
+  },
+  "physical_order": {
+    "first": [
+      6,
+      4,
+      2,
+      1,
+      3,
+      5,
+      7
+    ],
+    "second": [
+      6,
+      4,
+      2,
+      1,
+      3,
+      5,
+      7
+    ],
+    "third": [
+      5,
+      3,
+      1,
+      2,
+      4
+    ],
+    "flank-left": [
+      6,
+      4,
+      2
+    ],
+    "flank-right": [
+      1,
+      3,
+      5
+    ],
+    "balloon": [
+      1,
+      2
+    ],
+    "anti-balloon": [
+      2,
+      1
+    ]
+  },
+  "damage_priority": "ascending damage_position",
+  "unknown": [
+    "kill_selection",
+    "rounding_selector",
+    "sr_trigger",
+    "ir_trigger",
+    "complete_chronology",
+    "retargeting",
+    "healing_allocation"
+  ]
 }
