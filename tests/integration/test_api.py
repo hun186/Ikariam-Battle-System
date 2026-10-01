@@ -68,6 +68,8 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
   and u['general_score']=='0'
   for u in data['barbarian_units'])
  assert not ({u['id'] for u in data['barbarian_units']} & {u['id'] for u in data['units']})
+ clubman=next(u for u in data['barbarian_units'] if u['id']=='barbarian_clubman')
+ assert (clubman['semantic_class'],clubman['native_line'])==('heavy_infantry','first')
  hoplite=next(u for u in data['units'] if u['id']=='hoplite')
  carabineer=next(u for u in data['units'] if u['id']=='sulphur_carabineer')
  assert (hoplite['size'],carabineer['size'])==(1,4)
