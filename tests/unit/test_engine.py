@@ -657,9 +657,9 @@ def test_light_fallback_releases_native_slots_for_later_same_unit_wave():
  for slot in heavy.slots:
   slot.units=16 if slot.damage_position in {1,2,3} else 0
   slot.damage=0
+ # Initial deployment already gives s1 40/40/20 in native center slots.
+ assert sum(slot.units for slot in s1.slots)==100
  s1.reserve=0
- for slot in s1.slots:
-  slot.units=slot.capacity if slot.damage_position in {1,2,3} else 0
  s2.reserve=80
  for slot in s2.slots:
   slot.units=40 if slot.damage_position in {4,5,6} else 0
