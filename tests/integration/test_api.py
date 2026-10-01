@@ -308,7 +308,7 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert "unit.semantic_class==='light_infantry'&&field.lines.first" in body
  assert "minus.textContent=step?'−'+step" in body and "plus.textContent=step?'＋'+step" in body
  assert "const submittedBattlefield=battlefield.value" in body
- assert "lastBattlefieldId=submittedBattlefield" in body
+ assert "lastBattlefieldId=data.garrison_status?.effective_battlefield||submittedBattlefield" in body
  assert "if(maxField)battlefield.value=maxField.id" in body
  assert "if(metadata.forge_levels['5'])select.value='5'" in body
  assert "line.physical_order.length*Math.floor(line.slot_space/unit.size)" in body
