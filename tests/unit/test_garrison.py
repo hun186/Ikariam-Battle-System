@@ -1,6 +1,7 @@
 from ikariam_battle.garrison import (
- BARBARIAN_GARRISON_RULE_ID, counted_garrison_quantity,
- garrison_profile_metadata, player_garrison_limit, player_garrison_status,
+ barbarian_garrison_limit, counted_garrison_quantity,
+ garrison_profile_metadata, land_garrison_status,
+ player_garrison_limit, player_garrison_status,
 )
 from ikariam_battle.models import Army
 
@@ -36,16 +37,24 @@ def test_v17_4_support_units_do_not_count_toward_land_garrison_limit():
  assert status['open_field'] is False
 
 
-def test_barbarian_formula_remains_non_executable_due_to_conflicting_evidence():
+def test_barbarian_formula_matches_2024_forum_rule_and_strict_threshold():
+ assert barbarian_garrison_limit(10,1)==800
  army=Army.from_dict({'army_kind':'barbarian','units':[
-  {'unit_id':'barbarian_clubman','quantity':100}
+  {'unit_id':'barbarian_clubman','quantity':800}
  ]})
- status=player_garrison_status(
-  town_hall_level=None,wall_level=0,defender_army=army,
-  base_battlefield_id='land-max')
- assert status['modeled'] is False
- assert status['status']=='barbarian_formula_unresolved'
- assert status['rule_id']==BARBARIAN_GARRISON_RULE_ID
+ at_limit=land_garrison_status(
+  town_hall_level=None,barbarian_village_level=10,wall_level=1,
+  defender_army=army,base_battlefield_id='land-small')
+ assert at_limit['open_field'] is False
+ over=Army.from_dict({'army_kind':'barbarian','units':[
+  {'unit_id':'barbarian_clubman','quantity':801}
+ ]})
+ above=land_garrison_status(
+  town_hall_level=None,barbarian_village_level=10,wall_level=1,
+  defender_army=over,base_battlefield_id='land-small')
+ assert above['open_field'] is True
+ assert above['effective_battlefield']=='land-max'
  meta=garrison_profile_metadata()
- assert meta['barbarian_formula_status']=='CONFLICTING_COMMUNITY_EVIDENCE'
- assert len(meta['barbarian_candidates'])==2
+ assert meta['barbarian_formula']=='(barbarian_village_level + wall_level + 5) * 50'
+ assert meta['barbarian_formula_status']=='GAMEFORGE_FORUM_2024_COMMUNITY_REPORT'
+ assert meta['barbarian_historical_approximation']=='approximately 250 + 75 * wall_level'
