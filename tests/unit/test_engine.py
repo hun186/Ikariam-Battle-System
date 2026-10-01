@@ -601,6 +601,48 @@ def test_round_start_moves_whole_light_wave_from_flank_into_open_first_slots():
  )
 
 
+def test_comprehensive_preset_does_not_stop_at_round_four_when_swordsmen_can_fill_first():
+ s={
+  'policy':'experimental','battlefield':'land-max','max_rounds':5,
+  'attacker':{'forge_level':5,'units':[
+   {'unit_id':'hoplite','quantity':700,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'swordsman','quantity':480,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'sulphur_carabineer','quantity':168,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'mortar','quantity':60,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'bombardier','quantity':60,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'gyrocopter','quantity':120,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'cook','quantity':15,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'doctor','quantity':15,'entry_batch_id':'attacker-batch-1'},
+  ]},
+  'defender':{'forge_level':5,'units':[
+   {'unit_id':'steam_giant','quantity':224,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'swordsman','quantity':480,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'archer','quantity':700,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'catapult','quantity':60,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'bombardier','quantity':60,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'gyrocopter','quantity':120,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'cook','quantity':15,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'doctor','quantity':15,'entry_batch_id':'defender-batch-1'},
+  ]},
+ }
+ result=simulate(s)
+ assert result['rounds_completed']>=5
+ assert not any(
+  event['type']=='unsupported_mechanic'
+  and event['round']==4
+  and event['details'].get('rule_id')=='UNKNOWN-FORMATION-FALLBACK'
+  for event in result['events']
+ )
+ assert any(
+  event['type']=='formation_fallback'
+  and event['round']==5
+  and event['side']=='defender'
+  and event['details'].get('unit_id')=='swordsman'
+  and event['details'].get('to_line')=='first'
+  for event in result['events']
+ )
+
+
 def test_partial_light_cross_line_fallback_remains_guarded():
  registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
  waves=deploy(Army.from_dict({'units':[
