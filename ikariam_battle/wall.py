@@ -45,15 +45,29 @@ def wall_segments(field) -> int:
     return len(first.physical_order) if first is not None else 0
 
 
-def wall_status(level: int, field) -> dict[str, Any]:
+def wall_status(
+    level: int,
+    field,
+    *,
+    active: bool | None = None,
+    inactive_reason: str | None = None,
+) -> dict[str, Any]:
     stats = wall_stats(level)
+    if level == 0:
+        status = "not_present"
+    elif active is False:
+        status = "suppressed"
+    else:
+        status = "unsupported_boundary"
     return {
         **stats,
         "segments": wall_segments(field) if level else 0,
-        "status": "not_present" if level == 0 else "unsupported_boundary",
+        "status": status,
         "combat_model_status": "INPUT_CAPTURED_COMBAT_UNSUPPORTED",
         "rule_id": TOWN_WALL_RULE_ID,
         "effect_applied": False,
+        "active": bool(level) if active is None else bool(active),
+        "inactive_reason": inactive_reason,
     }
 
 
