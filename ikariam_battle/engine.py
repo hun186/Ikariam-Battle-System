@@ -202,10 +202,14 @@ def _apply_supported_doctor_healing(
         )
         return 0
 
-    by_wave: dict[str, int] = {}
+    by_wave: list[dict[str, Any]] = []
     by_unit: dict[str, int] = defaultdict(int)
     for wave, total_damage in damaged:
-        by_wave[wave.unit.wave_id] = total_damage
+        by_wave.append({
+            "unit_id": wave.unit.unit_id,
+            "wave_id": wave.unit.wave_id,
+            "healing": total_damage,
+        })
         by_unit[wave.unit.unit_id] += total_damage
         wave.reserve_damage = 0
         for slot in wave.slots:
@@ -217,7 +221,9 @@ def _apply_supported_doctor_healing(
         eligible_damage_before=eligible_damage,
         healing=eligible_damage,
         unused_capacity=capacity - eligible_damage,
-        affected_waves=dict(sorted(by_wave.items())),
+        affected_waves=sorted(
+            by_wave, key=lambda item: (item["unit_id"], item["wave_id"])
+        ),
         affected_units=dict(sorted(by_unit.items())),
         eligibility="land_human_combat",
         timing="round_boundary_before_next_combat",
@@ -724,6 +730,13 @@ def _supported_whole_wave_light_first_fallback(
             if previous is not None:
                 previous_wave, previous_slot = previous
                 if previous_slot in previous_wave.slots and not previous_slot.units:
+                    # Empty physical slots may still carry persistent damage
+                    # owned by their previous unit-state wave. Replacing the
+                    # slot must not discard that damage; park it on the owning
+                    # wave so the ordinary RR pass can redistribute it after
+                    # the new formation is complete.
+                    previous_wave.reserve_damage += previous_slot.damage
+                    previous_slot.damage = 0
                     previous_wave.slots.remove(previous_slot)
 
             quantity = min(capacity, remaining)
