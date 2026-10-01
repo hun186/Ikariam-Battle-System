@@ -51,8 +51,8 @@ def test_max_rounds_defaults_to_100_and_allows_1000_safety_cap():
 
 def test_wall_level_defaults_to_zero_and_accepts_current_maximum():
  assert Scenario.from_dict(BASE).wall_level==0
- assert Scenario.from_dict({**BASE,'wall_level':46}).wall_level==46
- for bad in (-1,47,True,'20'):
+ assert Scenario.from_dict({**BASE,'wall_level':48}).wall_level==48
+ for bad in (-1,49,True,'20'):
   with pytest.raises(ScenarioError):
    Scenario.from_dict({**BASE,'wall_level':bad})
 
@@ -64,6 +64,15 @@ def test_town_hall_level_is_optional_and_validates_current_range():
  for bad in (0,67,True,'25'):
   with pytest.raises(ScenarioError):
    Scenario.from_dict({**BASE,'town_hall_level':bad})
+
+
+def test_barbarian_village_level_is_optional_and_validates_range():
+ assert Scenario.from_dict(BASE).barbarian_village_level is None
+ assert Scenario.from_dict({**BASE,'barbarian_village_level':1}).barbarian_village_level==1
+ assert Scenario.from_dict({**BASE,'barbarian_village_level':50}).barbarian_village_level==50
+ for bad in (0,51,True,'20'):
+  with pytest.raises(ScenarioError):
+   Scenario.from_dict({**BASE,'barbarian_village_level':bad})
 
 
 def test_entry_batch_can_group_multiple_unit_types_without_merging_unit_state():
