@@ -24,12 +24,14 @@ def test_wall_sections_follow_selected_land_first_line_geometry():
 
 def test_wall_metadata_is_input_supported_but_combat_guarded():
  metadata=wall_profile_metadata()
- assert metadata['max_level']==46
+ assert metadata['max_level']==48
  assert metadata['input_supported'] is True
  assert metadata['combat_model_status']=='INPUT_CAPTURED_COMBAT_UNSUPPORTED'
  assert metadata['rule_id']=='UNKNOWN-TOWN-WALL-COMBAT'
- assert metadata['source_type']=='GAMEFORGE_CURRENT_REFERENCE_PLUS_COMMUNITY_FORMULA'
- assert len(metadata['source_urls'])==2
+ assert metadata['source_type']=='MIXED_CURRENT_REFERENCE'
+ assert metadata['gameforge_reference_max_level']==46
+ assert metadata['current_game_max_level_evidence']=='GAMEFORGE_FORUM_PLUS_COMMUNITY_TABLE'
+ assert len(metadata['source_urls'])==4
 
 
 def test_wall_can_be_suppressed_by_open_field_state():
