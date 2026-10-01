@@ -4,7 +4,7 @@ import pytest
 from ikariam_battle import simulate
 from ikariam_battle.battlefield import LAND_BATTLEFIELDS, LAND_MINI, deploy
 from ikariam_battle.engine import (
- _cross_wave_rebuild_requirements, _ir_trigger, _plan_fire, _preflight,
+ _cross_wave_rebuild_requirements, _formation_shots, _ir_trigger, _plan_fire, _preflight,
  _prepare_round_start, _redistribute, _resolve_volleys, _sr_trigger, _target,
 )
 from ikariam_battle.formation import FormationRules
@@ -613,15 +613,20 @@ def test_larger_field_multiline_light_wave_remains_guarded():
   event['details'].get('rule_id') for event in result['events']}
 
 
-def test_larger_field_mixed_heavy_and_light_front_remains_guarded():
+def test_larger_field_mixed_heavy_and_light_front_executes_one_shared_am():
  s={'policy':'experimental','battlefield':'land-medium','max_rounds':1,
     'attacker':{'units':[{'unit_id':'hoplite','quantity':30},
                          {'unit_id':'swordsman','quantity':30}]},
     'defender':{'units':[{'unit_id':'hoplite','quantity':210}]}}
  result=simulate(s)
- assert result['rounds_completed']==0
- assert 'UNKNOWN-MIXED-UNIT-AM-ROWS' in {
-  event['details'].get('rule_id') for event in result['events']}
+ rules={event['details'].get('rule_id') for event in result['events']
+        if event['type']=='unsupported_mechanic'}
+ assert 'UNKNOWN-MIXED-UNIT-AM-ROWS' not in rules
+ assert result['rounds_completed']==1
+ matrices=[event for event in result['events']
+           if event['type']=='attacking_matrix' and event['side']=='attacker'
+           and event['details'].get('firing_phase')=='first']
+ assert {event['details']['unit_id'] for event in matrices}=={'hoplite','swordsman'}
 
 
 def test_larger_field_cross_wave_reserve_candidate_waits_while_line_is_full():
@@ -746,17 +751,21 @@ def test_dynamic_front_collapse_retargets_later_main_shots_into_long_range():
             and e['details'].get('firing_phase')=='first' for e in result['events'])
 
 
-def test_mixed_runtime_front_is_represented_but_never_fires():
- s={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
+def test_mixed_runtime_front_is_represented_and_fires_by_runtime_line():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
     'attacker':{'units':[{'unit_id':'hoplite','quantity':90}]},
     'defender':{'units':[{'unit_id':'hoplite','quantity':8},{'unit_id':'swordsman','quantity':30}]}}
  result=simulate(s); front=result['initial_state']['defender']['slots']
  assert {(slot['unit_id'],slot['line']) for slot in front}=={('hoplite','first'),('swordsman','first')}
  rules={e['details']['rule_id'] for e in result['events'] if e['type']=='unsupported_mechanic'}
- assert 'UNKNOWN-MIXED-UNIT-AM-ROWS' in rules
+ assert 'UNKNOWN-MIXED-UNIT-AM-ROWS' not in rules
  assert 'UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT' not in rules
- assert result['rounds_completed']==0
- assert not any(e['type']=='attacking_matrix' for e in result['events'])
+ assert result['rounds_completed']==1
+ assert {'hoplite','swordsman'} <= {
+  e['details']['unit_id'] for e in result['events']
+  if e['type']=='attacking_matrix' and e['side']=='defender'
+  and e['details'].get('firing_phase')=='first'
+ }
 
 
 def test_both_sides_without_main_line_is_not_an_unqualified_draw():
@@ -898,6 +907,66 @@ def test_zero_quantity_support_rows_do_not_create_blockers_or_assumptions():
   assert assumption not in ids
   side=result[status_key]['sides']['attacker']
   assert side[count_key]==0 and side['status']=='not_present'
+
+
+def test_mixed_source_am_merges_columns_in_row_major_order():
+ volleys=[
+  {'source_unit':'catapult','row_numbers':[1,1,2,2],
+   'source_damage_positions':[1,2,1,2]},
+  {'source_unit':'battering_ram','row_numbers':[1,2],
+   'source_damage_positions':[3,3]},
+ ]
+ shots=_formation_shots(volleys)
+ assert [(volleys[index]['source_unit'],row) for index,row in shots]==[
+  ('catapult',1),('catapult',1),('battering_ram',1),
+  ('catapult',2),('catapult',2),('battering_ram',2),
+ ]
+
+
+def test_barbarian_mixed_artillery_debug_shape_reaches_combat():
+ s={'policy':'experimental','battlefield':'land-max','max_rounds':1,
+    'attacker':{'army_kind':'player','forge_level':5,'units':[
+      {'unit_id':'hoplite','quantity':650}]},
+    'defender':{'army_kind':'barbarian','forge_level':0,'units':[
+      {'unit_id':'barbarian_axe_swinger','quantity':650,
+       'entry_batch_id':'defender-barbarian-garrison'},
+      {'unit_id':'barbarian_catapult','quantity':24,
+       'entry_batch_id':'defender-barbarian-garrison'},
+      {'unit_id':'barbarian_ram','quantity':6,
+       'entry_batch_id':'defender-barbarian-garrison'},
+    ]}}
+ result=simulate(s)
+ rules={e['details'].get('rule_id') for e in result['events']
+        if e['type']=='unsupported_mechanic'}
+ assert 'UNKNOWN-MIXED-UNIT-AM-ROWS' not in rules
+ assert result['rounds_completed']==1
+ assert {'barbarian_catapult','barbarian_ram'} <= {
+  e['details'].get('source_unit_id') for e in result['events']
+  if e['type']=='damage' and e['side']=='defender'
+  and e['details'].get('firing_phase')=='third'
+ }
+
+
+def test_barbarian_clubman_and_axe_swinger_share_heavy_front_without_mixed_am_blocker():
+ s={'policy':'experimental','battlefield':'land-max','max_rounds':1,
+    'attacker':{'army_kind':'player','units':[{'unit_id':'hoplite','quantity':350}]},
+    'defender':{'army_kind':'barbarian','units':[
+      {'unit_id':'barbarian_axe_swinger','quantity':300,
+       'entry_batch_id':'defender-barbarian-garrison'},
+      {'unit_id':'barbarian_clubman','quantity':50,
+       'entry_batch_id':'defender-barbarian-garrison'},
+    ]}}
+ result=simulate(s)
+ front=[slot for slot in result['initial_state']['defender']['slots']
+        if slot['line']=='first']
+ assert {slot['unit_id'] for slot in front}=={
+  'barbarian_axe_swinger','barbarian_clubman'}
+ assert all(slot['semantic_class']=='heavy_infantry' for slot in front)
+ assert 'UNKNOWN-MIXED-UNIT-AM-ROWS' not in {
+  e['details'].get('rule_id') for e in result['events']
+  if e['type']=='unsupported_mechanic'
+ }
+ assert result['rounds_completed']==1
 
 
 def test_am_slot_addresses_stay_fixed_when_target_slot_empties_mid_volley():
