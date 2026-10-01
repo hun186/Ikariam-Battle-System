@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from ikariam_battle import BarbarianRegistry, ScenarioError, UnitRegistry, simulate
 from ikariam_battle.battlefield import battlefield_metadata
 from ikariam_battle.economy import MilitaryEconomyProfile
+from ikariam_battle.garrison import garrison_profile_metadata
 from ikariam_battle.models import MAX_ROUNDS, Profiles
 from ikariam_battle.profiles import ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile, WorkshopProfile
 from ikariam_battle.wall import wall_profile_metadata
@@ -129,6 +130,7 @@ class handler(BaseHTTPRequestHandler):
                 },
                 "battlefields": battlefield_metadata(),
                 "town_wall": wall_profile_metadata(),
+                "garrison": garrison_profile_metadata(),
                 "profile_metadata": registry.metadata, "economy_metadata": economy.metadata, "units": units,
                 "barbarian_profile_metadata": barbarians.metadata, "barbarian_units": barbarians.public(),
                 "forge_levels": {str(k): {"damage_multiplier":str(v.damage_multiplier),"armor_bonus":v.armor_bonus}
