@@ -947,6 +947,39 @@ def test_barbarian_mixed_artillery_debug_shape_reaches_combat():
  }
 
 
+def test_uploaded_barbarian_deployment_shape_no_longer_stops_at_round_zero():
+ s={'policy':'experimental','battlefield':'land-max','max_rounds':1,
+    'attacker':{'army_kind':'player','forge_level':5,'units':[
+      {'unit_id':'hoplite','quantity':650,'entry_batch_id':'attacker-batch-1'},
+      {'unit_id':'steam_giant','quantity':32,'entry_batch_id':'attacker-batch-1'},
+      {'unit_id':'spearman','quantity':150,'entry_batch_id':'attacker-batch-1'},
+      {'unit_id':'swordsman','quantity':280,'entry_batch_id':'attacker-batch-1'},
+      {'unit_id':'sulphur_carabineer','quantity':36,'entry_batch_id':'attacker-batch-1'},
+      {'unit_id':'battering_ram','quantity':12,'entry_batch_id':'attacker-batch-1'},
+      {'unit_id':'bombardier','quantity':75,'entry_batch_id':'attacker-batch-1'},
+      {'unit_id':'gyrocopter','quantity':90,'entry_batch_id':'attacker-batch-1'},
+    ]},
+    'defender':{'army_kind':'barbarian','forge_level':0,'units':[
+      {'unit_id':'barbarian_axe_swinger','quantity':650,'entry_batch_id':'defender-barbarian-garrison'},
+      {'unit_id':'barbarian_clubman','quantity':350,'entry_batch_id':'defender-barbarian-garrison'},
+      {'unit_id':'barbarian_knifeman','quantity':80,'entry_batch_id':'defender-barbarian-garrison'},
+      {'unit_id':'barbarian_axe_thrower','quantity':350,'entry_batch_id':'defender-barbarian-garrison'},
+      {'unit_id':'barbarian_catapult','quantity':24,'entry_batch_id':'defender-barbarian-garrison'},
+      {'unit_id':'barbarian_ram','quantity':6,'entry_batch_id':'defender-barbarian-garrison'},
+      {'unit_id':'barbarian_dirigible','quantity':45,'entry_batch_id':'defender-barbarian-garrison'},
+      {'unit_id':'barbarian_fighter','quantity':60,'entry_batch_id':'defender-barbarian-garrison'},
+    ]}}
+ result=simulate(s)
+ assert result['rounds_completed']==1
+ assert not any(e['round']==0 and e['type']=='unsupported_mechanic'
+                for e in result['events'])
+ assert {'barbarian_catapult','barbarian_ram'} <= {
+  e['details'].get('source_unit_id') for e in result['events']
+  if e['type']=='damage' and e['side']=='defender'
+  and e['details'].get('firing_phase')=='third'
+ }
+
+
 def test_barbarian_clubman_and_axe_swinger_share_heavy_front_without_mixed_am_blocker():
  s={'policy':'experimental','battlefield':'land-max','max_rounds':1,
     'attacker':{'army_kind':'player','units':[{'unit_id':'hoplite','quantity':350}]},
