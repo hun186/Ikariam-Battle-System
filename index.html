@@ -87,12 +87,12 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
         <div id="attackerUnits" class="unit-list"></div>
       </section>
       <section class="panel side-setup defender">
-        <div class="side-title"><h2>防守方</h2><div class="side-toolbar"><label>兵種套裝<select id="dArmyKind" class="army-kind"><option value="player">Player</option><option value="barbarian">Barbarian</option></select></label><label id="dForgeWrap">熔爐神蹟 / Forge<select id="dForge"></select></label><label id="defenderTownHallWrap">市政廳 / Town Hall<input id="defenderTownHallLevel" type="number" min="1" max="66" value="25"></label><label id="defenderWallWrap">城牆 / Wall<select id="defenderWallLevel"></select></label></div></div>
+        <div class="side-title"><h2>防守方</h2><div class="side-toolbar"><label>兵種套裝<select id="dArmyKind" class="army-kind"><option value="player">Player</option><option value="barbarian">Barbarian</option></select></label><label id="dForgeWrap">熔爐神蹟 / Forge<select id="dForge"></select></label><label id="defenderTownHallWrap">市政廳 / Town Hall<input id="defenderTownHallLevel" type="number" min="1" max="66" value="25"></label><label id="defenderBarbarianVillageWrap" class="hidden">野蠻人村落 / Barbarian Village<input id="defenderBarbarianVillageLevel" type="number" min="1" max="50" value="50"></label><label id="defenderWallWrap">城牆 / Wall<select id="defenderWallLevel"></select></label></div></div>
         <div id="defenderUnits" class="unit-list"></div>
       </section>
     </div>
 
-    <div class="setup-note">預設仍維持最大陸戰戰場與 Player Lv5 熔爐、單純前線，避免一打開就塞滿大量兵力；需要多戰線驗證時可用上方「綜合陸戰」快速設定。Player 防守方可設定市政廳 Lv1–66 與城牆 Lv0–46。駐軍上限 = 250 + 50 × (市政廳 Lv + 城牆 Lv)，並依 v17.4 排除 Doctor / Cook；守軍數高於上限時先以最大陸戰戰場進行野戰、城牆不出場。當傷亡使守軍回到上限內時，模擬會偵測到應縮回原戰場／城牆重現的 transition，但跨 geometry 重建尚未校準，因此會停在 UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION。城牆本身的破牆戰仍停在 UNKNOWN-TOWN-WALL-COMBAT。每列的 ±一格 由目前戰場的 slot space ÷ unit size 動態計算。Barbarian 套裝固定無 Workshop、無 Forge、無分批進場，軍分為 0；目前兵力數量仍由使用者手動輸入，不會依村落等級自動產生。</div>
+    <div class="setup-note">預設仍維持最大陸戰戰場與 Player Lv5 熔爐、單純前線，避免一打開就塞滿大量兵力；需要多戰線驗證時可用上方「綜合陸戰」快速設定。Player 防守方可設定市政廳 Lv1–66 與城牆 Lv0–48；駐軍上限 = 250 + 50 × (市政廳 Lv + 城牆 Lv)。Barbarian 防守方可設定村落 Lv1–50；目前 2024 Gameforge 論壇實戰規則為 (村落 Lv + 城牆 Lv + 5) × 50。兩者依 v17.4 排除 Doctor / Cook（海軍則排除 Tender）；守軍數高於上限時先以最大陸戰戰場進行野戰、城牆不出場。當傷亡使守軍回到上限內時，模擬會偵測到應縮回原戰場／城牆重現的 transition，但跨 geometry 重建尚未校準，因此會停在 UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION。城牆本身的破牆戰仍停在 UNKNOWN-TOWN-WALL-COMBAT。每列的 ±一格 由目前戰場的 slot space ÷ unit size 動態計算。Barbarian 套裝固定無 Workshop、無 Forge、無分批進場，軍分為 0；目前兵力數量仍由使用者手動輸入，不會依村落等級自動產生。</div>
     <details class="barbarian-reference"><summary>野蠻人兵種資料與出現等級（9 種）</summary><div class="barbarian-note">Barbarian Village 陸軍兵種已可作為獨立 Army package 進入模擬；這裡保留來源、數值與首次出現等級參考。野蠻人駐軍上限目前有互相衝突的社群公式，因此不自動推導；Barbarian 戰場仍以手動選定的 battlefield 為準，村落等級對應的完整守軍／城牆生成仍待校準。</div><div id="barbarianCatalog" class="barbarian-grid"></div></details>
     <div class="actions"><div class="action-row"><button id="simulate" class="primary" type="button">開始模擬</button><button id="downloadSetup" class="secondary" type="button">下載兵力設定 Debug JSON</button></div><div id="error" class="error" role="alert"></div></div>
   </section>
@@ -176,7 +176,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 <script>
 let metadata=null, units=[], playerUnits=[], barbarianUnits=[], lastResult=null, lastBattlefieldId=null, currentRoundNumber=0, roundRenderToken=0, simulationGeneration=0, simulationRequestGeneration=0;
 const roundPageCache=new Map(), scenarioByGeneration=new Map();
-const battlefield=document.getElementById('battlefield'),battleDomain=document.getElementById('battleDomain'),policy=document.getElementById('policy'),maxRounds=document.getElementById('maxRounds'),defenderTownHallLevel=document.getElementById('defenderTownHallLevel'),defenderWallLevel=document.getElementById('defenderWallLevel'),researchMode=document.getElementById('researchMode'),showUnitStats=document.getElementById('showUnitStats'),showUnitIdentity=document.getElementById('showUnitIdentity'),simulateTop=document.getElementById('simulateTop'),simulate=document.getElementById('simulate'),downloadSetupTop=document.getElementById('downloadSetupTop'),downloadSetup=document.getElementById('downloadSetup'),downloadRoundDebug=document.getElementById('downloadRoundDebug'),roundDebugError=document.getElementById('roundDebugError'),errorTop=document.getElementById('errorTop'),error=document.getElementById('error'),floatingTooltip=document.getElementById('floatingTooltip');
+const battlefield=document.getElementById('battlefield'),battleDomain=document.getElementById('battleDomain'),policy=document.getElementById('policy'),maxRounds=document.getElementById('maxRounds'),defenderTownHallLevel=document.getElementById('defenderTownHallLevel'),defenderBarbarianVillageLevel=document.getElementById('defenderBarbarianVillageLevel'),defenderWallLevel=document.getElementById('defenderWallLevel'),researchMode=document.getElementById('researchMode'),showUnitStats=document.getElementById('showUnitStats'),showUnitIdentity=document.getElementById('showUnitIdentity'),simulateTop=document.getElementById('simulateTop'),simulate=document.getElementById('simulate'),downloadSetupTop=document.getElementById('downloadSetupTop'),downloadSetup=document.getElementById('downloadSetup'),downloadRoundDebug=document.getElementById('downloadRoundDebug'),roundDebugError=document.getElementById('roundDebugError'),errorTop=document.getElementById('errorTop'),error=document.getElementById('error'),floatingTooltip=document.getElementById('floatingTooltip');
 const builtinPreset=document.getElementById('builtinPreset'),applyBuiltinPreset=document.getElementById('applyBuiltinPreset'),clearArmiesButton=document.getElementById('clearArmies'),userPresetName=document.getElementById('userPresetName'),saveUserPreset=document.getElementById('saveUserPreset'),userPresetSelect=document.getElementById('userPresetSelect'),loadUserPreset=document.getElementById('loadUserPreset'),deleteUserPreset=document.getElementById('deleteUserPreset'),presetStatus=document.getElementById('presetStatus');
 const USER_PRESET_STORAGE_KEY='ikariam-battle-user-presets-v1';
 const viewIds={setup:'setupView',round:'roundView',summary:'summaryView',mechanics:'mechanicsView',source:'sourceView'};
@@ -303,9 +303,14 @@ function populateTownHallLevel(){
   defenderTownHallLevel.min='1';defenderTownHallLevel.max=String(metadata?.garrison?.max_town_hall_level??66);
   if(!defenderTownHallLevel.value)defenderTownHallLevel.value='25';
 }
+function populateBarbarianVillageLevel(){
+  defenderBarbarianVillageLevel.min='1';
+  defenderBarbarianVillageLevel.max=String(metadata?.garrison?.max_barbarian_village_level??50);
+  if(!defenderBarbarianVillageLevel.value)defenderBarbarianVillageLevel.value='50';
+}
 function populateWallLevels(){
   defenderWallLevel.innerHTML='';
-  const maximum=Math.max(0,Number(metadata?.town_wall?.max_level??46));
+  const maximum=Math.max(0,Number(metadata?.town_wall?.max_level??48));
   for(let level=0;level<=maximum;level++)defenderWallLevel.add(new Option(level===0?'Lv0 · 無城牆':'Lv'+level,String(level)));
   defenderWallLevel.value='0';
   updateWallControl();
@@ -370,8 +375,12 @@ function toggleArmyPackage(side,rerender=true){
   }
   if(side==='defender'){
     const townWrap=document.getElementById('defenderTownHallWrap');
-    defenderTownHallLevel.disabled=kind==='barbarian';
-    townWrap.classList.toggle('hidden',kind==='barbarian');
+    const barbarianWrap=document.getElementById('defenderBarbarianVillageWrap');
+    const isBarbarian=kind==='barbarian';
+    defenderTownHallLevel.disabled=isBarbarian;
+    defenderBarbarianVillageLevel.disabled=!isBarbarian;
+    townWrap.classList.toggle('hidden',isBarbarian);
+    barbarianWrap.classList.toggle('hidden',!isBarbarian);
   }
   if(rerender){renderArmy(side);updateSlotButtons();updateAllUnitStats()}
 }
@@ -480,6 +489,7 @@ function setupConfigurationFromUi(){
   return {setup_version:1,policy:policy.value,battlefield:submittedBattlefield,max_rounds:+maxRounds.value,
     wall_level:Math.max(0,Math.trunc(+defenderWallLevel.value||0)),
     town_hall_level:armyKind('defender')==='player'?Math.max(1,Math.trunc(+defenderTownHallLevel.value||1)):null,
+    barbarian_village_level:armyKind('defender')==='barbarian'?Math.max(1,Math.trunc(+defenderBarbarianVillageLevel.value||1)):null,
     attacker:army('attacker'),defender:army('defender')};
 }
 function scenarioFromSetup(){
@@ -509,7 +519,7 @@ function builtinPresetConfiguration(id){
   if(!field)throw Error('找不到可執行的最大陸戰戰場。');
   const player=(side,specs,forge=5)=>({army_kind:'player',forge_level:forge,units:presetItems(field,side,specs)});
   if(id==='simple'){
-    return {setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100,wall_level:0,town_hall_level:25,
+    return {setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100,wall_level:0,town_hall_level:25,barbarian_village_level:null,
       attacker:player('attacker',[{unit_id:'hoplite'}]),defender:player('defender',[{unit_id:'hoplite'}])};
   }
   const attackerSpecs=[
@@ -523,7 +533,7 @@ function builtinPresetConfiguration(id){
       {unit_id:'catapult',copies:2},{unit_id:'gyrocopter',copies:2},{unit_id:'bombardier',copies:2},
       {unit_id:'doctor',quantity:15},{unit_id:'cook',quantity:15},
     ];
-    return {setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100,wall_level:0,town_hall_level:25,
+    return {setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100,wall_level:0,town_hall_level:25,barbarian_village_level:null,
       attacker:player('attacker',attackerSpecs),defender:player('defender',defenderSpecs)};
   }
   if(id==='player-vs-barbarian'){
@@ -600,11 +610,13 @@ function applySetupConfiguration(config){
   battleDomain.value=field.domain;refreshBattlefieldOptions(field.id);
   if(['experimental','strict'].includes(config.policy))policy.value=config.policy;
   maxRounds.value=Math.max(1,Math.min(1000,Math.trunc(Number(config.max_rounds)||100)));
-  const wallMax=Math.max(0,Number(metadata?.town_wall?.max_level??46));
+  const wallMax=Math.max(0,Number(metadata?.town_wall?.max_level??48));
   const wallLevel=Math.max(0,Math.min(wallMax,Math.trunc(Number(config.wall_level)||0)));
   defenderWallLevel.value=String(wallLevel);
   const townMax=Math.max(1,Number(metadata?.garrison?.max_town_hall_level??66));
   defenderTownHallLevel.value=String(Math.max(1,Math.min(townMax,Math.trunc(Number(config.town_hall_level)||25))));
+  const barbarianMax=Math.max(1,Number(metadata?.garrison?.max_barbarian_village_level??50));
+  defenderBarbarianVillageLevel.value=String(Math.max(1,Math.min(barbarianMax,Math.trunc(Number(config.barbarian_village_level)||50))));
   applySideConfiguration('attacker',config.attacker||{});
   applySideConfiguration('defender',config.defender||{});
   updateSlotButtons();updateAllUnitStats();
@@ -868,7 +880,10 @@ function safetyNoticesHtml(data){
   }
   const garrison=data.garrison_status;
   if(garrison?.modeled){
-    cards.push('<div class="safety-card '+(garrison.open_field?'warning':'assumption')+'"><b>Garrison / 駐軍上限</b><div>市政廳 Lv'+esc(garrison.town_hall_level)+' + 城牆 Lv'+esc(garrison.wall_level)+' → 上限 '+esc(garrison.garrison_limit)+'；開戰可計數守軍 '+esc(garrison.counted_defenders)+'（Doctor/Cook 不計）。'+(garrison.open_field?'因超過上限，初始為 land-max 野戰、城牆不出場。':'未超過上限，使用原戰場。')+(garrison.transition_reached?' 本次已到達野戰狀態切換門檻。':'')+'</div></div>');
+    const settlementText=garrison.settlement_kind==='barbarian_village'
+      ?('野蠻人村落 Lv'+esc(garrison.barbarian_village_level))
+      :('市政廳 Lv'+esc(garrison.town_hall_level));
+    cards.push('<div class="safety-card '+(garrison.open_field?'warning':'assumption')+'"><b>Garrison / 駐軍上限</b><div>'+settlementText+' + 城牆 Lv'+esc(garrison.wall_level)+' → 上限 '+esc(garrison.garrison_limit)+'；開戰可計數守軍 '+esc(garrison.counted_defenders)+'（Doctor/Cook 不計）。'+(garrison.open_field?'因超過上限，初始為 land-max 野戰、城牆不出場。':'未超過上限，使用原戰場。')+(garrison.transition_reached?' 本次已到達野戰狀態切換門檻。':'')+'</div></div>');
   }
   const wall=data.wall_status;
   if((wall?.level||0)>0)cards.push('<div class="safety-card '+(wall.status==='suppressed'?'warning':'blocker')+'"><b>Town Wall / 城牆 Lv'+esc(wall.level)+'</b><div>'+esc(wall.segments)+' 段 · 每段 HP '+esc(wall.hit_points)+' · Armor '+esc(wall.armor)+' · Damage '+esc(wall.damage)+' · Accuracy '+esc(wall.accuracy)+'%。'+(wall.status==='suppressed'?'目前因野戰狀態暫不出場。':'輸入與現行公開數值已保留；戰鬥處理目前停在 '+esc(wall.rule_id)+'。')+'</div></div>');
@@ -980,7 +995,7 @@ async function boot(){
   playerUnits=(data.units||[]).filter(u=>u.numerically_supported||u.role==='support');
   barbarianUnits=(data.barbarian_units||[]).filter(u=>u.simulation_ready);
   units=[...playerUnits,...barbarianUnits];
-  populateForge('aForge');populateForge('dForge');populateTownHallLevel();populateWallLevels();
+  populateForge('aForge');populateForge('dForge');populateTownHallLevel();populateBarbarianVillageLevel();populateWallLevels();
   renderBarbarianCatalog();populateBattleDomains();refreshUserPresetOptions();
 }
 battleDomain.addEventListener('change',()=>refreshBattlefieldOptions());
