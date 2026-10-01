@@ -11,6 +11,7 @@
       "This Barbarian package remains separate from the player army package and cannot be mixed with player units on one side.",
       "Barbarian armies use no Workshop upgrades, no Forge level, no delayed/multiple entry batches, and contribute zero General Score in simulator accounting.",
       "The simulator accepts manual Barbarian unit quantities; it does not yet auto-generate the exact garrison for a Barbarian Village level.",
+      "Barbarian Clubman is Heavy Infantry on the First line. Its Spearman equivalence is used for documented numeric derivation only and does not make it Light Infantry.",
       "The 2019 Barbarian Village guide has an internal inconsistency for Axe Thrower first appearance (unit section says level 30 while the level-by-level narrative introduces the second line at level 40); this profile uses level 40 and preserves the conflict note."
     ],
     "sources": [
