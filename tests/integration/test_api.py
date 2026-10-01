@@ -181,6 +181,7 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert 'Healing / 治療尚未建模' in body and 'Doctor / 治療' in body
  assert '攻擊方造成傷害' in body and '攻擊方承受傷害' in body and '攻擊方治療' in body
  assert 'Gross damage taken' in body and 'derived capacity reference' in body
+ assert 'Human / Machine eligibility 已知，但 allocation 與 Healing / RR timing 未知，因此目前不實際回補 HP。' in body
  assert '尚未到達士氣處理' in body and "not_reached:'尚未到達'" in body
  assert "morale_status" in body
  assert "e.type==='safety_limit_reached'" in body
