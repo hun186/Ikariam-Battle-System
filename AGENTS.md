@@ -22,6 +22,8 @@
 - Battle domain 由 battlefield id 決定；UI 可先選 Land/Naval 來篩 battlefield，但不得另造第二個 executable domain truth。每一方另有 `army_kind=player|barbarian`：兩套兵種不可在同一側混用。Barbarian 僅 Land、Forge=0、Workshop=0、單一立即 entry batch、同 unit 不分 wave、軍分/資源計分基礎=0；目前兵量手動輸入，不依村落等級自動生成。
 - Land 戰場 UI 以遊戲實戰畫面排列為基準：前排為 `Flank | First/Main | Flank`，後排為 `Air defense | Third/Artillery | Air bomber`；這只是 presentation，不得藉此改動 engine slot identity、capacity 或 targeting。
 - Slot 填入／同 wave 回合重建要依 PDF damage priority 的中央優先實體順序；回合開始不得把倖存兵留在可由已支援 formation 規則消除的內側空洞。Same-wave rebuild 本身仍不得跨 wave、跨 line 或新增 slot。其後有兩條窄化的 cross-wave compaction：(1) 同一 entry batch 的 Heavy Infantry 可在既有 First-line slots 內跨兵種中央優先重排；(2) 相同 unit_id 的不同 waves／entry batches 可在相同既有 runtime line slots 內依 arrival/batch 順序接替，ammo、damage、upgrade 與 wave identity 必須各自保留。兩者都不得新增 physical slot；第二條不得跨 line 或推導 fallback，且不同兵種跨 entry batch 仍 unsupported。
+- Barbarian Clubman 的 tactical semantic class 是 `heavy_infantry`、native line 是 `first`；與 Spearman 的 equivalence 只可用於有證據的數值推導，不得反推為 Light Infantry。
+- 同一 runtime formation 可由多種 unit type 組成；Attacking Matrix 必須以整個 formation 共用 row-major source columns 與 target address book，不能因 source wave/unit 改變而重新編號目標。每個 source wave 的 weapon、Workshop、ammo 仍獨立。
 - 最快驗證：`pytest -q`
 <!-- END CODEX PROJECT QUICKSTART -->
 
