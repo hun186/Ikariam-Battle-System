@@ -12,9 +12,10 @@ from .events import Event
 from .formation import FormationRules, eligible_runtime_lines
 from .garrison import (
     GARRISON_TRANSITION_RULE_ID,
+    MAX_BARBARIAN_VILLAGE_LEVEL,
     MAX_TOWN_HALL_LEVEL,
     counted_live_waves,
-    player_garrison_status,
+    land_garrison_status,
 )
 from .models import Army, Policy, Scenario, ScenarioError, Slot, Wave
 from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
@@ -1411,12 +1412,23 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                  or not isinstance(scenario.town_hall_level, int)
                  or not 1 <= scenario.town_hall_level <= MAX_TOWN_HALL_LEVEL)):
         raise ScenarioError(f"town_hall_level must be 1..{MAX_TOWN_HALL_LEVEL}")
+    if (scenario.barbarian_village_level is not None
+            and (isinstance(scenario.barbarian_village_level, bool)
+                 or not isinstance(scenario.barbarian_village_level, int)
+                 or not 1 <= scenario.barbarian_village_level <= MAX_BARBARIAN_VILLAGE_LEVEL)):
+        raise ScenarioError(
+            f"barbarian_village_level must be 1..{MAX_BARBARIAN_VILLAGE_LEVEL}"
+        )
     if scenario.defender.army_kind == "barbarian" and scenario.town_hall_level is not None:
         raise ScenarioError("town_hall_level is only valid for player defenders")
-    if (scenario.wall_level or scenario.town_hall_level is not None) and base_field.domain != "land":
-        raise ScenarioError("Town Hall and Town Wall are only valid for land battlefields")
-    garrison_initial = player_garrison_status(
+    if scenario.defender.army_kind == "player" and scenario.barbarian_village_level is not None:
+        raise ScenarioError("barbarian_village_level is only valid for barbarian defenders")
+    if (scenario.wall_level or scenario.town_hall_level is not None
+            or scenario.barbarian_village_level is not None) and base_field.domain != "land":
+        raise ScenarioError("Settlement and Town Wall inputs are only valid for land battlefields")
+    garrison_initial = land_garrison_status(
         town_hall_level=scenario.town_hall_level,
+        barbarian_village_level=scenario.barbarian_village_level,
         wall_level=scenario.wall_level,
         defender_army=scenario.defender,
         base_battlefield_id=scenario.battlefield,
@@ -2041,8 +2053,9 @@ def _attach_battle_statistics(
     result["healing_status"] = healing_status
     result["morale_status"] = _morale_status(scenario, result)
 
-    garrison = player_garrison_status(
+    garrison = land_garrison_status(
         town_hall_level=scenario.town_hall_level,
+        barbarian_village_level=scenario.barbarian_village_level,
         wall_level=scenario.wall_level,
         defender_army=scenario.defender,
         base_battlefield_id=scenario.battlefield,
