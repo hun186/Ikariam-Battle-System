@@ -1548,8 +1548,9 @@ def test_typed_barbarian_scenario_cannot_bypass_package_invariants():
    ))
 
 
-def test_typed_scenario_rejects_invalid_army_kind():
- attacker=Army((ArmyUnit('hoplite',30),),0,'pirate')
+@pytest.mark.parametrize('bad',['pirate',[],{},None,False])
+def test_typed_scenario_rejects_invalid_army_kind(bad):
+ attacker=Army((ArmyUnit('hoplite',30),),0,bad)
  defender=Army((ArmyUnit('hoplite',30),),0,'player')
  with pytest.raises(ScenarioError,match='army_kind must be player or barbarian'):
   simulate(Scenario(
