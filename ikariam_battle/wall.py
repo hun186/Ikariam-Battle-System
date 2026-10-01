@@ -6,6 +6,7 @@ from typing import Any
 MAX_TOWN_WALL_LEVEL = 46
 TOWN_WALL_RULE_ID = "UNKNOWN-TOWN-WALL-COMBAT"
 TOWN_WALL_SOURCE_URL = "https://gameforge.com/en-GB/games/ikariam-city-wall.html"
+TOWN_WALL_COMMUNITY_SOURCE_URL = "https://ikariam.fandom.com/wiki/Building%3ATown_wall"
 
 
 def wall_stats(level: int) -> dict[str, int]:
@@ -65,6 +66,6 @@ def wall_profile_metadata() -> dict[str, Any]:
         "rule_id": TOWN_WALL_RULE_ID,
         "segment_count_source": "selected_battlefield_first_line",
         "published_stat_fields": ["damage", "accuracy", "hit_points", "armor"],
-        "source_type": "GAMEFORGE_CURRENT_REFERENCE",
-        "source_url": TOWN_WALL_SOURCE_URL,
+        "source_type": "GAMEFORGE_CURRENT_REFERENCE_PLUS_COMMUNITY_FORMULA",
+        "source_urls": [TOWN_WALL_SOURCE_URL, TOWN_WALL_COMMUNITY_SOURCE_URL],
     }
