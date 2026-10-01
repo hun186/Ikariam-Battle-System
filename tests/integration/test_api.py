@@ -62,6 +62,10 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert len(data['barbarian_units'])==9
  assert data['barbarian_profile_metadata']['simulation_status']=='LAND_COMBAT_READY'
  assert data['report_transport']=={'default_mode':'summary','default_round_page_size':10,'max_round_page_size':20}
+ assert data['town_wall']['max_level']==46
+ assert data['town_wall']['input_supported'] is True
+ assert data['town_wall']['combat_model_status']=='INPUT_CAPTURED_COMBAT_UNSUPPORTED'
+ assert data['town_wall']['rule_id']=='UNKNOWN-TOWN-WALL-COMBAT'
  assert all(
   u['domain']=='land' and u['army_kind']=='barbarian'
   and not u['selectable_by_player'] and u['selectable_in_simulator'] and u['simulation_ready']
@@ -581,6 +585,19 @@ def test_setup_presets_share_the_canonical_setup_serializer_and_public_entrypoin
  assert '自訂套裝只保存在此瀏覽器' in body
  assert "'UNKNOWN-FORMATION-FALLBACK':'主戰線需要 fallback。" in body
  assert '整個 Light Infantry wave 可完整轉入 First 的情況已支援' in body
+ assert body==Path('public/index.html').read_text()
+
+
+def test_land_setup_exposes_defender_wall_and_preserves_it_in_presets_and_scenario():
+ body=Path('index.html').read_text()
+ assert 'id="defenderWallLevel"' in body
+ assert 'function populateWallLevels(){' in body
+ assert "wall_level:Math.max(0,Math.trunc(+defenderWallLevel.value||0))" in body
+ assert "const wallLevel=Math.max(0,Math.min(wallMax,Math.trunc(Number(config.wall_level)||0)))" in body
+ assert "defenderWallLevel.value=String(wallLevel)" in body
+ assert "wall_level:0" in body
+ assert "'UNKNOWN-TOWN-WALL-COMBAT':'防守方已設定城牆。" in body
+ assert '城牆 Lv0–46' in body
  assert body==Path('public/index.html').read_text()
 
 
