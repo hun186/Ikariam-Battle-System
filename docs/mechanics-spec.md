@@ -20,6 +20,7 @@ The simulator combines empirical mechanics with current numerical profiles; it i
 | Player land garrison threshold | COMMUNITY_CURRENT + Gameforge-hosted forum corroboration | `250 + 50 × (Town Hall + Town Wall)`; actual unit count, strict `>` enters open field |
 | Over-limit land battlefield | COMMUNITY_CURRENT + 2024 Gameforge forum | defender over limit uses largest battlefield and no wall; dropping back under returns toward normal battlefield/wall |
 | Barbarian land garrison formula | GAMEFORGE_FORUM_2024_COMMUNITY_REPORT | `(village + wall + 5) × 50`; algebraically the player formula with Village level substituted for Town Hall. Older `≈250 + 75 × wall` guide retained as historical approximation |
+| Town Wall current max | MIXED_CURRENT_REFERENCE | Lv48 is confirmed by Gameforge-forum current game records and community tables; Gameforge's standalone wall content page still stops at Lv46 and is treated as incomplete for the max-level claim |
 | verified-through release | OFFICIAL_CHANGELOG, v17.5.0, 2026-09-08 | no later military/profile change reported |
 | `legacy-community-land-targeting` | GAMEFORGE_IN_GAME_HELP + USER_PROVIDED_BATTLE_OBSERVATION corroboration | executable formation firing order and target-priority contract; IR/SR/kill selectors remain separate unknowns |
 | `legacy-community-battle-end` | COMMUNITY_REFERENCE, REVIEWER_WEB_VERIFIED | sustaining classes and round-boundary termination; calibration required |
@@ -123,7 +124,7 @@ Experimental results list only assumptions actually reached. Partial-ammunition 
 
 `BattleReportFixture` retains game version, complete scenario, round, casualties, damage%, and life%; damage display percentages can be converted to integer intervals rather than hard-coding a winner.
 
-Scope is unit-vs-unit Phase A. Executable geometry, shared mixed-source Attacking Matrix support, and the narrow whole-wave Light→First fallback do not relax the remaining multi-line-wave, unsupported different-unit cross-wave rebuild, partial/ranged fallback, ranged-weapon, or secondary-trigger guards. Same-unit same-line replacement across waves is an explicit supported exception and preserves per-wave state. Town Wall input/stat metadata and player over-limit initial open-field selection are implemented. Wall target/damage rules, segment breaching, defender refill, flank-lock release, and calibrated execution of garrison-driven mid-battle geometry transitions are not implemented; the threshold itself is observable and guarded.
+Scope is unit-vs-unit Phase A. Executable geometry, shared mixed-source Attacking Matrix support, and the narrow whole-wave Light→First fallback do not relax the remaining multi-line-wave, unsupported different-unit cross-wave rebuild, partial/ranged fallback, ranged-weapon, or secondary-trigger guards. Same-unit same-line replacement across waves is an explicit supported exception and preserves per-wave state. Town Wall input/stat metadata and configured Player/Barbarian over-limit initial open-field selection are implemented. Wall target/damage rules, segment breaching, defender refill, flank-lock release, and calibrated execution of garrison-driven mid-battle geometry transitions are not implemented; the threshold itself is observable and guarded.
 
 ## Ranged formation calibration
 
