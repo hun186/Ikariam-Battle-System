@@ -57,7 +57,7 @@
     {
       "id": "barbarian_clubman",
       "display_name": "Barbarian Clubman",
-      "semantic_class": "light_infantry",
+      "semantic_class": "heavy_infantry",
       "native_line": "first",
       "first_appearance_level": 1,
       "last_appearance_level": 22,
@@ -70,7 +70,7 @@
       "size": 1,
       "provenance": {
         "confidence": "DERIVED_X20_WITH_DOCUMENTED_EXCEPTIONS",
-        "notes": "Legacy guide describes Clubman as Spearman except HP 12 vs 13 and damage 5 vs 4; HP/damage scaled x20. Armour/accuracy/size inherit the documented Spearman equivalence.",
+        "notes": "Legacy guide describes Clubman as Spearman except HP 12 vs 13 and damage 5 vs 4; HP/damage scaled x20. Armour/accuracy/size inherit the documented Spearman numerical equivalence. Tactical class is Heavy Infantry / First line per the in-game Help correction; numerical equivalence does not imply Light Infantry classification.",
         "sources": [
           "GF_BARBAR_VILLAGE_GUIDE",
           "COMMUNITY_BARB_GUIDE",
