@@ -1004,7 +1004,7 @@ async function runSimulation(){
     if(requestGeneration!==simulationRequestGeneration)return;
     simulationGeneration=requestGeneration;
     roundPageCache.clear();scenarioByGeneration.clear();scenarioByGeneration.set(simulationGeneration,scenario);
-    lastResult=data;lastBattlefieldId=submittedBattlefield;currentRoundNumber=data.rounds_completed;
+    lastResult=data;lastBattlefieldId=data.garrison_status?.effective_battlefield||submittedBattlefield;currentRoundNumber=data.rounds_completed;
     renderSummary();enableReports();await renderRound(currentRoundNumber);
     if(requestGeneration===simulationRequestGeneration&&simulationGeneration===requestGeneration)showView('round');
   }catch(e){
