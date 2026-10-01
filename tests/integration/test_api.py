@@ -680,7 +680,7 @@ def test_land_setup_exposes_defender_wall_and_preserves_it_in_presets_and_scenar
  assert "'UNKNOWN-TOWN-WALL-COMBAT':'防守方已設定城牆。" in body
  assert '城牆 Lv0–48' in body
  assert 'HP = 1800 + 900 × Lv、Armor = 72 × Lv' in body
- assert 'Lv1=216、Lv9=504、Lv26=5580' in body
+ assert 'Lv1=216、Lv9=504、Lv18=2160、Lv26=5580' in body
  assert 'Accuracy：新版待校準' in body
  assert body==Path('public/index.html').read_text()
 
