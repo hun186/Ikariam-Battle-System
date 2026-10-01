@@ -57,6 +57,15 @@ def test_wall_level_defaults_to_zero_and_accepts_current_maximum():
    Scenario.from_dict({**BASE,'wall_level':bad})
 
 
+def test_town_hall_level_is_optional_and_validates_current_range():
+ assert Scenario.from_dict(BASE).town_hall_level is None
+ assert Scenario.from_dict({**BASE,'town_hall_level':1}).town_hall_level==1
+ assert Scenario.from_dict({**BASE,'town_hall_level':66}).town_hall_level==66
+ for bad in (0,67,True,'25'):
+  with pytest.raises(ScenarioError):
+   Scenario.from_dict({**BASE,'town_hall_level':bad})
+
+
 def test_entry_batch_can_group_multiple_unit_types_without_merging_unit_state():
  army=Army.from_dict({'units':[
   {'unit_id':'hoplite','quantity':30,'entry_batch_id':'batch-a','arrival_round':0},
