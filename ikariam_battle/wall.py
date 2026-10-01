@@ -19,28 +19,34 @@ def wall_stats(level: int) -> dict[str, int | None]:
     """Return current per-section Town Wall values that are safe to assert.
 
     Infinite Horizons / v13.0.0 raised Town Wall base stats. Current evidence
-    supports a factor-18 scaling of the previous HP and armour values:
+    supports factor-18 scaling of the legacy wall HP, armour, and damage table:
 
       HP     = 1800 + 900 * level
       armour = 72 * level
+      damage = 18 * legacy piecewise damage
 
-    The current wall weapon/damage table is intentionally left unresolved here.
-    During the v13 PTS Gameforge explicitly corrected wall Weapon/Damage values
-    for levels 10-20, so the legacy level-10/20 damage breakpoints must not be
-    projected into current combat without a verified post-fix table.
+    Current observed damage points Lv1=216, Lv9=504, and Lv26=5580 exactly
+    match the legacy three-tier damage table multiplied by 18. Accuracy remains
+    unresolved here; do not project the legacy 30/50/80 values without current
+    evidence.
     """
     if isinstance(level, bool) or not isinstance(level, int) or not 0 <= level <= MAX_TOWN_WALL_LEVEL:
         raise ValueError(f"wall level must be 0..{MAX_TOWN_WALL_LEVEL}")
     if level == 0:
         return {"level": 0, "damage": 0, "accuracy": 0, "hit_points": 0, "armor": 0}
+    if level < 10:
+        damage = (10 + 2 * level) * 18
+    elif level < 20:
+        damage = (30 + 5 * level) * 18
+    else:
+        damage = (50 + 10 * level) * 18
     return {
         "level": level,
-        "damage": None,
+        "damage": damage,
         "accuracy": None,
         "hit_points": 1800 + 900 * level,
         "armor": 72 * level,
     }
-
 
 def successful_hits_to_breach_wall_section(level: int, attack_damage: int) -> int | None:
     """Return successful hits needed to destroy one wall section.
@@ -102,10 +108,12 @@ def wall_profile_metadata() -> dict[str, Any]:
         "combat_model_status": "INPUT_CAPTURED_COMBAT_UNSUPPORTED",
         "rule_id": TOWN_WALL_RULE_ID,
         "segment_count_source": "selected_battlefield_first_line",
-        "published_stat_fields": ["hit_points", "armor"],
-        "unresolved_current_stat_fields": ["damage", "accuracy"],
+        "published_stat_fields": ["hit_points", "armor", "damage"],
+        "unresolved_current_stat_fields": ["accuracy"],
         "hit_points_formula": "1800 + 900 * level",
         "armor_formula": "72 * level",
+        "damage_formula": {"1-9": "(10 + 2*level) * 18", "10-19": "(30 + 5*level) * 18", "20+": "(50 + 10*level) * 18"},
+        "damage_observed_points": {"1": 216, "9": 504, "26": 5580},
         "successful_breach_hits_formula": "ceil((1800 + 900*level) / (attack_damage - 72*level))",
         "successful_breach_hits_scope": "successful hits only; excludes accuracy and shot allocation",
         "source_type": "MIXED_CURRENT_REFERENCE",
