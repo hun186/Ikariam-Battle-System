@@ -703,14 +703,20 @@ def _formation_shots(volleys: list[dict[str, Any]]) -> list[tuple[int, int]]:
     Each volley still owns its weapon, upgrades and ammunition pool. The AM row
     is shared by the runtime formation, while source damage position is the
     deterministic column order. Legacy/internal volleys without additive source
-    positions fall back to their stable volley order.
+    positions retain their historical explicit sequence.
     """
-    ordered: list[tuple[int, int, int, int]] = []
-    for volley_index, volley in enumerate(volleys):
+    prepared: list[tuple[list[int], list[int]]] = []
+    for volley in volleys:
         rows = list(volley.get("row_numbers", ()))
         positions = volley.get("source_damage_positions")
         if not isinstance(positions, list) or len(positions) != len(rows):
-            positions = [volley_index + 1] * len(rows)
+            return [(volley_index, row)
+                    for volley_index, item in enumerate(volleys)
+                    for row in item.get("row_numbers", ())]
+        prepared.append((rows, positions))
+
+    ordered: list[tuple[int, int, int, int]] = []
+    for volley_index, (rows, positions) in enumerate(prepared):
         for shot_index, (row, position) in enumerate(zip(rows, positions)):
             ordered.append((row, position, volley_index, shot_index))
     ordered.sort()
