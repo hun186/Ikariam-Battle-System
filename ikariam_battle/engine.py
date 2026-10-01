@@ -15,7 +15,7 @@ from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, Support
 from .redistribution import SlotShare, reserve_redistribution
 from .units import UnitRegistry
 from .weapon_selection import UnsupportedWeaponSelection, select_active_weapon
-from .wall import TOWN_WALL_RULE_ID, wall_status
+from .wall import MAX_TOWN_WALL_LEVEL, TOWN_WALL_RULE_ID, wall_status
 
 
 EXPERIMENTAL_POLICIES = {
@@ -1397,6 +1397,9 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     if isinstance(scenario, dict): scenario = Scenario.from_dict(scenario)
     registry = UnitRegistry.load(scenario.profiles.unit_stats, include_barbarians=True)
     field = battlefield(scenario.battlefield)
+    if (isinstance(scenario.wall_level, bool) or not isinstance(scenario.wall_level, int)
+            or not 0 <= scenario.wall_level <= MAX_TOWN_WALL_LEVEL):
+        raise ScenarioError(f"wall_level must be 0..{MAX_TOWN_WALL_LEVEL}")
     if scenario.wall_level and field.domain != "land":
         raise ScenarioError("town wall is only valid for land battlefields")
     formation_rules = FormationRules.load(scenario.profiles.formation)
