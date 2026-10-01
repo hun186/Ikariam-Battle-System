@@ -213,6 +213,9 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert 'id="battleDomain"' in body and 'id="aArmyKind"' in body and 'id="dArmyKind"' in body
  assert "army_kind:'barbarian'" in body and "army_kind:'player'" in body
  assert 'id="builtinPreset"' in body and 'id="applyBuiltinPreset"' in body and 'id="clearArmies"' in body
+ assert '<details class="panel preset-panel" aria-label="快速設定與自訂套裝">' in body
+ assert '<details class="panel preset-panel" aria-label="快速設定與自訂套裝" open>' not in body
+ assert '需要時展開；預設收合。' in body
  assert '綜合陸戰（全戰線＋支援）' in body and '玩家 vs 野蠻人綜合' in body
  assert "USER_PRESET_STORAGE_KEY='ikariam-battle-user-presets-v1'" in body
  assert 'function setupConfigurationFromUi(){' in body and 'function applySetupConfiguration(config){' in body
@@ -554,6 +557,8 @@ def test_setup_presets_share_the_canonical_setup_serializer_and_public_entrypoin
  assert "battleDomain.value=field.domain;refreshBattlefieldOptions(field.id)" in body
  assert "setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100" in body
  assert '自訂套裝只保存在此瀏覽器' in body
+ assert "'UNKNOWN-FORMATION-FALLBACK':'主戰線需要 fallback。" in body
+ assert '整個 Light Infantry wave 可完整轉入 First 的情況已支援' in body
  assert body==Path('public/index.html').read_text()
 
 
