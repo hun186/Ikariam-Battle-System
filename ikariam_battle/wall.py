@@ -4,16 +4,22 @@ from typing import Any
 
 
 MAX_TOWN_WALL_LEVEL = 48
+GAMEFORGE_WALL_REFERENCE_MAX_LEVEL = 46
 TOWN_WALL_RULE_ID = "UNKNOWN-TOWN-WALL-COMBAT"
 TOWN_WALL_SOURCE_URL = "https://gameforge.com/en-GB/games/ikariam-city-wall.html"
 TOWN_WALL_COMMUNITY_SOURCE_URL = "https://ikariam.fandom.com/wiki/Building%3ATown_wall"
+TOWN_WALL_FORUM_MAX_SOURCE_URL = "https://forum.ikariam.gameforge.com/forum/thread/102643-wbbl-worldwide-biggest-building-levels/"
+TOWN_WALL_FORUM_COMBAT_SOURCE_URL = "https://forum.ikariam.gameforge.com/forum/thread/92826-freighters-and-pushing/"
 
 
 def wall_stats(level: int) -> dict[str, int]:
     """Return current published per-section Town Wall combat values.
 
-    Level 0 is the explicit no-wall state. For levels 1..46, HP and armour are
-    linear while damage/accuracy use the documented level-10/20 breakpoints.
+    Level 0 is the explicit no-wall state. The current game reaches level 48.
+    Gameforge's standalone wall reference currently lists only through level 46,
+    while current Gameforge-forum/community battle records and the community
+    table document levels 47-48. HP/armour remain linear and damage/accuracy use
+    the documented level-10/20 breakpoints.
     These published values do not by themselves define wall targeting,
     breaching, defender refill, or flank-lock semantics.
     """
@@ -80,6 +86,13 @@ def wall_profile_metadata() -> dict[str, Any]:
         "rule_id": TOWN_WALL_RULE_ID,
         "segment_count_source": "selected_battlefield_first_line",
         "published_stat_fields": ["damage", "accuracy", "hit_points", "armor"],
-        "source_type": "GAMEFORGE_CURRENT_REFERENCE_PLUS_COMMUNITY_FORMULA",
-        "source_urls": [TOWN_WALL_SOURCE_URL, TOWN_WALL_COMMUNITY_SOURCE_URL],
+        "source_type": "MIXED_CURRENT_REFERENCE",
+        "gameforge_reference_max_level": GAMEFORGE_WALL_REFERENCE_MAX_LEVEL,
+        "current_game_max_level_evidence": "GAMEFORGE_FORUM_PLUS_COMMUNITY_TABLE",
+        "source_urls": [
+            TOWN_WALL_SOURCE_URL,
+            TOWN_WALL_COMMUNITY_SOURCE_URL,
+            TOWN_WALL_FORUM_MAX_SOURCE_URL,
+            TOWN_WALL_FORUM_COMBAT_SOURCE_URL,
+        ],
     }
