@@ -122,17 +122,16 @@ def test_support_unknowns_distinguish_healing_and_morale():
 
 
  hard_blocked={
-  'policy':'experimental','battlefield':'land-mini','max_rounds':2,
+  'policy':'experimental','battlefield':'land-small','max_rounds':2,
   'attacker':{'units':[
-   {'unit_id':'hoplite','quantity':30},
-   {'unit_id':'steam_giant','quantity':10},
+   {'unit_id':'swordsman','quantity':180},
    {'unit_id':'cook','quantity':15},
   ]},
-  'defender':{'units':[{'unit_id':'hoplite','quantity':30}]},
+  'defender':{'units':[{'unit_id':'hoplite','quantity':150}]},
  }
  stopped=simulate(hard_blocked)
  hard_rules={e['details'].get('rule_id') for e in stopped['events'] if e['type']=='unsupported_mechanic'}
- assert {'UNKNOWN-MIXED-UNIT-AM-ROWS','UNKNOWN-MORALE-SUPPORT'} <= hard_rules
+ assert {'UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS','UNKNOWN-MORALE-SUPPORT'} <= hard_rules
  assert stopped['assumptions']==[]
  assert stopped['morale_status']['sides']['attacker']=={
   'cook_count':15,'status':'not_reached','effect_applied':False
@@ -921,6 +920,48 @@ def test_mixed_source_am_merges_columns_in_row_major_order():
   ('catapult',1),('catapult',1),('battering_ram',1),
   ('catapult',2),('catapult',2),('battering_ram',2),
  ]
+
+
+def test_mixed_source_waves_share_one_frozen_target_address_book():
+ registry=UnitRegistry.load()
+ hoplite_hp=registry.get('hoplite').hit_points
+ hoplite=Wave(
+  ArmyUnit('hoplite',1,'hop'),0,
+  [Slot('first-1','first',1,1,'hoplite','hop',1,30,hoplite_hp-1)],
+ )
+ steam=Wave(
+  ArmyUnit('steam_giant',1,'steam'),0,
+  [Slot('first-2','first',2,2,'steam_giant','steam',1,10,0)],
+ )
+ queues={
+  ('hoplite','hop','first-1'):[hoplite_hp-1],
+  ('steam_giant','steam','first-2'):[0],
+ }
+ volleys=[
+  {'side':'attacker','source_unit':'swordsman','source_wave':'sword',
+   'runtime_line':'flank','weapon_id':'primary','attack_upgrade':0,
+   'row_numbers':[1],'source_damage_positions':[1]},
+  {'side':'attacker','source_unit':'spearman','source_wave':'spear',
+   'runtime_line':'flank','weapon_id':'primary','attack_upgrade':0,
+   'row_numbers':[1,2],'source_damage_positions':[2,2]},
+ ]
+ casualties=defaultdict(int); slot_casualties=defaultdict(int); events=[]
+ _resolve_volleys(
+  volleys,[hoplite,steam],queues,registry,WorkshopProfile.load(),ForgeProfile.load(),
+  TargetingProfile.load(),events,1,
+  Army((ArmyUnit('swordsman',1,'sword'),ArmyUnit('spearman',2,'spear')),0),
+  Army((ArmyUnit('hoplite',1,'hop'),ArmyUnit('steam_giant',1,'steam')),0),
+  casualties,slot_casualties,{},
+ )
+ # Swordsman row 1 kills target position 1. Spearman row 1 still addresses
+ # position 1 from the shared formation address book instead of renumbering
+ # Steam Giant to the first/only surviving target column.
+ wasted=[event for event in events if event.type=='shot_addressed_empty_slot']
+ assert wasted
+ assert wasted[0].details['source_unit_id']=='spearman'
+ assert wasted[0].details['target_damage_position']==1
+ assert casualties.get('hoplite')==1
+ assert casualties.get('steam_giant',0)==0
 
 
 def test_barbarian_mixed_artillery_debug_shape_reaches_combat():
