@@ -93,7 +93,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
     </div>
 
     <div class="setup-note">預設仍維持最大陸戰戰場與 Player Lv5 熔爐、單純前線，避免一打開就塞滿大量兵力；需要多戰線驗證時可用上方「綜合陸戰」快速設定。Player 防守方可設定市政廳 Lv1–66 與城牆 Lv0–46。駐軍上限 = 250 + 50 × (市政廳 Lv + 城牆 Lv)，並依 v17.4 排除 Doctor / Cook；守軍數高於上限時先以最大陸戰戰場進行野戰、城牆不出場。當傷亡使守軍回到上限內時，模擬會偵測到應縮回原戰場／城牆重現的 transition，但跨 geometry 重建尚未校準，因此會停在 UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION。城牆本身的破牆戰仍停在 UNKNOWN-TOWN-WALL-COMBAT。每列的 ±一格 由目前戰場的 slot space ÷ unit size 動態計算。Barbarian 套裝固定無 Workshop、無 Forge、無分批進場，軍分為 0；目前兵力數量仍由使用者手動輸入，不會依村落等級自動產生。</div>
-    <details class="barbarian-reference"><summary>野蠻人兵種資料與出現等級（9 種）</summary><div class="barbarian-note">Barbarian Village 陸軍兵種已可作為獨立 Army package 進入模擬；這裡保留來源、數值與首次出現等級參考。村落等級對應的完整守軍數量、城牆等仍未自動生成。</div><div id="barbarianCatalog" class="barbarian-grid"></div></details>
+    <details class="barbarian-reference"><summary>野蠻人兵種資料與出現等級（9 種）</summary><div class="barbarian-note">Barbarian Village 陸軍兵種已可作為獨立 Army package 進入模擬；這裡保留來源、數值與首次出現等級參考。野蠻人駐軍上限目前有互相衝突的社群公式，因此不自動推導；Barbarian 戰場仍以手動選定的 battlefield 為準，村落等級對應的完整守軍／城牆生成仍待校準。</div><div id="barbarianCatalog" class="barbarian-grid"></div></details>
     <div class="actions"><div class="action-row"><button id="simulate" class="primary" type="button">開始模擬</button><button id="downloadSetup" class="secondary" type="button">下載兵力設定 Debug JSON</button></div><div id="error" class="error" role="alert"></div></div>
   </section>
 
@@ -532,7 +532,7 @@ function builtinPresetConfiguration(id){
       {unit_id:'barbarian_axe_thrower',copies:2},{unit_id:'barbarian_catapult',copies:2},
       {unit_id:'barbarian_fighter',copies:2},{unit_id:'barbarian_dirigible',copies:2},
     ];
-    return {setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100,wall_level:0,town_hall_level:25,
+    return {setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100,wall_level:0,town_hall_level:null,
       attacker:player('attacker',attackerSpecs),
       defender:{army_kind:'barbarian',forge_level:0,units:presetItems(field,'defender',barbarianSpecs,{barbarian:true})}};
   }
