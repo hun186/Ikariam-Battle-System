@@ -1,4 +1,6 @@
 from decimal import Decimal
+from importlib.resources import files
+import json
 
 from ikariam_battle.economy import MilitaryEconomyProfile
 from ikariam_battle.formation import FormationRules
@@ -60,6 +62,12 @@ def test_rocket_forum_provenance_excludes_accuracy_and_unlimited_inference():
  assert forum not in {s['source_type'] for s in rocket.weapons[1].provenance['accuracy']['sources']}
  steam=r.get('steam_ram')
  assert forum not in {s['source_type'] for s in steam.primary_weapon.provenance['ammunition']['sources']}
+
+
+def test_mechanics_profile_no_longer_marks_mixed_unit_rows_unknown():
+ raw=json.loads(files('ikariam_battle.data.mechanics')
+                .joinpath('battle-system-paper-2020.json').read_text(encoding='utf-8'))
+ assert 'mixed_unit_rows' not in raw['unknown']
 
 
 def test_workshop_forge_support_and_targeting_profiles():
