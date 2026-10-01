@@ -106,6 +106,58 @@ def test_defender_arrival_crossing_limit_detects_enter_open_field_transition():
  assert result['status']=='inconclusive'
 
 
+def test_enter_open_field_is_noop_when_already_land_max_without_wall():
+ s={
+  'policy':'experimental','battlefield':'land-max','max_rounds':1,
+  'town_hall_level':1,'wall_level':0,
+  'attacker':{'units':[{'unit_id':'hoplite','quantity':100}]},
+  'defender':{'units':[
+   {'unit_id':'hoplite','quantity':100,'entry_batch_id':'g0','arrival_round':0},
+   {'unit_id':'hoplite','quantity':201,'entry_batch_id':'g1','arrival_round':1},
+  ]},
+ }
+ result=simulate(s)
+ assert not any(
+  e['type']=='unsupported_mechanic'
+  and e['details'].get('rule_id')=='UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION'
+  for e in result['events']
+ )
+ changes=[
+  e for e in result['events']
+  if e['type']=='garrison_state_change'
+  and e['details'].get('direction')=='enter_open_field'
+ ]
+ assert changes
+ assert changes[-1]['details']['counted_defenders']==301
+ assert changes[-1]['details']['battlefield']=='land-max'
+
+
+def test_terminal_victory_precedes_unneeded_open_field_exit_transition():
+ s={
+  'policy':'experimental','battlefield':'land-mini','max_rounds':2,
+  'town_hall_level':1,'wall_level':0,
+  'attacker':{'forge_level':5,'units':[
+   {'unit_id':'hoplite','quantity':350,'attack_upgrade':1000}
+  ]},
+  'defender':{'forge_level':0,'units':[
+   {'unit_id':'hoplite','quantity':301}
+  ]},
+ }
+ result=simulate(s)
+ assert result['status']=='completed'
+ assert result['outcome']=='attacker'
+ assert not any(
+  e['type']=='unsupported_mechanic'
+  and e['details'].get('rule_id')=='UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION'
+  for e in result['events']
+ )
+ assert any(
+  e['type']=='battle_termination'
+  and e['details'].get('losing_side')=='defender'
+  for e in result['events']
+ )
+
+
 def test_open_field_exit_threshold_is_detected_after_defender_casualties():
  s={
   'policy':'experimental','battlefield':'land-mini','max_rounds':3,
