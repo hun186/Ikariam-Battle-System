@@ -194,12 +194,15 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert 'id="maxRounds" type="number" min="1" max="1000" value="100"' in body
  assert '預設 100 回合；1000 回合是可手動提高的安全上限' in body
  assert 'Cook 士氣目前尚未完整建模' in body
- assert '士氣支援（尚未建模）' in body and '治療支援（尚未建模）' in body
+ assert '士氣支援（尚未建模）' in body and '治療支援（部分建模）' in body
  assert 'Morale / 士氣尚未建模' in body and 'Cook / 士氣' in body
- assert 'Healing / 治療尚未建模' in body and 'Doctor / 治療' in body
+ assert 'Healing / 治療部分建模' in body and 'Doctor / 治療' in body
  assert '攻擊方造成傷害' in body and '攻擊方承受傷害' in body and '攻擊方治療' in body
- assert 'Gross damage taken' in body and 'derived capacity reference' in body
- assert 'Human / Machine eligibility 已知，但 allocation 與 Healing / RR timing 未知，因此目前不實際回補 HP。' in body
+ assert 'Gross damage taken' in body and 'derived capacity' in body
+ assert '已知治療為每回合效果，並在下一回合戰鬥開始前反映。' in body
+ assert 'full-clear 子集因結果為全部傷害歸零，不受先後順序影響。' in body
+ assert "applied_exact_subset:'已套用可確定子集'" in body
+ assert "partial_allocation_unresolved:'部分分配未知'" in body
  assert '尚未到達士氣處理' in body and "not_reached:'尚未到達'" in body
  assert "morale_status" in body
  assert "e.type==='safety_limit_reached'" in body
