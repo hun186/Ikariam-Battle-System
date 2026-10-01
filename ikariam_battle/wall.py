@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 
-MAX_TOWN_WALL_LEVEL = 46
+MAX_TOWN_WALL_LEVEL = 48
 TOWN_WALL_RULE_ID = "UNKNOWN-TOWN-WALL-COMBAT"
 TOWN_WALL_SOURCE_URL = "https://gameforge.com/en-GB/games/ikariam-city-wall.html"
 TOWN_WALL_COMMUNITY_SOURCE_URL = "https://ikariam.fandom.com/wiki/Building%3ATown_wall"
