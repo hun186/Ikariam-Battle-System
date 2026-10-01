@@ -15,6 +15,7 @@ from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, Support
 from .redistribution import SlotShare, reserve_redistribution
 from .units import UnitRegistry
 from .weapon_selection import UnsupportedWeaponSelection, select_active_weapon
+from .wall import TOWN_WALL_RULE_ID, wall_status
 
 
 EXPERIMENTAL_POLICIES = {
@@ -1396,6 +1397,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     if isinstance(scenario, dict): scenario = Scenario.from_dict(scenario)
     registry = UnitRegistry.load(scenario.profiles.unit_stats, include_barbarians=True)
     field = battlefield(scenario.battlefield)
+    if scenario.wall_level and field.domain != "land":
+        raise ScenarioError("town wall is only valid for land battlefields")
     formation_rules = FormationRules.load(scenario.profiles.formation)
     battle_end = BattleEndProfile.load(scenario.profiles.battle_end)
     # Validate every scheduled unit and package invariant now, including
@@ -1420,9 +1423,15 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     initial = {"attacker": _snapshot(attacker, registry, battle_end),
                "defender": _snapshot(defender, registry, battle_end)}
     warnings = ["Legacy empirical mechanics are being applied to review-supplied current numeric profiles; calibration is required."]
+    if scenario.wall_level:
+        warnings.append(
+            "Defender Town Wall input is captured, but wall targeting, breaching, refill, and flank-lock combat semantics are not executable yet."
+        )
     attacker_blockers = _preflight(attacker, registry, formation_rules, field)
     defender_blockers = _preflight(defender, registry, formation_rules, field)
     blockers = sorted(set(attacker_blockers + defender_blockers))
+    if scenario.wall_level:
+        blockers.append(TOWN_WALL_RULE_ID)
     initial_states = {side: state["continuation_state"] for side, state in initial.items()}
     fallback_sides = [side for side, state in initial_states.items()
                       if state == ContinuationState.FALLBACK_REQUIRED.value]
@@ -1451,7 +1460,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         return _unsupported(scenario, events, initial, sorted(set(blockers)), warnings)
     if {"UNKNOWN-MULTIPLE-TARGET-WAVES",
         "UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS",
-        "UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT"} & set(blockers):
+        "UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT",
+        TOWN_WALL_RULE_ID} & set(blockers):
         return _unsupported(scenario, events, initial, blockers, warnings)
     applied: dict[str, dict[str, str]] = {}
     for side, side_blockers in (("attacker", attacker_blockers), ("defender", defender_blockers)):
@@ -1943,6 +1953,7 @@ def _attach_battle_statistics(
     }
     result["healing_status"] = healing_status
     result["morale_status"] = _morale_status(scenario, result)
+    result["wall_status"] = wall_status(scenario.wall_level, battlefield(scenario.battlefield))
     return result
 
 def simulate(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
