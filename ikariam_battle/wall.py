@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from math import ceil
 from typing import Any
 
 
@@ -10,40 +11,56 @@ TOWN_WALL_SOURCE_URL = "https://gameforge.com/en-GB/games/ikariam-city-wall.html
 TOWN_WALL_COMMUNITY_SOURCE_URL = "https://ikariam.fandom.com/wiki/Building%3ATown_wall"
 TOWN_WALL_FORUM_MAX_SOURCE_URL = "https://forum.ikariam.gameforge.com/forum/thread/102643-wbbl-worldwide-biggest-building-levels/"
 TOWN_WALL_FORUM_COMBAT_SOURCE_URL = "https://forum.ikariam.gameforge.com/forum/thread/92826-freighters-and-pushing/"
+TOWN_WALL_V13_CHANGELOG_URL = "https://forum.ikariam.gameforge.com/forum/thread/107634-infinite-horizons-milestone-2/"
+TOWN_WALL_V13_STATS_DISCUSSION_URL = "https://forum.ikariam.gameforge.com/forum/thread/107659-infinite-horizons-2/"
 
 
-def wall_stats(level: int) -> dict[str, int]:
-    """Return current published per-section Town Wall combat values.
+def wall_stats(level: int) -> dict[str, int | None]:
+    """Return current per-section Town Wall values that are safe to assert.
 
-    Level 0 is the explicit no-wall state. The current game reaches level 48.
-    Gameforge's standalone wall reference currently lists only through level 46,
-    while current Gameforge-forum/community battle records and the community
-    table document levels 47-48. HP/armour remain linear and damage/accuracy use
-    the documented level-10/20 breakpoints.
-    These published values do not by themselves define wall targeting,
-    breaching, defender refill, or flank-lock semantics.
+    Infinite Horizons / v13.0.0 raised Town Wall base stats. Current evidence
+    supports a factor-18 scaling of the previous HP and armour values:
+
+      HP     = 1800 + 900 * level
+      armour = 72 * level
+
+    The current wall weapon/damage table is intentionally left unresolved here.
+    During the v13 PTS Gameforge explicitly corrected wall Weapon/Damage values
+    for levels 10-20, so the legacy level-10/20 damage breakpoints must not be
+    projected into current combat without a verified post-fix table.
     """
     if isinstance(level, bool) or not isinstance(level, int) or not 0 <= level <= MAX_TOWN_WALL_LEVEL:
         raise ValueError(f"wall level must be 0..{MAX_TOWN_WALL_LEVEL}")
     if level == 0:
         return {"level": 0, "damage": 0, "accuracy": 0, "hit_points": 0, "armor": 0}
-    if level < 10:
-        damage = 10 + 2 * level
-        accuracy = 30
-    elif level < 20:
-        damage = 30 + 5 * level
-        accuracy = 50
-    else:
-        damage = 50 + 10 * level
-        accuracy = 80
     return {
         "level": level,
-        "damage": damage,
-        "accuracy": accuracy,
-        "hit_points": 100 + 50 * level,
-        "armor": 4 * level,
+        "damage": None,
+        "accuracy": None,
+        "hit_points": 1800 + 900 * level,
+        "armor": 72 * level,
     }
 
+
+def successful_hits_to_breach_wall_section(level: int, attack_damage: int) -> int | None:
+    """Return successful hits needed to destroy one wall section.
+
+    Arithmetic core:
+      ceil((1800 + 900*level) / (attack_damage - 72*level))
+
+    This counts successful hits, not deployed artillery pieces. Accuracy, shot
+    distribution, target selection, and firing chronology are intentionally
+    outside this helper. None means the hit cannot penetrate the wall armour.
+    """
+    if isinstance(attack_damage, bool) or not isinstance(attack_damage, int) or attack_damage < 0:
+        raise ValueError("attack damage must be a non-negative integer")
+    stats = wall_stats(level)
+    if level == 0:
+        return 0
+    net_damage = attack_damage - int(stats["armor"] or 0)
+    if net_damage <= 0:
+        return None
+    return ceil(int(stats["hit_points"] or 0) / net_damage)
 
 def wall_segments(field) -> int:
     """Derive wall sections from the selected land battlefield's First line."""
@@ -85,7 +102,12 @@ def wall_profile_metadata() -> dict[str, Any]:
         "combat_model_status": "INPUT_CAPTURED_COMBAT_UNSUPPORTED",
         "rule_id": TOWN_WALL_RULE_ID,
         "segment_count_source": "selected_battlefield_first_line",
-        "published_stat_fields": ["damage", "accuracy", "hit_points", "armor"],
+        "published_stat_fields": ["hit_points", "armor"],
+        "unresolved_current_stat_fields": ["damage", "accuracy"],
+        "hit_points_formula": "1800 + 900 * level",
+        "armor_formula": "72 * level",
+        "successful_breach_hits_formula": "ceil((1800 + 900*level) / (attack_damage - 72*level))",
+        "successful_breach_hits_scope": "successful hits only; excludes accuracy and shot allocation",
         "source_type": "MIXED_CURRENT_REFERENCE",
         "gameforge_reference_max_level": GAMEFORGE_WALL_REFERENCE_MAX_LEVEL,
         "current_game_max_level_evidence": "GAMEFORGE_FORUM_PLUS_COMMUNITY_TABLE",
@@ -94,5 +116,7 @@ def wall_profile_metadata() -> dict[str, Any]:
             TOWN_WALL_COMMUNITY_SOURCE_URL,
             TOWN_WALL_FORUM_MAX_SOURCE_URL,
             TOWN_WALL_FORUM_COMBAT_SOURCE_URL,
+            TOWN_WALL_V13_CHANGELOG_URL,
+            TOWN_WALL_V13_STATS_DISCUSSION_URL,
         ],
     }
