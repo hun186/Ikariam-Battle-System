@@ -543,7 +543,7 @@ function builtinPresetConfiguration(id){
       {unit_id:'barbarian_axe_thrower',copies:2},{unit_id:'barbarian_catapult',copies:2},
       {unit_id:'barbarian_fighter',copies:2},{unit_id:'barbarian_dirigible',copies:2},
     ];
-    return {setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100,wall_level:0,town_hall_level:null,
+    return {setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100,wall_level:0,town_hall_level:null,barbarian_village_level:50,
       attacker:player('attacker',attackerSpecs),
       defender:{army_kind:'barbarian',forge_level:0,units:presetItems(field,'defender',barbarianSpecs,{barbarian:true})}};
   }
