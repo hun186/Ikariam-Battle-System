@@ -14,7 +14,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.tab{border:1px solid #6f634e;background:#f8edd2;color:var(--ink);padding:9px 16px;border-radius:5px;font-weight:800}.tab.active{background:var(--deep);color:#fff;border-color:var(--deep)}.tab:disabled{opacity:.45;cursor:not-allowed}
 .panel{background:linear-gradient(135deg,#fffdf5,#efe0ba);border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 14px #4a381f26}
 .settings{display:flex;gap:12px;align-items:end;flex-wrap:wrap;padding:12px 14px;margin-bottom:14px}.settings label,.side-toolbar label{font-size:11px;font-weight:800;text-transform:uppercase;display:grid;gap:4px}.settings select,.settings input,.side-toolbar select{border:1px solid #96805b;background:#fffdf7;border-radius:4px;padding:8px;color:var(--ink)}.settings-note{flex-basis:100%;padding:8px 10px;background:#f8efd8;border-left:4px solid #9a8356;font-size:12px;color:#5d5548}
-.preset-panel{padding:12px 14px;margin-bottom:14px}.preset-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}.preset-head h2{font:700 20px Georgia,serif;margin:0}.preset-head p{margin:3px 0 0;color:#655b49;font-size:12px}.preset-controls{display:flex;align-items:end;gap:8px;flex-wrap:wrap;margin-top:8px}.preset-controls label{display:grid;gap:4px;font-size:11px;font-weight:800;text-transform:uppercase;min-width:210px}.preset-controls select,.preset-controls input{border:1px solid #96805b;background:#fffdf7;border-radius:4px;padding:8px;color:var(--ink);min-height:38px}.preset-controls .preset-name{min-width:220px;flex:1 1 260px}.preset-controls button{min-height:38px}.preset-status{margin-top:8px;font-size:11px;color:#655b49}.preset-status.ok{color:var(--ok);font-weight:800}.preset-status.warn{color:var(--warn);font-weight:800}
+.preset-panel{padding:0;margin-bottom:14px;overflow:hidden}.preset-panel>summary{cursor:pointer;list-style:none;padding:12px 14px;font:700 20px Georgia,serif;display:flex;align-items:center;justify-content:space-between;gap:12px}.preset-panel>summary::-webkit-details-marker{display:none}.preset-panel>summary::after{content:'▸';font:700 18px system-ui}.preset-panel[open]>summary::after{content:'▾'}.preset-panel>summary small{display:block;margin-top:3px;color:#655b49;font:12px/1.4 system-ui;font-weight:500}.preset-body{padding:0 14px 12px;border-top:1px solid #d3bf96}.preset-controls{display:flex;align-items:end;gap:8px;flex-wrap:wrap;margin-top:8px}.preset-controls label{display:grid;gap:4px;font-size:11px;font-weight:800;text-transform:uppercase;min-width:210px}.preset-controls select,.preset-controls input{border:1px solid #96805b;background:#fffdf7;border-radius:4px;padding:8px;color:var(--ink);min-height:38px}.preset-controls .preset-name{min-width:220px;flex:1 1 260px}.preset-controls button{min-height:38px}.preset-status{margin-top:8px;font-size:11px;color:#655b49}.preset-status.ok{color:var(--ok);font-weight:800}.preset-status.warn{color:var(--warn);font-weight:800}
 .setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.side-setup{overflow:hidden}.side-title{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;color:#fff}.side-setup.attacker .side-title{background:linear-gradient(90deg,#894138,#ad5b4d)}.side-setup.defender .side-title{background:linear-gradient(90deg,#245d78,#3c7893)}.side-title h2{font:700 22px Georgia,serif;margin:0}.side-toolbar{display:flex;align-items:end;gap:10px}.side-toolbar select{min-width:150px}
 .unit-list{padding:10px}.unit-group{margin-bottom:10px}.unit-group-title{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#655b49;border-bottom:1px solid #cbb892;padding:4px 2px}
 .unit-setup-row{display:grid;grid-template-columns:52px minmax(190px,1fr) 74px 74px;gap:7px 8px;align-items:center;padding:8px 4px;border-bottom:1px solid #ddd0b4}.show-unit-identity .unit-setup-row{grid-template-columns:minmax(150px,.9fr) minmax(190px,1.25fr) 74px 74px}.unit-ident{display:flex;gap:8px;align-items:center;min-width:0}.unit-ident-copy{display:none;min-width:0}.show-unit-identity .unit-ident-copy{display:block}.unit-icon{width:46px;height:46px;border-radius:7px;display:grid;place-items:center;background:linear-gradient(#f7e7bf,#d5bd87);border:2px solid #9a8051;overflow:hidden}.unit-icon img{width:44px;height:44px;object-fit:contain;display:block}.unit-art-fallback{font-size:20px;line-height:1}.unit-name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.unit-meta{font-size:11px;color:var(--muted)}
@@ -60,22 +60,24 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
       <div class="settings-note">預設 100 回合；1000 回合是可手動提高的安全上限，不是固定戰鬥長度。長戰的逐回合資料會按需分頁載入，不會一次傳送全部回合。若提早分出勝負或遇到無法安全判定的機制，模擬會提早停止。Cook 士氣目前尚未完整建模；實戰常見約 15 Cook 的配置不會被當成已驗證的固定公式。</div>
     </section>
 
-    <section class="panel preset-panel" aria-label="快速設定與自訂套裝">
-      <div class="preset-head"><div><h2>快速設定 / Presets</h2><p>平常可維持簡單配置；需要壓力測試時再一鍵填入多戰線兵力。自訂套裝只保存在此瀏覽器。</p></div></div>
-      <div class="preset-controls">
-        <label>內建快速設定<select id="builtinPreset"><option value="simple">簡單前線（原預設）</option><option value="combined">綜合陸戰（全戰線＋支援）</option><option value="player-vs-barbarian">玩家 vs 野蠻人綜合</option></select></label>
-        <button id="applyBuiltinPreset" class="secondary" type="button">套用快速設定</button>
-        <button id="clearArmies" class="secondary" type="button">兵力歸零</button>
+    <details class="panel preset-panel" aria-label="快速設定與自訂套裝">
+      <summary><span>快速設定 / Presets<small>需要時展開；預設收合。內建快速設定、自訂套裝與兵力歸零都在這裡。</small></span></summary>
+      <div class="preset-body">
+        <div class="preset-controls">
+          <label>內建快速設定<select id="builtinPreset"><option value="simple">簡單前線（原預設）</option><option value="combined">綜合陸戰（全戰線＋支援）</option><option value="player-vs-barbarian">玩家 vs 野蠻人綜合</option></select></label>
+          <button id="applyBuiltinPreset" class="secondary" type="button">套用快速設定</button>
+          <button id="clearArmies" class="secondary" type="button">兵力歸零</button>
+        </div>
+        <div class="preset-controls">
+          <label class="preset-name">自訂套裝名稱<input id="userPresetName" maxlength="60" placeholder="例如：主力城常用配置"></label>
+          <button id="saveUserPreset" class="secondary" type="button">儲存目前配置</button>
+          <label>已儲存套裝<select id="userPresetSelect"></select></label>
+          <button id="loadUserPreset" class="secondary" type="button">載入</button>
+          <button id="deleteUserPreset" class="secondary" type="button">刪除</button>
+        </div>
+        <div id="presetStatus" class="preset-status" aria-live="polite">自訂套裝使用瀏覽器 localStorage；不會上傳到伺服器，也不會改變模擬規則。</div>
       </div>
-      <div class="preset-controls">
-        <label class="preset-name">自訂套裝名稱<input id="userPresetName" maxlength="60" placeholder="例如：主力城常用配置"></label>
-        <button id="saveUserPreset" class="secondary" type="button">儲存目前配置</button>
-        <label>已儲存套裝<select id="userPresetSelect"></select></label>
-        <button id="loadUserPreset" class="secondary" type="button">載入</button>
-        <button id="deleteUserPreset" class="secondary" type="button">刪除</button>
-      </div>
-      <div id="presetStatus" class="preset-status" aria-live="polite">自訂套裝使用瀏覽器 localStorage；不會上傳到伺服器，也不會改變模擬規則。</div>
-    </section>
+    </details>
 
     <div class="actions setup-actions-top"><div class="action-row"><button id="simulateTop" class="primary" type="button">開始模擬</button><button id="downloadSetupTop" class="secondary" type="button">下載兵力設定 Debug JSON</button></div><div class="debug-note">Debug JSON 可直接貼回來協助重現問題；不包含 API key。</div><div id="errorTop" class="error" aria-hidden="true"></div></div>
 
