@@ -28,7 +28,7 @@ EXPERIMENTAL_POLICIES = {
     "EXP-AMMO-PARTIAL-ORDER-001": "Allocate a partial ammunition pool by source-slot damage priority.",
     "EXP-ACCURACY-IGNORED-001": "Do not reduce Am hits by weapon accuracy because its algorithm is unresolved.",
     "EXP-BATTLE-END-ROUND-BOUNDARY-001": "Evaluate battle-sustaining forces at the initial and completed-round boundaries.",
-    "EXP-HEAL-NONE-001": "Support healing is not applied because allocation is unknown.",
+    "EXP-HEAL-NONE-001": "When Doctor capacity cannot clear all eligible Human persistent damage at a round boundary, do not apply partial healing because allocation and exact Healing/RR ordering are unresolved.",
     "EXP-MORALE-NONE-001": "Cook morale is not applied because the current morale algorithm is unresolved.",
 }
 
@@ -144,6 +144,87 @@ def _guard_single_line_waves(waves: list[Wave]) -> None:
     """Prevent structurally valid, but uncalibrated, multi-line execution."""
     if any(len({slot.line for slot in wave.slots}) > 1 for wave in waves):
         raise ScenarioError("UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS")
+
+
+def _apply_supported_doctor_healing(
+    waves: list[Wave], registry: UnitRegistry, support: SupportProfile,
+    events: list[Event], number: int, side: str,
+    applied: dict[str, dict[str, str]],
+) -> int:
+    """Apply the order-invariant exact subset of Doctor healing.
+
+    Empirical evidence establishes a per-round heal that is reflected before
+    the next round's combat, while current data gives a derived 4000-capacity
+    reference per Doctor and Human/Machine eligibility. Exact allocation and
+    Healing-vs-RR order remain unresolved.
+
+    Therefore we execute only the case whose result is independent of those
+    unknowns: total Doctor capacity covers *all* persistent damage on eligible
+    Human combat waves. Every eligible wave is then fully healed before the
+    ordinary RR pass; whether the real game heals before or after RR cannot
+    change that all-zero result. If capacity is insufficient, Experimental
+    continues with the named no-partial-healing assumption instead of inventing
+    an allocation priority.
+    """
+    doctor_count = sum(
+        wave.support_units
+        for wave in waves
+        if wave.unit.unit_id == "doctor" and wave.support_units > 0
+    )
+    if not doctor_count:
+        return 0
+
+    damaged: list[tuple[Wave, int]] = []
+    for wave in waves:
+        if not wave.alive:
+            continue
+        unit = registry.get(wave.unit.unit_id)
+        if unit.role != "combat" or unit.unit_class != "human":
+            continue
+        total_damage = wave.reserve_damage + sum(slot.damage for slot in wave.slots)
+        if total_damage > 0:
+            damaged.append((wave, total_damage))
+
+    eligible_damage = sum(total for _, total in damaged)
+    if not eligible_damage:
+        return 0
+
+    capacity = doctor_count * support.derived_capacity
+    if capacity < eligible_damage:
+        _assume(applied, events, "EXP-HEAL-NONE-001", number, "heal", side)
+        _event(
+            events, number, "heal", "healing_allocation_unresolved", side,
+            doctor_count=doctor_count, capacity=capacity,
+            eligible_damage=eligible_damage,
+            unresolved_damage=eligible_damage,
+            rule_id="UNKNOWN-HEALING-ALLOCATION",
+            action="no_partial_healing_applied",
+        )
+        return 0
+
+    by_wave: dict[str, int] = {}
+    by_unit: dict[str, int] = defaultdict(int)
+    for wave, total_damage in damaged:
+        by_wave[wave.unit.wave_id] = total_damage
+        by_unit[wave.unit.unit_id] += total_damage
+        wave.reserve_damage = 0
+        for slot in wave.slots:
+            slot.damage = 0
+
+    _event(
+        events, number, "heal", "healing", side,
+        doctor_count=doctor_count, capacity=capacity,
+        eligible_damage_before=eligible_damage,
+        healing=eligible_damage,
+        unused_capacity=capacity - eligible_damage,
+        affected_waves=dict(sorted(by_wave.items())),
+        affected_units=dict(sorted(by_unit.items())),
+        eligibility="land_human_combat",
+        timing="round_boundary_before_next_combat",
+        exact_subset="capacity_covers_all_eligible_persistent_damage",
+        healing_rr_order="order_invariant_for_full_clear",
+    )
+    return eligible_damage
 
 
 def _redistribute(waves: list[Wave], events: list[Event], number: int, side: str,
@@ -652,8 +733,9 @@ def _prepare_round_start(
     waves: list[Wave], events: list[Event], number: int, side: str,
     applied: dict[str, dict[str, str]], registry: UnitRegistry | None = None,
     rules: FormationRules | None = None, field=None,
+    support: SupportProfile | None = None,
 ) -> None:
-    """Re-pack, apply supported slot handoffs, then redistribute persistent damage."""
+    """Re-pack, apply safe Doctor healing when exact, then RR persistent damage."""
     _rebuild_formation(waves, events, number, side)
     if registry is not None and rules is not None and field is not None:
         _supported_same_batch_heavy_first_handoffs(
@@ -662,8 +744,12 @@ def _prepare_round_start(
             waves, registry, rules, field, events, number, side)
         _supported_whole_wave_light_first_fallback(
             waves, registry, rules, field, events, number, side)
-    # RR must see the final deployment after every supported compaction so
-    # persistent damage remains conserved per concrete unit-state wave.
+    if registry is not None and support is not None:
+        _apply_supported_doctor_healing(
+            waves, registry, support, events, number, side, applied)
+    # RR must see the final deployment after every supported compaction. The
+    # healing subset above is intentionally limited to full-clear cases, so the
+    # unknown Healing/RR order cannot alter its result.
     _redistribute(waves, events, number, side, applied)
 
 
@@ -1300,8 +1386,6 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         return _unsupported(scenario, events, initial, blockers, warnings)
     applied: dict[str, dict[str, str]] = {}
     for side, side_blockers in (("attacker", attacker_blockers), ("defender", defender_blockers)):
-        if "UNKNOWN-HEALING-ALLOCATION" in side_blockers:
-            _assume(applied, events, "EXP-HEAL-NONE-001", 0, "preflight", side)
         if "UNKNOWN-MORALE-SUPPORT" in side_blockers:
             _assume(applied, events, "EXP-MORALE-NONE-001", 0, "preflight", side)
     if fallback_sides:
@@ -1347,6 +1431,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 "events":[e.as_dict() for e in events],"assumptions":list(applied.values()),"warnings":warnings}
     workshop, forge = WorkshopProfile.load(scenario.profiles.workshop), ForgeProfile.load(scenario.profiles.forge)
     targeting = TargetingProfile.load(scenario.profiles.targeting)
+    support = SupportProfile.load(scenario.profiles.support)
     total = {"attacker": defaultdict(int), "defender": defaultdict(int)}
     rounds = [{"round":0, **deepcopy(initial), "casualties":{"attacker":{},"defender":{}}}]
     completed = 0
@@ -1365,16 +1450,14 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             "defender": _preflight(defender_arrivals, registry, formation_rules, field),
         }
         for side, side_blockers in arrival_blockers.items():
-            if "UNKNOWN-HEALING-ALLOCATION" in side_blockers:
-                _assume(applied, events, "EXP-HEAL-NONE-001", number, "arrival", side)
             if "UNKNOWN-MORALE-SUPPORT" in side_blockers:
                 _assume(applied, events, "EXP-MORALE-NONE-001", number, "arrival", side)
         _prepare_round_start(
             attacker, events, number, "attacker", applied,
-            registry, formation_rules, field)
+            registry, formation_rules, field, support)
         _prepare_round_start(
             defender, events, number, "defender", applied,
-            registry, formation_rules, field)
+            registry, formation_rules, field, support)
         cross_wave = {
             "attacker": _cross_wave_rebuild_requirements(attacker, registry, formation_rules, field),
             "defender": _cross_wave_rebuild_requirements(defender, registry, formation_rules, field),
