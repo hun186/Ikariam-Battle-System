@@ -519,6 +519,114 @@ def _supported_same_unit_same_line_handoffs(
             wave.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
 
 
+def _supported_whole_wave_light_first_fallback(
+    waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field,
+    events: list[Event], number: int, side: str,
+) -> None:
+    """Move one whole native Light Infantry wave into open First slots.
+
+    The in-game formation rule gives First-line placement precedence over Flank.
+    This executable subset is deliberately narrow: the surviving wave must fit
+    completely into currently open First slots, so the wave never spans First
+    and Flank at the same time. Partial cross-line splitting remains guarded by
+    UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS.
+
+    Persistent damage stays wave-owned. It is parked on reserve_damage while
+    slots are rebuilt, then the existing RR pass redistributes it over the new
+    single-line placement.
+    """
+    geometry = field.lines.get("first")
+    if geometry is None:
+        return
+
+    occupied = {
+        slot.damage_position
+        for wave in waves
+        for slot in wave.slots
+        if slot.line == "first" and slot.units
+    }
+    first_owners = {
+        slot.damage_position: (wave, slot)
+        for wave in waves
+        for slot in wave.slots
+        if slot.line == "first"
+    }
+
+    candidates = sorted(waves, key=lambda wave: wave.unit.formation_order_key)
+    for wave in candidates:
+        unit = registry.get(wave.unit.unit_id)
+        if (
+            unit.role != "combat"
+            or unit.semantic_class != "light_infantry"
+            or unit.native_line == "first"
+            or "first" not in eligible_runtime_lines(unit, rules, field)
+            or not wave.alive
+        ):
+            continue
+
+        live_lines = {slot.line for slot in wave.slots if slot.units}
+        if live_lines and live_lines != {unit.native_line}:
+            continue
+
+        total_units = wave.reserve + sum(slot.units for slot in wave.slots)
+        capacity = geometry.slot_space // unit.size
+        if total_units <= 0 or capacity <= 0:
+            continue
+        open_positions = [
+            position for position in geometry.damage_priority
+            if position not in occupied
+        ]
+        required_slots = (total_units + capacity - 1) // capacity
+        if required_slots > len(open_positions):
+            # Supporting this case would split one state wave across First and
+            # Flank. Keep that separate evidence/RR boundary explicit.
+            continue
+
+        source_lines = sorted({slot.line for slot in wave.slots if slot.units})
+        total_damage = wave.reserve_damage + sum(slot.damage for slot in wave.slots)
+
+        # The completed previous-round snapshot already owns old slot casualty
+        # history. Round-start fallback creates the next formation cleanly.
+        for slot in list(wave.slots):
+            wave.slots.remove(slot)
+        wave.reserve = 0
+        wave.reserve_damage = total_damage
+
+        remaining = total_units
+        positions_used: list[int] = []
+        for position in open_positions[:required_slots]:
+            previous = first_owners.get(position)
+            if previous is not None:
+                previous_wave, previous_slot = previous
+                if previous_slot in previous_wave.slots and not previous_slot.units:
+                    previous_wave.slots.remove(previous_slot)
+
+            quantity = min(capacity, remaining)
+            slot = Slot(
+                f"first-{position}", "first",
+                geometry.physical_position(position), position,
+                unit.id, wave.unit.wave_id, quantity, capacity,
+            )
+            wave.slots.append(slot)
+            occupied.add(position)
+            first_owners[position] = (wave, slot)
+            positions_used.append(position)
+            remaining -= quantity
+
+        if remaining:
+            raise ScenarioError("whole-wave Light Infantry fallback left unexpected reserve")
+        wave.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
+        _event(
+            events, number, "deploy", "formation_fallback", side,
+            unit_id=unit.id, wave_id=wave.unit.wave_id,
+            entry_batch_id=wave.unit.batch_id,
+            from_lines=source_lines or [unit.native_line], to_line="first",
+            quantity=total_units, damage_positions=positions_used,
+            rule="first_before_flank_whole_wave_light_fallback",
+            whole_wave=True,
+        )
+
+
 def _has_supported_round_start_first_placement(
     waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field,
 ) -> bool:
@@ -529,6 +637,8 @@ def _has_supported_round_start_first_placement(
     _supported_same_batch_heavy_first_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
+        projected, registry, rules, field, projection_events, 0, "projection")
+    _supported_whole_wave_light_first_fallback(
         projected, registry, rules, field, projection_events, 0, "projection")
     return any(
         slot.line == "first" and slot.units
@@ -548,6 +658,8 @@ def _prepare_round_start(
         _supported_same_batch_heavy_first_handoffs(
             waves, registry, rules, field, events, number, side)
         _supported_same_unit_same_line_handoffs(
+            waves, registry, rules, field, events, number, side)
+        _supported_whole_wave_light_first_fallback(
             waves, registry, rules, field, events, number, side)
     # RR must see the final deployment after every supported compaction so
     # persistent damage remains conserved per concrete unit-state wave.
@@ -600,6 +712,8 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
     _supported_same_batch_heavy_first_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
+        projected, registry, rules, field, projection_events, 0, "projection")
+    _supported_whole_wave_light_first_fallback(
         projected, registry, rules, field, projection_events, 0, "projection")
 
     occupied: dict[str, set[int]] = defaultdict(set)
