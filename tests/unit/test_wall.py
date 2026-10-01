@@ -29,3 +29,11 @@ def test_wall_metadata_is_input_supported_but_combat_guarded():
  assert metadata['rule_id']=='UNKNOWN-TOWN-WALL-COMBAT'
  assert metadata['source_type']=='GAMEFORGE_CURRENT_REFERENCE_PLUS_COMMUNITY_FORMULA'
  assert len(metadata['source_urls'])==2
+
+
+def test_wall_can_be_suppressed_by_open_field_state():
+ status=wall_status(20,LAND_BATTLEFIELDS['land-mini'],active=False,inactive_reason='open_field_garrison_limit')
+ assert status['status']=='suppressed'
+ assert status['active'] is False
+ assert status['inactive_reason']=='open_field_garrison_limit'
+ assert status['segments']==3
