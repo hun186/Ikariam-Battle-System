@@ -208,6 +208,15 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert '熔爐神蹟 / Forge' in body and '攻擊' in body and '防禦' in body
  assert 'id="battleDomain"' in body and 'id="aArmyKind"' in body and 'id="dArmyKind"' in body
  assert "army_kind:'barbarian'" in body and "army_kind:'player'" in body
+ assert 'id="builtinPreset"' in body and 'id="applyBuiltinPreset"' in body and 'id="clearArmies"' in body
+ assert '綜合陸戰（全戰線＋支援）' in body and '玩家 vs 野蠻人綜合' in body
+ assert "USER_PRESET_STORAGE_KEY='ikariam-battle-user-presets-v1'" in body
+ assert 'function setupConfigurationFromUi(){' in body and 'function applySetupConfiguration(config){' in body
+ assert 'function saveCurrentPreset(){' in body and 'function loadSelectedPreset(){' in body and 'function deleteSelectedPreset(){' in body
+ assert "localStorage.setItem(USER_PRESET_STORAGE_KEY,JSON.stringify(items))" in body
+ assert "{unit_id:'hoplite',copies:2}" in body and "{unit_id:'mortar',copies:2}" in body and "{unit_id:'bombardier',copies:2}" in body
+ assert "{unit_id:'steam_giant',copies:2},{unit_id:'swordsman',copies:2},{unit_id:'archer',copies:2}" in body
+ assert "{unit_id:'barbarian_axe_swinger',copies:2}" in body and "{unit_id:'barbarian_dirigible',copies:2}" in body
  assert 'Barbarian 固定基礎數值 · 無 Workshop / Forge' in body
  assert '進階：進場批次' in body and 'Research mode' in body and 'floating-tooltip' in body
  assert 'id="showUnitStats" type="checkbox"' in body
@@ -530,6 +539,18 @@ def test_pdf_source_tab_credits_authors_and_links_original_sources():
  assert public_pdf.is_file()
  with public_pdf.open('rb') as handle:
   assert handle.read(4)==b'%PDF'
+
+
+def test_setup_presets_share_the_canonical_setup_serializer_and_public_entrypoint():
+ body=Path('index.html').read_text()
+ assert 'const config=setupConfigurationFromUi(),{setup_version,...scenario}=config;' in body
+ assert "const config=setupConfigurationFromUi(),items=readUserPresets()" in body
+ assert "applySetupConfiguration(builtinPresetConfiguration(builtinPreset.value))" in body
+ assert "clearSideRows('attacker');clearSideRows('defender')" in body
+ assert "battleDomain.value=field.domain;refreshBattlefieldOptions(field.id)" in body
+ assert "setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100" in body
+ assert '自訂套裝只保存在此瀏覽器' in body
+ assert body==Path('public/index.html').read_text()
 
 
 def test_setup_debug_json_download_uses_the_exact_simulation_scenario_builder():

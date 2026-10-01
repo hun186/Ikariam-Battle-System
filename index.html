@@ -14,6 +14,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.tab{border:1px solid #6f634e;background:#f8edd2;color:var(--ink);padding:9px 16px;border-radius:5px;font-weight:800}.tab.active{background:var(--deep);color:#fff;border-color:var(--deep)}.tab:disabled{opacity:.45;cursor:not-allowed}
 .panel{background:linear-gradient(135deg,#fffdf5,#efe0ba);border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 14px #4a381f26}
 .settings{display:flex;gap:12px;align-items:end;flex-wrap:wrap;padding:12px 14px;margin-bottom:14px}.settings label,.side-toolbar label{font-size:11px;font-weight:800;text-transform:uppercase;display:grid;gap:4px}.settings select,.settings input,.side-toolbar select{border:1px solid #96805b;background:#fffdf7;border-radius:4px;padding:8px;color:var(--ink)}.settings-note{flex-basis:100%;padding:8px 10px;background:#f8efd8;border-left:4px solid #9a8356;font-size:12px;color:#5d5548}
+.preset-panel{padding:12px 14px;margin-bottom:14px}.preset-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}.preset-head h2{font:700 20px Georgia,serif;margin:0}.preset-head p{margin:3px 0 0;color:#655b49;font-size:12px}.preset-controls{display:flex;align-items:end;gap:8px;flex-wrap:wrap;margin-top:8px}.preset-controls label{display:grid;gap:4px;font-size:11px;font-weight:800;text-transform:uppercase;min-width:210px}.preset-controls select,.preset-controls input{border:1px solid #96805b;background:#fffdf7;border-radius:4px;padding:8px;color:var(--ink);min-height:38px}.preset-controls .preset-name{min-width:220px;flex:1 1 260px}.preset-controls button{min-height:38px}.preset-status{margin-top:8px;font-size:11px;color:#655b49}.preset-status.ok{color:var(--ok);font-weight:800}.preset-status.warn{color:var(--warn);font-weight:800}
 .setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.side-setup{overflow:hidden}.side-title{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;color:#fff}.side-setup.attacker .side-title{background:linear-gradient(90deg,#894138,#ad5b4d)}.side-setup.defender .side-title{background:linear-gradient(90deg,#245d78,#3c7893)}.side-title h2{font:700 22px Georgia,serif;margin:0}.side-toolbar{display:flex;align-items:end;gap:10px}.side-toolbar select{min-width:150px}
 .unit-list{padding:10px}.unit-group{margin-bottom:10px}.unit-group-title{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#655b49;border-bottom:1px solid #cbb892;padding:4px 2px}
 .unit-setup-row{display:grid;grid-template-columns:52px minmax(190px,1fr) 74px 74px;gap:7px 8px;align-items:center;padding:8px 4px;border-bottom:1px solid #ddd0b4}.show-unit-identity .unit-setup-row{grid-template-columns:minmax(150px,.9fr) minmax(190px,1.25fr) 74px 74px}.unit-ident{display:flex;gap:8px;align-items:center;min-width:0}.unit-ident-copy{display:none;min-width:0}.show-unit-identity .unit-ident-copy{display:block}.unit-icon{width:46px;height:46px;border-radius:7px;display:grid;place-items:center;background:linear-gradient(#f7e7bf,#d5bd87);border:2px solid #9a8051;overflow:hidden}.unit-icon img{width:44px;height:44px;object-fit:contain;display:block}.unit-art-fallback{font-size:20px;line-height:1}.unit-name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.unit-meta{font-size:11px;color:var(--muted)}
@@ -59,6 +60,23 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
       <div class="settings-note">預設 100 回合；1000 回合是可手動提高的安全上限，不是固定戰鬥長度。長戰的逐回合資料會按需分頁載入，不會一次傳送全部回合。若提早分出勝負或遇到無法安全判定的機制，模擬會提早停止。Cook 士氣目前尚未完整建模；實戰常見約 15 Cook 的配置不會被當成已驗證的固定公式。</div>
     </section>
 
+    <section class="panel preset-panel" aria-label="快速設定與自訂套裝">
+      <div class="preset-head"><div><h2>快速設定 / Presets</h2><p>平常可維持簡單配置；需要壓力測試時再一鍵填入多戰線兵力。自訂套裝只保存在此瀏覽器。</p></div></div>
+      <div class="preset-controls">
+        <label>內建快速設定<select id="builtinPreset"><option value="simple">簡單前線（原預設）</option><option value="combined">綜合陸戰（全戰線＋支援）</option><option value="player-vs-barbarian">玩家 vs 野蠻人綜合</option></select></label>
+        <button id="applyBuiltinPreset" class="secondary" type="button">套用快速設定</button>
+        <button id="clearArmies" class="secondary" type="button">兵力歸零</button>
+      </div>
+      <div class="preset-controls">
+        <label class="preset-name">自訂套裝名稱<input id="userPresetName" maxlength="60" placeholder="例如：主力城常用配置"></label>
+        <button id="saveUserPreset" class="secondary" type="button">儲存目前配置</button>
+        <label>已儲存套裝<select id="userPresetSelect"></select></label>
+        <button id="loadUserPreset" class="secondary" type="button">載入</button>
+        <button id="deleteUserPreset" class="secondary" type="button">刪除</button>
+      </div>
+      <div id="presetStatus" class="preset-status" aria-live="polite">自訂套裝使用瀏覽器 localStorage；不會上傳到伺服器，也不會改變模擬規則。</div>
+    </section>
+
     <div class="actions setup-actions-top"><div class="action-row"><button id="simulateTop" class="primary" type="button">開始模擬</button><button id="downloadSetupTop" class="secondary" type="button">下載兵力設定 Debug JSON</button></div><div class="debug-note">Debug JSON 可直接貼回來協助重現問題；不包含 API key。</div><div id="errorTop" class="error" aria-hidden="true"></div></div>
 
     <div class="setup-grid">
@@ -72,7 +90,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
       </section>
     </div>
 
-    <div class="setup-note">預設使用最大陸戰戰場與 Player Lv5 熔爐；Player 初始 Hoplite、Barbarian 初始 Clubman 都會填滿前線，方便直接測試。每列的 ±一格 由目前戰場的 slot space ÷ unit size 動態計算。Barbarian 套裝固定無 Workshop、無 Forge、無分批進場，軍分為 0；目前兵力數量仍由使用者手動輸入，不會依村落等級自動產生。</div>
+    <div class="setup-note">預設仍維持最大陸戰戰場與 Player Lv5 熔爐、單純前線，避免一打開就塞滿大量兵力；需要多戰線驗證時可用上方「綜合陸戰」快速設定。每列的 ±一格 由目前戰場的 slot space ÷ unit size 動態計算。Barbarian 套裝固定無 Workshop、無 Forge、無分批進場，軍分為 0；目前兵力數量仍由使用者手動輸入，不會依村落等級自動產生。</div>
     <details class="barbarian-reference"><summary>野蠻人兵種資料與出現等級（9 種）</summary><div class="barbarian-note">Barbarian Village 陸軍兵種已可作為獨立 Army package 進入模擬；這裡保留來源、數值與首次出現等級參考。村落等級對應的完整守軍數量、城牆等仍未自動生成。</div><div id="barbarianCatalog" class="barbarian-grid"></div></details>
     <div class="actions"><div class="action-row"><button id="simulate" class="primary" type="button">開始模擬</button><button id="downloadSetup" class="secondary" type="button">下載兵力設定 Debug JSON</button></div><div id="error" class="error" role="alert"></div></div>
   </section>
@@ -156,6 +174,8 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 let metadata=null, units=[], playerUnits=[], barbarianUnits=[], lastResult=null, lastBattlefieldId=null, currentRoundNumber=0, roundRenderToken=0, simulationGeneration=0, simulationRequestGeneration=0;
 const roundPageCache=new Map(), scenarioByGeneration=new Map();
 const battlefield=document.getElementById('battlefield'),battleDomain=document.getElementById('battleDomain'),policy=document.getElementById('policy'),maxRounds=document.getElementById('maxRounds'),researchMode=document.getElementById('researchMode'),showUnitStats=document.getElementById('showUnitStats'),showUnitIdentity=document.getElementById('showUnitIdentity'),simulateTop=document.getElementById('simulateTop'),simulate=document.getElementById('simulate'),downloadSetupTop=document.getElementById('downloadSetupTop'),downloadSetup=document.getElementById('downloadSetup'),downloadRoundDebug=document.getElementById('downloadRoundDebug'),roundDebugError=document.getElementById('roundDebugError'),errorTop=document.getElementById('errorTop'),error=document.getElementById('error'),floatingTooltip=document.getElementById('floatingTooltip');
+const builtinPreset=document.getElementById('builtinPreset'),applyBuiltinPreset=document.getElementById('applyBuiltinPreset'),clearArmiesButton=document.getElementById('clearArmies'),userPresetName=document.getElementById('userPresetName'),saveUserPreset=document.getElementById('saveUserPreset'),userPresetSelect=document.getElementById('userPresetSelect'),loadUserPreset=document.getElementById('loadUserPreset'),deleteUserPreset=document.getElementById('deleteUserPreset'),presetStatus=document.getElementById('presetStatus');
+const USER_PRESET_STORAGE_KEY='ikariam-battle-user-presets-v1';
 const viewIds={setup:'setupView',round:'roundView',summary:'summaryView',mechanics:'mechanicsView',source:'sourceView'};
 const groupOrder=['heavy_infantry','light_infantry','long_range','artillery','air','support'];
 const groupLabels={heavy_infantry:'Heavy Infantry',light_infantry:'Light Infantry',long_range:'Long Range',artillery:'Artillery',air:'Air / Anti-air',support:'Support'};
@@ -426,13 +446,185 @@ function army(side){
   }
   return {army_kind:'player',forge_level:+document.getElementById(side==='attacker'?'aForge':'dForge').value,units:items};
 }
-function scenarioFromSetup(){
+function setupConfigurationFromUi(){
   if(!metadata)throw Error('模擬器資料尚未載入完成。');
   const submittedBattlefield=battlefield.value,field=currentField();
   if(!field?.supported)throw Error('目前選擇的戰場尚未開放執行。');
-  const attacker=army('attacker'),defender=army('defender');
-  if(!attacker.units.length||!defender.units.length)throw Error('攻擊方與防守方都至少要設定一種兵力。');
-  return {profiles:metadata.profiles,policy:policy.value,battlefield:submittedBattlefield,max_rounds:+maxRounds.value,attacker,defender};
+  return {setup_version:1,policy:policy.value,battlefield:submittedBattlefield,max_rounds:+maxRounds.value,
+    attacker:army('attacker'),defender:army('defender')};
+}
+function scenarioFromSetup(){
+  const config=setupConfigurationFromUi(),{setup_version,...scenario}=config;
+  if(!scenario.attacker.units.length||!scenario.defender.units.length)throw Error('攻擊方與防守方都至少要設定一種兵力。');
+  return {profiles:metadata.profiles,...scenario};
+}
+function setPresetStatus(message,tone=''){
+  presetStatus.textContent=message;
+  presetStatus.classList.toggle('ok',tone==='ok');presetStatus.classList.toggle('warn',tone==='warn');
+}
+function lineFillQuantity(field,unitId,copies=1){
+  const unit=unitById(unitId),line=unit&&preferredSetupLine(unit,field),geometry=line&&field?.lines?.[line];
+  if(!unit||!geometry||!unit.size)return 0;
+  return geometry.physical_order.length*Math.floor(geometry.slot_space/unit.size)*copies;
+}
+function presetItems(field,side,specs,{barbarian=false}={}){
+  const batchId=barbarian?side+'-barbarian-garrison':side+'-batch-1';
+  return specs.map(spec=>{
+    const quantity=spec.quantity??lineFillQuantity(field,spec.unit_id,spec.copies??1);
+    return {unit_id:spec.unit_id,quantity,entry_batch_id:batchId,arrival_round:0,
+      attack_upgrade:barbarian?0:(spec.attack_upgrade??0),armor_upgrade:barbarian?0:(spec.armor_upgrade??0)};
+  }).filter(item=>item.quantity>0);
+}
+function builtinPresetConfiguration(id){
+  const field=metadata?.battlefields?.find(f=>f.id==='land-max'&&f.supported);
+  if(!field)throw Error('找不到可執行的最大陸戰戰場。');
+  const player=(side,specs,forge=5)=>({army_kind:'player',forge_level:forge,units:presetItems(field,side,specs)});
+  if(id==='simple'){
+    return {setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100,
+      attacker:player('attacker',[{unit_id:'hoplite'}]),defender:player('defender',[{unit_id:'hoplite'}])};
+  }
+  const attackerSpecs=[
+    {unit_id:'hoplite',copies:2},{unit_id:'swordsman',copies:2},{unit_id:'sulphur_carabineer',copies:2},
+    {unit_id:'mortar',copies:2},{unit_id:'gyrocopter',copies:2},{unit_id:'bombardier',copies:2},
+    {unit_id:'doctor',quantity:15},{unit_id:'cook',quantity:15},
+  ];
+  if(id==='combined'){
+    const defenderSpecs=[
+      {unit_id:'steam_giant',copies:2},{unit_id:'swordsman',copies:2},{unit_id:'archer',copies:2},
+      {unit_id:'catapult',copies:2},{unit_id:'gyrocopter',copies:2},{unit_id:'bombardier',copies:2},
+      {unit_id:'doctor',quantity:15},{unit_id:'cook',quantity:15},
+    ];
+    return {setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100,
+      attacker:player('attacker',attackerSpecs),defender:player('defender',defenderSpecs)};
+  }
+  if(id==='player-vs-barbarian'){
+    const barbarianSpecs=[
+      {unit_id:'barbarian_axe_swinger',copies:2},{unit_id:'barbarian_knifeman',copies:2},
+      {unit_id:'barbarian_axe_thrower',copies:2},{unit_id:'barbarian_catapult',copies:2},
+      {unit_id:'barbarian_fighter',copies:2},{unit_id:'barbarian_dirigible',copies:2},
+    ];
+    return {setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100,
+      attacker:player('attacker',attackerSpecs),
+      defender:{army_kind:'barbarian',forge_level:0,units:presetItems(field,'defender',barbarianSpecs,{barbarian:true})}};
+  }
+  throw Error('未知的快速設定。');
+}
+function clearSideRows(side){
+  const root=document.getElementById(side+'Units');
+  root.querySelectorAll('.extra-batch').forEach(row=>row.remove());
+  root.querySelectorAll('.unit-setup-row').forEach(row=>{
+    row.querySelector('.qty').value=0;
+    const attack=row.querySelector('.attack'),armor=row.querySelector('.armor'),batch=row.querySelector('.entry-batch'),arrival=row.querySelector('.arrival-round');
+    if(attack)attack.value=0;if(armor)armor.value=0;
+    if(batch)batch.value=side+'-batch-1';if(arrival)arrival.value=0;
+  });
+}
+function clearArmies(){
+  clearSideRows('attacker');clearSideRows('defender');updateAllUnitStats();
+  setPresetStatus('攻擊方與防守方兵力已歸零；戰場、套裝與 Forge 設定保留。','ok');
+}
+function applyItemToRow(row,item,side){
+  row.querySelector('.qty').value=Math.max(0,Number(item.quantity)||0);
+  const attack=row.querySelector('.attack'),armor=row.querySelector('.armor'),batch=row.querySelector('.entry-batch'),arrival=row.querySelector('.arrival-round');
+  if(attack)attack.value=Math.max(0,Number(item.attack_upgrade)||0);
+  if(armor)armor.value=Math.max(0,Number(item.armor_upgrade)||0);
+  if(batch)batch.value=String(item.entry_batch_id||side+'-batch-1');
+  if(arrival)arrival.value=Math.max(0,Math.trunc(Number(item.arrival_round)||0));
+}
+function applySideConfiguration(side,config){
+  const kind=config?.army_kind||'player',select=document.getElementById(side==='attacker'?'aArmyKind':'dArmyKind');
+  if(!['player','barbarian'].includes(kind))throw Error('套裝中的 army_kind 無效。');
+  select.value=kind;toggleArmyPackage(side);
+  const forge=document.getElementById(side==='attacker'?'aForge':'dForge');
+  if(kind==='player'){
+    const requested=String(config?.forge_level??5);
+    forge.value=[...forge.options].some(option=>option.value===requested)?requested:(metadata.forge_levels?.['5']?'5':'0');
+  }
+  clearSideRows(side);
+  const root=document.getElementById(side+'Units'),byUnit=new Map();
+  for(const item of config?.units||[]){
+    if(!item||typeof item.unit_id!=='string')throw Error('套裝含有無效兵種資料。');
+    if(!byUnit.has(item.unit_id))byUnit.set(item.unit_id,[]);
+    byUnit.get(item.unit_id).push(item);
+  }
+  for(const [unitId,items] of byUnit){
+    const base=[...root.querySelectorAll('.unit-setup-row')].find(row=>row.dataset.unitId===unitId&&!row.classList.contains('extra-batch'));
+    if(!base)throw Error('目前戰場／兵種套裝不支援：'+unitId);
+    applyItemToRow(base,items[0],side);
+    let last=base;
+    if(kind==='player'){
+      items.slice(1).forEach((item,index)=>{
+        const unit=unitById(unitId),batchIndex=index+2,row=setupRow(unit,side,{extra:true,batchIndex,
+          batchId:item.entry_batch_id||side+'-batch-'+batchIndex,arrivalRound:item.arrival_round??0,
+          attack:item.attack_upgrade??0,armor:item.armor_upgrade??0});
+        last.after(row);last=row;applyItemToRow(row,item,side);
+      });
+    }else if(items.length>1)throw Error('Barbarian 套裝同兵種不能拆成多個批次。');
+  }
+}
+function applySetupConfiguration(config){
+  if(!config||typeof config!=='object'||Array.isArray(config))throw Error('套裝格式無效。');
+  const field=metadata?.battlefields?.find(f=>f.id===config.battlefield&&f.supported);
+  if(!field)throw Error('套裝指定的戰場目前不可執行。');
+  const domainOption=[...battleDomain.options].find(option=>option.value===field.domain&&!option.disabled);
+  if(!domainOption)throw Error('套裝指定的 battle type 目前不可執行。');
+  battleDomain.value=field.domain;refreshBattlefieldOptions(field.id);
+  if(['experimental','strict'].includes(config.policy))policy.value=config.policy;
+  maxRounds.value=Math.max(1,Math.min(1000,Math.trunc(Number(config.max_rounds)||100)));
+  applySideConfiguration('attacker',config.attacker||{});
+  applySideConfiguration('defender',config.defender||{});
+  updateSlotButtons();updateAllUnitStats();
+}
+function readUserPresets(){
+  try{
+    const raw=JSON.parse(localStorage.getItem(USER_PRESET_STORAGE_KEY)||'[]');
+    return Array.isArray(raw)?raw.filter(item=>item&&typeof item.name==='string'&&item.config&&typeof item.config==='object'):[];
+  }catch(_){return []}
+}
+function writeUserPresets(items){
+  try{localStorage.setItem(USER_PRESET_STORAGE_KEY,JSON.stringify(items))}
+  catch(_){throw Error('瀏覽器無法儲存自訂套裝；請確認未封鎖 localStorage 或儲存空間。')}
+}
+function refreshUserPresetOptions(selected=''){
+  const items=readUserPresets();userPresetSelect.innerHTML='';
+  if(!items.length){userPresetSelect.add(new Option('尚無自訂套裝',''));userPresetSelect.disabled=true;loadUserPreset.disabled=true;deleteUserPreset.disabled=true;return}
+  userPresetSelect.disabled=false;loadUserPreset.disabled=false;deleteUserPreset.disabled=false;
+  items.forEach(item=>userPresetSelect.add(new Option(item.name,item.name)));
+  if(selected&&items.some(item=>item.name===selected))userPresetSelect.value=selected;
+}
+function saveCurrentPreset(){
+  try{
+    const name=userPresetName.value.trim();if(!name)throw Error('請先輸入自訂套裝名稱。');
+    const config=setupConfigurationFromUi(),items=readUserPresets(),index=items.findIndex(item=>item.name===name);
+    const entry={name,config,saved_at:new Date().toISOString()};
+    if(index>=0)items[index]=entry;else items.push(entry);
+    items.sort((a,b)=>a.name.localeCompare(b.name,'zh-Hant'));
+    writeUserPresets(items);refreshUserPresetOptions(name);
+    setPresetStatus((index>=0?'已更新：':'已儲存：')+name+'。','ok');
+  }catch(e){setPresetStatus(e.message,'warn')}
+}
+function loadSelectedPreset(){
+  try{
+    const name=userPresetSelect.value,item=readUserPresets().find(entry=>entry.name===name);
+    if(!item)throw Error('請先選擇已儲存的套裝。');
+    applySetupConfiguration(item.config);userPresetName.value=item.name;
+    setPresetStatus('已載入：'+item.name+'。','ok');
+  }catch(e){setPresetStatus(e.message,'warn')}
+}
+function deleteSelectedPreset(){
+  try{
+    const name=userPresetSelect.value;if(!name)throw Error('請先選擇要刪除的套裝。');
+    const items=readUserPresets().filter(item=>item.name!==name);writeUserPresets(items);refreshUserPresetOptions();
+    if(userPresetName.value.trim()===name)userPresetName.value='';
+    setPresetStatus('已刪除：'+name+'。','ok');
+  }catch(e){setPresetStatus(e.message,'warn')}
+}
+function applySelectedBuiltinPreset(){
+  try{
+    applySetupConfiguration(builtinPresetConfiguration(builtinPreset.value));
+    const label=builtinPreset.options[builtinPreset.selectedIndex]?.text||builtinPreset.value;
+    setPresetStatus('已套用：'+label+'。','ok');
+  }catch(e){setPresetStatus(e.message,'warn')}
 }
 function setupDebugPayload(){
   const scenario=scenarioFromSetup();
@@ -740,7 +932,7 @@ async function boot(){
   barbarianUnits=(data.barbarian_units||[]).filter(u=>u.simulation_ready);
   units=[...playerUnits,...barbarianUnits];
   populateForge('aForge');populateForge('dForge');
-  renderBarbarianCatalog();populateBattleDomains();
+  renderBarbarianCatalog();populateBattleDomains();refreshUserPresetOptions();
 }
 battleDomain.addEventListener('change',()=>refreshBattlefieldOptions());
 battlefield.addEventListener('change',()=>{updateArmyPackageAvailability();updateSlotButtons();updateAllUnitStats()});
@@ -791,6 +983,12 @@ simulate.addEventListener('click',runSimulation);
 simulateTop.addEventListener('click',runSimulation);
 downloadSetup.addEventListener('click',downloadSetupDebug);
 downloadSetupTop.addEventListener('click',downloadSetupDebug);
+applyBuiltinPreset.addEventListener('click',applySelectedBuiltinPreset);
+clearArmiesButton.addEventListener('click',clearArmies);
+saveUserPreset.addEventListener('click',saveCurrentPreset);
+loadUserPreset.addEventListener('click',loadSelectedPreset);
+deleteUserPreset.addEventListener('click',deleteSelectedPreset);
+userPresetSelect.addEventListener('change',()=>{if(userPresetSelect.value)userPresetName.value=userPresetSelect.value});
 downloadRoundDebug.addEventListener('click',downloadCurrentRoundDebug);
 boot().catch(e=>setSimulationError(e.message));
 </script>
