@@ -843,7 +843,7 @@ function safetyNoticesHtml(data){
     }else{
       healingHandling='尚未到達治療處理：戰鬥先因其他 unsupported boundary 停止，'+esc(healing.experimental_assumption_id)+' 並未套用。';
     }
-    cards.push('<div class="safety-card warning"><b>Healing / 治療尚未建模</b><div>攻擊方 Doctor '+aDoctor+'；防守方 Doctor '+dDoctor+'。'+healingHandling+' 目前每名 Doctor 的 derived capacity reference = '+esc(healing.derived_capacity_per_doctor)+'，但 eligibility、allocation 與 timing 未知，因此不直接拿 4000 扣除傷害。</div></div>');
+    cards.push('<div class="safety-card warning"><b>Healing / 治療尚未建模</b><div>攻擊方 Doctor '+aDoctor+'；防守方 Doctor '+dDoctor+'。'+healingHandling+' 目前每名 Doctor 的 derived capacity reference = '+esc(healing.derived_capacity_per_doctor)+'；Human / Machine eligibility 已知，但 allocation 與 Healing / RR timing 未知，因此目前不實際回補 HP。</div></div>');
   }
   if(blockers.length)cards.push('<div class="safety-card blocker"><b>Unsupported mechanics / 無法安全判定</b><ul>'+blockers.map(id=>'<li><b>'+esc(id)+'</b>'+(blockerHelp[id]?'<div>'+esc(blockerHelp[id])+'</div>':'')+'</li>').join('')+'</ul></div>');
   if(warnings.length)cards.push('<div class="safety-card warning"><b>Evidence warnings</b><ul>'+warnings.map(item=>'<li>'+esc(item)+'</li>').join('')+'</ul></div>');
