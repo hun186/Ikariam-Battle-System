@@ -39,9 +39,9 @@ def test_experimental_names_accuracy_targeting_and_is_reproducible():
 def test_typed_scenario_rejects_invalid_wall_level_like_dict_input():
  attacker=Army.from_dict({'units':[{'unit_id':'hoplite','quantity':30}]})
  defender=Army.from_dict({'units':[{'unit_id':'hoplite','quantity':30}]})
- for bad in (47,True):
+ for bad in (49,True):
   typed=Scenario(attacker,defender,policy=Policy.EXPERIMENTAL,battlefield='land-mini',max_rounds=1,wall_level=bad)
-  with pytest.raises(ScenarioError,match='wall_level must be 0..46'):
+  with pytest.raises(ScenarioError,match='wall_level must be 0..48'):
    simulate(typed)
 
 
@@ -106,6 +106,25 @@ def test_open_field_exit_threshold_is_detected_after_defender_casualties():
  assert transition['details']['to_battlefield']=='land-mini'
  assert result['status']=='inconclusive'
  assert result['garrison_status']['transition_reached'] is True
+
+
+def test_barbarian_over_limit_uses_same_open_field_threshold_rule():
+ s={
+  'policy':'experimental','battlefield':'land-small','max_rounds':1,
+  'barbarian_village_level':10,'wall_level':1,
+  'attacker':{'army_kind':'player','units':[{'unit_id':'hoplite','quantity':150}]},
+  'defender':{'army_kind':'barbarian','forge_level':0,'units':[
+   {'unit_id':'barbarian_clubman','quantity':801}
+  ]},
+ }
+ result=simulate(s)
+ g=result['garrison_status']
+ assert g['settlement_kind']=='barbarian_village'
+ assert g['barbarian_village_level']==10
+ assert g['garrison_limit']==800
+ assert g['counted_defenders']==801
+ assert g['open_field'] is True
+ assert g['effective_battlefield']=='land-max'
 
 
 def test_zero_wall_level_keeps_existing_unit_vs_unit_execution_path():
