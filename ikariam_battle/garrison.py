@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from .models import Army
+if TYPE_CHECKING:
+    from .models import Army
 
 
 MAX_TOWN_HALL_LEVEL = 66
@@ -24,7 +25,7 @@ def player_garrison_limit(town_hall_level: int, wall_level: int) -> int:
     return 250 + 50 * (town_hall_level + wall_level)
 
 
-def counted_garrison_quantity(army: Army, through_round: int = 0) -> int:
+def counted_garrison_quantity(army: "Army", through_round: int = 0) -> int:
     """Count surviving/stationed input units relevant to current land garrison rules.
 
     This input-side helper is for pre-battle/arrival planning. Since v17.4.0,
@@ -53,7 +54,7 @@ def player_garrison_status(
     *,
     town_hall_level: int | None,
     wall_level: int,
-    defender_army: Army,
+    defender_army: "Army",
     base_battlefield_id: str,
     through_round: int = 0,
 ) -> dict[str, Any]:
