@@ -579,8 +579,9 @@ def _supported_whole_wave_light_first_fallback(
         required_slots = (total_units + capacity - 1) // capacity
         if required_slots > len(open_positions):
             # Supporting this case would split one state wave across First and
-            # Flank. Keep that separate evidence/RR boundary explicit.
-            continue
+            # Flank. Keep that separate evidence/RR boundary explicit. Do not
+            # let a later Light wave leapfrog this canonical earlier wave.
+            break
 
         source_lines = sorted({slot.line for slot in wave.slots if slot.units})
         total_damage = wave.reserve_damage + sum(slot.damage for slot in wave.slots)
