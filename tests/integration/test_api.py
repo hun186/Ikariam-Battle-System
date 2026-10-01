@@ -107,8 +107,10 @@ def test_wall_level_api_validation_and_summary_boundary():
  assert data['status']=='inconclusive' and data['rounds_completed']==0
  assert data['wall_status']['level']==20
  assert data['wall_status']['segments']==3
- assert data['wall_status']['hit_points']==1100
- assert data['wall_status']['armor']==80
+ assert data['wall_status']['hit_points']==19800
+ assert data['wall_status']['armor']==1440
+ assert data['wall_status']['damage'] is None
+ assert data['wall_status']['accuracy'] is None
  assert any(
   event['type']=='unsupported_mechanic'
   and event['details'].get('rule_id')=='UNKNOWN-TOWN-WALL-COMBAT'
