@@ -36,6 +36,15 @@ def test_experimental_names_accuracy_targeting_and_is_reproducible():
  assert any(e['type']=='damage_calculation' and e['details']['workshop_attack_level']==12 for e in first['events'])
 
 
+def test_typed_scenario_rejects_invalid_wall_level_like_dict_input():
+ attacker=Army.from_dict({'units':[{'unit_id':'hoplite','quantity':30}]})
+ defender=Army.from_dict({'units':[{'unit_id':'hoplite','quantity':30}]})
+ for bad in (47,True):
+  typed=Scenario(attacker,defender,policy=Policy.EXPERIMENTAL,battlefield='land-mini',max_rounds=1,wall_level=bad)
+  with pytest.raises(ScenarioError,match='wall_level must be 0..46'):
+   simulate(typed)
+
+
 def test_positive_wall_level_is_captured_and_stops_at_explicit_wall_boundary():
  s=scenario(); s['wall_level']=20
  result=simulate(s)
