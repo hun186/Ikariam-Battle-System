@@ -66,6 +66,11 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert data['town_wall']['input_supported'] is True
  assert data['town_wall']['combat_model_status']=='INPUT_CAPTURED_COMBAT_UNSUPPORTED'
  assert data['town_wall']['rule_id']=='UNKNOWN-TOWN-WALL-COMBAT'
+ assert data['garrison']['player_formula']=='250 + 50 * (town_hall_level + wall_level)'
+ assert data['garrison']['max_town_hall_level']==66
+ assert data['garrison']['open_field_battlefield']=='land-max'
+ assert data['garrison']['excluded_land_units_since_17_4_0']==['cook','doctor']
+ assert data['garrison']['barbarian_formula_status']=='CONFLICTING_COMMUNITY_EVIDENCE'
  assert all(
   u['domain']=='land' and u['army_kind']=='barbarian'
   and not u['selectable_by_player'] and u['selectable_in_simulator'] and u['simulation_ready']
@@ -112,6 +117,25 @@ def test_wall_level_api_validation_and_summary_boundary():
  bad_status,bad=post(invalid)
  assert bad_status==400
  assert bad=={'error':'wall_level must be 0..46'}
+
+
+def test_player_garrison_over_limit_uses_open_field_and_suppresses_wall():
+ value=payload()
+ value['town_hall_level']=1
+ value['wall_level']=1
+ value['defender']['units']=[{'unit_id':'hoplite','quantity':351}]
+ status,data=post(value)
+ assert status==200
+ assert data['garrison_status']['garrison_limit']==350
+ assert data['garrison_status']['open_field'] is True
+ assert data['garrison_status']['effective_battlefield']=='land-max'
+ assert data['wall_status']['status']=='suppressed'
+ assert data['wall_status']['inactive_reason']=='open_field_garrison_limit'
+ assert not any(
+  event['type']=='unsupported_mechanic'
+  and event['details'].get('rule_id')=='UNKNOWN-TOWN-WALL-COMBAT'
+  for event in data['events']
+ )
 
 
 def test_malformed_army_kind_values_return_json_400():
@@ -612,12 +636,16 @@ def test_setup_presets_share_the_canonical_setup_serializer_and_public_entrypoin
 
 def test_land_setup_exposes_defender_wall_and_preserves_it_in_presets_and_scenario():
  body=Path('index.html').read_text()
+ assert 'id="defenderTownHallLevel"' in body
  assert 'id="defenderWallLevel"' in body
+ assert 'function populateTownHallLevel(){' in body
  assert 'function populateWallLevels(){' in body
  assert "wall_level:Math.max(0,Math.trunc(+defenderWallLevel.value||0))" in body
+ assert "town_hall_level:armyKind('defender')==='player'?" in body
  assert "const wallLevel=Math.max(0,Math.min(wallMax,Math.trunc(Number(config.wall_level)||0)))" in body
  assert "defenderWallLevel.value=String(wallLevel)" in body
- assert "wall_level:0" in body
+ assert "wall_level:0,town_hall_level:25" in body
+ assert "'UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION':'防守方駐軍數跨過 garrison limit" in body
  assert "'UNKNOWN-TOWN-WALL-COMBAT':'防守方已設定城牆。" in body
  assert '城牆 Lv0–46' in body
  assert body==Path('public/index.html').read_text()
