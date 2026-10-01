@@ -9,7 +9,7 @@ from ikariam_battle.engine import (
 )
 from ikariam_battle.formation import FormationRules
 from ikariam_battle.models import Army, ArmyUnit, Policy, Scenario, ScenarioError, Slot, Wave
-from ikariam_battle.profiles import ForgeProfile, TargetingProfile, WorkshopProfile
+from ikariam_battle.profiles import ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 from ikariam_battle.units import UnitRegistry
 
 
@@ -567,6 +567,189 @@ def test_reserve_light_fallback_candidate_does_not_block_a_full_front_at_preflig
  assert any(e['type']=='attacking_matrix' for e in result['events'])
 
 
+def test_round_start_moves_whole_light_wave_from_flank_into_open_first_slots():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'steam_giant','quantity':224},
+  {'unit_id':'swordsman','quantity':240},
+ ]}),registry,field)
+ steam=next(w for w in waves if w.unit.unit_id=='steam_giant')
+ swords=next(w for w in waves if w.unit.unit_id=='swordsman')
+ steam.reserve=0
+ for slot in steam.slots:
+  slot.units=16 if slot.damage_position in {1,2,3} else 0
+  slot.damage=0
+ swords.reserve=0
+ for slot in swords.slots:
+  slot.units=40 if slot.damage_position in {1,2,3} else 0
+  slot.damage=210 if slot.damage_position in {2,3} else 0
+ before_damage=sum(slot.damage for slot in swords.slots)
+ events=[]; applied={}
+ _prepare_round_start(waves,events,4,'defender',applied,registry,rules,field)
+ assert sum(slot.units for slot in swords.slots)==120
+ assert {slot.line for slot in swords.slots if slot.units}=={'first'}
+ assert [slot.damage_position for slot in swords.slots if slot.units]==[4,5,6]
+ assert swords.reserve==0
+ assert swords.reserve_damage+sum(slot.damage for slot in swords.slots)==before_damage
+ assert any(
+  event.type=='formation_fallback'
+  and event.side=='defender'
+  and event.details.get('unit_id')=='swordsman'
+  and event.details.get('to_line')=='first'
+  and event.details.get('whole_wave') is True
+  for event in events
+ )
+
+
+def test_light_fallback_preserves_damage_owned_by_replaced_empty_first_slot():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'hoplite','quantity':350,'wave_id':'front'},
+  {'unit_id':'swordsman','quantity':240,'wave_id':'light'},
+ ]}),registry,field)
+ front=next(w for w in waves if w.unit.wave_id=='front')
+ light=next(w for w in waves if w.unit.wave_id=='light')
+ front.reserve=0
+ for slot in front.slots:
+  slot.units=slot.capacity if slot.damage_position in {1,2,3} else 0
+  slot.damage=0
+ # Position 4 is empty after compaction but still owns persistent damage from
+ # the surviving Hoplite wave. The Light fallback will reuse this position.
+ next(slot for slot in front.slots if slot.damage_position==1).damage=1136
+ next(slot for slot in front.slots if slot.damage_position==4).damage=424
+ light.reserve=0
+ for slot in light.slots:
+  slot.units=slot.capacity if slot.damage_position in {1,2,3} else 0
+  slot.damage=0
+ before_by_wave={
+  wave.unit.wave_id: wave.reserve_damage+sum(slot.damage for slot in wave.slots)
+  for wave in waves
+ }
+ assert before_by_wave=={'front':1560,'light':0}
+ events=[]; applied={}
+ _prepare_round_start(waves,events,3,'defender',applied,registry,rules,field)
+ after_by_wave={
+  wave.unit.wave_id: wave.reserve_damage+sum(slot.damage for slot in wave.slots)
+  for wave in waves
+ }
+ assert after_by_wave==before_by_wave
+ assert sum(after_by_wave.values())==1560
+ assert {slot.line for slot in light.slots if slot.units}=={'first'}
+ assert 4 in {slot.damage_position for slot in light.slots if slot.units}
+
+
+def test_comprehensive_preset_does_not_stop_at_round_four_when_swordsmen_can_fill_first():
+ s={
+  'policy':'experimental','battlefield':'land-max','max_rounds':5,
+  'attacker':{'forge_level':5,'units':[
+   {'unit_id':'hoplite','quantity':700,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'swordsman','quantity':480,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'sulphur_carabineer','quantity':168,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'mortar','quantity':60,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'bombardier','quantity':60,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'gyrocopter','quantity':120,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'cook','quantity':15,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'doctor','quantity':15,'entry_batch_id':'attacker-batch-1'},
+  ]},
+  'defender':{'forge_level':5,'units':[
+   {'unit_id':'steam_giant','quantity':224,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'swordsman','quantity':480,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'archer','quantity':700,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'catapult','quantity':60,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'bombardier','quantity':60,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'gyrocopter','quantity':120,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'cook','quantity':15,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'doctor','quantity':15,'entry_batch_id':'defender-batch-1'},
+  ]},
+ }
+ result=simulate(s)
+ assert result['rounds_completed']>=5
+ assert not any(
+  event['type']=='unsupported_mechanic'
+  and event['round']==4
+  and event['details'].get('rule_id')=='UNKNOWN-FORMATION-FALLBACK'
+  for event in result['events']
+ )
+ assert any(
+  event['type']=='formation_fallback'
+  and event['round']==4
+  and event['side']=='defender'
+  and event['details'].get('unit_id')=='swordsman'
+  and event['details'].get('to_line')=='first'
+  for event in result['events']
+ )
+
+
+def test_light_fallback_releases_native_slots_for_later_same_unit_wave():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'steam_giant','quantity':224,'wave_id':'heavy'},
+  {'unit_id':'swordsman','quantity':100,'wave_id':'s1'},
+  {'unit_id':'swordsman','quantity':200,'wave_id':'s2'},
+ ]}),registry,field)
+ heavy=next(w for w in waves if w.unit.wave_id=='heavy')
+ s1=next(w for w in waves if w.unit.wave_id=='s1')
+ s2=next(w for w in waves if w.unit.wave_id=='s2')
+ heavy.reserve=0
+ for slot in heavy.slots:
+  slot.units=16 if slot.damage_position in {1,2,3} else 0
+  slot.damage=0
+ # Initial deployment already gives s1 40/40/20 in native center slots.
+ assert sum(slot.units for slot in s1.slots)==100
+ s1.reserve=0
+ s2.reserve=80
+ for slot in s2.slots:
+  slot.units=40 if slot.damage_position in {4,5,6} else 0
+ events=[]; applied={}
+ _prepare_round_start(waves,events,4,'defender',applied,registry,rules,field)
+ assert {slot.line for slot in s1.slots if slot.units}=={'first'}
+ flank=[slot for slot in s2.slots if slot.line=='flank' and slot.units]
+ assert [slot.damage_position for slot in flank]==[1,2,3,4,5]
+ assert all(slot.units==40 for slot in flank)
+ assert s2.reserve==0
+
+
+def test_reserve_only_light_wave_does_not_bypass_cross_wave_rebuild_boundary():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-mini']
+ heavy=Wave(
+  ArmyUnit('hoplite',30,'heavy'),0,
+  [Slot('first-1','first',2,1,'hoplite','heavy',0,30,0)],
+ )
+ swords=Wave(ArmyUnit('swordsman',30,'reserve-light'),30,[])
+ events=[]; applied={}
+ _prepare_round_start([heavy,swords],events,2,'defender',applied,registry,rules,field)
+ assert swords.slots==[]
+ assert swords.reserve==30
+ requirements=_cross_wave_rebuild_requirements([heavy,swords],registry,rules,field)
+ assert any(
+  row['unit_id']=='swordsman'
+  and row['wave_id']=='reserve-light'
+  and row['runtime_line']=='first'
+  for row in requirements
+ )
+
+
+def test_partial_light_cross_line_fallback_remains_guarded():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'steam_giant','quantity':224},
+  {'unit_id':'swordsman','quantity':240},
+ ]}),registry,field)
+ steam=next(w for w in waves if w.unit.unit_id=='steam_giant')
+ swords=next(w for w in waves if w.unit.unit_id=='swordsman')
+ steam.reserve=0
+ for slot in steam.slots:
+  slot.units=16 if slot.damage_position in {1,2,3} else 0
+ swords.reserve=0
+ # 240 surviving Swordsmen need five First slots, but only four are open.
+ for slot in swords.slots:
+  slot.units=40
+ events=[]; applied={}
+ _prepare_round_start(waves,events,4,'defender',applied,registry,rules,field)
+ assert {slot.line for slot in swords.slots if slot.units}=={'flank'}
+ assert not any(event.type=='formation_fallback' for event in events)
+
+
 def test_unrelated_reserve_is_not_cross_wave_rebuild_candidate():
  registry=UnitRegistry.load(); rules=FormationRules.load()
  deployed=target_wave('hoplite','first',30)
@@ -838,22 +1021,95 @@ def test_round_combat_statistics_track_dealt_taken_and_cumulative_damage():
   assert result['combat_statistics'][side]['gross_healing']==0
 
 
-def test_doctor_healing_is_explicitly_unknown_not_zero():
- s=scenario(); s['attacker']['units'].append({'unit_id':'doctor','quantity':2}); result=simulate(s)
+def test_doctor_healing_executes_full_clear_subset_and_reports_real_amount():
+ s=scenario(); s['attacker']['units'].append({'unit_id':'doctor','quantity':100}); result=simulate(s)
  healing=result['healing_status']
  assert healing['modeled'] is False
+ assert healing['partial_model'] is True
+ assert healing['model_status']=='EXACT_FULL_CLEAR_SUBSET_ONLY'
  assert healing['derived_capacity_per_doctor']==4000
  assert healing['capacity_is_allocation_formula'] is False
- assert healing['sides']['attacker']=={
-  'doctor_count':2,'status':'ignored_by_named_assumption','effect_applied':False,'healing_amount':None
- }
- assert result['combat_statistics']['attacker']['gross_healing'] is None
- assert all(row['combat_statistics']['attacker']['healing'] is None for row in result['rounds'])
- assert all(row['combat_statistics']['attacker']['cumulative_healing'] is None for row in result['rounds'])
+ assert healing['timing_contract']=='per_round_before_next_round_combat'
+ assert healing['healing_rr_order']=='UNKNOWN_EXCEPT_FULL_CLEAR_IS_ORDER_INVARIANT'
+ side=healing['sides']['attacker']
+ assert side['doctor_count']==100
+ assert side['status']=='applied_exact_subset'
+ assert side['effect_applied'] is True
+ assert side['healing_amount']>0
+ assert side['engine_healing_applied']==side['healing_amount']
+ assert 'EXP-HEAL-NONE-001' not in {a['id'] for a in result['assumptions']}
+ assert result['combat_statistics']['attacker']['gross_healing']==side['healing_amount']
+ assert result['combat_statistics']['attacker']['engine_healing_applied']==side['healing_amount']
+ assert any(row['combat_statistics']['attacker']['healing']>0 for row in result['rounds'])
+ assert result['rounds'][-1]['combat_statistics']['attacker']['cumulative_healing']==side['healing_amount']
 
  strict=scenario('strict'); strict['attacker']['units'].append({'unit_id':'doctor','quantity':2}); blocked=simulate(strict)
  assert blocked['healing_status']['sides']['attacker']['status']=='unsupported_boundary'
  assert blocked['healing_status']['sides']['attacker']['healing_amount'] is None
+
+
+def test_doctor_healing_full_clear_only_affects_human_combat_damage():
+ registry=UnitRegistry.load(); support=SupportProfile.load()
+ doctor=Wave(ArmyUnit('doctor',1,'doctor'),0,[],0,None,1)
+ hoplite=Wave(ArmyUnit('hoplite',30,'hop'),0,
+              [Slot('first-1','first',2,1,'hoplite','hop',30,30,1000)])
+ steam=Wave(ArmyUnit('steam_giant',10,'steam'),0,
+            [Slot('first-2','first',3,2,'steam_giant','steam',10,10,1000)])
+ events=[]; applied={}
+ _prepare_round_start(
+  [doctor,hoplite,steam],events,2,'attacker',applied,
+  registry=registry,support=support,
+ )
+ assert hoplite.slots[0].damage==0
+ assert steam.slots[0].damage==1000
+ heal=next(event for event in events if event.type=='healing')
+ assert heal.details['healing']==1000
+ assert heal.details['capacity']==4000
+ assert heal.details['affected_units']=={'hoplite':1000}
+ assert heal.details['eligibility']=='land_human_combat'
+ assert 'EXP-HEAL-NONE-001' not in applied
+
+
+def test_doctor_healing_reports_distinct_unit_state_identities_for_same_wave_id():
+ registry=UnitRegistry.load(); support=SupportProfile.load()
+ doctor=Wave(ArmyUnit('doctor',1,'doctor'),0,[],0,None,1)
+ hoplite=Wave(ArmyUnit('hoplite',30,'wave-1'),0,
+              [Slot('first-1','first',2,1,'hoplite','wave-1',30,30,100)])
+ swords=Wave(ArmyUnit('swordsman',30,'wave-1'),0,
+             [Slot('flank-1','flank',2,1,'swordsman','wave-1',30,30,200)])
+ events=[]; applied={}
+ _prepare_round_start(
+  [doctor,hoplite,swords],events,2,'attacker',applied,
+  registry=registry,support=support,
+ )
+ heal=next(event for event in events if event.type=='healing')
+ assert heal.details['healing']==300
+ assert heal.details['affected_units']=={'hoplite':100,'swordsman':200}
+ assert heal.details['affected_waves']==[
+  {'unit_id':'hoplite','wave_id':'wave-1','healing':100},
+  {'unit_id':'swordsman','wave_id':'wave-1','healing':200},
+ ]
+ assert hoplite.slots[0].damage==0
+ assert swords.slots[0].damage==0
+
+
+def test_doctor_partial_healing_stays_named_assumption_when_capacity_is_insufficient():
+ registry=UnitRegistry.load(); support=SupportProfile.load()
+ doctor=Wave(ArmyUnit('doctor',1,'doctor'),0,[],0,None,1)
+ hoplite=Wave(ArmyUnit('hoplite',30,'hop'),0,
+              [Slot('first-1','first',2,1,'hoplite','hop',30,30,5000)])
+ events=[]; applied={}
+ _prepare_round_start(
+  [doctor,hoplite],events,2,'attacker',applied,
+  registry=registry,support=support,
+ )
+ assert hoplite.slots[0].damage==5000
+ assert 'EXP-HEAL-NONE-001' in applied
+ unresolved=next(event for event in events if event.type=='healing_allocation_unresolved')
+ assert unresolved.details['capacity']==4000
+ assert unresolved.details['eligible_damage']==5000
+ assert unresolved.details['action']=='no_partial_healing_applied'
+ assert not any(event.type=='healing' for event in events)
 
 
 def test_art_of_warfare_firing_order_profile_and_artillery_targets_are_exact():
@@ -1345,7 +1601,7 @@ def test_future_entry_batch_arrives_as_reserve_at_its_configured_round():
                 for e in result['events'])
 
 
-def test_future_doctor_arrival_applies_named_no_healing_assumption():
+def test_future_doctor_arrival_does_not_assume_no_healing_before_damage_exists():
  s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
     'attacker':{'units':[
       {'unit_id':'hoplite','quantity':90,'entry_batch_id':'a0','arrival_round':0},
@@ -1354,11 +1610,13 @@ def test_future_doctor_arrival_applies_named_no_healing_assumption():
  result=simulate(s)
  assert any(e['type']=='entry_batch_arrived' and e['round']==1
             and e['details']['entry_batch_id']=='a1' for e in result['events'])
- assert 'EXP-HEAL-NONE-001' in {a['id'] for a in result['assumptions']}
- assert result['healing_status']['sides']['attacker']=={
-  'doctor_count':2,'status':'ignored_by_named_assumption',
-  'effect_applied':False,'healing_amount':None
- }
+ assert 'EXP-HEAL-NONE-001' not in {a['id'] for a in result['assumptions']}
+ side=result['healing_status']['sides']['attacker']
+ assert side['doctor_count']==2
+ assert side['status']=='not_reached'
+ assert side['effect_applied'] is False
+ assert side['healing_amount']==0
+ assert side['engine_healing_applied']==0
 
 
 def test_future_cook_arrival_applies_named_no_morale_assumption():
@@ -1388,27 +1646,26 @@ def test_future_support_assumptions_are_side_and_round_specific():
       {'unit_id':'cook','quantity':12,'entry_batch_id':'d2','arrival_round':2}]}}
  result=simulate(s)
  assumption_events=[e for e in result['events'] if e['type']=='assumption_applied']
- assert any(e['side']=='attacker' and e['round']==1
-            and e['details']['id']=='EXP-HEAL-NONE-001' for e in assumption_events)
+ assert not any(e['details']['id']=='EXP-HEAL-NONE-001' for e in assumption_events)
  assert any(e['side']=='attacker' and e['round']==1
             and e['details']['id']=='EXP-MORALE-NONE-001' for e in assumption_events)
  assert not any(e['side']=='defender'
-                and e['details']['id'] in {'EXP-HEAL-NONE-001','EXP-MORALE-NONE-001'}
+                and e['details']['id']=='EXP-MORALE-NONE-001'
                 for e in assumption_events)
- assert result['healing_status']['sides']['attacker']['status']=='ignored_by_named_assumption'
+ assert result['healing_status']['sides']['attacker']['status']=='not_reached'
  assert result['healing_status']['sides']['defender']['status']=='not_reached'
  assert result['morale_status']['sides']['attacker']['status']=='ignored_by_named_assumption'
  assert result['morale_status']['sides']['defender']['status']=='not_reached'
  rounds={row['round']:row for row in result['rounds']}
  assert rounds[0]['combat_statistics']['attacker']['healing']==0
  assert rounds[0]['combat_statistics']['defender']['healing']==0
- assert rounds[1]['combat_statistics']['attacker']['healing'] is None
+ assert rounds[1]['combat_statistics']['attacker']['healing']==0
  assert rounds[1]['combat_statistics']['defender']['healing']==0
- assert result['combat_statistics']['attacker']['gross_healing'] is None
+ assert result['combat_statistics']['attacker']['gross_healing']==0
  assert result['combat_statistics']['defender']['gross_healing']==0
 
 
-def test_round_zero_support_assumptions_are_side_specific():
+def test_round_zero_doctor_presence_does_not_emit_healing_assumption_before_damage():
  s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
     'attacker':{'units':[{'unit_id':'hoplite','quantity':90},{'unit_id':'doctor','quantity':1}]},
     'defender':{'units':[
@@ -1417,8 +1674,8 @@ def test_round_zero_support_assumptions_are_side_specific():
  result=simulate(s)
  events=[e for e in result['events'] if e['type']=='assumption_applied'
          and e['details'].get('id')=='EXP-HEAL-NONE-001']
- assert [(e['side'],e['round']) for e in events]==[('attacker',0)]
- assert result['healing_status']['sides']['attacker']['status']=='ignored_by_named_assumption'
+ assert events==[]
+ assert result['healing_status']['sides']['attacker']['status']=='not_reached'
  assert result['healing_status']['sides']['defender']['status']=='not_reached'
 
 

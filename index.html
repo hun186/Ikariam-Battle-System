@@ -14,7 +14,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.tab{border:1px solid #6f634e;background:#f8edd2;color:var(--ink);padding:9px 16px;border-radius:5px;font-weight:800}.tab.active{background:var(--deep);color:#fff;border-color:var(--deep)}.tab:disabled{opacity:.45;cursor:not-allowed}
 .panel{background:linear-gradient(135deg,#fffdf5,#efe0ba);border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 14px #4a381f26}
 .settings{display:flex;gap:12px;align-items:end;flex-wrap:wrap;padding:12px 14px;margin-bottom:14px}.settings label,.side-toolbar label{font-size:11px;font-weight:800;text-transform:uppercase;display:grid;gap:4px}.settings select,.settings input,.side-toolbar select{border:1px solid #96805b;background:#fffdf7;border-radius:4px;padding:8px;color:var(--ink)}.settings-note{flex-basis:100%;padding:8px 10px;background:#f8efd8;border-left:4px solid #9a8356;font-size:12px;color:#5d5548}
-.preset-panel{padding:12px 14px;margin-bottom:14px}.preset-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}.preset-head h2{font:700 20px Georgia,serif;margin:0}.preset-head p{margin:3px 0 0;color:#655b49;font-size:12px}.preset-controls{display:flex;align-items:end;gap:8px;flex-wrap:wrap;margin-top:8px}.preset-controls label{display:grid;gap:4px;font-size:11px;font-weight:800;text-transform:uppercase;min-width:210px}.preset-controls select,.preset-controls input{border:1px solid #96805b;background:#fffdf7;border-radius:4px;padding:8px;color:var(--ink);min-height:38px}.preset-controls .preset-name{min-width:220px;flex:1 1 260px}.preset-controls button{min-height:38px}.preset-status{margin-top:8px;font-size:11px;color:#655b49}.preset-status.ok{color:var(--ok);font-weight:800}.preset-status.warn{color:var(--warn);font-weight:800}
+.preset-panel{padding:0;margin-bottom:14px;overflow:hidden}.preset-panel>summary{cursor:pointer;list-style:none;padding:12px 14px;font:700 20px Georgia,serif;display:flex;align-items:center;justify-content:space-between;gap:12px}.preset-panel>summary::-webkit-details-marker{display:none}.preset-panel>summary::after{content:'▸';font:700 18px system-ui}.preset-panel[open]>summary::after{content:'▾'}.preset-panel>summary small{display:block;margin-top:3px;color:#655b49;font:12px/1.4 system-ui;font-weight:500}.preset-body{padding:0 14px 12px;border-top:1px solid #d3bf96}.preset-controls{display:flex;align-items:end;gap:8px;flex-wrap:wrap;margin-top:8px}.preset-controls label{display:grid;gap:4px;font-size:11px;font-weight:800;text-transform:uppercase;min-width:210px}.preset-controls select,.preset-controls input{border:1px solid #96805b;background:#fffdf7;border-radius:4px;padding:8px;color:var(--ink);min-height:38px}.preset-controls .preset-name{min-width:220px;flex:1 1 260px}.preset-controls button{min-height:38px}.preset-status{margin-top:8px;font-size:11px;color:#655b49}.preset-status.ok{color:var(--ok);font-weight:800}.preset-status.warn{color:var(--warn);font-weight:800}
 .setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.side-setup{overflow:hidden}.side-title{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;color:#fff}.side-setup.attacker .side-title{background:linear-gradient(90deg,#894138,#ad5b4d)}.side-setup.defender .side-title{background:linear-gradient(90deg,#245d78,#3c7893)}.side-title h2{font:700 22px Georgia,serif;margin:0}.side-toolbar{display:flex;align-items:end;gap:10px}.side-toolbar select{min-width:150px}
 .unit-list{padding:10px}.unit-group{margin-bottom:10px}.unit-group-title{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#655b49;border-bottom:1px solid #cbb892;padding:4px 2px}
 .unit-setup-row{display:grid;grid-template-columns:52px minmax(190px,1fr) 74px 74px;gap:7px 8px;align-items:center;padding:8px 4px;border-bottom:1px solid #ddd0b4}.show-unit-identity .unit-setup-row{grid-template-columns:minmax(150px,.9fr) minmax(190px,1.25fr) 74px 74px}.unit-ident{display:flex;gap:8px;align-items:center;min-width:0}.unit-ident-copy{display:none;min-width:0}.show-unit-identity .unit-ident-copy{display:block}.unit-icon{width:46px;height:46px;border-radius:7px;display:grid;place-items:center;background:linear-gradient(#f7e7bf,#d5bd87);border:2px solid #9a8051;overflow:hidden}.unit-icon img{width:44px;height:44px;object-fit:contain;display:block}.unit-art-fallback{font-size:20px;line-height:1}.unit-name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.unit-meta{font-size:11px;color:var(--muted)}
@@ -60,22 +60,24 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
       <div class="settings-note">預設 100 回合；1000 回合是可手動提高的安全上限，不是固定戰鬥長度。長戰的逐回合資料會按需分頁載入，不會一次傳送全部回合。若提早分出勝負或遇到無法安全判定的機制，模擬會提早停止。Cook 士氣目前尚未完整建模；實戰常見約 15 Cook 的配置不會被當成已驗證的固定公式。</div>
     </section>
 
-    <section class="panel preset-panel" aria-label="快速設定與自訂套裝">
-      <div class="preset-head"><div><h2>快速設定 / Presets</h2><p>平常可維持簡單配置；需要壓力測試時再一鍵填入多戰線兵力。自訂套裝只保存在此瀏覽器。</p></div></div>
-      <div class="preset-controls">
-        <label>內建快速設定<select id="builtinPreset"><option value="simple">簡單前線（原預設）</option><option value="combined">綜合陸戰（全戰線＋支援）</option><option value="player-vs-barbarian">玩家 vs 野蠻人綜合</option></select></label>
-        <button id="applyBuiltinPreset" class="secondary" type="button">套用快速設定</button>
-        <button id="clearArmies" class="secondary" type="button">兵力歸零</button>
+    <details class="panel preset-panel" aria-label="快速設定與自訂套裝">
+      <summary><span>快速設定 / Presets<small>需要時展開；預設收合。內建快速設定、自訂套裝與兵力歸零都在這裡；自訂套裝只保存在此瀏覽器。</small></span></summary>
+      <div class="preset-body">
+        <div class="preset-controls">
+          <label>內建快速設定<select id="builtinPreset"><option value="simple">簡單前線（原預設）</option><option value="combined">綜合陸戰（全戰線＋支援）</option><option value="player-vs-barbarian">玩家 vs 野蠻人綜合</option></select></label>
+          <button id="applyBuiltinPreset" class="secondary" type="button">套用快速設定</button>
+          <button id="clearArmies" class="secondary" type="button">兵力歸零</button>
+        </div>
+        <div class="preset-controls">
+          <label class="preset-name">自訂套裝名稱<input id="userPresetName" maxlength="60" placeholder="例如：主力城常用配置"></label>
+          <button id="saveUserPreset" class="secondary" type="button">儲存目前配置</button>
+          <label>已儲存套裝<select id="userPresetSelect"></select></label>
+          <button id="loadUserPreset" class="secondary" type="button">載入</button>
+          <button id="deleteUserPreset" class="secondary" type="button">刪除</button>
+        </div>
+        <div id="presetStatus" class="preset-status" aria-live="polite">自訂套裝使用瀏覽器 localStorage；不會上傳到伺服器，也不會改變模擬規則。</div>
       </div>
-      <div class="preset-controls">
-        <label class="preset-name">自訂套裝名稱<input id="userPresetName" maxlength="60" placeholder="例如：主力城常用配置"></label>
-        <button id="saveUserPreset" class="secondary" type="button">儲存目前配置</button>
-        <label>已儲存套裝<select id="userPresetSelect"></select></label>
-        <button id="loadUserPreset" class="secondary" type="button">載入</button>
-        <button id="deleteUserPreset" class="secondary" type="button">刪除</button>
-      </div>
-      <div id="presetStatus" class="preset-status" aria-live="polite">自訂套裝使用瀏覽器 localStorage；不會上傳到伺服器，也不會改變模擬規則。</div>
-    </section>
+    </details>
 
     <div class="actions setup-actions-top"><div class="action-row"><button id="simulateTop" class="primary" type="button">開始模擬</button><button id="downloadSetupTop" class="secondary" type="button">下載兵力設定 Debug JSON</button></div><div class="debug-note">Debug JSON 可直接貼回來協助重現問題；不包含 API key。</div><div id="errorTop" class="error" aria-hidden="true"></div></div>
 
@@ -113,7 +115,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
         <div class="mechanics-card mechanics-known"><b>RR · Reserve Redistribution · 已實作</b><p>回合間，同一 entry batch / wave 的 persistent damage 會連同 reserve 一起重新分配；不同 wave 不共享舊傷。</p></div>
         <div class="mechanics-card mechanics-unknown"><b>IR / SR · Trigger 未知，現在不觸發</b><p>IR 可能發生在 individual shots 之間；SR 可能發生在一條 formation 射完、下一條 formation 開火前。引擎保留 redistribution hook，但 trigger 尚未確立，因此目前固定不觸發。</p></div>
         <div class="mechanics-card mechanics-partial"><b>D-kill / P-kill / I-kill · 部分已知</b><p>目前 Experimental baseline 使用逐擊 D-kill：一發一發計算，死亡立即生效，overkill 預設丟棄。P-kill 在部分實戰會把 overkill 重新分配給 survivors；I-kill、IR-kill、PIR-kill、M-kill 亦有實驗觀察，但一般觸發條件仍未知，因此目前不自動套用。</p></div>
-        <div class="mechanics-card mechanics-partial"><b>Healing · 部分已知</b><p>陸軍單位分 Human / Machine；Doctor 只治療 Human，Machine 不可治療。目前 Machine：Steam Giant、Ram、Catapult、Mortar、Gyrocopter、Bombardier。Healing capacity 已知，但 allocation，以及 Healing 與 RR 的精確先後仍待校準。</p></div>
+        <div class="mechanics-card mechanics-partial"><b>Healing · 部分已知 / 部分實作</b><p>Doctor 只治療 Human，Machine 不可治療。目前 Machine：Steam Giant、Ram、Catapult、Mortar、Gyrocopter、Bombardier。每回合治療會在下一回合戰鬥開始前反映。現行 derived capacity 為每名 Doctor 4000。當總容量足以清除全部可治療 Human persistent damage 時，引擎會直接全清，這個結果不受 Healing / RR 先後影響；容量不足時，allocation 與精確 Healing / RR 順序仍未知，因此不猜部分分配。</p></div>
         <div class="mechanics-card mechanics-partial"><b>RR 後 slot 內部傷害分配 · 未完全確立</b><p>PDF 能確立 wave → slot 的 RR，但 slot aggregate damage 如何落到 individual units 仍有未解處。Experimental 現採均勻分配後再逐擊，並以 named assumption 顯示。</p></div>
         <div class="mechanics-card mechanics-partial"><b>海戰 / Naval</b><p>海戰採同一套 formation-phase 架構：填補順序與開火順序分開，同 formation 雙方同時射擊。Tender 可修護軍艦；naval battlefield geometry 尚未開放執行，因此目前先保存共用 chronology contract。</p></div>
       </div>
@@ -358,7 +360,7 @@ function setupRow(unit,side,options={}){
   const barbarian=unit.army_kind==='barbarian',extra=Boolean(options.extra),batchIndex=options.batchIndex||1;
   const row=document.createElement('div');row.className='unit-setup-row'+(extra?' extra-batch':'');row.dataset.unitId=unit.id;row.dataset.side=side;row.dataset.batchIndex=String(batchIndex);
   const quantity=extra?0:defaultQuantity(unit,side),batchId=options.batchId||side+'-batch-'+batchIndex,arrivalRound=options.arrivalRound??0;
-  const supportNote=unit.support_effect==='morale'?' · 士氣支援（尚未建模）':unit.support_effect==='healing'?' · 治療支援（尚未建模）':'';
+  const supportNote=unit.support_effect==='morale'?' · 士氣支援（尚未建模）':unit.support_effect==='healing'?' · 治療支援（部分建模）':'';
   const packageNote=barbarian?' · Barbarian':'';
   const levels=barbarian?
     '<label class="level-field hidden">攻擊<input class="attack" type="number" min="0" value="0" disabled></label><label class="level-field hidden">防禦<input class="armor" type="number" min="0" value="0" disabled></label>':
@@ -811,6 +813,10 @@ function renderPager(){
 function safetyNoticesHtml(data){
   const blockers=[...new Set(data.events.filter(e=>e.type==='unsupported_mechanic').map(e=>e.details?.rule_id).filter(Boolean))];
   const warnings=[...new Set(data.warnings||[])],assumptions=data.assumptions||[],cards=[];
+  const blockerHelp={
+    'UNKNOWN-FORMATION-FALLBACK':'主戰線需要 fallback。整個 Light Infantry wave 可完整轉入 First 的情況已支援；這個邊界代表仍需要同 wave 跨 First/Flank 分兵、Long-range 前移／武器切換，或其他尚未驗證的 fallback。',
+    'UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS':'同一 wave 同時跨多條 runtime line 的戰鬥與 RR 尚未完整校準。',
+  };
   const roundCap=data.events.find(e=>e.type==='safety_limit_reached');
   if(roundCap)cards.push('<div class="safety-card warning"><b>Safety round cap reached / 已達安全回合上限</b><div>Simulation stopped at '+esc(roundCap.details?.limit)+' rounds without a resolved outcome.</div></div>');
   const morale=data.morale_status,moraleSides=morale?.sides||{},aCook=moraleSides.attacker?.cook_count||0,dCook=moraleSides.defender?.cook_count||0;
@@ -830,16 +836,18 @@ function safetyNoticesHtml(data){
   if(aDoctor||dDoctor){
     const healingStatuses=[healingSides.attacker?.status,healingSides.defender?.status].filter(Boolean);
     let healingHandling;
-    if(healingStatuses.includes('ignored_by_named_assumption')){
-      healingHandling='Experimental：已依 '+esc(healing.experimental_assumption_id)+' 繼續，但不套用 Doctor 治療。';
+    if(healingStatuses.includes('partial_allocation_unresolved')){
+      healingHandling='Experimental：容量不足以全清可治療 Human 傷害時，依 '+esc(healing.experimental_assumption_id)+' 不猜部分 allocation；已能確定的 full-clear 回合仍會正常套用。';
     }else if(healingStatuses.includes('unsupported_boundary')){
-      healingHandling='Strict：遇到 Doctor 會以 '+esc(healing.strict_rule_id)+' 停在證據邊界。';
+      healingHandling='Strict：Doctor 的不完整 allocation 規則仍以 '+esc(healing.strict_rule_id)+' 停在證據邊界。';
+    }else if(healingStatuses.includes('applied_exact_subset')){
+      healingHandling='已套用可確定的 full-clear 子集：總 Doctor 容量足以清除當回合全部可治療 Human persistent damage。';
     }else{
-      healingHandling='尚未到達治療處理：戰鬥先因其他 unsupported boundary 停止，'+esc(healing.experimental_assumption_id)+' 並未套用。';
+      healingHandling='尚未到達需要實際治療的回合交界，或該時點沒有可治療 persistent damage。';
     }
-    cards.push('<div class="safety-card warning"><b>Healing / 治療尚未建模</b><div>攻擊方 Doctor '+aDoctor+'；防守方 Doctor '+dDoctor+'。'+healingHandling+' 目前每名 Doctor 的 derived capacity reference = '+esc(healing.derived_capacity_per_doctor)+'，但 eligibility、allocation 與 timing 未知，因此不直接拿 4000 扣除傷害。</div></div>');
+    cards.push('<div class="safety-card warning"><b>Healing / 治療部分建模</b><div>攻擊方 Doctor '+aDoctor+'；防守方 Doctor '+dDoctor+'。'+healingHandling+' 每名 Doctor derived capacity = '+esc(healing.derived_capacity_per_doctor)+'；已知治療為每回合效果，並在下一回合戰鬥開始前反映。精確 Healing / RR 先後與容量不足時的 allocation 仍未知；full-clear 子集因結果為全部傷害歸零，不受先後順序影響。</div></div>');
   }
-  if(blockers.length)cards.push('<div class="safety-card blocker"><b>Unsupported mechanics / 無法安全判定</b><ul>'+blockers.map(id=>'<li>'+esc(id)+'</li>').join('')+'</ul></div>');
+  if(blockers.length)cards.push('<div class="safety-card blocker"><b>Unsupported mechanics / 無法安全判定</b><ul>'+blockers.map(id=>'<li><b>'+esc(id)+'</b>'+(blockerHelp[id]?'<div>'+esc(blockerHelp[id])+'</div>':'')+'</li>').join('')+'</ul></div>');
   if(warnings.length)cards.push('<div class="safety-card warning"><b>Evidence warnings</b><ul>'+warnings.map(item=>'<li>'+esc(item)+'</li>').join('')+'</ul></div>');
   if(assumptions.length)cards.push('<div class="safety-card assumption"><b>Experimental assumptions actually used</b><ul>'+assumptions.map(item=>'<li>'+esc(item.id)+': '+esc(item.description)+'</li>').join('')+'</ul></div>');
   return cards.join('');
@@ -863,7 +871,7 @@ async function renderRound(number){
   board.innerHTML=battleHalf(round.attacker,'attacker')+'<div class="clash" aria-hidden="true"></div>'+battleHalf(round.defender,'defender');
   bindFloatingTooltips(board);
   const aStats=round.combat_statistics?.attacker||{},dStats=round.combat_statistics?.defender||{};
-  const healingValue=value=>value==null?'未建模':Number(value).toLocaleString();
+  const healingValue=value=>value==null?'部分未知':Number(value).toLocaleString();
   document.getElementById('roundMetrics').innerHTML=
     '<div class="metric"><span>Status</span><b>'+esc(lastResult.status)+'</b></div>'+
     '<div class="metric"><span>Outcome</span><b>'+esc(lastResult.outcome)+'</b></div>'+
@@ -904,9 +912,10 @@ function summarySide(side,label){
   const military=lastResult.military_score?.[side]||{},combat=lastResult.combat_statistics?.[side]||{},morale=lastResult.morale_status?.sides?.[side]||{},healing=lastResult.healing_status?.sides?.[side]||{};
   const moraleStatusLabel={ignored_by_named_assumption:'假設忽略',unsupported_boundary:'Strict 邊界',not_reached:'尚未到達',not_present:'未使用'}[morale.status]||'未建模';
   const moraleText=(morale.cook_count||0)?'Cook '+morale.cook_count+' · '+moraleStatusLabel:'Cook 0 · 未使用';
-  const healingStatusLabel={ignored_by_named_assumption:'假設忽略',unsupported_boundary:'Strict 邊界',not_reached:'尚未到達',not_present:'未使用'}[healing.status]||'未建模';
+  const healingStatusLabel={applied_exact_subset:'已套用可確定子集',partial_allocation_unresolved:'部分分配未知',unsupported_boundary:'Strict 邊界',not_reached:'尚未到達',not_present:'未使用'}[healing.status]||'部分建模';
   const healingText=(healing.doctor_count||0)?'Doctor '+healing.doctor_count+' · '+healingStatusLabel:'Doctor 0 · 未使用';
-  const grossHealing=combat.gross_healing==null?'未建模':Number(combat.gross_healing||0).toLocaleString();
+  const appliedHealing=Number(combat.engine_healing_applied||0);
+  const grossHealing=combat.gross_healing==null?'部分未知 · 已套用 '+appliedHealing.toLocaleString():Number(combat.gross_healing||0).toLocaleString();
   return '<section class="panel summary-side"><h3>'+label+'</h3><table class="summary-table"><thead><tr><th>兵種</th><th>初始</th><th>損失</th><th>剩餘</th></tr></thead><tbody>'+
     ids.map(id=>{const unit=unitById(id);return '<tr><td>'+esc(unit?.display_name||id)+'</td><td>'+(initial[id]||0)+'</td><td class="loss">−'+(loss[id]||0)+'</td><td>'+(final[id]||0)+'</td></tr>'}).join('')+
     '</tbody></table><div class="side-stats"><div class="side-stat"><span>軍分損失</span><b>−'+(military.general_score_lost??0)+'</b></div><div class="side-stat"><span>造成軍分消減</span><b>'+(military.general_score_destroyed??0)+'</b></div><div class="side-stat"><span>Gross damage dealt</span><b>'+Number(combat.gross_damage_dealt||0).toLocaleString()+'</b></div><div class="side-stat"><span>Gross damage taken</span><b>'+Number(combat.gross_damage_taken||0).toLocaleString()+'</b></div><div class="side-stat"><span>Healing</span><b>'+grossHealing+'</b></div><div class="side-stat"><span>Doctor / 治療</span><b>'+esc(healingText)+'</b></div><div class="side-stat"><span>Cook / 士氣</span><b>'+esc(moraleText)+'</b></div></div></section>';

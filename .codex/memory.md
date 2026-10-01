@@ -6,7 +6,7 @@
 - All five land IDs use evidence-backed slot geometry and slot-space/unit-size capacity; selection remains explicit.
 - Complete reviewer-verified current data is distinct from empirical mechanics.
 - Ammo is a pooled shot count. Art of Warfare firing chronology and runtime-line target priorities are executable contracts; ignored accuracy remains a named experimental policy.
-- Doctor/Tender healing and Cook morale are separate unknowns.
+- Doctor/Tender healing and Cook morale are separate support domains. Doctor healing now has an exact full-clear subset; partial-capacity allocation and exact Healing/RR ordering remain unknown, while Cook morale remains unresolved.
 - Support has separate deployed state; walls and garrison-limit escalation are out of current scope.
 - Battle-end state separates actual main-line holders, unresolved fallback candidates, and non-sustaining survivors; fallback-required stops inconclusive and applied assumptions remain unique and conditional.
 - Function B must later call `simulate()` without duplicating rules.
@@ -25,4 +25,4 @@ Naval geometry, automatic Town Hall/garrison/wall selection and transitions, acc
 - Battle-report UI calibration now retains destroyed slot identity with per-round casualties and vertical HP bars, visualizes Reserve as icon/HP cards using batch-local reserve damage, separates initial deployment from numbered pager navigation, and offers a default-collapsed live HP/ATK/DEF setup preview driven by API Workshop/Forge metadata.
 - Am target-slot addresses are now stable within each volley: emptying one addressed slot does not change the modulo divisor or redirect later rows to surviving slots. Formation-class target transfer remains allowed only after the whole higher-priority formation class is eliminated.
 - Art of Warfare chronology is now phase-based: Air defence → Air → Artillery → Flank → Long-range → Main. Same-formation sides snapshot firing eligibility simultaneously; earlier-phase casualties suppress later firing; target priority is re-evaluated individual-shot by individual-shot. Experimental uses sequential D-kill baseline, while IR/SR triggers and P/I/IR/PIR/M kill selectors remain explicit unknowns.
-- Current land units now expose Human/Machine metadata for future Doctor eligibility. Machine land units are Steam Giant, Battering Ram, Catapult, Mortar, Gyrocopter and Bombardier; actual healing allocation is still not applied.
+- Current land units expose Human/Machine metadata for Doctor eligibility. Machine land units are Steam Giant, Battering Ram, Catapult, Mortar, Gyrocopter and Bombardier. Round-boundary Doctor healing is applied only when total capacity can clear all eligible Human persistent damage; insufficient-capacity allocation remains an explicit unknown.

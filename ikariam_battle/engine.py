@@ -28,7 +28,7 @@ EXPERIMENTAL_POLICIES = {
     "EXP-AMMO-PARTIAL-ORDER-001": "Allocate a partial ammunition pool by source-slot damage priority.",
     "EXP-ACCURACY-IGNORED-001": "Do not reduce Am hits by weapon accuracy because its algorithm is unresolved.",
     "EXP-BATTLE-END-ROUND-BOUNDARY-001": "Evaluate battle-sustaining forces at the initial and completed-round boundaries.",
-    "EXP-HEAL-NONE-001": "Support healing is not applied because allocation is unknown.",
+    "EXP-HEAL-NONE-001": "When Doctor capacity cannot clear all eligible Human persistent damage at a round boundary, do not apply partial healing because allocation and exact Healing/RR ordering are unresolved.",
     "EXP-MORALE-NONE-001": "Cook morale is not applied because the current morale algorithm is unresolved.",
 }
 
@@ -144,6 +144,93 @@ def _guard_single_line_waves(waves: list[Wave]) -> None:
     """Prevent structurally valid, but uncalibrated, multi-line execution."""
     if any(len({slot.line for slot in wave.slots}) > 1 for wave in waves):
         raise ScenarioError("UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS")
+
+
+def _apply_supported_doctor_healing(
+    waves: list[Wave], registry: UnitRegistry, support: SupportProfile,
+    events: list[Event], number: int, side: str,
+    applied: dict[str, dict[str, str]],
+) -> int:
+    """Apply the order-invariant exact subset of Doctor healing.
+
+    Empirical evidence establishes a per-round heal that is reflected before
+    the next round's combat, while current data gives a derived 4000-capacity
+    reference per Doctor and Human/Machine eligibility. Exact allocation and
+    Healing-vs-RR order remain unresolved.
+
+    Therefore we execute only the case whose result is independent of those
+    unknowns: total Doctor capacity covers *all* persistent damage on eligible
+    Human combat waves. Every eligible wave is then fully healed before the
+    ordinary RR pass; whether the real game heals before or after RR cannot
+    change that all-zero result. If capacity is insufficient, Experimental
+    continues with the named no-partial-healing assumption instead of inventing
+    an allocation priority.
+    """
+    doctor_count = sum(
+        wave.support_units
+        for wave in waves
+        if wave.unit.unit_id == "doctor" and wave.support_units > 0
+    )
+    if not doctor_count:
+        return 0
+
+    damaged: list[tuple[Wave, int]] = []
+    for wave in waves:
+        if not wave.alive:
+            continue
+        unit = registry.get(wave.unit.unit_id)
+        if unit.role != "combat" or unit.unit_class != "human":
+            continue
+        total_damage = wave.reserve_damage + sum(slot.damage for slot in wave.slots)
+        if total_damage > 0:
+            damaged.append((wave, total_damage))
+
+    eligible_damage = sum(total for _, total in damaged)
+    if not eligible_damage:
+        return 0
+
+    capacity = doctor_count * support.derived_capacity
+    if capacity < eligible_damage:
+        _assume(applied, events, "EXP-HEAL-NONE-001", number, "heal", side)
+        _event(
+            events, number, "heal", "healing_allocation_unresolved", side,
+            doctor_count=doctor_count, capacity=capacity,
+            eligible_damage=eligible_damage,
+            unresolved_damage=eligible_damage,
+            rule_id="UNKNOWN-HEALING-ALLOCATION",
+            action="no_partial_healing_applied",
+        )
+        return 0
+
+    by_wave: list[dict[str, Any]] = []
+    by_unit: dict[str, int] = defaultdict(int)
+    for wave, total_damage in damaged:
+        by_wave.append({
+            "unit_id": wave.unit.unit_id,
+            "wave_id": wave.unit.wave_id,
+            "healing": total_damage,
+        })
+        by_unit[wave.unit.unit_id] += total_damage
+        wave.reserve_damage = 0
+        for slot in wave.slots:
+            slot.damage = 0
+
+    _event(
+        events, number, "heal", "healing", side,
+        doctor_count=doctor_count, capacity=capacity,
+        eligible_damage_before=eligible_damage,
+        healing=eligible_damage,
+        unused_capacity=capacity - eligible_damage,
+        affected_waves=sorted(
+            by_wave, key=lambda item: (item["unit_id"], item["wave_id"])
+        ),
+        affected_units=dict(sorted(by_unit.items())),
+        eligibility="land_human_combat",
+        timing="round_boundary_before_next_combat",
+        exact_subset="capacity_covers_all_eligible_persistent_damage",
+        healing_rr_order="order_invariant_for_full_clear",
+    )
+    return eligible_damage
 
 
 def _redistribute(waves: list[Wave], events: list[Event], number: int, side: str,
@@ -519,6 +606,165 @@ def _supported_same_unit_same_line_handoffs(
             wave.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
 
 
+def _supported_whole_wave_light_first_fallback(
+    waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field,
+    events: list[Event], number: int, side: str,
+) -> None:
+    """Move one whole native Light Infantry wave into open First slots.
+
+    The in-game formation rule gives First-line placement precedence over Flank.
+    This executable subset is deliberately narrow: the surviving wave must fit
+    completely into currently open First slots, so the wave never spans First
+    and Flank at the same time. Partial cross-line splitting remains guarded by
+    UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS.
+
+    Persistent damage stays wave-owned. It is parked on reserve_damage while
+    slots are rebuilt, then the existing RR pass redistributes it over the new
+    single-line placement.
+    """
+    geometry = field.lines.get("first")
+    if geometry is None:
+        return
+
+    occupied = {
+        slot.damage_position
+        for wave in waves
+        for slot in wave.slots
+        if slot.line == "first" and slot.units
+    }
+    first_owners = {
+        slot.damage_position: (wave, slot)
+        for wave in waves
+        for slot in wave.slots
+        if slot.line == "first"
+    }
+
+    candidates = sorted(waves, key=lambda wave: wave.unit.formation_order_key)
+    for wave in candidates:
+        unit = registry.get(wave.unit.unit_id)
+        if (
+            unit.role != "combat"
+            or unit.semantic_class != "light_infantry"
+            or unit.native_line == "first"
+            or "first" not in eligible_runtime_lines(unit, rules, field)
+            or not wave.alive
+        ):
+            continue
+
+        live_lines = {slot.line for slot in wave.slots if slot.units}
+        # This exact fallback subset starts from an already deployed native
+        # Light formation. A wholly reserve-only wave still belongs behind the
+        # cross-wave rebuild boundary and must not materialize in First here.
+        if live_lines != {unit.native_line}:
+            continue
+
+        total_units = wave.reserve + sum(slot.units for slot in wave.slots)
+        capacity = geometry.slot_space // unit.size
+        if total_units <= 0 or capacity <= 0:
+            continue
+        open_positions = [
+            position for position in geometry.damage_priority
+            if position not in occupied
+        ]
+        required_slots = (total_units + capacity - 1) // capacity
+        if required_slots > len(open_positions):
+            # Supporting this case would split one state wave across First and
+            # Flank. Keep that separate evidence/RR boundary explicit. Do not
+            # let a later Light wave leapfrog this canonical earlier wave.
+            break
+
+        source_lines = sorted({slot.line for slot in wave.slots if slot.units})
+        total_damage = wave.reserve_damage + sum(slot.damage for slot in wave.slots)
+
+        # The completed previous-round snapshot already owns old slot casualty
+        # history. Round-start fallback creates the next formation cleanly.
+        #
+        # If later state waves of the *same unit* still occupy the native line,
+        # preserve the physical native positions released by this promoted wave.
+        # Attach empty ownership shells to the earliest later native peer, then
+        # the existing same-unit/same-line compaction pass can refill them
+        # center-first without merging wave state or inventing a new slot.
+        released_native_slots = [
+            slot for slot in wave.slots if slot.line == unit.native_line
+        ]
+        later_native_peers = [
+            peer for peer in candidates
+            if peer is not wave
+            and peer.unit.unit_id == wave.unit.unit_id
+            and peer.unit.formation_order_key > wave.unit.formation_order_key
+            and (
+                peer.reserve > 0
+                or any(slot.line == unit.native_line for slot in peer.slots)
+            )
+            and len({slot.line for slot in peer.slots if slot.units}) <= 1
+        ]
+        for slot in list(wave.slots):
+            wave.slots.remove(slot)
+        if released_native_slots and later_native_peers:
+            peer = later_native_peers[0]
+            owned = {slot.damage_position for slot in peer.slots
+                     if slot.line == unit.native_line}
+            for released in released_native_slots:
+                if released.damage_position in owned:
+                    continue
+                peer.slots.append(Slot(
+                    f"{unit.native_line}-{released.damage_position}",
+                    unit.native_line,
+                    released.physical_position,
+                    released.damage_position,
+                    unit.id,
+                    peer.unit.wave_id,
+                    0,
+                    released.capacity,
+                    0,
+                ))
+                owned.add(released.damage_position)
+            peer.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
+        wave.reserve = 0
+        wave.reserve_damage = total_damage
+
+        remaining = total_units
+        positions_used: list[int] = []
+        for position in open_positions[:required_slots]:
+            previous = first_owners.get(position)
+            if previous is not None:
+                previous_wave, previous_slot = previous
+                if previous_slot in previous_wave.slots and not previous_slot.units:
+                    # Empty physical slots may still carry persistent damage
+                    # owned by their previous unit-state wave. Replacing the
+                    # slot must not discard that damage; park it on the owning
+                    # wave so the ordinary RR pass can redistribute it after
+                    # the new formation is complete.
+                    previous_wave.reserve_damage += previous_slot.damage
+                    previous_slot.damage = 0
+                    previous_wave.slots.remove(previous_slot)
+
+            quantity = min(capacity, remaining)
+            slot = Slot(
+                f"first-{position}", "first",
+                geometry.physical_position(position), position,
+                unit.id, wave.unit.wave_id, quantity, capacity,
+            )
+            wave.slots.append(slot)
+            occupied.add(position)
+            first_owners[position] = (wave, slot)
+            positions_used.append(position)
+            remaining -= quantity
+
+        if remaining:
+            raise ScenarioError("whole-wave Light Infantry fallback left unexpected reserve")
+        wave.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
+        _event(
+            events, number, "deploy", "formation_fallback", side,
+            unit_id=unit.id, wave_id=wave.unit.wave_id,
+            entry_batch_id=wave.unit.batch_id,
+            from_lines=source_lines or [unit.native_line], to_line="first",
+            quantity=total_units, damage_positions=positions_used,
+            rule="first_before_flank_whole_wave_light_fallback",
+            whole_wave=True,
+        )
+
+
 def _has_supported_round_start_first_placement(
     waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field,
 ) -> bool:
@@ -528,6 +774,11 @@ def _has_supported_round_start_first_placement(
     _rebuild_formation(projected, projection_events, 0, "projection")
     _supported_same_batch_heavy_first_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
+    _supported_same_unit_same_line_handoffs(
+        projected, registry, rules, field, projection_events, 0, "projection")
+    _supported_whole_wave_light_first_fallback(
+        projected, registry, rules, field, projection_events, 0, "projection")
+    _rebuild_formation(projected, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
     return any(
@@ -541,16 +792,30 @@ def _prepare_round_start(
     waves: list[Wave], events: list[Event], number: int, side: str,
     applied: dict[str, dict[str, str]], registry: UnitRegistry | None = None,
     rules: FormationRules | None = None, field=None,
+    support: SupportProfile | None = None,
 ) -> None:
-    """Re-pack, apply supported slot handoffs, then redistribute persistent damage."""
+    """Re-pack, apply safe Doctor healing when exact, then RR persistent damage."""
     _rebuild_formation(waves, events, number, side)
     if registry is not None and rules is not None and field is not None:
         _supported_same_batch_heavy_first_handoffs(
             waves, registry, rules, field, events, number, side)
         _supported_same_unit_same_line_handoffs(
             waves, registry, rules, field, events, number, side)
-    # RR must see the final deployment after every supported compaction so
-    # persistent damage remains conserved per concrete unit-state wave.
+        _supported_whole_wave_light_first_fallback(
+            waves, registry, rules, field, events, number, side)
+        # Whole-wave promotion can vacate native-line physical positions that
+        # a later same-unit wave is allowed to inherit. First re-pack each
+        # concrete wave across its inherited slots, then run the already
+        # supported same-unit/same-line cross-wave compaction.
+        _rebuild_formation(waves, events, number, side)
+        _supported_same_unit_same_line_handoffs(
+            waves, registry, rules, field, events, number, side)
+    if registry is not None and support is not None:
+        _apply_supported_doctor_healing(
+            waves, registry, support, events, number, side, applied)
+    # RR must see the final deployment after every supported compaction. The
+    # healing subset above is intentionally limited to full-clear cases, so the
+    # unknown Healing/RR order cannot alter its result.
     _redistribute(waves, events, number, side, applied)
 
 
@@ -599,6 +864,11 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
     _rebuild_formation(projected, projection_events, 0, "projection")
     _supported_same_batch_heavy_first_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
+    _supported_same_unit_same_line_handoffs(
+        projected, registry, rules, field, projection_events, 0, "projection")
+    _supported_whole_wave_light_first_fallback(
+        projected, registry, rules, field, projection_events, 0, "projection")
+    _rebuild_formation(projected, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
 
@@ -1185,8 +1455,6 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         return _unsupported(scenario, events, initial, blockers, warnings)
     applied: dict[str, dict[str, str]] = {}
     for side, side_blockers in (("attacker", attacker_blockers), ("defender", defender_blockers)):
-        if "UNKNOWN-HEALING-ALLOCATION" in side_blockers:
-            _assume(applied, events, "EXP-HEAL-NONE-001", 0, "preflight", side)
         if "UNKNOWN-MORALE-SUPPORT" in side_blockers:
             _assume(applied, events, "EXP-MORALE-NONE-001", 0, "preflight", side)
     if fallback_sides:
@@ -1232,6 +1500,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 "events":[e.as_dict() for e in events],"assumptions":list(applied.values()),"warnings":warnings}
     workshop, forge = WorkshopProfile.load(scenario.profiles.workshop), ForgeProfile.load(scenario.profiles.forge)
     targeting = TargetingProfile.load(scenario.profiles.targeting)
+    support = SupportProfile.load(scenario.profiles.support)
     total = {"attacker": defaultdict(int), "defender": defaultdict(int)}
     rounds = [{"round":0, **deepcopy(initial), "casualties":{"attacker":{},"defender":{}}}]
     completed = 0
@@ -1250,16 +1519,14 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             "defender": _preflight(defender_arrivals, registry, formation_rules, field),
         }
         for side, side_blockers in arrival_blockers.items():
-            if "UNKNOWN-HEALING-ALLOCATION" in side_blockers:
-                _assume(applied, events, "EXP-HEAL-NONE-001", number, "arrival", side)
             if "UNKNOWN-MORALE-SUPPORT" in side_blockers:
                 _assume(applied, events, "EXP-MORALE-NONE-001", number, "arrival", side)
         _prepare_round_start(
             attacker, events, number, "attacker", applied,
-            registry, formation_rules, field)
+            registry, formation_rules, field, support)
         _prepare_round_start(
             defender, events, number, "defender", applied,
-            registry, formation_rules, field)
+            registry, formation_rules, field, support)
         cross_wave = {
             "attacker": _cross_wave_rebuild_requirements(attacker, registry, formation_rules, field),
             "defender": _cross_wave_rebuild_requirements(defender, registry, formation_rules, field),
@@ -1512,34 +1779,52 @@ def _healing_status(
     sides: dict[str, dict[str, Any]] = {}
     for side, army in (("attacker", scenario.attacker), ("defender", scenario.defender)):
         doctor_count = sum(unit.quantity for unit in army.units if unit.unit_id == "doctor")
+        heal_events = [
+            event for event in result.get("events", [])
+            if event.get("type") == "healing" and event.get("side") == side
+        ]
+        applied_amount = sum(
+            int(event.get("details", {}).get("healing", 0))
+            for event in heal_events
+        )
         reach_round = _support_assumption_round(result, assumption_id, side)
+        strict_reached = _strict_support_boundary_reached(
+            scenario, result, side, "doctor", strict_rule_id)
         if not doctor_count:
             status = "not_present"
-            amount = 0
-        elif reach_round is not None:
-            status = "ignored_by_named_assumption"
-            amount = None
-        elif _strict_support_boundary_reached(scenario, result, side, "doctor", strict_rule_id):
+            amount: int | None = 0
+        elif strict_reached:
             status = "unsupported_boundary"
             amount = None
+        elif reach_round is not None:
+            status = "partial_allocation_unresolved"
+            amount = None
+        elif heal_events:
+            status = "applied_exact_subset"
+            amount = applied_amount
         else:
             status = "not_reached"
-            amount = None
+            amount = 0
         sides[side] = {
             "doctor_count": doctor_count,
             "status": status,
-            "effect_applied": False,
+            "effect_applied": bool(applied_amount),
             "healing_amount": amount,
+            "engine_healing_applied": applied_amount,
         }
     return {
         "modeled": False,
+        "partial_model": True,
+        "model_status": "EXACT_FULL_CLEAR_SUBSET_ONLY",
         "strict_rule_id": strict_rule_id,
         "experimental_assumption_id": assumption_id,
         "derived_capacity_per_doctor": support.derived_capacity,
         "capacity_is_allocation_formula": False,
+        "timing_contract": "per_round_before_next_round_combat",
+        "healing_rr_order": "UNKNOWN_EXCEPT_FULL_CLEAR_IS_ORDER_INVARIANT",
+        "executable_subset": "capacity_covers_all_eligible_human_persistent_damage",
         "sides": sides,
     }
-
 
 def _attach_battle_statistics(
     result: dict[str, Any],
@@ -1582,35 +1867,43 @@ def _attach_battle_statistics(
     }
     gross_dealt = {"attacker": 0, "defender": 0}
     gross_taken = {"attacker": 0, "defender": 0}
+    gross_healing_applied = {"attacker": 0, "defender": 0}
     per_round: dict[int, dict[str, dict[str, int]]] = {}
 
     def round_stats(number: int) -> dict[str, dict[str, int]]:
         return per_round.setdefault(number, {
-            "attacker": {"damage_dealt": 0, "damage_taken": 0},
-            "defender": {"damage_dealt": 0, "damage_taken": 0},
+            "attacker": {"damage_dealt": 0, "damage_taken": 0, "healing": 0},
+            "defender": {"damage_dealt": 0, "damage_taken": 0, "healing": 0},
         })
 
     for row in result.get("rounds", []):
         round_stats(int(row.get("round", 0)))
 
     for event in result.get("events", []):
-        if event.get("type") != "damage":
-            continue
-        source = event.get("side")
-        target = event.get("details", {}).get("target_side")
-        if source not in gross_dealt or target not in gross_taken:
-            continue
-        amount = int(event.get("details", {}).get("damage", 0))
+        kind = event.get("type")
         number = int(event.get("round", 0))
-        stats = round_stats(number)
-        stats[source]["damage_dealt"] += amount
-        stats[target]["damage_taken"] += amount
-        gross_dealt[source] += amount
-        gross_taken[target] += amount
+        if kind == "damage":
+            source = event.get("side")
+            target = event.get("details", {}).get("target_side")
+            if source not in gross_dealt or target not in gross_taken:
+                continue
+            amount = int(event.get("details", {}).get("damage", 0))
+            stats = round_stats(number)
+            stats[source]["damage_dealt"] += amount
+            stats[target]["damage_taken"] += amount
+            gross_dealt[source] += amount
+            gross_taken[target] += amount
+        elif kind == "healing":
+            side = event.get("side")
+            if side not in gross_healing_applied:
+                continue
+            amount = int(event.get("details", {}).get("healing", 0))
+            round_stats(number)[side]["healing"] += amount
+            gross_healing_applied[side] += amount
 
     cumulative = {
-        "attacker": {"damage_dealt": 0, "damage_taken": 0},
-        "defender": {"damage_dealt": 0, "damage_taken": 0},
+        "attacker": {"damage_dealt": 0, "damage_taken": 0, "healing": 0},
+        "defender": {"damage_dealt": 0, "damage_taken": 0, "healing": 0},
     }
     for row in sorted(result.get("rounds", []), key=lambda value: int(value.get("round", 0))):
         number = int(row.get("round", 0))
@@ -1619,6 +1912,7 @@ def _attach_battle_statistics(
         for side in ("attacker", "defender"):
             cumulative[side]["damage_dealt"] += stats[side]["damage_dealt"]
             cumulative[side]["damage_taken"] += stats[side]["damage_taken"]
+            cumulative[side]["healing"] += stats[side]["healing"]
             support_round = healing_reach_round[side]
             healing_unknown = support_round is not None and number >= support_round
             if scenario.policy == Policy.STRICT and _strict_support_boundary_reached(
@@ -1629,8 +1923,8 @@ def _attach_battle_statistics(
                 "damage_taken": stats[side]["damage_taken"],
                 "cumulative_damage_dealt": cumulative[side]["damage_dealt"],
                 "cumulative_damage_taken": cumulative[side]["damage_taken"],
-                "healing": None if healing_unknown else 0,
-                "cumulative_healing": None if healing_unknown else 0,
+                "healing": None if healing_unknown else stats[side]["healing"],
+                "cumulative_healing": None if healing_unknown else cumulative[side]["healing"],
             }
         row["combat_statistics"] = row_combat
 
@@ -1642,7 +1936,8 @@ def _attach_battle_statistics(
                 healing_reach_round[side] is not None
                 or _strict_support_boundary_reached(
                     scenario, result, side, "doctor", "UNKNOWN-HEALING-ALLOCATION")
-            ) else 0,
+            ) else gross_healing_applied[side],
+            "engine_healing_applied": gross_healing_applied[side],
         }
         for side in ("attacker", "defender")
     }
