@@ -9,7 +9,7 @@ from ikariam_battle.engine import (
 )
 from ikariam_battle.formation import FormationRules
 from ikariam_battle.models import Army, ArmyUnit, Policy, Scenario, ScenarioError, Slot, Wave
-from ikariam_battle.profiles import ForgeProfile, TargetingProfile, WorkshopProfile
+from ikariam_battle.profiles import ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 from ikariam_battle.units import UnitRegistry
 
 
@@ -935,22 +935,72 @@ def test_round_combat_statistics_track_dealt_taken_and_cumulative_damage():
   assert result['combat_statistics'][side]['gross_healing']==0
 
 
-def test_doctor_healing_is_explicitly_unknown_not_zero():
- s=scenario(); s['attacker']['units'].append({'unit_id':'doctor','quantity':2}); result=simulate(s)
+def test_doctor_healing_executes_full_clear_subset_and_reports_real_amount():
+ s=scenario(); s['attacker']['units'].append({'unit_id':'doctor','quantity':100}); result=simulate(s)
  healing=result['healing_status']
  assert healing['modeled'] is False
+ assert healing['partial_model'] is True
+ assert healing['model_status']=='EXACT_FULL_CLEAR_SUBSET_ONLY'
  assert healing['derived_capacity_per_doctor']==4000
  assert healing['capacity_is_allocation_formula'] is False
- assert healing['sides']['attacker']=={
-  'doctor_count':2,'status':'ignored_by_named_assumption','effect_applied':False,'healing_amount':None
- }
- assert result['combat_statistics']['attacker']['gross_healing'] is None
- assert all(row['combat_statistics']['attacker']['healing'] is None for row in result['rounds'])
- assert all(row['combat_statistics']['attacker']['cumulative_healing'] is None for row in result['rounds'])
+ assert healing['timing_contract']=='per_round_before_next_round_combat'
+ assert healing['healing_rr_order']=='UNKNOWN_EXCEPT_FULL_CLEAR_IS_ORDER_INVARIANT'
+ side=healing['sides']['attacker']
+ assert side['doctor_count']==100
+ assert side['status']=='applied_exact_subset'
+ assert side['effect_applied'] is True
+ assert side['healing_amount']>0
+ assert side['engine_healing_applied']==side['healing_amount']
+ assert 'EXP-HEAL-NONE-001' not in {a['id'] for a in result['assumptions']}
+ assert result['combat_statistics']['attacker']['gross_healing']==side['healing_amount']
+ assert result['combat_statistics']['attacker']['engine_healing_applied']==side['healing_amount']
+ assert any(row['combat_statistics']['attacker']['healing']>0 for row in result['rounds'])
+ assert result['rounds'][-1]['combat_statistics']['attacker']['cumulative_healing']==side['healing_amount']
 
  strict=scenario('strict'); strict['attacker']['units'].append({'unit_id':'doctor','quantity':2}); blocked=simulate(strict)
  assert blocked['healing_status']['sides']['attacker']['status']=='unsupported_boundary'
  assert blocked['healing_status']['sides']['attacker']['healing_amount'] is None
+
+
+def test_doctor_healing_full_clear_only_affects_human_combat_damage():
+ registry=UnitRegistry.load(); support=SupportProfile.load()
+ doctor=Wave(ArmyUnit('doctor',1,'doctor'),0,[],0,None,1)
+ hoplite=Wave(ArmyUnit('hoplite',30,'hop'),0,
+              [Slot('first-1','first',2,1,'hoplite','hop',30,30,1000)])
+ steam=Wave(ArmyUnit('steam_giant',10,'steam'),0,
+            [Slot('first-2','first',3,2,'steam_giant','steam',10,10,1000)])
+ events=[]; applied={}
+ _prepare_round_start(
+  [doctor,hoplite,steam],events,2,'attacker',applied,
+  registry=registry,support=support,
+ )
+ assert hoplite.slots[0].damage==0
+ assert steam.slots[0].damage==1000
+ heal=next(event for event in events if event.type=='healing')
+ assert heal.details['healing']==1000
+ assert heal.details['capacity']==4000
+ assert heal.details['affected_units']=={'hoplite':1000}
+ assert heal.details['eligibility']=='land_human_combat'
+ assert 'EXP-HEAL-NONE-001' not in applied
+
+
+def test_doctor_partial_healing_stays_named_assumption_when_capacity_is_insufficient():
+ registry=UnitRegistry.load(); support=SupportProfile.load()
+ doctor=Wave(ArmyUnit('doctor',1,'doctor'),0,[],0,None,1)
+ hoplite=Wave(ArmyUnit('hoplite',30,'hop'),0,
+              [Slot('first-1','first',2,1,'hoplite','hop',30,30,5000)])
+ events=[]; applied={}
+ _prepare_round_start(
+  [doctor,hoplite],events,2,'attacker',applied,
+  registry=registry,support=support,
+ )
+ assert hoplite.slots[0].damage==5000
+ assert 'EXP-HEAL-NONE-001' in applied
+ unresolved=next(event for event in events if event.type=='healing_allocation_unresolved')
+ assert unresolved.details['capacity']==4000
+ assert unresolved.details['eligible_damage']==5000
+ assert unresolved.details['action']=='no_partial_healing_applied'
+ assert not any(event.type=='healing' for event in events)
 
 
 def test_art_of_warfare_firing_order_profile_and_artillery_targets_are_exact():
@@ -1442,7 +1492,7 @@ def test_future_entry_batch_arrives_as_reserve_at_its_configured_round():
                 for e in result['events'])
 
 
-def test_future_doctor_arrival_applies_named_no_healing_assumption():
+def test_future_doctor_arrival_does_not_assume_no_healing_before_damage_exists():
  s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
     'attacker':{'units':[
       {'unit_id':'hoplite','quantity':90,'entry_batch_id':'a0','arrival_round':0},
@@ -1451,11 +1501,13 @@ def test_future_doctor_arrival_applies_named_no_healing_assumption():
  result=simulate(s)
  assert any(e['type']=='entry_batch_arrived' and e['round']==1
             and e['details']['entry_batch_id']=='a1' for e in result['events'])
- assert 'EXP-HEAL-NONE-001' in {a['id'] for a in result['assumptions']}
- assert result['healing_status']['sides']['attacker']=={
-  'doctor_count':2,'status':'ignored_by_named_assumption',
-  'effect_applied':False,'healing_amount':None
- }
+ assert 'EXP-HEAL-NONE-001' not in {a['id'] for a in result['assumptions']}
+ side=result['healing_status']['sides']['attacker']
+ assert side['doctor_count']==2
+ assert side['status']=='not_reached'
+ assert side['effect_applied'] is False
+ assert side['healing_amount']==0
+ assert side['engine_healing_applied']==0
 
 
 def test_future_cook_arrival_applies_named_no_morale_assumption():
@@ -1485,27 +1537,26 @@ def test_future_support_assumptions_are_side_and_round_specific():
       {'unit_id':'cook','quantity':12,'entry_batch_id':'d2','arrival_round':2}]}}
  result=simulate(s)
  assumption_events=[e for e in result['events'] if e['type']=='assumption_applied']
- assert any(e['side']=='attacker' and e['round']==1
-            and e['details']['id']=='EXP-HEAL-NONE-001' for e in assumption_events)
+ assert not any(e['details']['id']=='EXP-HEAL-NONE-001' for e in assumption_events)
  assert any(e['side']=='attacker' and e['round']==1
             and e['details']['id']=='EXP-MORALE-NONE-001' for e in assumption_events)
  assert not any(e['side']=='defender'
-                and e['details']['id'] in {'EXP-HEAL-NONE-001','EXP-MORALE-NONE-001'}
+                and e['details']['id']=='EXP-MORALE-NONE-001'
                 for e in assumption_events)
- assert result['healing_status']['sides']['attacker']['status']=='ignored_by_named_assumption'
+ assert result['healing_status']['sides']['attacker']['status']=='not_reached'
  assert result['healing_status']['sides']['defender']['status']=='not_reached'
  assert result['morale_status']['sides']['attacker']['status']=='ignored_by_named_assumption'
  assert result['morale_status']['sides']['defender']['status']=='not_reached'
  rounds={row['round']:row for row in result['rounds']}
  assert rounds[0]['combat_statistics']['attacker']['healing']==0
  assert rounds[0]['combat_statistics']['defender']['healing']==0
- assert rounds[1]['combat_statistics']['attacker']['healing'] is None
+ assert rounds[1]['combat_statistics']['attacker']['healing']==0
  assert rounds[1]['combat_statistics']['defender']['healing']==0
- assert result['combat_statistics']['attacker']['gross_healing'] is None
+ assert result['combat_statistics']['attacker']['gross_healing']==0
  assert result['combat_statistics']['defender']['gross_healing']==0
 
 
-def test_round_zero_support_assumptions_are_side_specific():
+def test_round_zero_doctor_presence_does_not_emit_healing_assumption_before_damage():
  s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
     'attacker':{'units':[{'unit_id':'hoplite','quantity':90},{'unit_id':'doctor','quantity':1}]},
     'defender':{'units':[
@@ -1514,8 +1565,8 @@ def test_round_zero_support_assumptions_are_side_specific():
  result=simulate(s)
  events=[e for e in result['events'] if e['type']=='assumption_applied'
          and e['details'].get('id')=='EXP-HEAL-NONE-001']
- assert [(e['side'],e['round']) for e in events]==[('attacker',0)]
- assert result['healing_status']['sides']['attacker']['status']=='ignored_by_named_assumption'
+ assert events==[]
+ assert result['healing_status']['sides']['attacker']['status']=='not_reached'
  assert result['healing_status']['sides']['defender']['status']=='not_reached'
 
 
