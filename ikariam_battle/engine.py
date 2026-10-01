@@ -1038,7 +1038,7 @@ def _non_sustaining(snapshot: dict[str, Any]) -> dict[str, int]:
 
 def _validate_army_package(army: Army, registry: UnitRegistry, field) -> None:
     """Enforce army-package invariants for dict and typed Scenario callers."""
-    if army.army_kind not in {"player", "barbarian"}:
+    if not isinstance(army.army_kind, str) or army.army_kind not in {"player", "barbarian"}:
         raise ScenarioError("army_kind must be player or barbarian")
     active = [item for item in army.units if item.quantity]
     if army.army_kind == "barbarian":
