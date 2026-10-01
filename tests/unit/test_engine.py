@@ -137,7 +137,11 @@ def test_terminal_victory_precedes_unneeded_open_field_exit_transition():
   'policy':'experimental','battlefield':'land-mini','max_rounds':2,
   'town_hall_level':1,'wall_level':0,
   'attacker':{'forge_level':5,'units':[
-   {'unit_id':'hoplite','quantity':350,'attack_upgrade':1000}
+   # Fill all three firing formations evenly so stable per-formation target
+   # addressing cannot leave a partially addressed defender slot alive.
+   {'unit_id':'mortar','quantity':42,'attack_upgrade':1000},
+   {'unit_id':'sulphur_carabineer','quantity':49,'attack_upgrade':1000},
+   {'unit_id':'hoplite','quantity':350,'attack_upgrade':1000},
   ]},
   'defender':{'forge_level':0,'units':[
    {'unit_id':'hoplite','quantity':301}
