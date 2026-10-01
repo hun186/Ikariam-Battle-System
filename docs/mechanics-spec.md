@@ -120,7 +120,7 @@ Experimental results list only assumptions actually reached. Partial-ammunition 
 
 `BattleReportFixture` retains game version, complete scenario, round, casualties, damage%, and life%; damage display percentages can be converted to integer intervals rather than hard-coding a winner.
 
-Scope is unit-vs-unit Phase A. Executable geometry does not relax mixed-unit Am, multi-line-wave, unsupported different-unit cross-wave rebuild, fallback, ranged-weapon, or secondary-trigger guards. Same-unit same-line replacement across waves is an explicit supported exception and preserves per-wave state. Town walls, wall target/damage rules, and garrison-limit-driven battlefield escalation or mid-battle transitions are not implemented.
+Scope is unit-vs-unit Phase A. Executable geometry and shared mixed-source Attacking Matrix support do not relax the remaining multi-line-wave, unsupported different-unit cross-wave rebuild, fallback, ranged-weapon, or secondary-trigger guards. Same-unit same-line replacement across waves is an explicit supported exception and preserves per-wave state. Town walls, wall target/damage rules, and garrison-limit-driven battlefield escalation or mid-battle transitions are not implemented.
 
 ## Ranged formation calibration
 
@@ -148,7 +148,7 @@ Player mode defaults to an upper attacker/lower defender field, matching the use
 
 Damage-percent observations use the existing documented round-up assumption to derive the exact compatible integer persistent-damage interval from surviving units × unit HP. This remains a calibration assumption rather than confirmed Ikariam law. Casualties are summed only from round `damage` events carrying exact target side, runtime line, and damage position; missing identity is not inferred from side totals. Battle-report `life_percent` remains `not_assessable` with `UNKNOWN-BATTLE-REPORT-LIFE-PERCENT-SEMANTICS`, because the report denominator and rounding have not been proven identical to engine-derived `hit_points_percent`.
 
-A calibration match says only that one simulator result is compatible with one observation. It does not promote `USER_PROVIDED_BATTLE_OBSERVATION`, an experimental policy, or any empirical hypothesis into a production mechanic. Existing mixed-unit Am, accuracy, RR slot-internal allocation, SR/IR trigger, secondary-trigger, ranged-fallback, cross-wave rebuild, and formation blockers remain intact. Formation firing order and class-level shot-by-shot target transfer are executable current contracts.
+A calibration match says only that one simulator result is compatible with one observation. It does not promote `USER_PROVIDED_BATTLE_OBSERVATION`, an experimental policy, or any empirical hypothesis into a production mechanic. Mixed-source Am row/column construction is now an executable empirical-paper contract; accuracy, RR slot-internal allocation, SR/IR trigger, secondary-trigger, ranged-fallback, unsupported cross-wave rebuild, and multi-line-wave blockers remain intact. Formation firing order and class-level shot-by-shot target transfer are executable current contracts.
 
 
 ## Military economy and General Score
