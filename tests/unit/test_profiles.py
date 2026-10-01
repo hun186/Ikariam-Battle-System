@@ -74,6 +74,13 @@ def test_workshop_forge_support_and_targeting_profiles():
  w=WorkshopProfile.load(); assert w.bonus('land',12)==60 and w.bonus('naval',12)==120
  f=ForgeProfile.load(); assert [(str(f.effect(i).damage_multiplier),f.effect(i).armor_bonus) for i in range(6)]==[('1',0),('1.075',0),('1.075',10),('1.1',10),('1.125',20),('1.15',20)]
  s=SupportProfile.load(); assert s.derived_capacity==4000 and s.raw['multiplier_provenance']['source_type']=='OFFICIAL_CHANGELOG'
+ assert s.raw['eligibility']['land_doctor']=='human'
+ assert s.raw['eligibility']['machine_excluded'] is True
+ assert s.raw['timing_contract']['effect_frequency']=='per_round'
+ assert s.raw['timing_contract']['visible_by']=='before_next_round_combat'
+ assert s.raw['timing_contract']['exact_order_vs_rr']=='UNKNOWN'
+ assert s.raw['executable_subset']['status']=='IMPLEMENTED_ORDER_INVARIANT_FULL_CLEAR'
+ assert s.raw['executable_subset']['insufficient_capacity']=='EXP-HEAL-NONE-001'
  t=TargetingProfile.load(); assert t.priorities['flank'][0]=='flank'
  assert t.priorities['third']==('first','flank')
  assert t.firing_order==('anti-balloon','balloon','third','flank','second','first')
