@@ -25,7 +25,7 @@ def wall_stats(level: int) -> dict[str, int | None]:
       armour = 72 * level
       damage = 18 * legacy piecewise damage
 
-    Current observed damage points Lv1=216, Lv9=504, and Lv26=5580 exactly
+    Current observed damage points Lv1=216, Lv9=504, Lv18=2160, and Lv26=5580 exactly
     match the legacy three-tier damage table multiplied by 18. Accuracy remains
     unresolved here; do not project the legacy 30/50/80 values without current
     evidence.
@@ -113,7 +113,7 @@ def wall_profile_metadata() -> dict[str, Any]:
         "hit_points_formula": "1800 + 900 * level",
         "armor_formula": "72 * level",
         "damage_formula": {"1-9": "(10 + 2*level) * 18", "10-19": "(30 + 5*level) * 18", "20+": "(50 + 10*level) * 18"},
-        "damage_observed_points": {"1": 216, "9": 504, "26": 5580},
+        "damage_observed_points": {"1": 216, "9": 504, "18": 2160, "26": 5580},
         "successful_breach_hits_formula": "ceil((1800 + 900*level) / (attack_damage - 72*level))",
         "successful_breach_hits_scope": "successful hits only; excludes accuracy and shot allocation",
         "source_type": "MIXED_CURRENT_REFERENCE",
