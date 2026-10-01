@@ -154,14 +154,13 @@ def test_missing_round_marks_each_requested_field_not_assessable():
 
 
 def test_unsupported_simulation_exposes_blocker_without_false_mismatch():
-    scenario = {**SCENARIO, "attacker": {"units": [
-        {"unit_id": "hoplite", "quantity": 30},
-        {"unit_id": "swordsman", "quantity": 30},
-    ]}}
+    scenario = {**SCENARIO, "battlefield": "land-small",
+                "attacker": {"units": [{"unit_id": "swordsman", "quantity": 180}]},
+                "defender": {"units": [{"unit_id": "hoplite", "quantity": 150}]}}
     result = run_fixture(fixture([{"side": "defender", "line": "first", "damage_position": 1,
                                    "casualties": 0}], scenario=scenario))
     assert result.simulation_status == "inconclusive"
-    assert "UNKNOWN-MIXED-UNIT-AM-ROWS" in result.blockers
+    assert "UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS" in result.blockers
     assert result.assessments[0].status == NOT_ASSESSABLE
     assert result.assessments[0].reason == "SIMULATION-ROUND-NOT-REACHED"
 
