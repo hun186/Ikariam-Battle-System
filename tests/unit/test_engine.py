@@ -36,6 +36,32 @@ def test_experimental_names_accuracy_targeting_and_is_reproducible():
  assert any(e['type']=='damage_calculation' and e['details']['workshop_attack_level']==12 for e in first['events'])
 
 
+def test_positive_wall_level_is_captured_and_stops_at_explicit_wall_boundary():
+ s=scenario(); s['wall_level']=20
+ result=simulate(s)
+ rules={e['details'].get('rule_id') for e in result['events'] if e['type']=='unsupported_mechanic'}
+ assert result['status']=='inconclusive' and result['rounds_completed']==0
+ assert 'UNKNOWN-TOWN-WALL-COMBAT' in rules
+ assert result['wall_status']=={
+  'level':20,'damage':250,'accuracy':80,'hit_points':1100,'armor':80,
+  'segments':3,'status':'unsupported_boundary',
+  'combat_model_status':'INPUT_CAPTURED_COMBAT_UNSUPPORTED',
+  'rule_id':'UNKNOWN-TOWN-WALL-COMBAT','effect_applied':False,
+ }
+ assert any('Town Wall input is captured' in warning for warning in result['warnings'])
+
+
+def test_zero_wall_level_keeps_existing_unit_vs_unit_execution_path():
+ s=scenario(rounds=1); s['wall_level']=0
+ result=simulate(s)
+ assert result['wall_status']['status']=='not_present'
+ assert result['wall_status']['segments']==0
+ assert not any(
+  e['type']=='unsupported_mechanic' and e['details'].get('rule_id')=='UNKNOWN-TOWN-WALL-COMBAT'
+  for e in result['events']
+ )
+
+
 def test_symmetric_case_has_no_attacker_first_bias():
  s=scenario(); s['defender']=deepcopy(s['attacker']); r=simulate(s)
  assert r['casualties']['attacker']==r['casualties']['defender']
