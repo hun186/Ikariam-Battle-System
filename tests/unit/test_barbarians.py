@@ -82,5 +82,7 @@ def test_combat_registry_can_opt_in_barbarian_definitions():
     assert clubman.army_kind == "barbarian"
     assert clubman.domain == "land"
     assert clubman.role == "combat"
+    assert clubman.semantic_class == "heavy_infantry"
+    assert clubman.native_line == "first"
     assert clubman.primary_weapon.damage == 100
     assert clubman.primary_weapon.accuracy == 70
