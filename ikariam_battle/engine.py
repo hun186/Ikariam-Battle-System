@@ -2040,7 +2040,46 @@ def _attach_battle_statistics(
     }
     result["healing_status"] = healing_status
     result["morale_status"] = _morale_status(scenario, result)
-    result["wall_status"] = wall_status(scenario.wall_level, battlefield(scenario.battlefield))
+
+    garrison = player_garrison_status(
+        town_hall_level=scenario.town_hall_level,
+        wall_level=scenario.wall_level,
+        defender_army=scenario.defender,
+        base_battlefield_id=scenario.battlefield,
+        through_round=0,
+    )
+    transition_events = [
+        event for event in result.get("events", [])
+        if event.get("type") == "unsupported_mechanic"
+        and event.get("details", {}).get("rule_id") == GARRISON_TRANSITION_RULE_ID
+    ]
+    final_remaining = result.get("final_state", {}).get("defender", {}).get("remaining", {})
+    final_counted = sum(
+        int(quantity)
+        for unit_id, quantity in final_remaining.items()
+        if unit_id not in {"doctor", "cook"}
+    )
+    if garrison.get("modeled"):
+        garrison["final_counted_defenders"] = final_counted
+        garrison["final_open_field_threshold"] = final_counted > int(garrison["garrison_limit"])
+        garrison["transition_reached"] = bool(transition_events)
+        garrison["transition"] = transition_events[-1].get("details") if transition_events else None
+    result["garrison_status"] = garrison
+
+    initial_open = bool(garrison.get("open_field")) if garrison.get("modeled") else False
+    wall_inactive_reason = None
+    if scenario.wall_level and initial_open:
+        wall_inactive_reason = (
+            "garrison_transition_pending"
+            if transition_events and transition_events[-1].get("details", {}).get("direction") == "exit_open_field"
+            else "open_field_garrison_limit"
+        )
+    result["wall_status"] = wall_status(
+        scenario.wall_level,
+        battlefield(scenario.battlefield),
+        active=False if wall_inactive_reason else None,
+        inactive_reason=wall_inactive_reason,
+    )
     return result
 
 def simulate(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
