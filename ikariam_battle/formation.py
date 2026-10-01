@@ -67,10 +67,16 @@ def eligible_runtime_lines(unit, rules: FormationRules, field) -> tuple[str, ...
     return tuple(result)
 
 
+def _formation_ordered_units(army: Army) -> tuple:
+    """Canonical unit-state order for dict and directly-constructed typed armies."""
+    return tuple(sorted(army.units, key=lambda item: item.formation_order_key))
+
+
 def plan_initial_formation(army: Army, registry: UnitRegistry, field, rules: FormationRules | None = None) -> FormationPlan:
     """Pure, deterministic placement; formation does not select weapons or targets."""
     rules = rules or FormationRules.load()
-    remaining = {(item.unit_id, item.wave_id): item.quantity for item in army.units}
+    ordered_units = _formation_ordered_units(army)
+    remaining = {(item.unit_id, item.wave_id): item.quantity for item in ordered_units}
     placements: list[FormationPlacement] = []
     occupied: dict[str, set[int]] = {}
 
@@ -101,7 +107,7 @@ def plan_initial_formation(army: Army, registry: UnitRegistry, field, rules: For
     # batch owns its slot; a fallback class is never mixed into that slot.
     _, precedence, _ = _first_line_contract(rules)
     for semantic_class in precedence:
-        for item in army.units:
+        for item in ordered_units:
             unit = registry.get(item.unit_id)
             if unit.semantic_class == semantic_class and "first" in eligible_runtime_lines(unit, rules, field):
                 place(item, "first")
@@ -111,13 +117,14 @@ def plan_initial_formation(army: Army, registry: UnitRegistry, field, rules: For
     for line_name in field.lines:
         if line_name == "first":
             continue
-        for item in army.units:
+        for item in ordered_units:
             if line_name in eligible_runtime_lines(registry.get(item.unit_id), rules, field):
                 place(item, line_name)
     return FormationPlan(tuple(placements), remaining)
 
 
 def build_initial_formation(army: Army, registry: UnitRegistry, field, rules: FormationRules | None = None) -> list[Wave]:
+    ordered_units = _formation_ordered_units(army)
     plan = plan_initial_formation(army, registry, field, rules)
     by_wave: dict[tuple[str, str], list[Slot]] = {}
     for placement in plan.placements:
@@ -127,7 +134,7 @@ def build_initial_formation(army: Army, registry: UnitRegistry, field, rules: Fo
             placement.physical_position, placement.damage_position, placement.unit_id,
             placement.wave_id, placement.quantity, placement.capacity))
     waves = []
-    for item in army.units:
+    for item in ordered_units:
         unit = registry.get(item.unit_id)
         if unit.role == "support":
             waves.append(Wave(item, 0, [], 0, None, item.quantity))

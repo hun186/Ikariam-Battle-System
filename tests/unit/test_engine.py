@@ -4,7 +4,7 @@ import pytest
 from ikariam_battle import simulate
 from ikariam_battle.battlefield import LAND_BATTLEFIELDS, LAND_MINI, deploy
 from ikariam_battle.engine import (
- _cross_wave_rebuild_requirements, _ir_trigger, _plan_fire, _preflight,
+ _cross_wave_rebuild_requirements, _formation_shots, _ir_trigger, _plan_fire, _preflight,
  _prepare_round_start, _redistribute, _resolve_volleys, _sr_trigger, _target,
 )
 from ikariam_battle.formation import FormationRules
@@ -122,17 +122,16 @@ def test_support_unknowns_distinguish_healing_and_morale():
 
 
  hard_blocked={
-  'policy':'experimental','battlefield':'land-mini','max_rounds':2,
+  'policy':'experimental','battlefield':'land-small','max_rounds':2,
   'attacker':{'units':[
-   {'unit_id':'hoplite','quantity':30},
-   {'unit_id':'steam_giant','quantity':10},
+   {'unit_id':'swordsman','quantity':180},
    {'unit_id':'cook','quantity':15},
   ]},
-  'defender':{'units':[{'unit_id':'hoplite','quantity':30}]},
+  'defender':{'units':[{'unit_id':'hoplite','quantity':150}]},
  }
  stopped=simulate(hard_blocked)
  hard_rules={e['details'].get('rule_id') for e in stopped['events'] if e['type']=='unsupported_mechanic'}
- assert {'UNKNOWN-MIXED-UNIT-AM-ROWS','UNKNOWN-MORALE-SUPPORT'} <= hard_rules
+ assert {'UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS','UNKNOWN-MORALE-SUPPORT'} <= hard_rules
  assert stopped['assumptions']==[]
  assert stopped['morale_status']['sides']['attacker']=={
   'cook_count':15,'status':'not_reached','effect_applied':False
@@ -613,15 +612,44 @@ def test_larger_field_multiline_light_wave_remains_guarded():
   event['details'].get('rule_id') for event in result['events']}
 
 
-def test_larger_field_mixed_heavy_and_light_front_remains_guarded():
+def test_typed_scenario_army_order_is_canonical_for_mixed_front_combat():
+ hoplite=ArmyUnit('hoplite',1,'wave-1',entry_batch_id='batch-1')
+ steam=ArmyUnit('steam_giant',100,'wave-1',entry_batch_id='batch-1')
+ defender=Army((ArmyUnit('hoplite',60,'wave-1',entry_batch_id='batch-1'),),0,'player')
+ first=simulate(Scenario(
+  attacker=Army((hoplite,steam),0,'player'),defender=defender,
+  policy=Policy.EXPERIMENTAL,battlefield='land-max',max_rounds=1,
+ ))
+ reversed_order=simulate(Scenario(
+  attacker=Army((steam,hoplite),0,'player'),defender=defender,
+  policy=Policy.EXPERIMENTAL,battlefield='land-max',max_rounds=1,
+ ))
+ parsed=simulate({
+  'policy':'experimental','battlefield':'land-max','max_rounds':1,
+  'attacker':{'units':[
+   {'unit_id':'hoplite','quantity':1},
+   {'unit_id':'steam_giant','quantity':100},
+  ]},
+  'defender':{'units':[{'unit_id':'hoplite','quantity':60}]},
+ })
+ assert first==reversed_order
+ assert first==parsed
+
+
+def test_larger_field_mixed_heavy_and_light_front_executes_one_shared_am():
  s={'policy':'experimental','battlefield':'land-medium','max_rounds':1,
     'attacker':{'units':[{'unit_id':'hoplite','quantity':30},
                          {'unit_id':'swordsman','quantity':30}]},
     'defender':{'units':[{'unit_id':'hoplite','quantity':210}]}}
  result=simulate(s)
- assert result['rounds_completed']==0
- assert 'UNKNOWN-MIXED-UNIT-AM-ROWS' in {
-  event['details'].get('rule_id') for event in result['events']}
+ rules={event['details'].get('rule_id') for event in result['events']
+        if event['type']=='unsupported_mechanic'}
+ assert 'UNKNOWN-MIXED-UNIT-AM-ROWS' not in rules
+ assert result['rounds_completed']==1
+ matrices=[event for event in result['events']
+           if event['type']=='attacking_matrix' and event['side']=='attacker'
+           and event['details'].get('firing_phase')=='first']
+ assert {event['details']['unit_id'] for event in matrices}=={'hoplite','swordsman'}
 
 
 def test_larger_field_cross_wave_reserve_candidate_waits_while_line_is_full():
@@ -746,17 +774,21 @@ def test_dynamic_front_collapse_retargets_later_main_shots_into_long_range():
             and e['details'].get('firing_phase')=='first' for e in result['events'])
 
 
-def test_mixed_runtime_front_is_represented_but_never_fires():
- s={'policy':'experimental','battlefield':'land-mini','max_rounds':5,
+def test_mixed_runtime_front_is_represented_and_fires_by_runtime_line():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
     'attacker':{'units':[{'unit_id':'hoplite','quantity':90}]},
     'defender':{'units':[{'unit_id':'hoplite','quantity':8},{'unit_id':'swordsman','quantity':30}]}}
  result=simulate(s); front=result['initial_state']['defender']['slots']
  assert {(slot['unit_id'],slot['line']) for slot in front}=={('hoplite','first'),('swordsman','first')}
  rules={e['details']['rule_id'] for e in result['events'] if e['type']=='unsupported_mechanic'}
- assert 'UNKNOWN-MIXED-UNIT-AM-ROWS' in rules
+ assert 'UNKNOWN-MIXED-UNIT-AM-ROWS' not in rules
  assert 'UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT' not in rules
- assert result['rounds_completed']==0
- assert not any(e['type']=='attacking_matrix' for e in result['events'])
+ assert result['rounds_completed']==1
+ assert {'hoplite','swordsman'} <= {
+  e['details']['unit_id'] for e in result['events']
+  if e['type']=='attacking_matrix' and e['side']=='defender'
+  and e['details'].get('firing_phase')=='first'
+ }
 
 
 def test_both_sides_without_main_line_is_not_an_unqualified_draw():
@@ -898,6 +930,141 @@ def test_zero_quantity_support_rows_do_not_create_blockers_or_assumptions():
   assert assumption not in ids
   side=result[status_key]['sides']['attacker']
   assert side[count_key]==0 and side['status']=='not_present'
+
+
+def test_mixed_source_am_merges_columns_in_row_major_order():
+ volleys=[
+  {'source_unit':'catapult','row_numbers':[1,1,2,2],
+   'source_damage_positions':[1,2,1,2]},
+  {'source_unit':'battering_ram','row_numbers':[1,2],
+   'source_damage_positions':[3,3]},
+ ]
+ shots=_formation_shots(volleys)
+ assert [(volleys[index]['source_unit'],row) for index,row in shots]==[
+  ('catapult',1),('catapult',1),('battering_ram',1),
+  ('catapult',2),('catapult',2),('battering_ram',2),
+ ]
+
+
+def test_mixed_source_waves_share_one_frozen_target_address_book():
+ registry=UnitRegistry.load()
+ hoplite_hp=registry.get('hoplite').hit_points
+ hoplite=Wave(
+  ArmyUnit('hoplite',1,'hop'),0,
+  [Slot('first-1','first',1,1,'hoplite','hop',1,30,hoplite_hp-1)],
+ )
+ steam=Wave(
+  ArmyUnit('steam_giant',1,'steam'),0,
+  [Slot('first-2','first',2,2,'steam_giant','steam',1,10,0)],
+ )
+ queues={
+  ('hoplite','hop','first-1'):[hoplite_hp-1],
+  ('steam_giant','steam','first-2'):[0],
+ }
+ volleys=[
+  {'side':'attacker','source_unit':'swordsman','source_wave':'sword',
+   'runtime_line':'flank','weapon_id':'primary','attack_upgrade':0,
+   'row_numbers':[1],'source_damage_positions':[1]},
+  {'side':'attacker','source_unit':'spearman','source_wave':'spear',
+   'runtime_line':'flank','weapon_id':'primary','attack_upgrade':0,
+   'row_numbers':[1,2],'source_damage_positions':[2,2]},
+ ]
+ casualties=defaultdict(int); slot_casualties=defaultdict(int); events=[]
+ _resolve_volleys(
+  volleys,[hoplite,steam],queues,registry,WorkshopProfile.load(),ForgeProfile.load(),
+  TargetingProfile.load(),events,1,
+  Army((ArmyUnit('swordsman',1,'sword'),ArmyUnit('spearman',2,'spear')),0),
+  Army((ArmyUnit('hoplite',1,'hop'),ArmyUnit('steam_giant',1,'steam')),0),
+  casualties,slot_casualties,{},
+ )
+ # Swordsman row 1 kills target position 1. Spearman row 1 still addresses
+ # position 1 from the shared formation address book instead of renumbering
+ # Steam Giant to the first/only surviving target column.
+ wasted=[event for event in events if event.type=='shot_addressed_empty_slot']
+ assert wasted
+ assert wasted[0].details['source_unit_id']=='spearman'
+ assert wasted[0].details['target_damage_position']==1
+ assert casualties.get('hoplite')==1
+ assert casualties.get('steam_giant',0)==0
+
+
+def test_barbarian_mixed_artillery_debug_shape_reaches_combat():
+ s={'policy':'experimental','battlefield':'land-max','max_rounds':1,
+    'attacker':{'army_kind':'player','forge_level':5,'units':[
+      {'unit_id':'hoplite','quantity':650}]},
+    'defender':{'army_kind':'barbarian','forge_level':0,'units':[
+      {'unit_id':'barbarian_axe_swinger','quantity':650,
+       'entry_batch_id':'defender-barbarian-garrison'},
+      {'unit_id':'barbarian_catapult','quantity':24,
+       'entry_batch_id':'defender-barbarian-garrison'},
+      {'unit_id':'barbarian_ram','quantity':6,
+       'entry_batch_id':'defender-barbarian-garrison'},
+    ]}}
+ result=simulate(s)
+ rules={e['details'].get('rule_id') for e in result['events']
+        if e['type']=='unsupported_mechanic'}
+ assert 'UNKNOWN-MIXED-UNIT-AM-ROWS' not in rules
+ assert result['rounds_completed']==1
+ assert {'barbarian_catapult','barbarian_ram'} <= {
+  e['details'].get('source_unit_id') for e in result['events']
+  if e['type']=='damage' and e['side']=='defender'
+  and e['details'].get('firing_phase')=='third'
+ }
+
+
+def test_uploaded_barbarian_deployment_shape_no_longer_stops_at_round_zero():
+ s={'policy':'experimental','battlefield':'land-max','max_rounds':1,
+    'attacker':{'army_kind':'player','forge_level':5,'units':[
+      {'unit_id':'hoplite','quantity':650,'entry_batch_id':'attacker-batch-1'},
+      {'unit_id':'steam_giant','quantity':32,'entry_batch_id':'attacker-batch-1'},
+      {'unit_id':'spearman','quantity':150,'entry_batch_id':'attacker-batch-1'},
+      {'unit_id':'swordsman','quantity':280,'entry_batch_id':'attacker-batch-1'},
+      {'unit_id':'sulphur_carabineer','quantity':36,'entry_batch_id':'attacker-batch-1'},
+      {'unit_id':'battering_ram','quantity':12,'entry_batch_id':'attacker-batch-1'},
+      {'unit_id':'bombardier','quantity':75,'entry_batch_id':'attacker-batch-1'},
+      {'unit_id':'gyrocopter','quantity':90,'entry_batch_id':'attacker-batch-1'},
+    ]},
+    'defender':{'army_kind':'barbarian','forge_level':0,'units':[
+      {'unit_id':'barbarian_axe_swinger','quantity':650,'entry_batch_id':'defender-barbarian-garrison'},
+      {'unit_id':'barbarian_clubman','quantity':350,'entry_batch_id':'defender-barbarian-garrison'},
+      {'unit_id':'barbarian_knifeman','quantity':80,'entry_batch_id':'defender-barbarian-garrison'},
+      {'unit_id':'barbarian_axe_thrower','quantity':350,'entry_batch_id':'defender-barbarian-garrison'},
+      {'unit_id':'barbarian_catapult','quantity':24,'entry_batch_id':'defender-barbarian-garrison'},
+      {'unit_id':'barbarian_ram','quantity':6,'entry_batch_id':'defender-barbarian-garrison'},
+      {'unit_id':'barbarian_dirigible','quantity':45,'entry_batch_id':'defender-barbarian-garrison'},
+      {'unit_id':'barbarian_fighter','quantity':60,'entry_batch_id':'defender-barbarian-garrison'},
+    ]}}
+ result=simulate(s)
+ assert result['rounds_completed']==1
+ assert not any(e['round']==0 and e['type']=='unsupported_mechanic'
+                for e in result['events'])
+ assert {'barbarian_catapult','barbarian_ram'} <= {
+  e['details'].get('source_unit_id') for e in result['events']
+  if e['type']=='damage' and e['side']=='defender'
+  and e['details'].get('firing_phase')=='third'
+ }
+
+
+def test_barbarian_clubman_and_axe_swinger_share_heavy_front_without_mixed_am_blocker():
+ s={'policy':'experimental','battlefield':'land-max','max_rounds':1,
+    'attacker':{'army_kind':'player','units':[{'unit_id':'hoplite','quantity':350}]},
+    'defender':{'army_kind':'barbarian','units':[
+      {'unit_id':'barbarian_axe_swinger','quantity':300,
+       'entry_batch_id':'defender-barbarian-garrison'},
+      {'unit_id':'barbarian_clubman','quantity':50,
+       'entry_batch_id':'defender-barbarian-garrison'},
+    ]}}
+ result=simulate(s)
+ front=[slot for slot in result['initial_state']['defender']['slots']
+        if slot['line']=='first']
+ assert {slot['unit_id'] for slot in front}=={
+  'barbarian_axe_swinger','barbarian_clubman'}
+ assert all(slot['semantic_class']=='heavy_infantry' for slot in front)
+ assert 'UNKNOWN-MIXED-UNIT-AM-ROWS' not in {
+  e['details'].get('rule_id') for e in result['events']
+  if e['type']=='unsupported_mechanic'
+ }
+ assert result['rounds_completed']==1
 
 
 def test_am_slot_addresses_stay_fixed_when_target_slot_empties_mid_volley():

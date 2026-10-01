@@ -68,6 +68,8 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
   and u['general_score']=='0'
   for u in data['barbarian_units'])
  assert not ({u['id'] for u in data['barbarian_units']} & {u['id'] for u in data['units']})
+ clubman=next(u for u in data['barbarian_units'] if u['id']=='barbarian_clubman')
+ assert (clubman['semantic_class'],clubman['native_line'])==('heavy_infantry','first')
  hoplite=next(u for u in data['units'] if u['id']=='hoplite')
  carabineer=next(u for u in data['units'] if u['id']=='sulphur_carabineer')
  assert (hoplite['size'],carabineer['size'])==(1,4)
@@ -153,11 +155,13 @@ def test_doctor_and_cook_have_separate_boundaries():
    assert data['morale_status']['sides']['attacker']=={'cook_count':1,'status':'ignored_by_named_assumption','effect_applied':False}
 
 
- value={'policy':'experimental','battlefield':'land-mini','max_rounds':2,
-   'attacker':{'units':[{'unit_id':'hoplite','quantity':30},{'unit_id':'steam_giant','quantity':10},{'unit_id':'cook','quantity':15}]},
-   'defender':{'units':[{'unit_id':'hoplite','quantity':30}]}}
+ value={'policy':'experimental','battlefield':'land-small','max_rounds':2,
+   'attacker':{'units':[{'unit_id':'swordsman','quantity':180},{'unit_id':'cook','quantity':15}]},
+   'defender':{'units':[{'unit_id':'hoplite','quantity':150}]}}
  status,data=post(value)
  assert status==200 and data['status']=='inconclusive'
+ assert 'UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS' in {
+  e['details'].get('rule_id') for e in data['events'] if e['type']=='unsupported_mechanic'}
  assert data['assumptions']==[]
  assert data['morale_status']['sides']['attacker']=={'cook_count':15,'status':'not_reached','effect_applied':False}
 

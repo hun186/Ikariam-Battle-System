@@ -11,6 +11,7 @@
       "This Barbarian package remains separate from the player army package and cannot be mixed with player units on one side.",
       "Barbarian armies use no Workshop upgrades, no Forge level, no delayed/multiple entry batches, and contribute zero General Score in simulator accounting.",
       "The simulator accepts manual Barbarian unit quantities; it does not yet auto-generate the exact garrison for a Barbarian Village level.",
+      "Barbarian Clubman is Heavy Infantry on the First line. Its Spearman equivalence is used for documented numeric derivation only and does not make it Light Infantry.",
       "The 2019 Barbarian Village guide has an internal inconsistency for Axe Thrower first appearance (unit section says level 30 while the level-by-level narrative introduces the second line at level 40); this profile uses level 40 and preserves the conflict note."
     ],
     "sources": [
@@ -57,7 +58,7 @@
     {
       "id": "barbarian_clubman",
       "display_name": "Barbarian Clubman",
-      "semantic_class": "light_infantry",
+      "semantic_class": "heavy_infantry",
       "native_line": "first",
       "first_appearance_level": 1,
       "last_appearance_level": 22,
@@ -70,7 +71,7 @@
       "size": 1,
       "provenance": {
         "confidence": "DERIVED_X20_WITH_DOCUMENTED_EXCEPTIONS",
-        "notes": "Legacy guide describes Clubman as Spearman except HP 12 vs 13 and damage 5 vs 4; HP/damage scaled x20. Armour/accuracy/size inherit the documented Spearman equivalence.",
+        "notes": "Legacy guide describes Clubman as Spearman except HP 12 vs 13 and damage 5 vs 4; HP/damage scaled x20. Armour/accuracy/size inherit the documented Spearman numerical equivalence. Tactical class is Heavy Infantry / First line per the in-game Help correction; numerical equivalence does not imply Light Infantry classification.",
         "sources": [
           "GF_BARBAR_VILLAGE_GUIDE",
           "COMMUNITY_BARB_GUIDE",

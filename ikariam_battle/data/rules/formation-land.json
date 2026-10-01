@@ -25,5 +25,5 @@
     "balloon": {"eligible_native_lines": ["balloon"], "deployment_order_authority": "battlefield_geometry.damage_priority", "standard_physical_damage_labels_evidence": [1, 2], "implementation_status": "NATIVE_ONLY"},
     "anti-balloon": {"eligible_native_lines": ["anti-balloon"], "deployment_order_authority": "battlefield_geometry.damage_priority", "standard_physical_damage_labels_evidence": [2, 1], "implementation_status": "NATIVE_ONLY"}
   },
-  "unknowns": ["UNKNOWN-NON-STANDARD-RENUMBERING", "UNKNOWN-MIXED-UNIT-AM-ROWS", "UNKNOWN-FALLBACK-LONG-RANGE-WEAPON", "UNKNOWN-SECONDARY-WEAPON-TRIGGER"]
+  "unknowns": ["UNKNOWN-NON-STANDARD-RENUMBERING", "UNKNOWN-FALLBACK-LONG-RANGE-WEAPON", "UNKNOWN-SECONDARY-WEAPON-TRIGGER"]
 }

@@ -35,6 +35,13 @@
     "redistribution_triggers": {
       "immediate_redistribution": "UNKNOWN_DISABLED",
       "slot_redistribution": "UNKNOWN_DISABLED"
+    },
+    "attacking_matrix_contract": {
+      "status": "KNOWN_FOR_MIXED_SOURCE_FORMATIONS",
+      "rule": "Different unit types occupying one runtime formation contribute source columns to one row-major Attacking Matrix while retaining wave-local weapons, upgrades, and ammunition.",
+      "source_type": "EMPIRICAL_MECHANICS_PAPER",
+      "title": "Ikariam Battle System attacking-matrix construction",
+      "verification": "REPOSITORY_ARTIFACT"
     }
   },
   "priorities": {

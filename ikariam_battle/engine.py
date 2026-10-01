@@ -122,7 +122,6 @@ def _unsupported(scenario: Scenario, events: list[Event], initial: dict, blocker
 
 def _preflight(waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field) -> list[str]:
     blockers = []
-    line_types: dict[str, set[str]] = defaultdict(set)
     for wave in waves:
         if not wave.alive:
             continue
@@ -133,13 +132,11 @@ def _preflight(waves: list[Wave], registry: UnitRegistry, rules: FormationRules,
         elif unit.support_effect == "morale": blockers.append("UNKNOWN-MORALE-SUPPORT")
         else:
             for runtime_line in {slot.line for slot in wave.slots if slot.units}:
-                line_types[runtime_line].add(unit.id)
                 try:
                     select_active_weapon(unit, runtime_line)
                 except UnsupportedWeaponSelection:
                     if unit.semantic_class == "light_infantry":
                         blockers.append("UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT")
-    if any(len(types) > 1 for types in line_types.values()): blockers.append("UNKNOWN-MIXED-UNIT-AM-ROWS")
     return blockers
 
 
@@ -692,6 +689,40 @@ def _shot_rows(firing_counts: list[int]) -> list[int]:
             for _ in range(sum(count >= row for count in firing_counts))]
 
 
+def _shot_source_positions(deployed: list[Slot], firing_counts: list[int]) -> list[int]:
+    """Return the concrete source-slot column for every row-ordered Am shot."""
+    return [slot.damage_position
+            for row in range(1, max(firing_counts, default=0) + 1)
+            for slot, count in zip(deployed, firing_counts)
+            if count >= row]
+
+
+def _formation_shots(volleys: list[dict[str, Any]]) -> list[tuple[int, int]]:
+    """Merge mixed source waves into one row-major Attacking Matrix sequence.
+
+    Each volley still owns its weapon, upgrades and ammunition pool. The AM row
+    is shared by the runtime formation, while source damage position is the
+    deterministic column order. Legacy/internal volleys without additive source
+    positions retain their historical explicit sequence.
+    """
+    prepared: list[tuple[list[int], list[int]]] = []
+    for volley in volleys:
+        rows = list(volley.get("row_numbers", ()))
+        positions = volley.get("source_damage_positions")
+        if not isinstance(positions, list) or len(positions) != len(rows):
+            return [(volley_index, row)
+                    for volley_index, item in enumerate(volleys)
+                    for row in item.get("row_numbers", ())]
+        prepared.append((rows, positions))
+
+    ordered: list[tuple[int, int, int, int]] = []
+    for volley_index, (rows, positions) in enumerate(prepared):
+        for shot_index, (row, position) in enumerate(zip(rows, positions)):
+            ordered.append((row, position, volley_index, shot_index))
+    ordered.sort()
+    return [(volley_index, row) for row, _, volley_index, _ in ordered]
+
+
 def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitRegistry,
                          targeting: TargetingProfile, events: list[Event], number: int,
                          side: str, runtime_line: str,
@@ -732,6 +763,7 @@ def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitR
         row_numbers = _shot_rows(firing_counts)
         if not row_numbers:
             continue
+        source_damage_positions = _shot_source_positions(deployed, firing_counts)
         if wave.ammo_pool_shots is not None:
             wave.ammo_pool_shots -= len(row_numbers)
         volleys.append({
@@ -742,6 +774,7 @@ def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitR
             "weapon_id": weapon.id,
             "attack_upgrade": wave.unit.attack_upgrade,
             "row_numbers": row_numbers,
+            "source_damage_positions": source_damage_positions,
         })
     return volleys
 
@@ -826,125 +859,150 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                       source_army, target_army, casualties: dict[str, int],
                       slot_casualties: dict[tuple[str, str], int],
                       applied: dict[str, dict[str, str]]) -> None:
-    for volley in volleys:
+    contexts: dict[int, dict[str, Any]] = {}
+    for volley_index, volley in enumerate(volleys):
         if not volley["row_numbers"]:
             continue
         _assume(applied, events, "EXP-D-KILL-SEQUENTIAL-001", number, "fire")
         _assume(applied, events, "EXP-IR-DISABLED-001", number, "fire")
         source_unit = registry.get(volley["source_unit"])
         weapon = next(item for item in source_unit.weapons if item.id == volley["weapon_id"])
-        matrix_groups: dict[tuple[str, str, str], dict[str, Any]] = {}
-        damage_groups: dict[tuple[str, str, str, str, int], dict[str, Any]] = {}
-        calculation_keys: set[tuple[str, str, str, int]] = set()
-        # Freeze row -> damage-position addresses once per target formation
-        # for this volley. If one constituent wave dies, later rows keep their
-        # original concrete slot address; only complete formation elimination
-        # permits transfer to the next target class.
-        address_books: dict[str, tuple[Any, ...]] = {}
+        contexts[volley_index] = {
+            "volley": volley,
+            "source_unit": source_unit,
+            "weapon": weapon,
+            "matrix_groups": {},
+            "damage_groups": {},
+            "calculation_keys": set(),
+        }
 
-        for row_number in volley["row_numbers"]:
-            enemies, target_class = _target_waves_for_line(
-                volley["runtime_line"], targets, registry, targeting)
-            if not enemies or target_class is None:
-                break
+    # One target address book belongs to the whole runtime formation phase, not
+    # to one source unit. This is required when different unit types occupy
+    # different columns of the same Attacking Matrix.
+    address_books: dict[str, tuple[Any, ...]] = {}
 
-            if target_class not in address_books:
-                addressed_slots = []
-                for enemy in enemies:
-                    addressed_slots.extend(
-                        (slot.damage_position, enemy, slot)
-                        for slot in enemy.slots if slot.units
-                    )
-                address_books[target_class] = tuple(
-                    sorted(addressed_slots, key=lambda item: item[0]))
-            addressed = address_books[target_class]
-            if not addressed:
-                continue
-            _, enemy, target_slot = addressed[(row_number - 1) % len(addressed)]
+    for volley_index, row_number in _formation_shots(volleys):
+        context = contexts.get(volley_index)
+        if context is None:
+            continue
+        volley = context["volley"]
+        source_unit = context["source_unit"]
+        weapon = context["weapon"]
+        matrix_groups = context["matrix_groups"]
+        damage_groups = context["damage_groups"]
+        calculation_keys = context["calculation_keys"]
 
-            matrix_key = (enemy.unit.unit_id, enemy.unit.wave_id, target_class)
-            matrix = matrix_groups.setdefault(matrix_key, {
-                "target_unit_id": enemy.unit.unit_id,
-                "target_wave": enemy.unit.wave_id,
-                "target_class": target_class,
-                "rows": defaultdict(int),
-                "hits": defaultdict(int),
-                "empty_hits": defaultdict(int),
-                "formation_positions": {
-                    slot.damage_position for _, _, slot in addressed
-                },
-                "wave_positions": {
-                    slot.damage_position
-                    for _, addressed_enemy, slot in addressed
-                    if (
-                        addressed_enemy.unit.unit_id == enemy.unit.unit_id
-                        and addressed_enemy.unit.wave_id == enemy.unit.wave_id
-                    )
-                },
-            })
-            matrix["rows"][row_number] += 1
-            matrix["hits"][target_slot.damage_position] += 1
+        enemies, target_class = _target_waves_for_line(
+            volley["runtime_line"], targets, registry, targeting)
+        if not enemies or target_class is None:
+            break
 
-            if not target_slot.units:
-                matrix["empty_hits"][target_slot.damage_position] += 1
-                _event(events, number, "fire", "shot_addressed_empty_slot", volley["side"],
-                       firing_phase=volley["runtime_line"], source_unit_id=source_unit.id,
-                       target_side="defender" if volley["side"] == "attacker" else "attacker",
-                       target_unit_id=target_slot.unit_id, target_wave=enemy.unit.wave_id,
-                       target_slot=target_slot.slot_id, target_line=target_slot.line,
-                       target_damage_position=target_slot.damage_position,
-                       target_class=target_class, weapon_id=weapon.id,
-                       action="address_preserved_no_retarget")
-                continue
+        if target_class not in address_books:
+            addressed_slots = []
+            for enemy in enemies:
+                addressed_slots.extend(
+                    (slot.damage_position, enemy, slot)
+                    for slot in enemy.slots if slot.units
+                )
+            address_books[target_class] = tuple(
+                sorted(addressed_slots, key=lambda item: (
+                    item[0], item[1].unit.unit_id, item[1].unit.wave_id)))
+        addressed = address_books[target_class]
+        if not addressed:
+            continue
+        _, enemy, target_slot = addressed[(row_number - 1) % len(addressed)]
 
-            target_unit = registry.get(target_slot.unit_id)
-            damage_trace = calculate_damage(
-                source_unit, target_unit, volley["attack_upgrade"], enemy.unit.armor_upgrade,
-                source_army.forge_level, target_army.forge_level, workshop, forge,
-                RoundingPolicy.FLOOR, weapon=weapon)
-            calculation_key = (
-                source_unit.id, target_unit.id, weapon.id, damage_trace.final_damage)
-            if calculation_key not in calculation_keys:
-                calculation_keys.add(calculation_key)
-                _event(events, number, "fire", "damage_calculation", volley["side"],
-                       firing_phase=volley["runtime_line"], source_unit_id=source_unit.id,
-                       target_unit_id=target_unit.id, **damage_trace.as_dict())
+        matrix_key = (enemy.unit.unit_id, enemy.unit.wave_id, target_class)
+        matrix = matrix_groups.setdefault(matrix_key, {
+            "target_unit_id": enemy.unit.unit_id,
+            "target_wave": enemy.unit.wave_id,
+            "target_class": target_class,
+            "rows": defaultdict(int),
+            "hits": defaultdict(int),
+            "empty_hits": defaultdict(int),
+            "formation_positions": {
+                slot.damage_position for _, _, slot in addressed
+            },
+            "wave_positions": {
+                slot.damage_position
+                for _, addressed_enemy, slot in addressed
+                if (
+                    addressed_enemy.unit.unit_id == enemy.unit.unit_id
+                    and addressed_enemy.unit.wave_id == enemy.unit.wave_id
+                )
+            },
+        })
+        matrix["rows"][row_number] += 1
+        matrix["hits"][target_slot.damage_position] += 1
 
-            queue_key = (enemy.unit.unit_id, enemy.unit.wave_id, target_slot.slot_id)
-            queue = queues[queue_key]
-            prior_slot_damage = target_slot.damage
-            prior_unit_damage, killed, overkill = _apply_sequential_hit(
-                target_slot, queue, target_unit.hit_points or 0, damage_trace.final_damage)
-            casualties[target_slot.unit_id] += killed
-            if killed:
-                slot_casualties[(target_slot.wave_id, target_slot.slot_id)] += killed
+        if not target_slot.units:
+            matrix["empty_hits"][target_slot.damage_position] += 1
+            _event(events, number, "fire", "shot_addressed_empty_slot", volley["side"],
+                   firing_phase=volley["runtime_line"], source_unit_id=source_unit.id,
+                   target_side="defender" if volley["side"] == "attacker" else "attacker",
+                   target_unit_id=target_slot.unit_id, target_wave=enemy.unit.wave_id,
+                   target_slot=target_slot.slot_id, target_line=target_slot.line,
+                   target_damage_position=target_slot.damage_position,
+                   target_class=target_class, weapon_id=weapon.id,
+                   action="address_preserved_no_retarget")
+            continue
 
-            damage_key = (
-                enemy.unit.unit_id, enemy.unit.wave_id, target_slot.slot_id,
-                target_class, damage_trace.final_damage)
-            group = damage_groups.setdefault(damage_key, {
-                "target_unit_id": target_slot.unit_id,
-                "target_wave": enemy.unit.wave_id,
-                "target_slot": target_slot.slot_id,
-                "target_line": target_slot.line,
-                "target_damage_position": target_slot.damage_position,
-                "damage": 0,
-                "firing_units": 0,
-                "casualties": 0,
-                "overkill_discarded": 0,
-                "prior_damage": prior_slot_damage,
-                "first_target_unit_damage": prior_unit_damage,
-            })
-            group["damage"] += damage_trace.final_damage
-            group["firing_units"] += 1
-            group["casualties"] += killed
-            group["overkill_discarded"] += overkill
+        target_unit = registry.get(target_slot.unit_id)
+        damage_trace = calculate_damage(
+            source_unit, target_unit, volley["attack_upgrade"], enemy.unit.armor_upgrade,
+            source_army.forge_level, target_army.forge_level, workshop, forge,
+            RoundingPolicy.FLOOR, weapon=weapon)
+        calculation_key = (
+            source_unit.id, target_unit.id, weapon.id, damage_trace.final_damage)
+        if calculation_key not in calculation_keys:
+            calculation_keys.add(calculation_key)
+            _event(events, number, "fire", "damage_calculation", volley["side"],
+                   firing_phase=volley["runtime_line"], source_unit_id=source_unit.id,
+                   target_unit_id=target_unit.id, **damage_trace.as_dict())
 
-            if _ir_trigger(volley, enemy, target_slot, row_number):
-                _rebalance_damage_queue(queue)
-                target_slot.damage = sum(queue)
+        queue_key = (enemy.unit.unit_id, enemy.unit.wave_id, target_slot.slot_id)
+        queue = queues[queue_key]
+        prior_slot_damage = target_slot.damage
+        prior_unit_damage, killed, overkill = _apply_sequential_hit(
+            target_slot, queue, target_unit.hit_points or 0, damage_trace.final_damage)
+        casualties[target_slot.unit_id] += killed
+        if killed:
+            slot_casualties[(target_slot.wave_id, target_slot.slot_id)] += killed
 
-        for matrix in matrix_groups.values():
+        damage_key = (
+            enemy.unit.unit_id, enemy.unit.wave_id, target_slot.slot_id,
+            target_class, damage_trace.final_damage)
+        group = damage_groups.setdefault(damage_key, {
+            "target_unit_id": target_slot.unit_id,
+            "target_wave": enemy.unit.wave_id,
+            "target_slot": target_slot.slot_id,
+            "target_line": target_slot.line,
+            "target_damage_position": target_slot.damage_position,
+            "damage": 0,
+            "firing_units": 0,
+            "casualties": 0,
+            "overkill_discarded": 0,
+            "prior_damage": prior_slot_damage,
+            "first_target_unit_damage": prior_unit_damage,
+            "_persistent_damage": target_slot.damage,
+        })
+        group["damage"] += damage_trace.final_damage
+        group["firing_units"] += 1
+        group["casualties"] += killed
+        group["overkill_discarded"] += overkill
+        group["_persistent_damage"] = target_slot.damage
+
+        if _ir_trigger(volley, enemy, target_slot, row_number):
+            _rebalance_damage_queue(queue)
+            target_slot.damage = sum(queue)
+            group["_persistent_damage"] = target_slot.damage
+
+    for volley_index in sorted(contexts):
+        context = contexts[volley_index]
+        volley = context["volley"]
+        source_unit = context["source_unit"]
+        weapon = context["weapon"]
+        for matrix in context["matrix_groups"].values():
             max_row = max(matrix["rows"], default=0)
             _event(events, number, "fire", "attacking_matrix", volley["side"],
                    firing_phase=volley["runtime_line"], unit_id=source_unit.id,
@@ -961,22 +1019,17 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                        "hits_by_damage_position": dict(matrix["hits"]),
                        "empty_addressed_shots_by_damage_position": dict(matrix["empty_hits"]),
                    })
-        for group in damage_groups.values():
-            target_wave = next(
-                wave for wave in targets
-                if wave.unit.unit_id == group["target_unit_id"]
-                and wave.unit.wave_id == group["target_wave"])
-            target_slot = next(slot for slot in target_wave.slots
-                               if slot.slot_id == group["target_slot"])
+        for group in context["damage_groups"].values():
+            details = {key: value for key, value in group.items()
+                       if key != "_persistent_damage"}
             _event(events, number, "fire", "damage", volley["side"],
                    firing_phase=volley["runtime_line"],
                    target_side="defender" if volley["side"] == "attacker" else "attacker",
                    source_unit_id=source_unit.id,
                    resolution="sequential_d_kill_baseline",
-                   persistent_damage=target_slot.damage,
+                   persistent_damage=group["_persistent_damage"],
                    assumption_ids=["EXP-D-KILL-SEQUENTIAL-001", "EXP-IR-DISABLED-001"],
-                   **group)
-
+                   **details)
 
 def _apply_slot_redistribution(
     waves: list[Wave], queues: dict[tuple[str, str, str], list[int]]
@@ -1126,7 +1179,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         blockers += ["UNKNOWN-KILL-SELECTION", "UNKNOWN-ROUNDING-SELECTOR",
                      "UNKNOWN-ACCURACY", "UNKNOWN-IR-TRIGGER", "UNKNOWN-SR-TRIGGER"]
         return _unsupported(scenario, events, initial, sorted(set(blockers)), warnings)
-    if {"UNKNOWN-MIXED-UNIT-AM-ROWS", "UNKNOWN-MULTIPLE-TARGET-WAVES",
+    if {"UNKNOWN-MULTIPLE-TARGET-WAVES",
         "UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS",
         "UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT"} & set(blockers):
         return _unsupported(scenario, events, initial, blockers, warnings)
