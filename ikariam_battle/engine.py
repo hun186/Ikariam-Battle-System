@@ -646,7 +646,10 @@ def _supported_whole_wave_light_first_fallback(
             continue
 
         live_lines = {slot.line for slot in wave.slots if slot.units}
-        if live_lines and live_lines != {unit.native_line}:
+        # This exact fallback subset starts from an already deployed native
+        # Light formation. A wholly reserve-only wave still belongs behind the
+        # cross-wave rebuild boundary and must not materialize in First here.
+        if live_lines != {unit.native_line}:
             continue
 
         total_units = wave.reserve + sum(slot.units for slot in wave.slots)
@@ -669,8 +672,48 @@ def _supported_whole_wave_light_first_fallback(
 
         # The completed previous-round snapshot already owns old slot casualty
         # history. Round-start fallback creates the next formation cleanly.
+        #
+        # If later state waves of the *same unit* still occupy the native line,
+        # preserve the physical native positions released by this promoted wave.
+        # Attach empty ownership shells to the earliest later native peer, then
+        # the existing same-unit/same-line compaction pass can refill them
+        # center-first without merging wave state or inventing a new slot.
+        released_native_slots = [
+            slot for slot in wave.slots if slot.line == unit.native_line
+        ]
+        later_native_peers = [
+            peer for peer in candidates
+            if peer is not wave
+            and peer.unit.unit_id == wave.unit.unit_id
+            and peer.unit.formation_order_key > wave.unit.formation_order_key
+            and (
+                peer.reserve > 0
+                or any(slot.line == unit.native_line for slot in peer.slots)
+            )
+            and len({slot.line for slot in peer.slots if slot.units}) <= 1
+        ]
         for slot in list(wave.slots):
             wave.slots.remove(slot)
+        if released_native_slots and later_native_peers:
+            peer = later_native_peers[0]
+            owned = {slot.damage_position for slot in peer.slots
+                     if slot.line == unit.native_line}
+            for released in released_native_slots:
+                if released.damage_position in owned:
+                    continue
+                peer.slots.append(Slot(
+                    f"{unit.native_line}-{released.damage_position}",
+                    unit.native_line,
+                    released.physical_position,
+                    released.damage_position,
+                    unit.id,
+                    peer.unit.wave_id,
+                    0,
+                    released.capacity,
+                    0,
+                ))
+                owned.add(released.damage_position)
+            peer.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
         wave.reserve = 0
         wave.reserve_damage = total_damage
 
@@ -722,6 +765,8 @@ def _has_supported_round_start_first_placement(
         projected, registry, rules, field, projection_events, 0, "projection")
     _supported_whole_wave_light_first_fallback(
         projected, registry, rules, field, projection_events, 0, "projection")
+    _supported_same_unit_same_line_handoffs(
+        projected, registry, rules, field, projection_events, 0, "projection")
     return any(
         slot.line == "first" and slot.units
         for wave in projected
@@ -743,6 +788,11 @@ def _prepare_round_start(
         _supported_same_unit_same_line_handoffs(
             waves, registry, rules, field, events, number, side)
         _supported_whole_wave_light_first_fallback(
+            waves, registry, rules, field, events, number, side)
+        # Whole-wave promotion can vacate native-line physical positions that
+        # a later same-unit wave is allowed to inherit. Re-run only the already
+        # supported same-unit/same-line compaction before combat/RR.
+        _supported_same_unit_same_line_handoffs(
             waves, registry, rules, field, events, number, side)
     if registry is not None and support is not None:
         _apply_supported_doctor_healing(
@@ -801,6 +851,8 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
     _supported_same_unit_same_line_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
     _supported_whole_wave_light_first_fallback(
+        projected, registry, rules, field, projection_events, 0, "projection")
+    _supported_same_unit_same_line_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
 
     occupied: dict[str, set[int]] = defaultdict(set)
