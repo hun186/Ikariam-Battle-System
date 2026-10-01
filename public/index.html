@@ -87,12 +87,12 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
         <div id="attackerUnits" class="unit-list"></div>
       </section>
       <section class="panel side-setup defender">
-        <div class="side-title"><h2>防守方</h2><div class="side-toolbar"><label>兵種套裝<select id="dArmyKind" class="army-kind"><option value="player">Player</option><option value="barbarian">Barbarian</option></select></label><label id="dForgeWrap">熔爐神蹟 / Forge<select id="dForge"></select></label></div></div>
+        <div class="side-title"><h2>防守方</h2><div class="side-toolbar"><label>兵種套裝<select id="dArmyKind" class="army-kind"><option value="player">Player</option><option value="barbarian">Barbarian</option></select></label><label id="dForgeWrap">熔爐神蹟 / Forge<select id="dForge"></select></label><label id="defenderWallWrap">城牆 / Wall<select id="defenderWallLevel"></select></label></div></div>
         <div id="defenderUnits" class="unit-list"></div>
       </section>
     </div>
 
-    <div class="setup-note">預設仍維持最大陸戰戰場與 Player Lv5 熔爐、單純前線，避免一打開就塞滿大量兵力；需要多戰線驗證時可用上方「綜合陸戰」快速設定。每列的 ±一格 由目前戰場的 slot space ÷ unit size 動態計算。Barbarian 套裝固定無 Workshop、無 Forge、無分批進場，軍分為 0；目前兵力數量仍由使用者手動輸入，不會依村落等級自動產生。</div>
+    <div class="setup-note">預設仍維持最大陸戰戰場與 Player Lv5 熔爐、單純前線，避免一打開就塞滿大量兵力；需要多戰線驗證時可用上方「綜合陸戰」快速設定。防守方可設定城牆 Lv0–46（Lv0 = 無城牆）；目前牆的公開數值與段數可描述，但牆段受擊、破洞後補位與 Flank 鎖定尚未接入戰鬥引擎，因此 Lv&gt;0 會明確停在 UNKNOWN-TOWN-WALL-COMBAT，而不是忽略城牆繼續算。每列的 ±一格 由目前戰場的 slot space ÷ unit size 動態計算。Barbarian 套裝固定無 Workshop、無 Forge、無分批進場，軍分為 0；目前兵力數量仍由使用者手動輸入，不會依村落等級自動產生。</div>
     <details class="barbarian-reference"><summary>野蠻人兵種資料與出現等級（9 種）</summary><div class="barbarian-note">Barbarian Village 陸軍兵種已可作為獨立 Army package 進入模擬；這裡保留來源、數值與首次出現等級參考。村落等級對應的完整守軍數量、城牆等仍未自動生成。</div><div id="barbarianCatalog" class="barbarian-grid"></div></details>
     <div class="actions"><div class="action-row"><button id="simulate" class="primary" type="button">開始模擬</button><button id="downloadSetup" class="secondary" type="button">下載兵力設定 Debug JSON</button></div><div id="error" class="error" role="alert"></div></div>
   </section>
@@ -117,6 +117,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
         <div class="mechanics-card mechanics-partial"><b>D-kill / P-kill / I-kill · 部分已知</b><p>目前 Experimental baseline 使用逐擊 D-kill：一發一發計算，死亡立即生效，overkill 預設丟棄。P-kill 在部分實戰會把 overkill 重新分配給 survivors；I-kill、IR-kill、PIR-kill、M-kill 亦有實驗觀察，但一般觸發條件仍未知，因此目前不自動套用。</p></div>
         <div class="mechanics-card mechanics-partial"><b>Healing · 部分已知 / 部分實作</b><p>Doctor 只治療 Human，Machine 不可治療。目前 Machine：Steam Giant、Ram、Catapult、Mortar、Gyrocopter、Bombardier。每回合治療會在下一回合戰鬥開始前反映。現行 derived capacity 為每名 Doctor 4000。當總容量足以清除全部可治療 Human persistent damage 時，引擎會直接全清，這個結果不受 Healing / RR 先後影響；容量不足時，allocation 與精確 Healing / RR 順序仍未知，因此不猜部分分配。</p></div>
         <div class="mechanics-card mechanics-partial"><b>RR 後 slot 內部傷害分配 · 未完全確立</b><p>PDF 能確立 wave → slot 的 RR，但 slot aggregate damage 如何落到 individual units 仍有未解處。Experimental 現採均勻分配後再逐擊，並以 named assumption 顯示。</p></div>
+        <div class="mechanics-card mechanics-partial"><b>Town Wall / 城牆 · 輸入已支援，戰鬥待接</b><p>防守方可設定 Lv0–46。現行公開資料可確定每段 HP、Armor、Damage、Accuracy，段數由戰場 First line 對應 3 / 5 / 7 段；但牆段 targeting、破洞後守軍補位、牆未全破前的 Flank 鎖定仍未完整接入，因此 Lv&gt;0 目前以 UNKNOWN-TOWN-WALL-COMBAT 明確停止，不會靜默忽略。</p></div>
         <div class="mechanics-card mechanics-partial"><b>海戰 / Naval</b><p>海戰採同一套 formation-phase 架構：填補順序與開火順序分開，同 formation 雙方同時射擊。Tender 可修護軍艦；naval battlefield geometry 尚未開放執行，因此目前先保存共用 chronology contract。</p></div>
       </div>
       <div class="accuracy-note"><b>如何解讀這一頁：</b>「已知」不代表所有細節都來自 Gameforge 原始程式碼，而是代表目前有足夠 evidence 支撐可執行 contract；「部分已知／未知」就是結果精度的邊界，不應被模擬器悄悄猜成確定答案。</div>
@@ -175,7 +176,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 <script>
 let metadata=null, units=[], playerUnits=[], barbarianUnits=[], lastResult=null, lastBattlefieldId=null, currentRoundNumber=0, roundRenderToken=0, simulationGeneration=0, simulationRequestGeneration=0;
 const roundPageCache=new Map(), scenarioByGeneration=new Map();
-const battlefield=document.getElementById('battlefield'),battleDomain=document.getElementById('battleDomain'),policy=document.getElementById('policy'),maxRounds=document.getElementById('maxRounds'),researchMode=document.getElementById('researchMode'),showUnitStats=document.getElementById('showUnitStats'),showUnitIdentity=document.getElementById('showUnitIdentity'),simulateTop=document.getElementById('simulateTop'),simulate=document.getElementById('simulate'),downloadSetupTop=document.getElementById('downloadSetupTop'),downloadSetup=document.getElementById('downloadSetup'),downloadRoundDebug=document.getElementById('downloadRoundDebug'),roundDebugError=document.getElementById('roundDebugError'),errorTop=document.getElementById('errorTop'),error=document.getElementById('error'),floatingTooltip=document.getElementById('floatingTooltip');
+const battlefield=document.getElementById('battlefield'),battleDomain=document.getElementById('battleDomain'),policy=document.getElementById('policy'),maxRounds=document.getElementById('maxRounds'),defenderWallLevel=document.getElementById('defenderWallLevel'),researchMode=document.getElementById('researchMode'),showUnitStats=document.getElementById('showUnitStats'),showUnitIdentity=document.getElementById('showUnitIdentity'),simulateTop=document.getElementById('simulateTop'),simulate=document.getElementById('simulate'),downloadSetupTop=document.getElementById('downloadSetupTop'),downloadSetup=document.getElementById('downloadSetup'),downloadRoundDebug=document.getElementById('downloadRoundDebug'),roundDebugError=document.getElementById('roundDebugError'),errorTop=document.getElementById('errorTop'),error=document.getElementById('error'),floatingTooltip=document.getElementById('floatingTooltip');
 const builtinPreset=document.getElementById('builtinPreset'),applyBuiltinPreset=document.getElementById('applyBuiltinPreset'),clearArmiesButton=document.getElementById('clearArmies'),userPresetName=document.getElementById('userPresetName'),saveUserPreset=document.getElementById('saveUserPreset'),userPresetSelect=document.getElementById('userPresetSelect'),loadUserPreset=document.getElementById('loadUserPreset'),deleteUserPreset=document.getElementById('deleteUserPreset'),presetStatus=document.getElementById('presetStatus');
 const USER_PRESET_STORAGE_KEY='ikariam-battle-user-presets-v1';
 const viewIds={setup:'setupView',round:'roundView',summary:'summaryView',mechanics:'mechanicsView',source:'sourceView'};
@@ -298,6 +299,21 @@ function populateForge(id){
   Object.entries(metadata.forge_levels).forEach(([level,e])=>select.add(new Option('Lv'+level+' · dmg ×'+e.damage_multiplier+' · armor +'+e.armor_bonus,level)));
   if(metadata.forge_levels['5'])select.value='5';
 }
+function populateWallLevels(){
+  defenderWallLevel.innerHTML='';
+  const maximum=Math.max(0,Number(metadata?.town_wall?.max_level??46));
+  for(let level=0;level<=maximum;level++)defenderWallLevel.add(new Option(level===0?'Lv0 · 無城牆':'Lv'+level,String(level)));
+  defenderWallLevel.value='0';
+  updateWallControl();
+}
+function updateWallControl(){
+  const field=currentField(),isLand=field?.domain==='land';
+  defenderWallLevel.disabled=!isLand;
+  const segments=isLand?(field?.lines?.first?.physical_order?.length||0):0;
+  defenderWallLevel.title=isLand
+    ?('目前戰場對應 '+segments+' 段城牆；Lv>0 的戰鬥語意目前停在 '+(metadata?.town_wall?.rule_id||'UNKNOWN-TOWN-WALL-COMBAT'))
+    :'城牆只適用於陸戰';
+}
 function populateBattleDomains(){
   battleDomain.innerHTML='';
   const domains=[...new Set(metadata.battlefields.map(f=>f.domain).filter(Boolean))];
@@ -325,7 +341,7 @@ function refreshBattlefieldOptions(preferredId=null){
   if(preferred)battlefield.value=preferred.id;
   else if(maxField)battlefield.value=maxField.id;
   else if(first)battlefield.value=first.id;
-  updateArmyPackageAvailability();
+  updateArmyPackageAvailability();updateWallControl();
   renderArmy('attacker');renderArmy('defender');updateSlotButtons();updateAllUnitStats();
 }
 function updateArmyPackageAvailability(){
@@ -453,6 +469,7 @@ function setupConfigurationFromUi(){
   const submittedBattlefield=battlefield.value,field=currentField();
   if(!field?.supported)throw Error('目前選擇的戰場尚未開放執行。');
   return {setup_version:1,policy:policy.value,battlefield:submittedBattlefield,max_rounds:+maxRounds.value,
+    wall_level:Math.max(0,Math.trunc(+defenderWallLevel.value||0)),
     attacker:army('attacker'),defender:army('defender')};
 }
 function scenarioFromSetup(){
@@ -482,7 +499,7 @@ function builtinPresetConfiguration(id){
   if(!field)throw Error('找不到可執行的最大陸戰戰場。');
   const player=(side,specs,forge=5)=>({army_kind:'player',forge_level:forge,units:presetItems(field,side,specs)});
   if(id==='simple'){
-    return {setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100,
+    return {setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100,wall_level:0,
       attacker:player('attacker',[{unit_id:'hoplite'}]),defender:player('defender',[{unit_id:'hoplite'}])};
   }
   const attackerSpecs=[
@@ -496,7 +513,7 @@ function builtinPresetConfiguration(id){
       {unit_id:'catapult',copies:2},{unit_id:'gyrocopter',copies:2},{unit_id:'bombardier',copies:2},
       {unit_id:'doctor',quantity:15},{unit_id:'cook',quantity:15},
     ];
-    return {setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100,
+    return {setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100,wall_level:0,
       attacker:player('attacker',attackerSpecs),defender:player('defender',defenderSpecs)};
   }
   if(id==='player-vs-barbarian'){
@@ -505,7 +522,7 @@ function builtinPresetConfiguration(id){
       {unit_id:'barbarian_axe_thrower',copies:2},{unit_id:'barbarian_catapult',copies:2},
       {unit_id:'barbarian_fighter',copies:2},{unit_id:'barbarian_dirigible',copies:2},
     ];
-    return {setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100,
+    return {setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100,wall_level:0,
       attacker:player('attacker',attackerSpecs),
       defender:{army_kind:'barbarian',forge_level:0,units:presetItems(field,'defender',barbarianSpecs,{barbarian:true})}};
   }
@@ -523,7 +540,7 @@ function clearSideRows(side){
 }
 function clearArmies(){
   clearSideRows('attacker');clearSideRows('defender');updateAllUnitStats();
-  setPresetStatus('攻擊方與防守方兵力已歸零；戰場、套裝與 Forge 設定保留。','ok');
+  setPresetStatus('攻擊方與防守方兵力已歸零；戰場、城牆、套裝與 Forge 設定保留。','ok');
 }
 function applyItemToRow(row,item,side){
   row.querySelector('.qty').value=Math.max(0,Number(item.quantity)||0);
@@ -573,6 +590,9 @@ function applySetupConfiguration(config){
   battleDomain.value=field.domain;refreshBattlefieldOptions(field.id);
   if(['experimental','strict'].includes(config.policy))policy.value=config.policy;
   maxRounds.value=Math.max(1,Math.min(1000,Math.trunc(Number(config.max_rounds)||100)));
+  const wallMax=Math.max(0,Number(metadata?.town_wall?.max_level??46));
+  const wallLevel=Math.max(0,Math.min(wallMax,Math.trunc(Number(config.wall_level)||0)));
+  defenderWallLevel.value=String(wallLevel);
   applySideConfiguration('attacker',config.attacker||{});
   applySideConfiguration('defender',config.defender||{});
   updateSlotButtons();updateAllUnitStats();
@@ -816,6 +836,7 @@ function safetyNoticesHtml(data){
   const blockerHelp={
     'UNKNOWN-FORMATION-FALLBACK':'主戰線需要 fallback。整個 Light Infantry wave 可完整轉入 First 的情況已支援；這個邊界代表仍需要同 wave 跨 First/Flank 分兵、Long-range 前移／武器切換，或其他尚未驗證的 fallback。',
     'UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS':'同一 wave 同時跨多條 runtime line 的戰鬥與 RR 尚未完整校準。',
+    'UNKNOWN-TOWN-WALL-COMBAT':'防守方已設定城牆。城牆等級、每段公開數值與段數已記錄，但牆段受擊／破洞、守軍補位、牆存在時 Flank 鎖定及相關 targeting 尚未接入引擎，因此不會把有牆戰場當成無牆戰場繼續計算。',
   };
   const roundCap=data.events.find(e=>e.type==='safety_limit_reached');
   if(roundCap)cards.push('<div class="safety-card warning"><b>Safety round cap reached / 已達安全回合上限</b><div>Simulation stopped at '+esc(roundCap.details?.limit)+' rounds without a resolved outcome.</div></div>');
@@ -832,6 +853,8 @@ function safetyNoticesHtml(data){
     }
     cards.push('<div class="safety-card warning"><b>Morale / 士氣尚未建模</b><div>攻擊方 Cook '+aCook+'；防守方 Cook '+dCook+'。'+handling+' 實戰常見約 15 Cook 僅作配置參考，不是已驗證固定公式。</div></div>');
   }
+  const wall=data.wall_status;
+  if((wall?.level||0)>0)cards.push('<div class="safety-card blocker"><b>Town Wall / 城牆 Lv'+esc(wall.level)+'</b><div>'+esc(wall.segments)+' 段 · 每段 HP '+esc(wall.hit_points)+' · Armor '+esc(wall.armor)+' · Damage '+esc(wall.damage)+' · Accuracy '+esc(wall.accuracy)+'%。輸入與現行公開數值已保留；戰鬥處理目前停在 '+esc(wall.rule_id)+'。</div></div>');
   const healing=data.healing_status,healingSides=healing?.sides||{},aDoctor=healingSides.attacker?.doctor_count||0,dDoctor=healingSides.defender?.doctor_count||0;
   if(aDoctor||dDoctor){
     const healingStatuses=[healingSides.attacker?.status,healingSides.defender?.status].filter(Boolean);
@@ -940,11 +963,11 @@ async function boot(){
   playerUnits=(data.units||[]).filter(u=>u.numerically_supported||u.role==='support');
   barbarianUnits=(data.barbarian_units||[]).filter(u=>u.simulation_ready);
   units=[...playerUnits,...barbarianUnits];
-  populateForge('aForge');populateForge('dForge');
+  populateForge('aForge');populateForge('dForge');populateWallLevels();
   renderBarbarianCatalog();populateBattleDomains();refreshUserPresetOptions();
 }
 battleDomain.addEventListener('change',()=>refreshBattlefieldOptions());
-battlefield.addEventListener('change',()=>{updateArmyPackageAvailability();updateSlotButtons();updateAllUnitStats()});
+battlefield.addEventListener('change',()=>{updateArmyPackageAvailability();updateWallControl();updateSlotButtons();updateAllUnitStats()});
 document.getElementById('aArmyKind').addEventListener('change',()=>toggleArmyPackage('attacker'));
 document.getElementById('dArmyKind').addEventListener('change',()=>toggleArmyPackage('defender'));
 researchMode.addEventListener('change',()=>document.body.classList.toggle('research',researchMode.checked));
