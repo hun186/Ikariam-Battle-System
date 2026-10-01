@@ -635,11 +635,60 @@ def test_comprehensive_preset_does_not_stop_at_round_four_when_swordsmen_can_fil
  )
  assert any(
   event['type']=='formation_fallback'
-  and event['round']==5
+  and event['round']==4
   and event['side']=='defender'
   and event['details'].get('unit_id')=='swordsman'
   and event['details'].get('to_line')=='first'
   for event in result['events']
+ )
+
+
+def test_light_fallback_releases_native_slots_for_later_same_unit_wave():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'steam_giant','quantity':224,'wave_id':'heavy'},
+  {'unit_id':'swordsman','quantity':100,'wave_id':'s1'},
+  {'unit_id':'swordsman','quantity':200,'wave_id':'s2'},
+ ]}),registry,field)
+ heavy=next(w for w in waves if w.unit.wave_id=='heavy')
+ s1=next(w for w in waves if w.unit.wave_id=='s1')
+ s2=next(w for w in waves if w.unit.wave_id=='s2')
+ heavy.reserve=0
+ for slot in heavy.slots:
+  slot.units=16 if slot.damage_position in {1,2,3} else 0
+  slot.damage=0
+ s1.reserve=0
+ for slot in s1.slots:
+  slot.units=slot.capacity if slot.damage_position in {1,2,3} else 0
+ s2.reserve=80
+ for slot in s2.slots:
+  slot.units=40 if slot.damage_position in {4,5,6} else 0
+ events=[]; applied={}
+ _prepare_round_start(waves,events,4,'defender',applied,registry,rules,field)
+ assert {slot.line for slot in s1.slots if slot.units}=={'first'}
+ flank=[slot for slot in s2.slots if slot.line=='flank' and slot.units]
+ assert [slot.damage_position for slot in flank]==[1,2,3,4,5]
+ assert all(slot.units==40 for slot in flank)
+ assert s2.reserve==0
+
+
+def test_reserve_only_light_wave_does_not_bypass_cross_wave_rebuild_boundary():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-mini']
+ heavy=Wave(
+  ArmyUnit('hoplite',30,'heavy'),0,
+  [Slot('first-1','first',2,1,'hoplite','heavy',0,30,0)],
+ )
+ swords=Wave(ArmyUnit('swordsman',30,'reserve-light'),30,[])
+ events=[]; applied={}
+ _prepare_round_start([heavy,swords],events,2,'defender',applied,registry,rules,field)
+ assert swords.slots==[]
+ assert swords.reserve==30
+ requirements=_cross_wave_rebuild_requirements([heavy,swords],registry,rules,field)
+ assert any(
+  row['unit_id']=='swordsman'
+  and row['wave_id']=='reserve-light'
+  and row['runtime_line']=='first'
+  for row in requirements
  )
 
 
