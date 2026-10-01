@@ -130,6 +130,10 @@ def test_enter_open_field_is_noop_when_already_land_max_without_wall():
  assert changes
  assert changes[-1]['details']['counted_defenders']==301
  assert changes[-1]['details']['battlefield']=='land-max'
+ assert result['garrison_status']['transition_reached'] is True
+ assert result['garrison_status']['transition_blocked'] is False
+ assert result['garrison_status']['transition']['direction']=='enter_open_field'
+ assert result['garrison_status']['transition']['counted_defenders']==301
 
 
 def test_terminal_victory_precedes_unneeded_open_field_exit_transition():
