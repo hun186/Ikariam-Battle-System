@@ -765,6 +765,7 @@ def _has_supported_round_start_first_placement(
         projected, registry, rules, field, projection_events, 0, "projection")
     _supported_whole_wave_light_first_fallback(
         projected, registry, rules, field, projection_events, 0, "projection")
+    _rebuild_formation(projected, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
     return any(
@@ -790,8 +791,10 @@ def _prepare_round_start(
         _supported_whole_wave_light_first_fallback(
             waves, registry, rules, field, events, number, side)
         # Whole-wave promotion can vacate native-line physical positions that
-        # a later same-unit wave is allowed to inherit. Re-run only the already
-        # supported same-unit/same-line compaction before combat/RR.
+        # a later same-unit wave is allowed to inherit. First re-pack each
+        # concrete wave across its inherited slots, then run the already
+        # supported same-unit/same-line cross-wave compaction.
+        _rebuild_formation(waves, events, number, side)
         _supported_same_unit_same_line_handoffs(
             waves, registry, rules, field, events, number, side)
     if registry is not None and support is not None:
@@ -852,6 +855,7 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
         projected, registry, rules, field, projection_events, 0, "projection")
     _supported_whole_wave_light_first_fallback(
         projected, registry, rules, field, projection_events, 0, "projection")
+    _rebuild_formation(projected, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
 
