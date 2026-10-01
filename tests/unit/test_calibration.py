@@ -84,6 +84,48 @@ def test_damage_percent_mismatch_reports_predicted_damage():
     assert (assessment.status, assessment.expected_interval, assessment.simulated) == (MISMATCH, (1, 11), 12)
 
 
+def test_barbarian_damage_percent_uses_combined_calibration_registry():
+    barbarian_scenario = {
+        "policy": "experimental",
+        "battlefield": "land-mini",
+        "max_rounds": 1,
+        "attacker": {"army_kind": "player", "units": [{"unit_id": "hoplite", "quantity": 30}]},
+        "defender": {"army_kind": "barbarian", "units": [
+            {"unit_id": "barbarian_axe_swinger", "quantity": 30,
+             "entry_batch_id": "barbarian-garrison"}
+        ]},
+    }
+    observed = fixture(
+        [{"side": "defender", "line": "first", "damage_position": 1, "damage_percent": 1}],
+        scenario=barbarian_scenario,
+    )
+    result = controlled_result(damage=7, units=1)
+    result["rounds"][1]["defender"]["slots"][0]["unit_id"] = "barbarian_axe_swinger"
+    assessment = evaluate_fixture(observed, result).assessments[0]
+    assert assessment.status == MATCH
+    assert assessment.expected_interval == (1, 11)
+
+
+def test_run_fixture_supports_barbarian_damage_percent_observation():
+    barbarian_scenario = {
+        "policy": "experimental",
+        "battlefield": "land-mini",
+        "max_rounds": 1,
+        "attacker": {"army_kind": "player", "units": [{"unit_id": "hoplite", "quantity": 30}]},
+        "defender": {"army_kind": "barbarian", "units": [
+            {"unit_id": "barbarian_axe_swinger", "quantity": 30,
+             "entry_batch_id": "barbarian-garrison"}
+        ]},
+    }
+    result = run_fixture(fixture(
+        [{"side": "defender", "line": "first", "damage_position": 1, "damage_percent": 0}],
+        scenario=barbarian_scenario,
+    ))
+    assert result.reached_round == 1
+    assert result.assessments[0].field == "damage_percent"
+    assert result.assessments[0].status in {MATCH, MISMATCH}
+
+
 @pytest.mark.parametrize(("reported", "expected"), [(2, MATCH), (3, MISMATCH)])
 def test_casualties_are_aggregated_from_exact_target_slot_events(reported, expected):
     result = evaluate_fixture(fixture([{"side": "defender", "line": "first", "damage_position": 1,
