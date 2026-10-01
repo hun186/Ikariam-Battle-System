@@ -2078,8 +2078,13 @@ def _attach_battle_statistics(
     )
     transition_events = [
         event for event in result.get("events", [])
-        if event.get("type") == "unsupported_mechanic"
-        and event.get("details", {}).get("rule_id") == GARRISON_TRANSITION_RULE_ID
+        if (
+            event.get("type") == "garrison_state_change"
+            or (
+                event.get("type") == "unsupported_mechanic"
+                and event.get("details", {}).get("rule_id") == GARRISON_TRANSITION_RULE_ID
+            )
+        )
     ]
     final_remaining = result.get("final_state", {}).get("defender", {}).get("remaining", {})
     final_counted = sum(
@@ -2092,6 +2097,10 @@ def _attach_battle_statistics(
         garrison["final_open_field_threshold"] = final_counted > int(garrison["garrison_limit"])
         garrison["transition_reached"] = bool(transition_events)
         garrison["transition"] = transition_events[-1].get("details") if transition_events else None
+        garrison["transition_blocked"] = bool(
+            transition_events
+            and transition_events[-1].get("type") == "unsupported_mechanic"
+        )
     result["garrison_status"] = garrison
 
     initial_open = bool(garrison.get("open_field")) if garrison.get("modeled") else False
