@@ -52,7 +52,7 @@ def test_positive_wall_level_is_captured_and_stops_at_explicit_wall_boundary():
  assert result['status']=='inconclusive' and result['rounds_completed']==0
  assert 'UNKNOWN-TOWN-WALL-COMBAT' in rules
  assert result['wall_status']=={
-  'level':20,'damage':250,'accuracy':80,'hit_points':1100,'armor':80,
+  'level':20,'damage':None,'accuracy':None,'hit_points':19800,'armor':1440,
   'segments':3,'status':'unsupported_boundary',
   'combat_model_status':'INPUT_CAPTURED_COMBAT_UNSUPPORTED',
   'rule_id':'UNKNOWN-TOWN-WALL-COMBAT','effect_applied':False,
