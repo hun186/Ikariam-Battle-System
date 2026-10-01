@@ -8,6 +8,7 @@ from urllib.parse import unquote
 
 from web_simulator import DEFAULT_ROUND_PAGE_SIZE, MAX_ROUND_PAGE_SIZE, run_battle
 from ikariam_battle import ScenarioError
+from ikariam_battle.wall import wall_profile_metadata
 
 ROOT = Path(__file__).resolve().parent
 INDEX_FILE = ROOT / "index.html"
@@ -112,6 +113,7 @@ async def _api_simulate(scope, receive, send) -> None:
                 "ir_trigger":"UNKNOWN_DISABLED",
                 "sr_trigger":"UNKNOWN_DISABLED"},
             "battlefields":battlefield_metadata(),
+            "town_wall":wall_profile_metadata(),
             "profile_metadata":registry.metadata,"economy_metadata":economy.metadata,"units":units,
             "barbarian_profile_metadata":barbarians.metadata,"barbarian_units":barbarians.public(),
             "forge_levels":{str(k):{"damage_multiplier":str(v.damage_multiplier),"armor_bonus":v.armor_bonus}
