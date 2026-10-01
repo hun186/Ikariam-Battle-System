@@ -1710,34 +1710,52 @@ def _healing_status(
     sides: dict[str, dict[str, Any]] = {}
     for side, army in (("attacker", scenario.attacker), ("defender", scenario.defender)):
         doctor_count = sum(unit.quantity for unit in army.units if unit.unit_id == "doctor")
+        heal_events = [
+            event for event in result.get("events", [])
+            if event.get("type") == "healing" and event.get("side") == side
+        ]
+        applied_amount = sum(
+            int(event.get("details", {}).get("healing", 0))
+            for event in heal_events
+        )
         reach_round = _support_assumption_round(result, assumption_id, side)
+        strict_reached = _strict_support_boundary_reached(
+            scenario, result, side, "doctor", strict_rule_id)
         if not doctor_count:
             status = "not_present"
-            amount = 0
-        elif reach_round is not None:
-            status = "ignored_by_named_assumption"
-            amount = None
-        elif _strict_support_boundary_reached(scenario, result, side, "doctor", strict_rule_id):
+            amount: int | None = 0
+        elif strict_reached:
             status = "unsupported_boundary"
             amount = None
+        elif reach_round is not None:
+            status = "partial_allocation_unresolved"
+            amount = None
+        elif heal_events:
+            status = "applied_exact_subset"
+            amount = applied_amount
         else:
             status = "not_reached"
-            amount = None
+            amount = 0
         sides[side] = {
             "doctor_count": doctor_count,
             "status": status,
-            "effect_applied": False,
+            "effect_applied": bool(applied_amount),
             "healing_amount": amount,
+            "engine_healing_applied": applied_amount,
         }
     return {
         "modeled": False,
+        "partial_model": True,
+        "model_status": "EXACT_FULL_CLEAR_SUBSET_ONLY",
         "strict_rule_id": strict_rule_id,
         "experimental_assumption_id": assumption_id,
         "derived_capacity_per_doctor": support.derived_capacity,
         "capacity_is_allocation_formula": False,
+        "timing_contract": "per_round_before_next_round_combat",
+        "healing_rr_order": "UNKNOWN_EXCEPT_FULL_CLEAR_IS_ORDER_INVARIANT",
+        "executable_subset": "capacity_covers_all_eligible_human_persistent_damage",
         "sides": sides,
     }
-
 
 def _attach_battle_statistics(
     result: dict[str, Any],
@@ -1780,35 +1798,43 @@ def _attach_battle_statistics(
     }
     gross_dealt = {"attacker": 0, "defender": 0}
     gross_taken = {"attacker": 0, "defender": 0}
+    gross_healing_applied = {"attacker": 0, "defender": 0}
     per_round: dict[int, dict[str, dict[str, int]]] = {}
 
     def round_stats(number: int) -> dict[str, dict[str, int]]:
         return per_round.setdefault(number, {
-            "attacker": {"damage_dealt": 0, "damage_taken": 0},
-            "defender": {"damage_dealt": 0, "damage_taken": 0},
+            "attacker": {"damage_dealt": 0, "damage_taken": 0, "healing": 0},
+            "defender": {"damage_dealt": 0, "damage_taken": 0, "healing": 0},
         })
 
     for row in result.get("rounds", []):
         round_stats(int(row.get("round", 0)))
 
     for event in result.get("events", []):
-        if event.get("type") != "damage":
-            continue
-        source = event.get("side")
-        target = event.get("details", {}).get("target_side")
-        if source not in gross_dealt or target not in gross_taken:
-            continue
-        amount = int(event.get("details", {}).get("damage", 0))
+        kind = event.get("type")
         number = int(event.get("round", 0))
-        stats = round_stats(number)
-        stats[source]["damage_dealt"] += amount
-        stats[target]["damage_taken"] += amount
-        gross_dealt[source] += amount
-        gross_taken[target] += amount
+        if kind == "damage":
+            source = event.get("side")
+            target = event.get("details", {}).get("target_side")
+            if source not in gross_dealt or target not in gross_taken:
+                continue
+            amount = int(event.get("details", {}).get("damage", 0))
+            stats = round_stats(number)
+            stats[source]["damage_dealt"] += amount
+            stats[target]["damage_taken"] += amount
+            gross_dealt[source] += amount
+            gross_taken[target] += amount
+        elif kind == "healing":
+            side = event.get("side")
+            if side not in gross_healing_applied:
+                continue
+            amount = int(event.get("details", {}).get("healing", 0))
+            round_stats(number)[side]["healing"] += amount
+            gross_healing_applied[side] += amount
 
     cumulative = {
-        "attacker": {"damage_dealt": 0, "damage_taken": 0},
-        "defender": {"damage_dealt": 0, "damage_taken": 0},
+        "attacker": {"damage_dealt": 0, "damage_taken": 0, "healing": 0},
+        "defender": {"damage_dealt": 0, "damage_taken": 0, "healing": 0},
     }
     for row in sorted(result.get("rounds", []), key=lambda value: int(value.get("round", 0))):
         number = int(row.get("round", 0))
@@ -1817,6 +1843,7 @@ def _attach_battle_statistics(
         for side in ("attacker", "defender"):
             cumulative[side]["damage_dealt"] += stats[side]["damage_dealt"]
             cumulative[side]["damage_taken"] += stats[side]["damage_taken"]
+            cumulative[side]["healing"] += stats[side]["healing"]
             support_round = healing_reach_round[side]
             healing_unknown = support_round is not None and number >= support_round
             if scenario.policy == Policy.STRICT and _strict_support_boundary_reached(
@@ -1827,8 +1854,8 @@ def _attach_battle_statistics(
                 "damage_taken": stats[side]["damage_taken"],
                 "cumulative_damage_dealt": cumulative[side]["damage_dealt"],
                 "cumulative_damage_taken": cumulative[side]["damage_taken"],
-                "healing": None if healing_unknown else 0,
-                "cumulative_healing": None if healing_unknown else 0,
+                "healing": None if healing_unknown else stats[side]["healing"],
+                "cumulative_healing": None if healing_unknown else cumulative[side]["healing"],
             }
         row["combat_statistics"] = row_combat
 
@@ -1840,7 +1867,8 @@ def _attach_battle_statistics(
                 healing_reach_round[side] is not None
                 or _strict_support_boundary_reached(
                     scenario, result, side, "doctor", "UNKNOWN-HEALING-ALLOCATION")
-            ) else 0,
+            ) else gross_healing_applied[side],
+            "engine_healing_applied": gross_healing_applied[side],
         }
         for side in ("attacker", "defender")
     }
