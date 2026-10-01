@@ -81,6 +81,31 @@ def test_over_limit_player_defense_starts_on_land_max_with_wall_suppressed():
  )
 
 
+def test_defender_arrival_crossing_limit_detects_enter_open_field_transition():
+ s={
+  'policy':'experimental','battlefield':'land-mini','max_rounds':2,
+  'town_hall_level':1,'wall_level':0,
+  'attacker':{'units':[{'unit_id':'hoplite','quantity':90}]},
+  'defender':{'units':[
+   {'unit_id':'hoplite','quantity':299,'entry_batch_id':'g0','arrival_round':0},
+   {'unit_id':'hoplite','quantity':10,'entry_batch_id':'g1','arrival_round':1},
+  ]},
+ }
+ result=simulate(s)
+ transition=next(
+  e for e in result['events']
+  if e['type']=='unsupported_mechanic'
+  and e['details'].get('rule_id')=='UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION'
+ )
+ assert transition['round']==1
+ assert transition['details']['direction']=='enter_open_field'
+ assert transition['details']['counted_defenders']==309
+ assert transition['details']['garrison_limit']==300
+ assert transition['details']['from_battlefield']=='land-mini'
+ assert transition['details']['to_battlefield']=='land-max'
+ assert result['status']=='inconclusive'
+
+
 def test_open_field_exit_threshold_is_detected_after_defender_casualties():
  s={
   'policy':'experimental','battlefield':'land-mini','max_rounds':3,
