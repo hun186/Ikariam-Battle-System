@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+from .garrison import MAX_TOWN_HALL_LEVEL
 from .wall import MAX_TOWN_WALL_LEVEL
 
 
@@ -207,6 +208,7 @@ class Scenario:
     battlefield: str = "land-mini"
     max_rounds: int = DEFAULT_MAX_ROUNDS
     wall_level: int = 0
+    town_hall_level: int | None = None
 
     @classmethod
     def from_dict(cls, value: Any) -> "Scenario":
@@ -218,11 +220,17 @@ class Scenario:
         battlefield = data.get("battlefield", "land-mini")
         if not isinstance(battlefield, str) or battlefield not in {"land-mini", "land-small", "land-medium", "land-large", "land-max", "naval-mini"}:
             raise ScenarioError("unsupported battlefield id")
+        town_hall_raw = data.get("town_hall_level")
+        town_hall_level = (
+            None if town_hall_raw is None
+            else _integer(town_hall_raw, "town_hall_level", 1, MAX_TOWN_HALL_LEVEL)
+        )
         try:
             return cls(Army.from_dict(data["attacker"]), Army.from_dict(data["defender"]),
                        Profiles.from_dict(data.get("profiles", {})), policy, battlefield,
                        _integer(data.get("max_rounds", DEFAULT_MAX_ROUNDS), "max_rounds", 1, MAX_ROUNDS),
-                       _integer(data.get("wall_level", 0), "wall_level", 0, MAX_TOWN_WALL_LEVEL))
+                       _integer(data.get("wall_level", 0), "wall_level", 0, MAX_TOWN_WALL_LEVEL),
+                       town_hall_level)
         except KeyError as exc:
             raise ScenarioError(f"missing field: {exc.args[0]}") from exc
 
