@@ -115,7 +115,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
         <div class="mechanics-card mechanics-known"><b>RR · Reserve Redistribution · 已實作</b><p>回合間，同一 entry batch / wave 的 persistent damage 會連同 reserve 一起重新分配；不同 wave 不共享舊傷。</p></div>
         <div class="mechanics-card mechanics-unknown"><b>IR / SR · Trigger 未知，現在不觸發</b><p>IR 可能發生在 individual shots 之間；SR 可能發生在一條 formation 射完、下一條 formation 開火前。引擎保留 redistribution hook，但 trigger 尚未確立，因此目前固定不觸發。</p></div>
         <div class="mechanics-card mechanics-partial"><b>D-kill / P-kill / I-kill · 部分已知</b><p>目前 Experimental baseline 使用逐擊 D-kill：一發一發計算，死亡立即生效，overkill 預設丟棄。P-kill 在部分實戰會把 overkill 重新分配給 survivors；I-kill、IR-kill、PIR-kill、M-kill 亦有實驗觀察，但一般觸發條件仍未知，因此目前不自動套用。</p></div>
-        <div class="mechanics-card mechanics-partial"><b>Healing · 部分已知</b><p>陸軍單位分 Human / Machine；Doctor 只治療 Human，Machine 不可治療。目前 Machine：Steam Giant、Ram、Catapult、Mortar、Gyrocopter、Bombardier。Healing capacity 已知，但 allocation，以及 Healing 與 RR 的精確先後仍待校準。</p></div>
+        <div class="mechanics-card mechanics-partial"><b>Healing · 部分已知 / 部分實作</b><p>Doctor 只治療 Human，Machine 不可治療；每回合治療會在下一回合戰鬥開始前反映。現行 derived capacity 為每名 Doctor 4000。當總容量足以清除全部可治療 Human persistent damage 時，引擎會直接全清，這個結果不受 Healing / RR 先後影響；容量不足時，allocation 與精確 Healing / RR 順序仍未知，因此不猜部分分配。</p></div>
         <div class="mechanics-card mechanics-partial"><b>RR 後 slot 內部傷害分配 · 未完全確立</b><p>PDF 能確立 wave → slot 的 RR，但 slot aggregate damage 如何落到 individual units 仍有未解處。Experimental 現採均勻分配後再逐擊，並以 named assumption 顯示。</p></div>
         <div class="mechanics-card mechanics-partial"><b>海戰 / Naval</b><p>海戰採同一套 formation-phase 架構：填補順序與開火順序分開，同 formation 雙方同時射擊。Tender 可修護軍艦；naval battlefield geometry 尚未開放執行，因此目前先保存共用 chronology contract。</p></div>
       </div>
@@ -360,7 +360,7 @@ function setupRow(unit,side,options={}){
   const barbarian=unit.army_kind==='barbarian',extra=Boolean(options.extra),batchIndex=options.batchIndex||1;
   const row=document.createElement('div');row.className='unit-setup-row'+(extra?' extra-batch':'');row.dataset.unitId=unit.id;row.dataset.side=side;row.dataset.batchIndex=String(batchIndex);
   const quantity=extra?0:defaultQuantity(unit,side),batchId=options.batchId||side+'-batch-'+batchIndex,arrivalRound=options.arrivalRound??0;
-  const supportNote=unit.support_effect==='morale'?' · 士氣支援（尚未建模）':unit.support_effect==='healing'?' · 治療支援（尚未建模）':'';
+  const supportNote=unit.support_effect==='morale'?' · 士氣支援（尚未建模）':unit.support_effect==='healing'?' · 治療支援（部分建模）':'';
   const packageNote=barbarian?' · Barbarian':'';
   const levels=barbarian?
     '<label class="level-field hidden">攻擊<input class="attack" type="number" min="0" value="0" disabled></label><label class="level-field hidden">防禦<input class="armor" type="number" min="0" value="0" disabled></label>':
@@ -836,14 +836,16 @@ function safetyNoticesHtml(data){
   if(aDoctor||dDoctor){
     const healingStatuses=[healingSides.attacker?.status,healingSides.defender?.status].filter(Boolean);
     let healingHandling;
-    if(healingStatuses.includes('ignored_by_named_assumption')){
-      healingHandling='Experimental：已依 '+esc(healing.experimental_assumption_id)+' 繼續，但不套用 Doctor 治療。';
+    if(healingStatuses.includes('partial_allocation_unresolved')){
+      healingHandling='Experimental：容量不足以全清可治療 Human 傷害時，依 '+esc(healing.experimental_assumption_id)+' 不猜部分 allocation；已能確定的 full-clear 回合仍會正常套用。';
     }else if(healingStatuses.includes('unsupported_boundary')){
-      healingHandling='Strict：遇到 Doctor 會以 '+esc(healing.strict_rule_id)+' 停在證據邊界。';
+      healingHandling='Strict：Doctor 的不完整 allocation 規則仍以 '+esc(healing.strict_rule_id)+' 停在證據邊界。';
+    }else if(healingStatuses.includes('applied_exact_subset')){
+      healingHandling='已套用可確定的 full-clear 子集：總 Doctor 容量足以清除當回合全部可治療 Human persistent damage。';
     }else{
-      healingHandling='尚未到達治療處理：戰鬥先因其他 unsupported boundary 停止，'+esc(healing.experimental_assumption_id)+' 並未套用。';
+      healingHandling='尚未到達需要實際治療的回合交界，或該時點沒有可治療 persistent damage。';
     }
-    cards.push('<div class="safety-card warning"><b>Healing / 治療尚未建模</b><div>攻擊方 Doctor '+aDoctor+'；防守方 Doctor '+dDoctor+'。'+healingHandling+' 目前每名 Doctor 的 derived capacity reference = '+esc(healing.derived_capacity_per_doctor)+'；Human / Machine eligibility 已知，但 allocation 與 Healing / RR timing 未知，因此目前不實際回補 HP。</div></div>');
+    cards.push('<div class="safety-card warning"><b>Healing / 治療部分建模</b><div>攻擊方 Doctor '+aDoctor+'；防守方 Doctor '+dDoctor+'。'+healingHandling+' 每名 Doctor derived capacity = '+esc(healing.derived_capacity_per_doctor)+'；已知治療為每回合效果，並在下一回合戰鬥開始前反映。精確 Healing / RR 先後與容量不足時的 allocation 仍未知；full-clear 子集因結果為全部傷害歸零，不受先後順序影響。</div></div>');
   }
   if(blockers.length)cards.push('<div class="safety-card blocker"><b>Unsupported mechanics / 無法安全判定</b><ul>'+blockers.map(id=>'<li><b>'+esc(id)+'</b>'+(blockerHelp[id]?'<div>'+esc(blockerHelp[id])+'</div>':'')+'</li>').join('')+'</ul></div>');
   if(warnings.length)cards.push('<div class="safety-card warning"><b>Evidence warnings</b><ul>'+warnings.map(item=>'<li>'+esc(item)+'</li>').join('')+'</ul></div>');
@@ -869,7 +871,7 @@ async function renderRound(number){
   board.innerHTML=battleHalf(round.attacker,'attacker')+'<div class="clash" aria-hidden="true"></div>'+battleHalf(round.defender,'defender');
   bindFloatingTooltips(board);
   const aStats=round.combat_statistics?.attacker||{},dStats=round.combat_statistics?.defender||{};
-  const healingValue=value=>value==null?'未建模':Number(value).toLocaleString();
+  const healingValue=value=>value==null?'部分未知':Number(value).toLocaleString();
   document.getElementById('roundMetrics').innerHTML=
     '<div class="metric"><span>Status</span><b>'+esc(lastResult.status)+'</b></div>'+
     '<div class="metric"><span>Outcome</span><b>'+esc(lastResult.outcome)+'</b></div>'+
@@ -910,9 +912,10 @@ function summarySide(side,label){
   const military=lastResult.military_score?.[side]||{},combat=lastResult.combat_statistics?.[side]||{},morale=lastResult.morale_status?.sides?.[side]||{},healing=lastResult.healing_status?.sides?.[side]||{};
   const moraleStatusLabel={ignored_by_named_assumption:'假設忽略',unsupported_boundary:'Strict 邊界',not_reached:'尚未到達',not_present:'未使用'}[morale.status]||'未建模';
   const moraleText=(morale.cook_count||0)?'Cook '+morale.cook_count+' · '+moraleStatusLabel:'Cook 0 · 未使用';
-  const healingStatusLabel={ignored_by_named_assumption:'假設忽略',unsupported_boundary:'Strict 邊界',not_reached:'尚未到達',not_present:'未使用'}[healing.status]||'未建模';
+  const healingStatusLabel={applied_exact_subset:'已套用可確定子集',partial_allocation_unresolved:'部分分配未知',unsupported_boundary:'Strict 邊界',not_reached:'尚未到達',not_present:'未使用'}[healing.status]||'部分建模';
   const healingText=(healing.doctor_count||0)?'Doctor '+healing.doctor_count+' · '+healingStatusLabel:'Doctor 0 · 未使用';
-  const grossHealing=combat.gross_healing==null?'未建模':Number(combat.gross_healing||0).toLocaleString();
+  const appliedHealing=Number(combat.engine_healing_applied||0);
+  const grossHealing=combat.gross_healing==null?'部分未知 · 已套用 '+appliedHealing.toLocaleString():Number(combat.gross_healing||0).toLocaleString();
   return '<section class="panel summary-side"><h3>'+label+'</h3><table class="summary-table"><thead><tr><th>兵種</th><th>初始</th><th>損失</th><th>剩餘</th></tr></thead><tbody>'+
     ids.map(id=>{const unit=unitById(id);return '<tr><td>'+esc(unit?.display_name||id)+'</td><td>'+(initial[id]||0)+'</td><td class="loss">−'+(loss[id]||0)+'</td><td>'+(final[id]||0)+'</td></tr>'}).join('')+
     '</tbody></table><div class="side-stats"><div class="side-stat"><span>軍分損失</span><b>−'+(military.general_score_lost??0)+'</b></div><div class="side-stat"><span>造成軍分消減</span><b>'+(military.general_score_destroyed??0)+'</b></div><div class="side-stat"><span>Gross damage dealt</span><b>'+Number(combat.gross_damage_dealt||0).toLocaleString()+'</b></div><div class="side-stat"><span>Gross damage taken</span><b>'+Number(combat.gross_damage_taken||0).toLocaleString()+'</b></div><div class="side-stat"><span>Healing</span><b>'+grossHealing+'</b></div><div class="side-stat"><span>Doctor / 治療</span><b>'+esc(healingText)+'</b></div><div class="side-stat"><span>Cook / 士氣</span><b>'+esc(moraleText)+'</b></div></div></section>';
