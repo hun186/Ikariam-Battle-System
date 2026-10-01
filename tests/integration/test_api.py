@@ -86,6 +86,15 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert (hoplite['resource_cost_basis_total'],hoplite['general_score'])==(70,'1.4')
  assert (carabineer['resource_cost_basis_total'],carabineer['general_score'])==(200,'4')
 
+def test_malformed_army_kind_values_return_json_400():
+ for bad in ([],{},None,False):
+  value=payload()
+  value['attacker']['army_kind']=bad
+  status,data=post_raw(value)
+  assert status==400
+  assert data=={'error':'army_kind must be player or barbarian'}
+
+
 def test_barbarian_army_package_api_smoke():
  value={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
    'attacker':{'army_kind':'player','units':[{'unit_id':'hoplite','quantity':90}]},
