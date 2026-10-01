@@ -66,6 +66,11 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert data['town_wall']['input_supported'] is True
  assert data['town_wall']['combat_model_status']=='INPUT_CAPTURED_COMBAT_UNSUPPORTED'
  assert data['town_wall']['rule_id']=='UNKNOWN-TOWN-WALL-COMBAT'
+ assert data['town_wall']['published_stat_fields']==['hit_points','armor']
+ assert data['town_wall']['unresolved_current_stat_fields']==['damage','accuracy']
+ assert data['town_wall']['hit_points_formula']=='1800 + 900 * level'
+ assert data['town_wall']['armor_formula']=='72 * level'
+ assert data['town_wall']['successful_breach_hits_formula']=='ceil((1800 + 900*level) / (attack_damage - 72*level))'
  assert data['garrison']['player_formula']=='250 + 50 * (town_hall_level + wall_level)'
  assert data['garrison']['max_town_hall_level']==66
  assert data['garrison']['open_field_battlefield']=='land-max'
@@ -673,6 +678,8 @@ def test_land_setup_exposes_defender_wall_and_preserves_it_in_presets_and_scenar
  assert "'UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION':'防守方駐軍數跨過 garrison limit" in body
  assert "'UNKNOWN-TOWN-WALL-COMBAT':'防守方已設定城牆。" in body
  assert '城牆 Lv0–48' in body
+ assert 'HP = 1800 + 900 × Lv、Armor = 72 × Lv' in body
+ assert 'Damage / Accuracy：新版待校準' in body
  assert body==Path('public/index.html').read_text()
 
 
