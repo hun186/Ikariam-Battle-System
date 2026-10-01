@@ -611,7 +611,7 @@ def test_light_fallback_preserves_damage_owned_by_replaced_empty_first_slot():
  light=next(w for w in waves if w.unit.wave_id=='light')
  front.reserve=0
  for slot in front.slots:
-  slot.units=50 if slot.damage_position in {1,2,3} else 0
+  slot.units=slot.capacity if slot.damage_position in {1,2,3} else 0
   slot.damage=0
  # Position 4 is empty after compaction but still owns persistent damage from
  # the surviving Hoplite wave. The Light fallback will reuse this position.
@@ -619,7 +619,7 @@ def test_light_fallback_preserves_damage_owned_by_replaced_empty_first_slot():
  next(slot for slot in front.slots if slot.damage_position==4).damage=424
  light.reserve=0
  for slot in light.slots:
-  slot.units=40 if slot.damage_position in {1,2,3} else 0
+  slot.units=slot.capacity if slot.damage_position in {1,2,3} else 0
   slot.damage=0
  before_by_wave={
   wave.unit.wave_id: wave.reserve_damage+sum(slot.damage for slot in wave.slots)
