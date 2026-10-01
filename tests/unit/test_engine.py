@@ -612,6 +612,30 @@ def test_larger_field_multiline_light_wave_remains_guarded():
   event['details'].get('rule_id') for event in result['events']}
 
 
+def test_typed_scenario_army_order_is_canonical_for_mixed_front_combat():
+ hoplite=ArmyUnit('hoplite',1,'wave-1',entry_batch_id='batch-1')
+ steam=ArmyUnit('steam_giant',100,'wave-1',entry_batch_id='batch-1')
+ defender=Army((ArmyUnit('hoplite',60,'wave-1',entry_batch_id='batch-1'),),0,'player')
+ first=simulate(Scenario(
+  attacker=Army((hoplite,steam),0,'player'),defender=defender,
+  policy=Policy.EXPERIMENTAL,battlefield='land-max',max_rounds=1,
+ ))
+ reversed_order=simulate(Scenario(
+  attacker=Army((steam,hoplite),0,'player'),defender=defender,
+  policy=Policy.EXPERIMENTAL,battlefield='land-max',max_rounds=1,
+ ))
+ parsed=simulate({
+  'policy':'experimental','battlefield':'land-max','max_rounds':1,
+  'attacker':{'units':[
+   {'unit_id':'hoplite','quantity':1},
+   {'unit_id':'steam_giant','quantity':100},
+  ]},
+  'defender':{'units':[{'unit_id':'hoplite','quantity':60}]},
+ })
+ assert first==reversed_order
+ assert first==parsed
+
+
 def test_larger_field_mixed_heavy_and_light_front_executes_one_shared_am():
  s={'policy':'experimental','battlefield':'land-medium','max_rounds':1,
     'attacker':{'units':[{'unit_id':'hoplite','quantity':30},
