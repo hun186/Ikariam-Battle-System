@@ -56,8 +56,56 @@ def test_positive_wall_level_is_captured_and_stops_at_explicit_wall_boundary():
   'segments':3,'status':'unsupported_boundary',
   'combat_model_status':'INPUT_CAPTURED_COMBAT_UNSUPPORTED',
   'rule_id':'UNKNOWN-TOWN-WALL-COMBAT','effect_applied':False,
+  'active':True,'inactive_reason':None,
  }
  assert any('Town Wall input is captured' in warning for warning in result['warnings'])
+
+
+def test_over_limit_player_defense_starts_on_land_max_with_wall_suppressed():
+ s=scenario(rounds=1)
+ s['town_hall_level']=1
+ s['wall_level']=1
+ s['defender']['units']=[{'unit_id':'hoplite','quantity':351}]
+ result=simulate(s)
+ g=result['garrison_status']
+ assert g['garrison_limit']==350
+ assert g['counted_defenders']==351
+ assert g['open_field'] is True
+ assert g['effective_battlefield']=='land-max'
+ assert result['wall_status']['status']=='suppressed'
+ assert result['wall_status']['inactive_reason']=='open_field_garrison_limit'
+ assert not any(
+  e['type']=='unsupported_mechanic'
+  and e['details'].get('rule_id')=='UNKNOWN-TOWN-WALL-COMBAT'
+  for e in result['events']
+ )
+
+
+def test_open_field_exit_threshold_is_detected_after_defender_casualties():
+ s={
+  'policy':'experimental','battlefield':'land-mini','max_rounds':3,
+  'town_hall_level':1,'wall_level':0,
+  'attacker':{'forge_level':5,'units':[
+   {'unit_id':'hoplite','quantity':350,'attack_upgrade':60}
+  ]},
+  'defender':{'forge_level':0,'units':[
+   {'unit_id':'hoplite','quantity':301}
+  ]},
+ }
+ result=simulate(s)
+ transitions=[
+  e for e in result['events']
+  if e['type']=='unsupported_mechanic'
+  and e['details'].get('rule_id')=='UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION'
+ ]
+ assert transitions
+ transition=transitions[-1]
+ assert transition['details']['direction']=='exit_open_field'
+ assert transition['details']['counted_defenders']<=300
+ assert transition['details']['from_battlefield']=='land-max'
+ assert transition['details']['to_battlefield']=='land-mini'
+ assert result['status']=='inconclusive'
+ assert result['garrison_status']['transition_reached'] is True
 
 
 def test_zero_wall_level_keeps_existing_unit_vs_unit_execution_path():
