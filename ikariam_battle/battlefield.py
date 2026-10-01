@@ -83,11 +83,17 @@ LAND_MINI = LAND_BATTLEFIELDS["land-mini"]
 
 
 def battlefield_metadata() -> list[dict[str, object]]:
-    """Return canonical public metadata; Town Hall ranges are descriptive only."""
-    return [
+    """Return canonical public metadata grouped by battle domain.
+
+    Battlefield id remains the executable source of truth for domain. The
+    reserved naval row lets the browser expose the Land/Naval layer without
+    pretending that naval geometry is already executable.
+    """
+    result = [
         {
             "id": field_id,
             "display_name": display_name,
+            "domain": "land",
             "supported": True,
             "lines": {
                 name: {
@@ -99,6 +105,14 @@ def battlefield_metadata() -> list[dict[str, object]]:
         }
         for field_id, (display_name, _) in _LAND_SPECS.items()
     ]
+    result.append({
+        "id": "naval-mini",
+        "display_name": "Naval battlefield / geometry pending",
+        "domain": "naval",
+        "supported": False,
+        "lines": {},
+    })
+    return result
 
 
 def battlefield(name: str) -> Battlefield:
@@ -113,6 +127,11 @@ def deploy(army: Army, registry: UnitRegistry, field: Battlefield,
     from .formation import FormationRules, build_initial_formation
     for item in army.units:
         unit = registry.get(item.unit_id)
+        if unit.army_kind != army.army_kind:
+            raise ScenarioError(
+                f"{unit.id} belongs to the {unit.army_kind} army package, "
+                f"not {army.army_kind}"
+            )
         if unit.domain != field.domain:
             raise ScenarioError(f"{unit.id} is {unit.domain} and cannot enter {field.id}")
         if unit.role != "support" and not unit.numerically_supported:

@@ -8,7 +8,7 @@ from ikariam_battle.engine import (
  _prepare_round_start, _redistribute, _resolve_volleys, _sr_trigger, _target,
 )
 from ikariam_battle.formation import FormationRules
-from ikariam_battle.models import Army, ArmyUnit, ScenarioError, Slot, Wave
+from ikariam_battle.models import Army, ArmyUnit, Policy, Scenario, ScenarioError, Slot, Wave
 from ikariam_battle.profiles import ForgeProfile, TargetingProfile, WorkshopProfile
 from ikariam_battle.units import UnitRegistry
 
@@ -1482,3 +1482,78 @@ def test_arrival_cross_wave_boundary_preserves_boundary_round_snapshot():
             and e['phase']=='round_start'
             and e['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD'
             for e in result['events'])
+
+
+def test_barbarian_land_army_can_fight_player_army_and_scores_zero():
+ s={'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+    'attacker':{'army_kind':'player','forge_level':0,'units':[
+      {'unit_id':'hoplite','quantity':90}]},
+    'defender':{'army_kind':'barbarian','forge_level':0,'units':[
+      {'unit_id':'barbarian_axe_swinger','quantity':90,
+       'entry_batch_id':'barbarian-garrison'}]}}
+ result=simulate(s)
+ assert result['rounds_completed']==1
+ initial=result['initial_state']['defender']
+ assert initial['remaining']['barbarian_axe_swinger']==90
+ assert any(
+  slot['unit_id']=='barbarian_axe_swinger'
+  for slot in initial['slots']
+ )
+ assert result['military_score']['defender']['general_score_lost']==0
+
+
+def test_army_package_rejects_player_and_barbarian_unit_mixing():
+ with pytest.raises(ScenarioError,match='belongs to the barbarian army package'):
+  simulate({'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+            'attacker':{'army_kind':'player','units':[
+              {'unit_id':'barbarian_clubman','quantity':30}]},
+            'defender':{'units':[{'unit_id':'hoplite','quantity':30}]}})
+ with pytest.raises(ScenarioError,match='belongs to the player army package'):
+  simulate({'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+            'attacker':{'army_kind':'barbarian','units':[
+              {'unit_id':'hoplite','quantity':30,'entry_batch_id':'barbarian'}]},
+            'defender':{'units':[{'unit_id':'hoplite','quantity':30}]}})
+
+
+def test_typed_barbarian_scenario_cannot_bypass_package_invariants():
+ defender=Army((
+  ArmyUnit('hoplite',30),
+ ),0,'player')
+
+ invalid_armies=[
+  Army((ArmyUnit('barbarian_axe_swinger',30,entry_batch_id='barbarian'),),5,'barbarian'),
+  Army((ArmyUnit('barbarian_axe_swinger',30,attack_upgrade=1,entry_batch_id='barbarian'),),0,'barbarian'),
+  Army((ArmyUnit('barbarian_axe_swinger',30,entry_batch_id='barbarian',arrival_round=1),),0,'barbarian'),
+  Army((
+   ArmyUnit('barbarian_axe_swinger',15,wave_id='w1',entry_batch_id='a'),
+   ArmyUnit('barbarian_ram',1,wave_id='w2',entry_batch_id='b'),
+  ),0,'barbarian'),
+  Army((
+   ArmyUnit('barbarian_axe_swinger',15,wave_id='w1',entry_batch_id='barbarian'),
+   ArmyUnit('barbarian_axe_swinger',15,wave_id='w2',entry_batch_id='barbarian'),
+  ),0,'barbarian'),
+ ]
+ messages=[
+  'do not use Forge',
+  'do not use Workshop',
+  'do not use delayed entry',
+  'one fixed entry batch',
+  'cannot be split across waves',
+ ]
+ for army,message in zip(invalid_armies,messages):
+  with pytest.raises(ScenarioError,match=message):
+   simulate(Scenario(
+    attacker=army,defender=defender,policy=Policy.EXPERIMENTAL,
+    battlefield='land-mini',max_rounds=1,
+   ))
+
+
+@pytest.mark.parametrize('bad',['pirate',[],{},None,False])
+def test_typed_scenario_rejects_invalid_army_kind(bad):
+ attacker=Army((ArmyUnit('hoplite',30),),0,bad)
+ defender=Army((ArmyUnit('hoplite',30),),0,'player')
+ with pytest.raises(ScenarioError,match='army_kind must be player or barbarian'):
+  simulate(Scenario(
+   attacker=attacker,defender=defender,policy=Policy.EXPERIMENTAL,
+   battlefield='land-mini',max_rounds=1,
+  ))

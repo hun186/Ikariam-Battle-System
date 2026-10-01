@@ -60,6 +60,14 @@ When same-batch Heavy Infantry compaction produces a mixed First formation (for 
 
 Workshop levels belong to a player’s **unit type**, not the whole army. Every `ArmyUnit` has `attack_upgrade` and `armor_upgrade`; all rows/waves of the same `unit_id` on one side must agree. Duplicate rows aggregate only when unit, wave, and upgrades agree. Forge remains side-wide at level 0–5.
 
+### Battle domain and army packages
+
+Battlefield id is the executable domain authority. Current executable ids are the five `land-*` geometries; metadata also exposes a reserved `naval-mini` row with `domain = naval` and `supported = false` so the UI can present a Land/Naval layer without claiming naval geometry is implemented. No separate Scenario battle-domain field is introduced, avoiding contradictory states such as a naval domain paired with `land-max`.
+
+Each side has `army_kind = player | barbarian` (default `player`). Unit definitions carry the corresponding package identity, and deployment rejects a unit id from the wrong package. Player-vs-Barbarian and Barbarian-vs-Barbarian land battles are therefore valid, while player and Barbarian units cannot be mixed on the same side.
+
+The Barbarian package uses the existing nine-unit `barbarian-village-current` profile as combat definitions. Its HP/armour/damage/accuracy/ammunition/size evidence remains exactly the profile’s documented derived/current evidence; promoting the catalog to simulation does not upgrade that evidence class. Barbarian armies have no Workshop upgrades, use Forge 0, arrive in one immediate batch, cannot split one unit type across multiple waves, and count as zero resource score basis / zero General Score. The browser hides player-only controls for that package. Exact village-level garrison quantities, walls, morale/retaliation and automatic village-level generation remain outside this contract.
+
 ## Battlefield geometry
 
 All five land IDs are executable. Slot count × slot space is:

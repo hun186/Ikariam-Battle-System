@@ -24,12 +24,23 @@ class BarbarianUnit:
     provenance: dict[str, Any]
 
     def public(self) -> dict[str, Any]:
+        numerically_supported = (
+            self.hit_points is not None
+            and self.base_armor is not None
+            and self.damage is not None
+            and self.size is not None
+        )
         return {
             "id": self.id,
             "display_name": self.display_name,
-            "domain": "barbarian",
+            "domain": "land",
+            "army_kind": "barbarian",
+            "role": "combat",
+            "support_effect": None,
+            "battlefield_class": self.native_line,
             "semantic_class": self.semantic_class,
             "native_line": self.native_line,
+            "unit_class": None,
             "first_appearance_level": self.first_appearance_level,
             "last_appearance_level": self.last_appearance_level,
             "equivalent_player_unit": self.equivalent_player_unit,
@@ -39,8 +50,20 @@ class BarbarianUnit:
             "accuracy": self.accuracy,
             "ammunition": self.ammunition,
             "size": self.size,
+            "weapons": [{
+                "id": "primary",
+                "damage": self.damage,
+                "ammunition": self.ammunition,
+                "trigger": "primary",
+                "accuracy": self.accuracy,
+            }],
+            "numerically_supported": numerically_supported,
+            "counts_toward_garrison_limit": True,
+            "resource_cost_basis_total": 0,
+            "general_score": "0",
             "selectable_by_player": False,
-            "simulation_ready": False,
+            "selectable_in_simulator": True,
+            "simulation_ready": numerically_supported,
             "provenance": self.provenance,
         }
 

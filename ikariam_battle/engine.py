@@ -1036,26 +1036,54 @@ def _non_sustaining(snapshot: dict[str, Any]) -> dict[str, int]:
             if count and unit not in sustaining}
 
 
+def _validate_army_package(army: Army, registry: UnitRegistry, field) -> None:
+    """Enforce army-package invariants for dict and typed Scenario callers."""
+    if not isinstance(army.army_kind, str) or army.army_kind not in {"player", "barbarian"}:
+        raise ScenarioError("army_kind must be player or barbarian")
+    active = [item for item in army.units if item.quantity]
+    if army.army_kind == "barbarian":
+        if army.forge_level != 0:
+            raise ScenarioError("barbarian armies do not use Forge levels")
+        if any(item.attack_upgrade or item.armor_upgrade for item in active):
+            raise ScenarioError("barbarian armies do not use Workshop upgrades")
+        if any(item.arrival_round != 0 for item in active):
+            raise ScenarioError("barbarian armies do not use delayed entry batches")
+        if len({item.batch_id for item in active}) != 1:
+            raise ScenarioError("barbarian armies use one fixed entry batch")
+        waves_by_unit: dict[str, set[str]] = {}
+        for item in active:
+            waves_by_unit.setdefault(item.unit_id, set()).add(item.wave_id)
+        if any(len(waves) != 1 for waves in waves_by_unit.values()):
+            raise ScenarioError("barbarian unit types cannot be split across waves")
+
+    for item in army.units:
+        unit = registry.get(item.unit_id)
+        if unit.army_kind != army.army_kind:
+            raise ScenarioError(
+                f"{unit.id} belongs to the {unit.army_kind} army package, "
+                f"not {army.army_kind}"
+            )
+        if unit.domain != field.domain:
+            raise ScenarioError(f"{unit.id} is {unit.domain} and cannot enter {field.id}")
+        if unit.role != "support" and not unit.numerically_supported:
+            raise ScenarioError(f"{unit.id} has unverified numerical fields and cannot be simulated")
+
+
 def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     if isinstance(scenario, dict): scenario = Scenario.from_dict(scenario)
-    registry = UnitRegistry.load(scenario.profiles.unit_stats)
+    registry = UnitRegistry.load(scenario.profiles.unit_stats, include_barbarians=True)
     field = battlefield(scenario.battlefield)
     formation_rules = FormationRules.load(scenario.profiles.formation)
     battle_end = BattleEndProfile.load(scenario.profiles.battle_end)
-    # Validate every scheduled unit now, but only round-0 entry batches are
-    # present on the battlefield initially.
+    # Validate every scheduled unit and package invariant now, including
+    # callers that bypass dict parsing and pass a typed Scenario directly.
     for army in (scenario.attacker, scenario.defender):
-        for item in army.units:
-            unit = registry.get(item.unit_id)
-            if unit.domain != field.domain:
-                raise ScenarioError(f"{unit.id} is {unit.domain} and cannot enter {field.id}")
-            if unit.role != "support" and not unit.numerically_supported:
-                raise ScenarioError(f"{unit.id} has unverified numerical fields and cannot be simulated")
+        _validate_army_package(army, registry, field)
     attacker = deploy(Army(tuple(item for item in scenario.attacker.units if item.arrival_round == 0),
-                           scenario.attacker.forge_level),
+                           scenario.attacker.forge_level, scenario.attacker.army_kind),
                       registry, field, scenario.profiles.formation)
     defender = deploy(Army(tuple(item for item in scenario.defender.units if item.arrival_round == 0),
-                           scenario.defender.forge_level),
+                           scenario.defender.forge_level, scenario.defender.army_kind),
                       registry, field, scenario.profiles.formation)
     events: list[Event] = []
     for side, waves in (("attacker", attacker), ("defender", defender)):
@@ -1468,8 +1496,15 @@ def _attach_battle_statistics(
     losses: dict[str, dict[str, int | float]] = {}
     for side in ("attacker", "defender"):
         casualties = result.get("casualties", {}).get(side, {})
-        basis_loss = economy.resource_cost_basis_loss(casualties)
-        score_loss = economy.score_loss(casualties)
+        army = scenario.attacker if side == "attacker" else scenario.defender
+        if army.army_kind == "barbarian":
+            # Barbarian military score is a package-level rule, not part of the
+            # player military-economy profile.
+            basis_loss = 0
+            score_loss = Decimal(0)
+        else:
+            basis_loss = economy.resource_cost_basis_loss(casualties)
+            score_loss = economy.score_loss(casualties)
         losses[side] = {
             "resource_cost_basis_lost": basis_loss,
             "general_score_lost": _decimal_json(score_loss),

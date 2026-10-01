@@ -160,7 +160,9 @@ def evaluate_fixture(fixture: BattleReportFixture, simulation_result: dict[str, 
                                  blockers, tuple(assessments))
 
     round_state = rounds[0]
-    registry = UnitRegistry.load(fixture.scenario.profiles.unit_stats)
+    registry = UnitRegistry.load(
+        fixture.scenario.profiles.unit_stats, include_barbarians=True
+    )
     for observation in fixture.observations:
         slots = [slot for slot in round_state.get(observation.side, {}).get("slots", [])
                  if slot.get("line") == observation.line

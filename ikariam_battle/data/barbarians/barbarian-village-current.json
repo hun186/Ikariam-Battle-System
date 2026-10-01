@@ -3,14 +3,15 @@
     "profile": "barbarian-village-current",
     "scope": "new Barbarian Village land units",
     "verified_context_date": "2026-09-26",
-    "simulation_status": "CATALOG_ONLY",
+    "simulation_status": "LAND_COMBAT_READY",
     "selectable_by_player": false,
     "current_stat_method": "Base HP, armour and damage use the Infinite Horizons x20 military-unit scaling where the pre-v13 Barbarian guide/equivalent player-unit evidence is available. Accuracy, ammunition and size are not multiplied.",
     "confidence": "DERIVED_WITH_CURRENT_LIVE_CORROBORATION",
     "cautions": [
-      "This catalog is intentionally separate from the player UnitRegistry.",
-      "CATALOG_ONLY means these units are not accepted as player army units and are not yet wired into NPC battle formation/targeting.",
-      "The 2019 Barbarian Village guide has an internal inconsistency for Axe Thrower first appearance (unit section says level 30 while the level-by-level narrative introduces the second line at level 40); this catalog uses level 40 and preserves the conflict note."
+      "This Barbarian package remains separate from the player army package and cannot be mixed with player units on one side.",
+      "Barbarian armies use no Workshop upgrades, no Forge level, no delayed/multiple entry batches, and contribute zero General Score in simulator accounting.",
+      "The simulator accepts manual Barbarian unit quantities; it does not yet auto-generate the exact garrison for a Barbarian Village level.",
+      "The 2019 Barbarian Village guide has an internal inconsistency for Axe Thrower first appearance (unit section says level 30 while the level-by-level narrative introduces the second line at level 40); this profile uses level 40 and preserves the conflict note."
     ],
     "sources": [
       {
@@ -49,7 +50,8 @@
         "url": "https://ikariam.fandom.com/wiki/Category:License:Images_Copyrighted_by_Gameforge",
         "notes": "Lists the nine Barbarian button icon filenames under Gameforge-copyrighted images."
       }
-    ]
+    ],
+    "selectable_in_simulator": true
   },
   "units": [
     {
