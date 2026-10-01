@@ -49,6 +49,14 @@ def test_max_rounds_defaults_to_100_and_allows_1000_safety_cap():
   Scenario.from_dict({**BASE,'max_rounds':1001})
 
 
+def test_wall_level_defaults_to_zero_and_accepts_current_maximum():
+ assert Scenario.from_dict(BASE).wall_level==0
+ assert Scenario.from_dict({**BASE,'wall_level':46}).wall_level==46
+ for bad in (-1,47,True,'20'):
+  with pytest.raises(ScenarioError):
+   Scenario.from_dict({**BASE,'wall_level':bad})
+
+
 def test_entry_batch_can_group_multiple_unit_types_without_merging_unit_state():
  army=Army.from_dict({'units':[
   {'unit_id':'hoplite','quantity':30,'entry_batch_id':'batch-a','arrival_round':0},
