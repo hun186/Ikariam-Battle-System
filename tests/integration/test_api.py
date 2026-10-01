@@ -132,6 +132,25 @@ def test_wall_level_api_validation_and_summary_boundary():
  assert bad=={'error':'wall_level must be 0..48'}
 
 
+def test_summary_reports_noop_garrison_crossing_even_when_event_is_filtered():
+ value=payload()
+ value['battlefield']='land-max'
+ value['max_rounds']=1
+ value['town_hall_level']=1
+ value['wall_level']=0
+ value['defender']['units']=[
+  {'unit_id':'hoplite','quantity':100,'entry_batch_id':'g0','arrival_round':0},
+  {'unit_id':'hoplite','quantity':201,'entry_batch_id':'g1','arrival_round':1},
+ ]
+ status,data=post(value)
+ assert status==200
+ assert data['garrison_status']['transition_reached'] is True
+ assert data['garrison_status']['transition_blocked'] is False
+ assert data['garrison_status']['transition']['direction']=='enter_open_field'
+ assert data['garrison_status']['transition']['counted_defenders']==301
+ assert not any(event['type']=='garrison_state_change' for event in data['events'])
+
+
 def test_player_garrison_over_limit_uses_open_field_and_suppresses_wall():
  value=payload()
  value['town_hall_level']=1
