@@ -66,10 +66,11 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert data['town_wall']['input_supported'] is True
  assert data['town_wall']['combat_model_status']=='INPUT_CAPTURED_COMBAT_UNSUPPORTED'
  assert data['town_wall']['rule_id']=='UNKNOWN-TOWN-WALL-COMBAT'
- assert data['town_wall']['published_stat_fields']==['hit_points','armor']
- assert data['town_wall']['unresolved_current_stat_fields']==['damage','accuracy']
+ assert data['town_wall']['published_stat_fields']==['hit_points','armor','damage']
+ assert data['town_wall']['unresolved_current_stat_fields']==['accuracy']
  assert data['town_wall']['hit_points_formula']=='1800 + 900 * level'
  assert data['town_wall']['armor_formula']=='72 * level'
+ assert data['town_wall']['damage_observed_points']=={'1':216,'9':504,'26':5580}
  assert data['town_wall']['successful_breach_hits_formula']=='ceil((1800 + 900*level) / (attack_damage - 72*level))'
  assert data['garrison']['player_formula']=='250 + 50 * (town_hall_level + wall_level)'
  assert data['garrison']['max_town_hall_level']==66
@@ -114,7 +115,7 @@ def test_wall_level_api_validation_and_summary_boundary():
  assert data['wall_status']['segments']==3
  assert data['wall_status']['hit_points']==19800
  assert data['wall_status']['armor']==1440
- assert data['wall_status']['damage'] is None
+ assert data['wall_status']['damage']==4500
  assert data['wall_status']['accuracy'] is None
  assert any(
   event['type']=='unsupported_mechanic'
