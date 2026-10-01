@@ -11,6 +11,12 @@ OPEN_FIELD_BATTLEFIELD_ID = "land-max"
 GARRISON_TRANSITION_RULE_ID = "UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION"
 BARBARIAN_GARRISON_RULE_ID = "UNKNOWN-BARBARIAN-GARRISON-LIMIT-FORMULA"
 
+PLAYER_FORMULA_URL = "https://ikariam.fandom.com/wiki/Garrison_limit"
+OPEN_FIELD_FORUM_URL = "https://forum.ikariam.gameforge.com/forum/thread/99684-not-a-bug-battlefield-size-change-when-entering-battle/"
+SUPPORT_EXCLUSION_URL = "https://forum.ikariam.gameforge.com/forum/thread/117393-version-17-4-0-11-08-2026/"
+BARBARIAN_FORMULA_FORUM_URL = "https://forum.ikariam.gameforge.com/forum/thread/99684-not-a-bug-battlefield-size-change-when-entering-battle/"
+BARBARIAN_GUIDE_URL = "https://forum.ikariam.gameforge.com/forum/thread/78470-kater-s-barbarian-battle-guide/"
+
 PLAYER_FORMULA_SOURCE = "COMMUNITY_CORROBORATED_CURRENT_RULE"
 BARBARIAN_FORMULA_STATUS = "CONFLICTING_COMMUNITY_EVIDENCE"
 
@@ -129,4 +135,11 @@ def garrison_profile_metadata() -> dict[str, Any]:
         ],
         "barbarian_rule_id": BARBARIAN_GARRISON_RULE_ID,
         "transition_rule_id": GARRISON_TRANSITION_RULE_ID,
+        "source_urls": {
+            "player_formula": PLAYER_FORMULA_URL,
+            "open_field": OPEN_FIELD_FORUM_URL,
+            "support_exclusion_v17_4": SUPPORT_EXCLUSION_URL,
+            "barbarian_formula_candidate": BARBARIAN_FORMULA_FORUM_URL,
+            "barbarian_approximation": BARBARIAN_GUIDE_URL,
+        },
     }
