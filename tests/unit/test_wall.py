@@ -11,6 +11,7 @@ def test_infinite_horizons_wall_hp_armour_and_maximum():
  assert wall_stats(1)=={'level':1,'damage':216,'accuracy':None,'hit_points':2700,'armor':72}
  assert wall_stats(9)=={'level':9,'damage':504,'accuracy':None,'hit_points':9900,'armor':648}
  assert wall_stats(10)=={'level':10,'damage':1440,'accuracy':None,'hit_points':10800,'armor':720}
+ assert wall_stats(18)=={'level':18,'damage':2160,'accuracy':None,'hit_points':18000,'armor':1296}
  assert wall_stats(19)=={'level':19,'damage':2250,'accuracy':None,'hit_points':18900,'armor':1368}
  assert wall_stats(20)=={'level':20,'damage':4500,'accuracy':None,'hit_points':19800,'armor':1440}
  assert wall_stats(26)=={'level':26,'damage':5580,'accuracy':None,'hit_points':25200,'armor':1872}
@@ -51,7 +52,7 @@ def test_wall_metadata_is_input_supported_but_combat_guarded():
   '10-19':'(30 + 5*level) * 18',
   '20+':'(50 + 10*level) * 18',
  }
- assert metadata['damage_observed_points']=={'1':216,'9':504,'26':5580}
+ assert metadata['damage_observed_points']=={'1':216,'9':504,'18':2160,'26':5580}
  assert metadata['successful_breach_hits_formula']=='ceil((1800 + 900*level) / (attack_damage - 72*level))'
  assert len(metadata['source_urls'])==6
 
