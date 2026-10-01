@@ -3,7 +3,7 @@ from ikariam_battle.wall import MAX_TOWN_WALL_LEVEL, wall_profile_metadata, wall
 
 
 def test_published_wall_stat_breakpoints_and_maximum():
- assert MAX_TOWN_WALL_LEVEL==46
+ assert MAX_TOWN_WALL_LEVEL==48
  assert wall_stats(0)=={'level':0,'damage':0,'accuracy':0,'hit_points':0,'armor':0}
  assert wall_stats(1)=={'level':1,'damage':12,'accuracy':30,'hit_points':150,'armor':4}
  assert wall_stats(9)=={'level':9,'damage':28,'accuracy':30,'hit_points':550,'armor':36}
@@ -11,6 +11,7 @@ def test_published_wall_stat_breakpoints_and_maximum():
  assert wall_stats(19)=={'level':19,'damage':125,'accuracy':50,'hit_points':1050,'armor':76}
  assert wall_stats(20)=={'level':20,'damage':250,'accuracy':80,'hit_points':1100,'armor':80}
  assert wall_stats(46)=={'level':46,'damage':510,'accuracy':80,'hit_points':2400,'armor':184}
+ assert wall_stats(48)=={'level':48,'damage':530,'accuracy':80,'hit_points':2500,'armor':192}
 
 
 def test_wall_sections_follow_selected_land_first_line_geometry():
