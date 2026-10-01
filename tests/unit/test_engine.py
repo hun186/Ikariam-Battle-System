@@ -567,6 +567,61 @@ def test_reserve_light_fallback_candidate_does_not_block_a_full_front_at_preflig
  assert any(e['type']=='attacking_matrix' for e in result['events'])
 
 
+def test_round_start_moves_whole_light_wave_from_flank_into_open_first_slots():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'steam_giant','quantity':224},
+  {'unit_id':'swordsman','quantity':240},
+ ]}),registry,field)
+ steam=next(w for w in waves if w.unit.unit_id=='steam_giant')
+ swords=next(w for w in waves if w.unit.unit_id=='swordsman')
+ steam.reserve=0
+ for slot in steam.slots:
+  slot.units=16 if slot.damage_position in {1,2,3} else 0
+  slot.damage=0
+ swords.reserve=0
+ for slot in swords.slots:
+  slot.units=40 if slot.damage_position in {1,2,3} else 0
+  slot.damage=210 if slot.damage_position in {2,3} else 0
+ before_damage=sum(slot.damage for slot in swords.slots)
+ events=[]; applied={}
+ _prepare_round_start(waves,events,4,'defender',applied,registry,rules,field)
+ assert sum(slot.units for slot in swords.slots)==120
+ assert {slot.line for slot in swords.slots if slot.units}=={'first'}
+ assert [slot.damage_position for slot in swords.slots if slot.units]==[4,5,6]
+ assert swords.reserve==0
+ assert swords.reserve_damage+sum(slot.damage for slot in swords.slots)==before_damage
+ assert any(
+  event.type=='formation_fallback'
+  and event.side=='defender'
+  and event.details.get('unit_id')=='swordsman'
+  and event.details.get('to_line')=='first'
+  and event.details.get('whole_wave') is True
+  for event in events
+ )
+
+
+def test_partial_light_cross_line_fallback_remains_guarded():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'steam_giant','quantity':224},
+  {'unit_id':'swordsman','quantity':240},
+ ]}),registry,field)
+ steam=next(w for w in waves if w.unit.unit_id=='steam_giant')
+ swords=next(w for w in waves if w.unit.unit_id=='swordsman')
+ steam.reserve=0
+ for slot in steam.slots:
+  slot.units=16 if slot.damage_position in {1,2,3} else 0
+ swords.reserve=0
+ # 240 surviving Swordsmen need five First slots, but only four are open.
+ for slot in swords.slots:
+  slot.units=40
+ events=[]; applied={}
+ _prepare_round_start(waves,events,4,'defender',applied,registry,rules,field)
+ assert {slot.line for slot in swords.slots if slot.units}=={'flank'}
+ assert not any(event.type=='formation_fallback' for event in events)
+
+
 def test_unrelated_reserve_is_not_cross_wave_rebuild_candidate():
  registry=UnitRegistry.load(); rules=FormationRules.load()
  deployed=target_wave('hoplite','first',30)
