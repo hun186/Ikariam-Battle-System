@@ -813,6 +813,10 @@ function renderPager(){
 function safetyNoticesHtml(data){
   const blockers=[...new Set(data.events.filter(e=>e.type==='unsupported_mechanic').map(e=>e.details?.rule_id).filter(Boolean))];
   const warnings=[...new Set(data.warnings||[])],assumptions=data.assumptions||[],cards=[];
+  const blockerHelp={
+    'UNKNOWN-FORMATION-FALLBACK':'主戰線需要 fallback。整個 Light Infantry wave 可完整轉入 First 的情況已支援；這個邊界代表仍需要同 wave 跨 First/Flank 分兵、Long-range 前移／武器切換，或其他尚未驗證的 fallback。',
+    'UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS':'同一 wave 同時跨多條 runtime line 的戰鬥與 RR 尚未完整校準。',
+  };
   const roundCap=data.events.find(e=>e.type==='safety_limit_reached');
   if(roundCap)cards.push('<div class="safety-card warning"><b>Safety round cap reached / 已達安全回合上限</b><div>Simulation stopped at '+esc(roundCap.details?.limit)+' rounds without a resolved outcome.</div></div>');
   const morale=data.morale_status,moraleSides=morale?.sides||{},aCook=moraleSides.attacker?.cook_count||0,dCook=moraleSides.defender?.cook_count||0;
@@ -841,7 +845,7 @@ function safetyNoticesHtml(data){
     }
     cards.push('<div class="safety-card warning"><b>Healing / 治療尚未建模</b><div>攻擊方 Doctor '+aDoctor+'；防守方 Doctor '+dDoctor+'。'+healingHandling+' 目前每名 Doctor 的 derived capacity reference = '+esc(healing.derived_capacity_per_doctor)+'，但 eligibility、allocation 與 timing 未知，因此不直接拿 4000 扣除傷害。</div></div>');
   }
-  if(blockers.length)cards.push('<div class="safety-card blocker"><b>Unsupported mechanics / 無法安全判定</b><ul>'+blockers.map(id=>'<li>'+esc(id)+'</li>').join('')+'</ul></div>');
+  if(blockers.length)cards.push('<div class="safety-card blocker"><b>Unsupported mechanics / 無法安全判定</b><ul>'+blockers.map(id=>'<li><b>'+esc(id)+'</b>'+(blockerHelp[id]?'<div>'+esc(blockerHelp[id])+'</div>':'')+'</li>').join('')+'</ul></div>');
   if(warnings.length)cards.push('<div class="safety-card warning"><b>Evidence warnings</b><ul>'+warnings.map(item=>'<li>'+esc(item)+'</li>').join('')+'</ul></div>');
   if(assumptions.length)cards.push('<div class="safety-card assumption"><b>Experimental assumptions actually used</b><ul>'+assumptions.map(item=>'<li>'+esc(item.id)+': '+esc(item.description)+'</li>').join('')+'</ul></div>');
   return cards.join('');
