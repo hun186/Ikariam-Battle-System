@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+from .wall import MAX_TOWN_WALL_LEVEL
+
 
 DEFAULT_MAX_ROUNDS = 100
 MAX_ROUNDS = 1000
@@ -204,6 +206,7 @@ class Scenario:
     policy: Policy = Policy.STRICT
     battlefield: str = "land-mini"
     max_rounds: int = DEFAULT_MAX_ROUNDS
+    wall_level: int = 0
 
     @classmethod
     def from_dict(cls, value: Any) -> "Scenario":
@@ -218,7 +221,8 @@ class Scenario:
         try:
             return cls(Army.from_dict(data["attacker"]), Army.from_dict(data["defender"]),
                        Profiles.from_dict(data.get("profiles", {})), policy, battlefield,
-                       _integer(data.get("max_rounds", DEFAULT_MAX_ROUNDS), "max_rounds", 1, MAX_ROUNDS))
+                       _integer(data.get("max_rounds", DEFAULT_MAX_ROUNDS), "max_rounds", 1, MAX_ROUNDS),
+                       _integer(data.get("wall_level", 0), "wall_level", 0, MAX_TOWN_WALL_LEVEL))
         except KeyError as exc:
             raise ScenarioError(f"missing field: {exc.args[0]}") from exc
 
