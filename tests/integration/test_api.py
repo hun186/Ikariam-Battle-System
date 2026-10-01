@@ -70,7 +70,7 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert data['town_wall']['unresolved_current_stat_fields']==['accuracy']
  assert data['town_wall']['hit_points_formula']=='1800 + 900 * level'
  assert data['town_wall']['armor_formula']=='72 * level'
- assert data['town_wall']['damage_observed_points']=={'1':216,'9':504,'26':5580}
+ assert data['town_wall']['damage_observed_points']=={'1':216,'9':504,'18':2160,'26':5580}
  assert data['town_wall']['successful_breach_hits_formula']=='ceil((1800 + 900*level) / (attack_damage - 72*level))'
  assert data['garrison']['player_formula']=='250 + 50 * (town_hall_level + wall_level)'
  assert data['garrison']['max_town_hall_level']==66
