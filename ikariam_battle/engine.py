@@ -1573,27 +1573,39 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         if garrison_limit is not None and not open_field_active:
             counted_defenders = counted_live_waves(defender, registry)
             if counted_defenders > garrison_limit:
+                geometry_changes = field.id != "land-max"
+                wall_suppresses = bool(scenario.wall_level)
+                if geometry_changes or wall_suppresses:
+                    _event(
+                        events, number, "round_start", "unsupported_mechanic", "defender",
+                        rule_id=GARRISON_TRANSITION_RULE_ID,
+                        direction="enter_open_field",
+                        counted_defenders=counted_defenders,
+                        garrison_limit=garrison_limit,
+                        from_battlefield=field.id,
+                        to_battlefield="land-max",
+                        wall_suppressed=wall_suppresses,
+                    )
+                    completed = number
+                    attacker_state = _snapshot(attacker, registry, battle_end)
+                    defender_state = _snapshot(defender, registry, battle_end)
+                    rounds.append({
+                        "round": number,
+                        "attacker": attacker_state,
+                        "defender": defender_state,
+                        "casualties": {"attacker": {}, "defender": {}},
+                    })
+                    garrison_transition_boundary = True
+                    break
+                open_field_active = True
                 _event(
-                    events, number, "round_start", "unsupported_mechanic", "defender",
-                    rule_id=GARRISON_TRANSITION_RULE_ID,
+                    events, number, "round_start", "garrison_state_change", "defender",
                     direction="enter_open_field",
                     counted_defenders=counted_defenders,
                     garrison_limit=garrison_limit,
-                    from_battlefield=scenario.battlefield,
-                    to_battlefield="land-max",
-                    wall_suppressed=bool(scenario.wall_level),
+                    battlefield="land-max",
+                    wall_suppressed=False,
                 )
-                completed = number
-                attacker_state = _snapshot(attacker, registry, battle_end)
-                defender_state = _snapshot(defender, registry, battle_end)
-                rounds.append({
-                    "round": number,
-                    "attacker": attacker_state,
-                    "defender": defender_state,
-                    "casualties": {"attacker": {}, "defender": {}},
-                })
-                garrison_transition_boundary = True
-                break
         arrival_blockers = {
             "attacker": _preflight(attacker_arrivals, registry, formation_rules, field),
             "defender": _preflight(defender_arrivals, registry, formation_rules, field),
@@ -1677,34 +1689,6 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         rounds.append({"round":number,"attacker":attacker_state,"defender":defender_state,
                        "casualties":{"attacker":dict(a_dead),"defender":dict(d_dead)}})
 
-        if garrison_limit is not None and open_field_active:
-            counted_defenders = counted_live_waves(defender, registry)
-            if counted_defenders <= garrison_limit:
-                geometry_changes = scenario.battlefield != "land-max"
-                wall_reappears = bool(scenario.wall_level)
-                if geometry_changes or wall_reappears:
-                    _event(
-                        events, number, "round_end", "unsupported_mechanic", "defender",
-                        rule_id=GARRISON_TRANSITION_RULE_ID,
-                        direction="exit_open_field",
-                        counted_defenders=counted_defenders,
-                        garrison_limit=garrison_limit,
-                        from_battlefield="land-max",
-                        to_battlefield=scenario.battlefield,
-                        wall_reappears=wall_reappears,
-                    )
-                    garrison_transition_boundary = True
-                    break
-                open_field_active = False
-                _event(
-                    events, number, "round_end", "garrison_state_change", "defender",
-                    direction="exit_open_field",
-                    counted_defenders=counted_defenders,
-                    garrison_limit=garrison_limit,
-                    battlefield="land-max",
-                    wall_reappears=False,
-                )
-
         # Combat itself can create the first real vacancy that requires a
         # different reserve-only wave to enter. Recheck before any continuation
         # or termination decision so an unimplemented cross-wave replacement
@@ -1778,6 +1762,37 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                        surviving_non_sustaining={"attacker":_non_sustaining(attacker_state),
                                                  "defender":_non_sustaining(defender_state)})
                 break
+
+        # A garrison threshold transition matters only if combat continues into
+        # another round. If this round already ended the battle, no formation
+        # needs to be remapped and the terminal outcome remains authoritative.
+        if garrison_limit is not None and open_field_active:
+            counted_defenders = counted_live_waves(defender, registry)
+            if counted_defenders <= garrison_limit:
+                geometry_changes = scenario.battlefield != "land-max"
+                wall_reappears = bool(scenario.wall_level)
+                if geometry_changes or wall_reappears:
+                    _event(
+                        events, number, "round_end", "unsupported_mechanic", "defender",
+                        rule_id=GARRISON_TRANSITION_RULE_ID,
+                        direction="exit_open_field",
+                        counted_defenders=counted_defenders,
+                        garrison_limit=garrison_limit,
+                        from_battlefield="land-max",
+                        to_battlefield=scenario.battlefield,
+                        wall_reappears=wall_reappears,
+                    )
+                    garrison_transition_boundary = True
+                    break
+                open_field_active = False
+                _event(
+                    events, number, "round_end", "garrison_state_change", "defender",
+                    direction="exit_open_field",
+                    counted_defenders=counted_defenders,
+                    garrison_limit=garrison_limit,
+                    battlefield="land-max",
+                    wall_reappears=False,
+                )
         if not a_dead and not d_dead and not round_had_fire:
             if not engagement_started and any(pending_now.values()):
                 continue
@@ -2082,11 +2097,7 @@ def _attach_battle_statistics(
     initial_open = bool(garrison.get("open_field")) if garrison.get("modeled") else False
     wall_inactive_reason = None
     if scenario.wall_level and initial_open:
-        wall_inactive_reason = (
-            "garrison_transition_pending"
-            if transition_events and transition_events[-1].get("details", {}).get("direction") == "exit_open_field"
-            else "open_field_garrison_limit"
-        )
+        wall_inactive_reason = "open_field_garrison_limit"
     result["wall_status"] = wall_status(
         scenario.wall_level,
         battlefield(scenario.battlefield),
