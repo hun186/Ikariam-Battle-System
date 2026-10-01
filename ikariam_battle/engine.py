@@ -1550,6 +1550,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     fallback_boundary = False
     both_zero_boundary = False
     cross_wave_boundary = False
+    garrison_transition_boundary = False
     engagement_started = all(
         state == ContinuationState.SUSTAINING.value for state in initial_states.values())
     for number in range(1, scenario.max_rounds + 1):
@@ -1557,6 +1558,30 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         defender_arrivals = _arrival_waves(scenario.defender, number, registry, events, "defender")
         attacker.extend(attacker_arrivals)
         defender.extend(defender_arrivals)
+        if garrison_limit is not None and not open_field_active:
+            counted_defenders = counted_live_waves(defender, registry)
+            if counted_defenders > garrison_limit:
+                _event(
+                    events, number, "round_start", "unsupported_mechanic", "defender",
+                    rule_id=GARRISON_TRANSITION_RULE_ID,
+                    direction="enter_open_field",
+                    counted_defenders=counted_defenders,
+                    garrison_limit=garrison_limit,
+                    from_battlefield=scenario.battlefield,
+                    to_battlefield="land-max",
+                    wall_suppressed=bool(scenario.wall_level),
+                )
+                completed = number
+                attacker_state = _snapshot(attacker, registry, battle_end)
+                defender_state = _snapshot(defender, registry, battle_end)
+                rounds.append({
+                    "round": number,
+                    "attacker": attacker_state,
+                    "defender": defender_state,
+                    "casualties": {"attacker": {}, "defender": {}},
+                })
+                garrison_transition_boundary = True
+                break
         arrival_blockers = {
             "attacker": _preflight(attacker_arrivals, registry, formation_rules, field),
             "defender": _preflight(defender_arrivals, registry, formation_rules, field),
@@ -1639,6 +1664,34 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         defender_state = _snapshot(defender, registry, battle_end, d_slot_dead)
         rounds.append({"round":number,"attacker":attacker_state,"defender":defender_state,
                        "casualties":{"attacker":dict(a_dead),"defender":dict(d_dead)}})
+
+        if garrison_limit is not None and open_field_active:
+            counted_defenders = counted_live_waves(defender, registry)
+            if counted_defenders <= garrison_limit:
+                geometry_changes = scenario.battlefield != "land-max"
+                wall_reappears = bool(scenario.wall_level)
+                if geometry_changes or wall_reappears:
+                    _event(
+                        events, number, "round_end", "unsupported_mechanic", "defender",
+                        rule_id=GARRISON_TRANSITION_RULE_ID,
+                        direction="exit_open_field",
+                        counted_defenders=counted_defenders,
+                        garrison_limit=garrison_limit,
+                        from_battlefield="land-max",
+                        to_battlefield=scenario.battlefield,
+                        wall_reappears=wall_reappears,
+                    )
+                    garrison_transition_boundary = True
+                    break
+                open_field_active = False
+                _event(
+                    events, number, "round_end", "garrison_state_change", "defender",
+                    direction="exit_open_field",
+                    counted_defenders=counted_defenders,
+                    garrison_limit=garrison_limit,
+                    battlefield="land-max",
+                    wall_reappears=False,
+                )
 
         # Combat itself can create the first real vacancy that requires a
         # different reserve-only wave to enter. Recheck before any continuation
@@ -1735,6 +1788,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             scenario.defender, scenario.max_rounds, registry, battle_end),
     }
     if (fallback_boundary or both_zero_boundary or cross_wave_boundary
+            or garrison_transition_boundary
             or (final_losing is not None
                 and pending_handoff_after_horizon.get(final_losing))
             or (not engagement_started
