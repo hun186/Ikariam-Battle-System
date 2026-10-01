@@ -10,6 +10,12 @@ from .damage import RoundingPolicy, calculate_damage
 from .economy import MilitaryEconomyProfile
 from .events import Event
 from .formation import FormationRules, eligible_runtime_lines
+from .garrison import (
+    GARRISON_TRANSITION_RULE_ID,
+    MAX_TOWN_HALL_LEVEL,
+    counted_live_waves,
+    player_garrison_status,
+)
 from .models import Army, Policy, Scenario, ScenarioError, Slot, Wave
 from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 from .redistribution import SlotShare, reserve_redistribution
@@ -1396,12 +1402,32 @@ def _validate_army_package(army: Army, registry: UnitRegistry, field) -> None:
 def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     if isinstance(scenario, dict): scenario = Scenario.from_dict(scenario)
     registry = UnitRegistry.load(scenario.profiles.unit_stats, include_barbarians=True)
-    field = battlefield(scenario.battlefield)
+    base_field = battlefield(scenario.battlefield)
     if (isinstance(scenario.wall_level, bool) or not isinstance(scenario.wall_level, int)
             or not 0 <= scenario.wall_level <= MAX_TOWN_WALL_LEVEL):
         raise ScenarioError(f"wall_level must be 0..{MAX_TOWN_WALL_LEVEL}")
-    if scenario.wall_level and field.domain != "land":
-        raise ScenarioError("town wall is only valid for land battlefields")
+    if (scenario.town_hall_level is not None
+            and (isinstance(scenario.town_hall_level, bool)
+                 or not isinstance(scenario.town_hall_level, int)
+                 or not 1 <= scenario.town_hall_level <= MAX_TOWN_HALL_LEVEL)):
+        raise ScenarioError(f"town_hall_level must be 1..{MAX_TOWN_HALL_LEVEL}")
+    if scenario.defender.army_kind == "barbarian" and scenario.town_hall_level is not None:
+        raise ScenarioError("town_hall_level is only valid for player defenders")
+    if (scenario.wall_level or scenario.town_hall_level is not None) and base_field.domain != "land":
+        raise ScenarioError("Town Hall and Town Wall are only valid for land battlefields")
+    garrison_initial = player_garrison_status(
+        town_hall_level=scenario.town_hall_level,
+        wall_level=scenario.wall_level,
+        defender_army=scenario.defender,
+        base_battlefield_id=scenario.battlefield,
+        through_round=0,
+    )
+    open_field_active = bool(garrison_initial.get("open_field"))
+    garrison_limit = garrison_initial.get("garrison_limit")
+    field = battlefield(
+        garrison_initial["effective_battlefield"]
+        if open_field_active else scenario.battlefield
+    )
     formation_rules = FormationRules.load(scenario.profiles.formation)
     battle_end = BattleEndProfile.load(scenario.profiles.battle_end)
     # Validate every scheduled unit and package invariant now, including
@@ -1426,14 +1452,18 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     initial = {"attacker": _snapshot(attacker, registry, battle_end),
                "defender": _snapshot(defender, registry, battle_end)}
     warnings = ["Legacy empirical mechanics are being applied to review-supplied current numeric profiles; calibration is required."]
-    if scenario.wall_level:
+    if open_field_active:
+        warnings.append(
+            "Defender exceeds the configured land garrison limit: the battle starts on land-max with the Town Wall suppressed."
+        )
+    elif scenario.wall_level:
         warnings.append(
             "Defender Town Wall input is captured, but wall targeting, breaching, refill, and flank-lock combat semantics are not executable yet."
         )
     attacker_blockers = _preflight(attacker, registry, formation_rules, field)
     defender_blockers = _preflight(defender, registry, formation_rules, field)
     blockers = sorted(set(attacker_blockers + defender_blockers))
-    if scenario.wall_level:
+    if scenario.wall_level and not open_field_active:
         blockers.append(TOWN_WALL_RULE_ID)
     initial_states = {side: state["continuation_state"] for side, state in initial.items()}
     fallback_sides = [side for side, state in initial_states.items()
