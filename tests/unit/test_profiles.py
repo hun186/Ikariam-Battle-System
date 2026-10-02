@@ -88,6 +88,9 @@ def test_workshop_forge_support_and_targeting_profiles():
  assert t.same_formation_simultaneous is True
  assert t.metadata['line_role_contract']['status']=='KNOWN'
  assert t.metadata['firing_order_contract']['status']=='KNOWN'
+ assert t.metadata['target_eligibility_contract']['status']=='KNOWN_FOR_EFFECTIVE_ATK_VS_DEF'
+ assert 'strictly greater' in t.metadata['target_eligibility_contract']['rule']
+ assert t.metadata['wall_targeting_contract']['status']=='KNOWN_TARGET_PRIORITY_COMBAT_STILL_GUARDED'
  assert t.metadata['weapon_selection']['status']=='UNKNOWN'
  b=BattleEndProfile.load()
  assert b.main_line_classes=={'first'} and b.fallback_candidate_classes=={'flank','second'}

@@ -42,6 +42,18 @@
       "source_type": "EMPIRICAL_MECHANICS_PAPER",
       "title": "Ikariam Battle System attacking-matrix construction",
       "verification": "REPOSITORY_ARTIFACT"
+    },
+    "target_eligibility_contract": {
+      "status": "KNOWN_FOR_EFFECTIVE_ATK_VS_DEF",
+      "rule": "A candidate target is attackable only when the selected weapon's effective ATK is strictly greater than the target's effective DEF. ATK <= DEF is skipped without a shot or ammunition expenditure, and selection continues to the next eligible target.",
+      "source_type": "GAMEFORGE_FORUM_PLAYER_EXPLANATION_PLUS_USER_BATTLE_OBSERVATION",
+      "verification": "REVIEWER_WEB_VERIFIED_PLUS_USER_OBSERVATION"
+    },
+    "wall_targeting_contract": {
+      "status": "KNOWN_TARGET_PRIORITY_COMBAT_STILL_GUARDED",
+      "rule": "When an active Town Wall is present, land Artillery targets Wall before ordinary First-line units; if no wall remains, Artillery continues to First.",
+      "source_type": "GAMEFORGE_FORUM_GUIDE",
+      "verification": "REVIEWER_WEB_VERIFIED"
     }
   },
   "priorities": {

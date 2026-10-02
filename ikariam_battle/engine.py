@@ -7,7 +7,6 @@ from typing import Any
 
 from .accuracy import EXPERIMENTAL_ACCURACY_MODEL_ID, select_accuracy_target
 from .battlefield import battlefield, deploy
-from .damage import RoundingPolicy, calculate_damage
 from .economy import MilitaryEconomyProfile
 from .events import Event
 from .formation import FormationRules, eligible_runtime_lines
@@ -21,6 +20,7 @@ from .garrison import (
 from .models import Army, Policy, Scenario, ScenarioError, Slot, Wave
 from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 from .redistribution import SlotShare, reserve_redistribution
+from .target_eligibility import TARGET_PENETRATION_RULE_ID, unit_target_eligibility
 from .units import UnitRegistry
 from .weapon_selection import UnsupportedWeaponSelection, select_active_weapon
 from .wall import MAX_TOWN_WALL_LEVEL, TOWN_WALL_RULE_ID, wall_status
@@ -961,6 +961,75 @@ def _target(source: Wave, targets: list[Wave], registry: UnitRegistry,
     return _target_for_line(_runtime_line(source, registry), targets, registry, targeting)
 
 
+def _freeze_target_eligibility_for_weapon(
+    source_unit,
+    weapon,
+    attack_upgrade: int,
+    source_forge_level: int,
+    source_line: str,
+    targets: list[Wave],
+    target_forge_level: int,
+    registry: UnitRegistry,
+    workshop: WorkshopProfile,
+    forge: ForgeProfile,
+    targeting: TargetingProfile,
+) -> tuple[
+    dict[str, tuple[tuple[Wave, ...], tuple[tuple[str, str], ...]]],
+    dict[str, tuple[dict[str, Any], ...]],
+]:
+    """Freeze penetrable target-wave sets for one source weapon at phase start.
+
+    Runtime-line membership must not be re-derived after casualties. In
+    particular, a promoted Light wave that is eliminated during the phase would
+    otherwise fall back to its native line and shrink the frozen address book.
+    """
+    _guard_single_line_waves(targets)
+    frozen: dict[str, tuple[tuple[Wave, ...], tuple[tuple[str, str], ...]]] = {}
+    skipped_by_line: dict[str, tuple[dict[str, Any], ...]] = {}
+    combat_targets = _combat_waves(targets, registry)
+    for target_line in targeting.priorities[source_line]:
+        candidates = [
+            wave for wave in combat_targets
+            if any(slot.units > 0 for slot in wave.slots)
+            and _runtime_line(wave, registry) == target_line
+        ]
+        eligible: list[Wave] = []
+        skipped: list[dict[str, Any]] = []
+        for wave in candidates:
+            target_unit = registry.get(wave.unit.unit_id)
+            decision, _ = unit_target_eligibility(
+                source_unit,
+                target_unit,
+                attack_upgrade,
+                wave.unit.armor_upgrade,
+                source_forge_level,
+                target_forge_level,
+                workshop,
+                forge,
+                weapon=weapon,
+            )
+            if decision.eligible:
+                eligible.append(wave)
+            else:
+                skipped.append({
+                    "target_line": target_line,
+                    "target_unit_id": target_unit.id,
+                    "target_wave": wave.unit.wave_id,
+                    "effective_attack": decision.effective_attack,
+                    "effective_defense": decision.effective_defense,
+                    "reason": decision.reason,
+                })
+        if skipped:
+            skipped_by_line[target_line] = tuple(skipped)
+        if eligible:
+            frozen_waves = tuple(eligible)
+            signature = tuple(sorted(
+                (wave.unit.unit_id, wave.unit.wave_id) for wave in frozen_waves
+            ))
+            frozen[target_line] = (frozen_waves, signature)
+    return frozen, skipped_by_line
+
+
 def _shot_rows(firing_counts: list[int]) -> list[int]:
     """Expand an Am source into individual shots while preserving row order."""
     return [row
@@ -1024,23 +1093,19 @@ def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitR
             continue
         if weapon.accuracy is None:
             raise ScenarioError(f"weapon accuracy missing for {unit.id}:{weapon.id}")
-        _assume(applied, events, EXPERIMENTAL_ACCURACY_MODEL_ID, number, "fire")
-        _assume(applied, events, "EXP-ROUND-FLOOR-001", number, "fire")
         deployed = sorted((slot for slot in wave.slots if slot.units),
                           key=lambda slot: slot.damage_position)
         firing_counts = [slot.units for slot in deployed]
         total_firing = sum(firing_counts)
+        partial_firing_counts = None
         if wave.ammo_pool_shots is not None and wave.ammo_pool_shots < total_firing:
-            _assume(applied, events, "EXP-AMMO-PARTIAL-ORDER-001", number, "fire")
             remaining = wave.ammo_pool_shots
             firing_counts = []
             for slot in deployed:
                 count = min(slot.units, remaining)
                 firing_counts.append(count)
                 remaining -= count
-            _event(events, number, "fire", "partial_ammunition", side, unit_id=unit.id,
-                   firing_phase=runtime_line, assumption_id="EXP-AMMO-PARTIAL-ORDER-001",
-                   firing_counts=firing_counts)
+            partial_firing_counts = list(firing_counts)
         row_numbers = _shot_rows(firing_counts)
         if not row_numbers:
             continue
@@ -1057,6 +1122,8 @@ def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitR
             "attack_upgrade": wave.unit.attack_upgrade,
             "row_numbers": row_numbers,
             "source_damage_positions": source_damage_positions,
+            "source_wave_state": wave,
+            "partial_firing_counts": partial_firing_counts,
         })
     return volleys
 
@@ -1069,8 +1136,21 @@ def _plan_fire(source: list[Wave], target: list[Wave], registry: UnitRegistry,
     del workshop, forge, source_army, target_army
     plans: list[dict[str, Any]] = []
     for runtime_line in targeting.firing_order:
-        plans.extend(_snapshot_phase_fire(
-            source, target, registry, targeting, events, number, side, runtime_line, applied))
+        phase_plans = _snapshot_phase_fire(
+            source, target, registry, targeting, events, number, side, runtime_line, applied)
+        # Compatibility helper: callers of _plan_fire historically observe the
+        # partial-ammo planning assumption even though the real engine now waits
+        # until a shot actually fires before reporting it.
+        for plan in phase_plans:
+            if plan.get("partial_firing_counts") is not None:
+                _assume(applied, events, "EXP-AMMO-PARTIAL-ORDER-001", number, "fire")
+                _event(
+                    events, number, "fire", "partial_ammunition", side,
+                    unit_id=plan["source_unit"], firing_phase=runtime_line,
+                    assumption_id="EXP-AMMO-PARTIAL-ORDER-001",
+                    firing_counts=plan["partial_firing_counts"],
+                )
+        plans.extend(phase_plans)
     return plans
 
 
@@ -1145,28 +1225,57 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                       targeting: TargetingProfile, events: list[Event], number: int,
                       source_army, target_army, casualties: dict[str, int],
                       slot_casualties: dict[tuple[str, str], int],
-                      applied: dict[str, dict[str, str]]) -> None:
+                      applied: dict[str, dict[str, str]]) -> int:
     contexts: dict[int, dict[str, Any]] = {}
+    address_books: dict[tuple[str, tuple[tuple[str, str], ...]], tuple[Any, ...]] = {}
     for volley_index, volley in enumerate(volleys):
         if not volley["row_numbers"]:
             continue
-        _assume(applied, events, "EXP-D-KILL-SEQUENTIAL-001", number, "fire")
-        _assume(applied, events, "EXP-IR-DISABLED-001", number, "fire")
         source_unit = registry.get(volley["source_unit"])
         weapon = next(item for item in source_unit.weapons if item.id == volley["weapon_id"])
+        frozen_targets, frozen_skips_by_line = _freeze_target_eligibility_for_weapon(
+            source_unit,
+            weapon,
+            volley["attack_upgrade"],
+            source_army.forge_level,
+            volley["runtime_line"],
+            targets,
+            target_army.forge_level,
+            registry,
+            workshop,
+            forge,
+            targeting,
+        )
         contexts[volley_index] = {
             "volley": volley,
             "source_unit": source_unit,
             "weapon": weapon,
+            "frozen_targets": frozen_targets,
+            "frozen_skips_by_line": frozen_skips_by_line,
             "matrix_groups": {},
             "damage_groups": {},
             "calculation_keys": set(),
+            "eligibility_skips": {},
+            "withheld_shots": 0,
+            "fired_shots": 0,
+            "partial_reported": False,
         }
 
-    # One target address book belongs to the whole runtime formation phase, not
-    # to one source unit. This is required when different unit types occupy
-    # different columns of the same Attacking Matrix.
-    address_books: dict[str, tuple[Any, ...]] = {}
+        # Freeze every address book before any shot in this formation phase can
+        # change slot occupancy or runtime-line inference.
+        for target_class, (enemies, signature) in frozen_targets.items():
+            address_key = (target_class, signature)
+            if address_key in address_books:
+                continue
+            addressed_slots = []
+            for enemy in enemies:
+                addressed_slots.extend(
+                    (slot.damage_position, enemy, slot)
+                    for slot in enemy.slots if slot.units
+                )
+            address_books[address_key] = tuple(
+                sorted(addressed_slots, key=lambda item: (
+                    item[0], item[1].unit.unit_id, item[1].unit.wave_id)))
 
     for volley_index, row_number in _formation_shots(volleys):
         context = contexts.get(volley_index)
@@ -1179,24 +1288,60 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
         damage_groups = context["damage_groups"]
         calculation_keys = context["calculation_keys"]
 
-        enemies, target_class = _target_waves_for_line(
-            volley["runtime_line"], targets, registry, targeting)
-        if not enemies or target_class is None:
-            break
-
-        if target_class not in address_books:
-            addressed_slots = []
-            for enemy in enemies:
-                addressed_slots.extend(
-                    (slot.damage_position, enemy, slot)
-                    for slot in enemy.slots if slot.units
+        enemies = ()
+        target_class = None
+        eligibility_signature = ()
+        for candidate_class in targeting.priorities[volley["runtime_line"]]:
+            for item in context["frozen_skips_by_line"].get(candidate_class, ()):
+                skip_key = (
+                    item["target_line"],
+                    item["target_unit_id"],
+                    item["target_wave"],
+                    item["effective_attack"],
+                    item["effective_defense"],
                 )
-            address_books[target_class] = tuple(
-                sorted(addressed_slots, key=lambda item: (
-                    item[0], item[1].unit.unit_id, item[1].unit.wave_id)))
-        addressed = address_books[target_class]
-        if not addressed:
+                context["eligibility_skips"][skip_key] = item
+            frozen_entry = context["frozen_targets"].get(candidate_class)
+            if frozen_entry is None:
+                continue
+            candidate_waves, candidate_signature = frozen_entry
+            if any(slot.units > 0 for wave in candidate_waves for slot in wave.slots):
+                enemies = candidate_waves
+                target_class = candidate_class
+                eligibility_signature = candidate_signature
+                break
+
+        if target_class is None:
+            context["withheld_shots"] += 1
+            ammo_owner = volley.get("source_wave_state")
+            if ammo_owner is not None and ammo_owner.ammo_pool_shots is not None:
+                ammo_owner.ammo_pool_shots += 1
             continue
+
+        address_key = (target_class, eligibility_signature)
+        addressed = address_books[address_key]
+        if not addressed:
+            context["withheld_shots"] += 1
+            ammo_owner = volley.get("source_wave_state")
+            if ammo_owner is not None and ammo_owner.ammo_pool_shots is not None:
+                ammo_owner.ammo_pool_shots += 1
+            continue
+
+        if volley.get("partial_firing_counts") is not None and not context["partial_reported"]:
+            _assume(applied, events, "EXP-AMMO-PARTIAL-ORDER-001", number, "fire")
+            _event(
+                events, number, "fire", "partial_ammunition", volley["side"],
+                unit_id=source_unit.id,
+                firing_phase=volley["runtime_line"],
+                assumption_id="EXP-AMMO-PARTIAL-ORDER-001",
+                firing_counts=volley["partial_firing_counts"],
+            )
+            context["partial_reported"] = True
+        context["fired_shots"] += 1
+        _assume(applied, events, "EXP-D-KILL-SEQUENTIAL-001", number, "fire")
+        _assume(applied, events, "EXP-IR-DISABLED-001", number, "fire")
+        _assume(applied, events, EXPERIMENTAL_ACCURACY_MODEL_ID, number, "fire")
+        _assume(applied, events, "EXP-ROUND-FLOOR-001", number, "fire")
         _, enemy, target_slot = addressed[(row_number - 1) % len(addressed)]
 
         matrix_key = (enemy.unit.unit_id, enemy.unit.wave_id, target_class)
@@ -1235,10 +1380,19 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             continue
 
         target_unit = registry.get(target_slot.unit_id)
-        damage_trace = calculate_damage(
-            source_unit, target_unit, volley["attack_upgrade"], enemy.unit.armor_upgrade,
-            source_army.forge_level, target_army.forge_level, workshop, forge,
-            RoundingPolicy.FLOOR, weapon=weapon)
+        eligibility, damage_trace = unit_target_eligibility(
+            source_unit,
+            target_unit,
+            volley["attack_upgrade"],
+            enemy.unit.armor_upgrade,
+            source_army.forge_level,
+            target_army.forge_level,
+            workshop,
+            forge,
+            weapon=weapon,
+        )
+        if not eligibility.eligible:
+            raise ScenarioError("selected target became non-penetrable inside one firing phase")
         calculation_key = (
             source_unit.id, target_unit.id, weapon.id, damage_trace.final_damage)
         if calculation_key not in calculation_keys:
@@ -1277,6 +1431,7 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             "target_wave": enemy.unit.wave_id,
             "target_slot": target_slot.slot_id,
             "target_line": target_slot.line,
+            "target_class": target_class,
             "target_damage_position": target_slot.damage_position,
             "damage": 0,
             "firing_units": 0,
@@ -1286,6 +1441,7 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             "first_target_unit_damage": prior_unit_damage,
             "weapon_accuracy": weapon.accuracy,
             "accuracy_model": EXPERIMENTAL_ACCURACY_MODEL_ID,
+            "target_eligibility_rule": TARGET_PENETRATION_RULE_ID,
             "accuracy_decisions": defaultdict(int),
             "_persistent_damage": target_slot.damage,
         })
@@ -1306,6 +1462,31 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
         volley = context["volley"]
         source_unit = context["source_unit"]
         weapon = context["weapon"]
+        for item in context["eligibility_skips"].values():
+            _event(
+                events, number, "fire", "target_ineligible", volley["side"],
+                firing_phase=volley["runtime_line"],
+                source_unit_id=source_unit.id,
+                weapon_id=weapon.id,
+                target_side="defender" if volley["side"] == "attacker" else "attacker",
+                rule_id=TARGET_PENETRATION_RULE_ID,
+                action="skip_without_shot_or_ammunition",
+                **item,
+            )
+        if context["withheld_shots"]:
+            _event(
+                events, number, "fire", "shots_withheld_no_damageable_target",
+                volley["side"],
+                firing_phase=volley["runtime_line"],
+                source_unit_id=source_unit.id,
+                weapon_id=weapon.id,
+                count=context["withheld_shots"],
+                ammunition_preserved=context["withheld_shots"]
+                    if volley.get("source_wave_state") is not None
+                    and volley["source_wave_state"].ammo_pool_shots is not None
+                    else 0,
+                rule_id=TARGET_PENETRATION_RULE_ID,
+            )
         for matrix in context["matrix_groups"].values():
             max_row = max(matrix["rows"], default=0)
             _event(events, number, "fire", "attacking_matrix", volley["side"],
@@ -1341,6 +1522,7 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                        "EXP-IR-DISABLED-001",
                    ],
                    **details)
+    return sum(context["fired_shots"] for context in contexts.values())
 
 def _apply_slot_redistribution(
     waves: list[Wave], queues: dict[tuple[str, str, str], list[int]]
@@ -1699,17 +1881,19 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 firing_phase, applied)
             if not a_volleys and not d_volleys:
                 continue
+            attacker_shots = _resolve_volleys(
+                a_volleys, defender, d_queues, registry, workshop, forge, targeting,
+                events, number, scenario.attacker, scenario.defender, d_dead, d_slot_dead, applied)
+            defender_shots = _resolve_volleys(
+                d_volleys, attacker, a_queues, registry, workshop, forge, targeting,
+                events, number, scenario.defender, scenario.attacker, a_dead, a_slot_dead, applied)
+            if not attacker_shots and not defender_shots:
+                continue
             round_had_fire = True
             _event(events, number, "fire", "formation_fire_phase", None,
                    firing_phase=firing_phase, simultaneous=True,
-                   attacker_shots=sum(len(v["row_numbers"]) for v in a_volleys),
-                   defender_shots=sum(len(v["row_numbers"]) for v in d_volleys))
-            _resolve_volleys(
-                a_volleys, defender, d_queues, registry, workshop, forge, targeting,
-                events, number, scenario.attacker, scenario.defender, d_dead, d_slot_dead, applied)
-            _resolve_volleys(
-                d_volleys, attacker, a_queues, registry, workshop, forge, targeting,
-                events, number, scenario.defender, scenario.attacker, a_dead, a_slot_dead, applied)
+                   attacker_shots=attacker_shots,
+                   defender_shots=defender_shots)
             _assume(applied, events, "EXP-SR-DISABLED-001", number, "fire")
             if _sr_trigger(firing_phase, attacker, defender):
                 _apply_slot_redistribution(attacker, a_queues)

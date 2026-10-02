@@ -72,6 +72,9 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert data['town_wall']['armor_formula']=='72 * level'
  assert data['town_wall']['damage_observed_points']=={'1':216,'9':504,'18':2160,'26':5580}
  assert data['town_wall']['successful_breach_hits_formula']=='ceil((1800 + 900*level) / (attack_damage - 72*level))'
+ assert data['town_wall']['targeting_contract']['artillery_priority']==['wall','first']
+ assert data['town_wall']['targeting_contract']['penetration_rule']=='effective_attack > effective_defense'
+ assert data['town_wall']['targeting_contract']['non_penetrating_target_consumes_ammunition'] is False
  assert data['garrison']['player_formula']=='250 + 50 * (town_hall_level + wall_level)'
  assert data['garrison']['max_town_hall_level']==66
  assert data['garrison']['open_field_battlefield']=='land-max'
@@ -644,6 +647,8 @@ def test_mechanics_and_pdf_resources_are_first_class_tabs():
  assert '已知 / 已實作' in body and '部分已知 / 仍需校準' in body and '未知 / 目前限制' in body
  assert 'Accuracy / Precision · Experimental concentration-v1' in body
  assert '能一擊殺死滿血目標的攻擊不製造 miss' in body
+ assert 'ATK ≤ DEF 的候選直接跳過、不開火也不耗彈' in body
+ assert '有 active Town Wall 時已知為 Wall 優先於普通 First' in body
  # Mechanics cards belong to the dedicated view, not the setup workbench.
  assert '<details class="mechanics-reference panel">' not in body
  setup=body.split('<section id="setupView">',1)[1].split('<section id="mechanicsView"',1)[0]
