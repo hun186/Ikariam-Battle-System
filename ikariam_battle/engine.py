@@ -1126,9 +1126,9 @@ def _wall_exposed_target_view(
     return result
 
 
-def _wall_source_positions(sections) -> set[int]:
+def _wall_source_positions(sections) -> set[int] | None:
     if not sections or not wall_flanks_locked(sections):
-        return set()
+        return None
     return set(wall_breached_positions(sections))
 
 
@@ -1889,6 +1889,11 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         garrison_initial["effective_battlefield"]
         if open_field_active else scenario.battlefield
     )
+    wall_runtime_active = bool(scenario.wall_level) and not open_field_active
+    wall_sections = (
+        initial_wall_sections(scenario.wall_level, field)
+        if wall_runtime_active else []
+    )
     formation_rules = FormationRules.load(scenario.profiles.formation)
     battle_end = BattleEndProfile.load(scenario.profiles.battle_end)
     # Validate every scheduled unit and package invariant now, including
@@ -1919,12 +1924,12 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         )
     elif scenario.wall_level:
         warnings.append(
-            "Defender Town Wall input is captured, but wall targeting, breaching, refill, and flank-lock combat semantics are not executable yet."
+            "Experimental Town Wall combat is enabled: Artillery breach arithmetic, breached-position exposure, and flank lock are executable; exact wall offensive Accuracy and wall-section target order remain named experimental boundaries."
         )
     attacker_blockers = _preflight(attacker, registry, formation_rules, field)
     defender_blockers = _preflight(defender, registry, formation_rules, field)
     blockers = sorted(set(attacker_blockers + defender_blockers))
-    if scenario.wall_level and not open_field_active:
+    if scenario.wall_level and not open_field_active and scenario.policy is Policy.STRICT:
         blockers.append(TOWN_WALL_RULE_ID)
     initial_states = {side: state["continuation_state"] for side, state in initial.items()}
     fallback_sides = [side for side, state in initial_states.items()
@@ -1954,8 +1959,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         return _unsupported(scenario, events, initial, sorted(set(blockers)), warnings)
     if {"UNKNOWN-MULTIPLE-TARGET-WAVES",
         "UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS",
-        "UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT",
-        TOWN_WALL_RULE_ID} & set(blockers):
+        "UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT"} & set(blockers):
         return _unsupported(scenario, events, initial, blockers, warnings)
     applied: dict[str, dict[str, str]] = {}
     for side, side_blockers in (("attacker", attacker_blockers), ("defender", defender_blockers)):
@@ -2012,6 +2016,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     both_zero_boundary = False
     cross_wave_boundary = False
     garrison_transition_boundary = False
+    wall_combat_boundary = False
     engagement_started = all(
         state == ContinuationState.SUSTAINING.value for state in initial_states.values())
     for number in range(1, scenario.max_rounds + 1):
@@ -2068,6 +2073,36 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         _prepare_round_start(
             defender, events, number, "defender", applied,
             registry, formation_rules, field, support)
+        if wall_runtime_active and wall_sections:
+            redistribution = wall_redistribution_plan(
+                wall_sections, scenario.wall_level
+            )
+            if redistribution["total_damage"]:
+                if redistribution["status"] == "rounding_unresolved":
+                    _event(
+                        events, number, "round_start", "unsupported_mechanic", "defender",
+                        rule_id="UNKNOWN-TOWN-WALL-REDISTRIBUTION-ROUNDING",
+                        wall_level=scenario.wall_level,
+                        **redistribution,
+                    )
+                    completed = number
+                    attacker_state = _snapshot(attacker, registry, battle_end)
+                    defender_state = _snapshot(defender, registry, battle_end)
+                    rounds.append({
+                        "round": number,
+                        "attacker": attacker_state,
+                        "defender": defender_state,
+                        "casualties": {"attacker": {}, "defender": {}},
+                    })
+                    wall_combat_boundary = True
+                    break
+                apply_exact_wall_redistribution(
+                    wall_sections, scenario.wall_level
+                )
+                _event(
+                    events, number, "round_start", "wall_damage_redistributed",
+                    "defender", wall_level=scenario.wall_level, **redistribution,
+                )
         cross_wave = {
             "attacker": _cross_wave_rebuild_requirements(attacker, registry, formation_rules, field),
             "defender": _cross_wave_rebuild_requirements(defender, registry, formation_rules, field),
@@ -2107,17 +2142,87 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         a_queues = _build_damage_queues(attacker, registry, events, number, "attacker", applied)
         d_queues = _build_damage_queues(defender, registry, events, number, "defender", applied)
         for firing_phase in targeting.firing_order:
+            if (
+                firing_phase == "flank"
+                and wall_runtime_active
+                and wall_sections
+                and wall_flanks_locked(wall_sections)
+            ):
+                _event(
+                    events, number, "fire", "wall_flank_lock", None,
+                    firing_phase="flank",
+                    surviving_wall_positions=[
+                        section.damage_position
+                        for section in wall_sections if not section.destroyed
+                    ],
+                    action="skip_flank_phase",
+                )
+                continue
+
+            attacker_target_view = (
+                _wall_exposed_target_view(defender, registry, wall_sections)
+                if wall_runtime_active and wall_sections else defender
+            )
+            defender_first_positions = None
+            if (
+                firing_phase == "first"
+                and wall_runtime_active
+                and wall_sections
+                and wall_flanks_locked(wall_sections)
+            ):
+                defender_first_positions = _wall_source_positions(wall_sections)
+
             a_volleys = _snapshot_phase_fire(
-                attacker, defender, registry, targeting, events, number, "attacker",
-                firing_phase, applied)
+                attacker, attacker_target_view, registry, targeting,
+                events, number, "attacker", firing_phase, applied,
+                force_source_fire=(
+                    firing_phase == "third"
+                    and wall_runtime_active
+                    and wall_sections
+                    and wall_flanks_locked(wall_sections)
+                ),
+            )
             d_volleys = _snapshot_phase_fire(
                 defender, attacker, registry, targeting, events, number, "defender",
-                firing_phase, applied)
-            if not a_volleys and not d_volleys:
+                firing_phase, applied,
+                allowed_source_positions=defender_first_positions,
+            )
+
+            wall_shots = 0
+            if (
+                firing_phase == "third"
+                and a_volleys
+                and wall_runtime_active
+                and wall_sections
+                and wall_flanks_locked(wall_sections)
+            ):
+                a_volleys, wall_shots = _resolve_wall_artillery_volleys(
+                    a_volleys, wall_sections, scenario.wall_level,
+                    registry, workshop, forge, events, number,
+                    scenario.attacker, applied,
+                )
+                attacker_target_view = _wall_exposed_target_view(
+                    defender, registry, wall_sections
+                )
+
+            if (
+                firing_phase == "first"
+                and wall_runtime_active
+                and wall_sections
+                and wall_flanks_locked(wall_sections)
+            ):
+                _assume(
+                    applied, events, "EXP-WALL-OFFENSE-NONE-001",
+                    number, "fire", "defender",
+                )
+
+            if not a_volleys and not d_volleys and not wall_shots:
                 continue
-            attacker_shots = _resolve_volleys(
-                a_volleys, defender, d_queues, registry, workshop, forge, targeting,
-                events, number, scenario.attacker, scenario.defender, d_dead, d_slot_dead, applied)
+            attacker_shots = wall_shots + _resolve_volleys(
+                a_volleys, attacker_target_view, d_queues,
+                registry, workshop, forge, targeting,
+                events, number, scenario.attacker, scenario.defender,
+                d_dead, d_slot_dead, applied)
             defender_shots = _resolve_volleys(
                 d_volleys, attacker, a_queues, registry, workshop, forge, targeting,
                 events, number, scenario.defender, scenario.attacker, a_dead, a_slot_dead, applied)
@@ -2222,7 +2327,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             if counted_defenders <= garrison_limit:
                 geometry_changes = scenario.battlefield != "land-max"
                 wall_reappears = bool(scenario.wall_level)
-                if geometry_changes or wall_reappears:
+                if geometry_changes:
                     _event(
                         events, number, "round_end", "unsupported_mechanic", "defender",
                         rule_id=GARRISON_TRANSITION_RULE_ID,
@@ -2236,13 +2341,22 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                     garrison_transition_boundary = True
                     break
                 open_field_active = False
+                if wall_reappears:
+                    wall_runtime_active = True
+                    wall_sections = initial_wall_sections(
+                        scenario.wall_level, field
+                    )
                 _event(
                     events, number, "round_end", "garrison_state_change", "defender",
                     direction="exit_open_field",
                     counted_defenders=counted_defenders,
                     garrison_limit=garrison_limit,
                     battlefield="land-max",
-                    wall_reappears=False,
+                    wall_reappears=wall_reappears,
+                    wall_state=(
+                        "fresh_intact_sections"
+                        if wall_reappears else "not_present"
+                    ),
                 )
         if not a_dead and not d_dead and not round_had_fire:
             if not engagement_started and any(pending_now.values()):
@@ -2266,7 +2380,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             scenario.defender, scenario.max_rounds, registry, battle_end),
     }
     if (fallback_boundary or both_zero_boundary or cross_wave_boundary
-            or garrison_transition_boundary
+            or garrison_transition_boundary or wall_combat_boundary
             or (final_losing is not None
                 and pending_handoff_after_horizon.get(final_losing))
             or (not engagement_started
@@ -2274,10 +2388,28 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 and pending_after_horizon.get(final_losing))):
         outcome = None
     outcome = outcome or "inconclusive"
+    wall_runtime = None
+    if scenario.wall_level:
+        wall_runtime = {
+            "active": wall_runtime_active,
+            "sections": wall_section_snapshot(
+                wall_sections, scenario.wall_level
+            ) if wall_sections else [],
+            "breached_positions": list(wall_breached_positions(wall_sections)),
+            "flanks_locked": (
+                wall_flanks_locked(wall_sections)
+                if wall_runtime_active and wall_sections else False
+            ),
+            "fully_breached": bool(
+                wall_sections
+                and not wall_flanks_locked(wall_sections)
+            ),
+        }
     return {"profiles":scenario.profiles.__dict__,"policy":scenario.policy.value,"status":"completed" if outcome != "inconclusive" else "inconclusive",
             "outcome":outcome,"rounds_completed":completed,"casualties":{k:dict(v) for k,v in total.items()},
             "initial_state":initial,"final_state":final,"rounds":rounds,"events":[e.as_dict() for e in events],
-            "assumptions":list(applied.values()),"warnings":warnings}
+            "assumptions":list(applied.values()),"warnings":warnings,
+            "_wall_runtime":wall_runtime}
 
 
 def _decimal_json(value: Decimal) -> int | float:
