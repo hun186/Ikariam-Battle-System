@@ -1089,17 +1089,15 @@ def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitR
                           key=lambda slot: slot.damage_position)
         firing_counts = [slot.units for slot in deployed]
         total_firing = sum(firing_counts)
+        partial_firing_counts = None
         if wave.ammo_pool_shots is not None and wave.ammo_pool_shots < total_firing:
-            _assume(applied, events, "EXP-AMMO-PARTIAL-ORDER-001", number, "fire")
             remaining = wave.ammo_pool_shots
             firing_counts = []
             for slot in deployed:
                 count = min(slot.units, remaining)
                 firing_counts.append(count)
                 remaining -= count
-            _event(events, number, "fire", "partial_ammunition", side, unit_id=unit.id,
-                   firing_phase=runtime_line, assumption_id="EXP-AMMO-PARTIAL-ORDER-001",
-                   firing_counts=firing_counts)
+            partial_firing_counts = list(firing_counts)
         row_numbers = _shot_rows(firing_counts)
         if not row_numbers:
             continue
@@ -1117,6 +1115,7 @@ def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitR
             "row_numbers": row_numbers,
             "source_damage_positions": source_damage_positions,
             "source_wave_state": wave,
+            "partial_firing_counts": partial_firing_counts,
         })
     return volleys
 
@@ -1129,8 +1128,21 @@ def _plan_fire(source: list[Wave], target: list[Wave], registry: UnitRegistry,
     del workshop, forge, source_army, target_army
     plans: list[dict[str, Any]] = []
     for runtime_line in targeting.firing_order:
-        plans.extend(_snapshot_phase_fire(
-            source, target, registry, targeting, events, number, side, runtime_line, applied))
+        phase_plans = _snapshot_phase_fire(
+            source, target, registry, targeting, events, number, side, runtime_line, applied)
+        # Compatibility helper: callers of _plan_fire historically observe the
+        # partial-ammo planning assumption even though the real engine now waits
+        # until a shot actually fires before reporting it.
+        for plan in phase_plans:
+            if plan.get("partial_firing_counts") is not None:
+                _assume(applied, events, "EXP-AMMO-PARTIAL-ORDER-001", number, "fire")
+                _event(
+                    events, number, "fire", "partial_ammunition", side,
+                    unit_id=plan["source_unit"], firing_phase=runtime_line,
+                    assumption_id="EXP-AMMO-PARTIAL-ORDER-001",
+                    firing_counts=plan["partial_firing_counts"],
+                )
+        plans.extend(phase_plans)
     return plans
 
 
@@ -1222,6 +1234,7 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             "eligibility_skips": {},
             "withheld_shots": 0,
             "fired_shots": 0,
+            "partial_reported": False,
         }
 
     # A frozen target address book is shared whenever source weapons have the
@@ -1290,6 +1303,16 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                 ammo_owner.ammo_pool_shots += 1
             continue
 
+        if volley.get("partial_firing_counts") is not None and not context["partial_reported"]:
+            _assume(applied, events, "EXP-AMMO-PARTIAL-ORDER-001", number, "fire")
+            _event(
+                events, number, "fire", "partial_ammunition", volley["side"],
+                unit_id=source_unit.id,
+                firing_phase=volley["runtime_line"],
+                assumption_id="EXP-AMMO-PARTIAL-ORDER-001",
+                firing_counts=volley["partial_firing_counts"],
+            )
+            context["partial_reported"] = True
         context["fired_shots"] += 1
         _assume(applied, events, "EXP-D-KILL-SEQUENTIAL-001", number, "fire")
         _assume(applied, events, "EXP-IR-DISABLED-001", number, "fire")
