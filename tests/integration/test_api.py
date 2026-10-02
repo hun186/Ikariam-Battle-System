@@ -24,6 +24,17 @@ def post_raw(value):
  response=asyncio.run(request('POST','/api/simulate',json.dumps(value).encode()))
  return response[0]['status'],json.loads(response[1]['body'])
 
+def test_browser_wall_copy_matches_strict_experimental_policy_split():
+ html=Path('public/index.html').read_text(encoding='utf-8')
+ assert 'Strict 的 active-wall 戰鬥停在 UNKNOWN-TOWN-WALL-COMBAT' in html
+ assert 'Experimental 可執行具名假設下的 Artillery 破牆' in html
+ assert "wall.status==='unsupported_boundary'" in html
+ assert "wall.status==='breached'" in html
+ assert 'Experimental wall runtime' in html
+ assert '城牆本身的破牆戰仍停在 UNKNOWN-TOWN-WALL-COMBAT' not in html
+ assert 'HP 扣減／破洞、守軍補位與 Flank 鎖定仍停在 UNKNOWN-TOWN-WALL-COMBAT' not in html
+
+
 def test_barbarian_metadata_contract_is_documented():
  contract=Path('.codex/contracts.md').read_text()
  assert 'barbarian_profile_metadata' in contract and 'barbarian_units' in contract
