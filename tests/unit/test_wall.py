@@ -54,7 +54,10 @@ def test_wall_metadata_is_input_supported_but_combat_guarded():
  }
  assert metadata['damage_observed_points']=={'1':216,'9':504,'18':2160,'26':5580}
  assert metadata['successful_breach_hits_formula']=='ceil((1800 + 900*level) / (attack_damage - 72*level))'
- assert len(metadata['source_urls'])==6
+ assert metadata['targeting_contract']['artillery_priority']==['wall','first']
+ assert metadata['targeting_contract']['penetration_rule']=='effective_attack > effective_defense'
+ assert metadata['targeting_contract']['non_penetrating_target_consumes_ammunition'] is False
+ assert len(metadata['source_urls'])==8
 
 
 def test_wall_can_be_suppressed_by_open_field_state():
