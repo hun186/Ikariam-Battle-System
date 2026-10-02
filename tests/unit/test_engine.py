@@ -48,8 +48,8 @@ def test_typed_scenario_rejects_invalid_wall_level_like_dict_input():
    simulate(typed)
 
 
-def test_positive_wall_level_is_captured_and_stops_at_explicit_wall_boundary():
- s=scenario(); s['wall_level']=20
+def test_strict_positive_wall_level_stops_at_explicit_wall_boundary():
+ s=scenario('strict'); s['wall_level']=20
  result=simulate(s)
  rules={e['details'].get('rule_id') for e in result['events'] if e['type']=='unsupported_mechanic'}
  assert result['status']=='inconclusive' and result['rounds_completed']==0
@@ -61,7 +61,31 @@ def test_positive_wall_level_is_captured_and_stops_at_explicit_wall_boundary():
   'rule_id':'UNKNOWN-TOWN-WALL-COMBAT','effect_applied':False,
   'active':True,'inactive_reason':None,
  }
- assert any('Town Wall input is captured' in warning for warning in result['warnings'])
+
+
+def test_experimental_mortars_breach_active_wall_and_unlock_flanks():
+ s={
+  'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+  'wall_level':1,
+  'attacker':{'units':[
+   {'unit_id':'hoplite','quantity':90},
+   {'unit_id':'mortar','quantity':6},
+  ]},
+  'defender':{'units':[{'unit_id':'hoplite','quantity':90}]},
+ }
+ result=simulate(s)
+ rules={e['details'].get('rule_id') for e in result['events'] if e['type']=='unsupported_mechanic'}
+ assert 'UNKNOWN-TOWN-WALL-COMBAT' not in rules
+ breaches=[e for e in result['events'] if e['type']=='wall_section_breached']
+ assert [e['details']['damage_position'] for e in breaches]==[1,2,3]
+ assert result['wall_status']['status']=='breached'
+ assert result['wall_status']['breached_positions']==[1,2,3]
+ assert result['wall_status']['flanks_locked'] is False
+ assert result['wall_status']['combat_model_status']=='EXPERIMENTAL_EXECUTABLE_WITH_GUARDS'
+ assert {'EXP-WALL-FOCUS-DAMAGE-PRIORITY-001',
+         'EXP-WALL-ARTILLERY-SUCCESSFUL-HIT-001'} <= {
+          item['id'] for item in result['assumptions']
+         }
 
 
 def test_over_limit_player_defense_starts_on_land_max_with_wall_suppressed():
@@ -194,6 +218,56 @@ def test_open_field_exit_threshold_is_detected_after_defender_casualties():
  assert transition['details']['to_battlefield']=='land-mini'
  assert result['status']=='inconclusive'
  assert result['garrison_status']['transition_reached'] is True
+
+
+def test_same_geometry_open_field_exit_reactivates_wall_without_garrison_boundary():
+ s={
+  'policy':'experimental','battlefield':'land-max','max_rounds':2,
+  'town_hall_level':25,'wall_level':3,
+  'attacker':{'forge_level':5,'units':[
+   {'unit_id':'hoplite','quantity':700,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'swordsman','quantity':480,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'sulphur_carabineer','quantity':168,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'mortar','quantity':60,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'bombardier','quantity':60,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'gyrocopter','quantity':120,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'cook','quantity':15,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'doctor','quantity':15,'entry_batch_id':'attacker-batch-1'},
+  ]},
+  'defender':{'forge_level':5,'units':[
+   {'unit_id':'steam_giant','quantity':224,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'swordsman','quantity':480,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'archer','quantity':700,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'slinger','quantity':100,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'sulphur_carabineer','quantity':60,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'catapult','quantity':60,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'mortar','quantity':36,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'bombardier','quantity':60,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'gyrocopter','quantity':120,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'cook','quantity':15,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'doctor','quantity':15,'entry_batch_id':'defender-batch-1'},
+  ]},
+ }
+ result=simulate(s)
+ assert result['garrison_status']['garrison_limit']==1650
+ assert result['garrison_status']['open_field'] is True
+ changes=[
+  e for e in result['events']
+  if e['type']=='garrison_state_change'
+  and e['details'].get('direction')=='exit_open_field'
+ ]
+ assert changes
+ assert changes[0]['round']==1
+ assert changes[0]['details']['battlefield']=='land-max'
+ assert changes[0]['details']['wall_reappears'] is True
+ assert changes[0]['details']['wall_state']=='fresh_intact_sections'
+ assert not any(
+  e['type']=='unsupported_mechanic'
+  and e['details'].get('rule_id')=='UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION'
+  for e in result['events']
+ )
+ assert result['rounds_completed']>=2
+ assert any(e['type']=='wall_damage' and e['round']==2 for e in result['events'])
 
 
 def test_barbarian_over_limit_uses_same_open_field_threshold_rule():
