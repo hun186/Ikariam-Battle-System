@@ -2020,9 +2020,13 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         warnings.append(
             "Defender exceeds the configured land garrison limit: the battle starts on land-max with the Town Wall suppressed."
         )
-    elif scenario.wall_level:
+    elif scenario.wall_level and scenario.policy is Policy.EXPERIMENTAL:
         warnings.append(
             "Experimental Town Wall combat is enabled: Artillery breach arithmetic, breached-position exposure, and flank lock are executable; exact wall offensive Accuracy and wall-section target order remain named experimental boundaries."
+        )
+    elif scenario.wall_level:
+        warnings.append(
+            "Strict Town Wall combat is guarded at UNKNOWN-TOWN-WALL-COMBAT; no Experimental wall mechanics are applied."
         )
     attacker_blockers = _preflight(attacker, registry, formation_rules, field)
     defender_blockers = _preflight(defender, registry, formation_rules, field)
