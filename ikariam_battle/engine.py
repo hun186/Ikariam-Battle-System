@@ -1048,6 +1048,29 @@ def _freeze_target_eligibility_for_weapon(
     return frozen, skipped_by_line
 
 
+def _address_books_from_frozen_targets(
+    frozen_targets: dict[str, tuple[tuple[Wave, ...], tuple[tuple[str, str], ...]]],
+) -> dict[tuple[str, tuple[tuple[str, str], ...]], tuple[Any, ...]]:
+    """Materialize stable slot addresses from a frozen target-wave set."""
+    books: dict[tuple[str, tuple[tuple[str, str], ...]], tuple[Any, ...]] = {}
+    for target_class, (enemies, signature) in frozen_targets.items():
+        addressed_slots = []
+        for enemy in enemies:
+            addressed_slots.extend(
+                (slot.damage_position, enemy, slot)
+                for slot in enemy.slots if slot.units
+            )
+        books[(target_class, signature)] = tuple(
+            sorted(
+                addressed_slots,
+                key=lambda item: (
+                    item[0], item[1].unit.unit_id, item[1].unit.wave_id,
+                ),
+            )
+        )
+    return books
+
+
 def _shot_rows(firing_counts: list[int]) -> list[int]:
     """Expand an Am source into individual shots while preserving row order."""
     return [row
@@ -1188,6 +1211,14 @@ def _resolve_wall_artillery_volleys(
 
     consumed: dict[int, set[int]] = defaultdict(set)
     eligibility_reported: set[tuple[str, str, str]] = set()
+    fallthrough_freezes: dict[
+        tuple[str, str, int],
+        tuple[
+            dict[str, tuple[tuple[Wave, ...], tuple[tuple[str, str], ...]]],
+            dict[str, tuple[dict[str, Any], ...]],
+            dict[tuple[str, tuple[tuple[str, str], ...]], tuple[Any, ...]],
+        ],
+    ] = {}
     fired = 0
 
     for _row, _position, volley_index, shot_index in ordered:
@@ -1236,6 +1267,37 @@ def _resolve_wall_artillery_volleys(
             visible_now = _wall_exposed_target_view(
                 targets, registry, sections, volley["runtime_line"]
             )
+
+            freeze_key = (
+                source_unit.id, weapon.id, int(volley["attack_upgrade"])
+            )
+            frozen = fallthrough_freezes.get(freeze_key)
+            if frozen is None:
+                candidate_targets, candidate_skips = _freeze_target_eligibility_for_weapon(
+                    source_unit,
+                    weapon,
+                    volley["attack_upgrade"],
+                    source_army.forge_level,
+                    volley["runtime_line"],
+                    visible_now,
+                    target_army.forge_level,
+                    registry,
+                    workshop,
+                    forge,
+                    targeting,
+                )
+                if candidate_targets:
+                    frozen = (
+                        candidate_targets,
+                        candidate_skips,
+                        _address_books_from_frozen_targets(candidate_targets),
+                    )
+                    fallthrough_freezes[freeze_key] = frozen
+            if frozen is not None:
+                single["_frozen_targets_override"] = frozen[0]
+                single["_frozen_skips_by_line_override"] = frozen[1]
+                single["_address_books_override"] = frozen[2]
+
             ordinary_shots = _resolve_volleys(
                 [single], visible_now, queues,
                 registry, workshop, forge, targeting,
@@ -1500,19 +1562,22 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             continue
         source_unit = registry.get(volley["source_unit"])
         weapon = next(item for item in source_unit.weapons if item.id == volley["weapon_id"])
-        frozen_targets, frozen_skips_by_line = _freeze_target_eligibility_for_weapon(
-            source_unit,
-            weapon,
-            volley["attack_upgrade"],
-            source_army.forge_level,
-            volley["runtime_line"],
-            targets,
-            target_army.forge_level,
-            registry,
-            workshop,
-            forge,
-            targeting,
-        )
+        frozen_targets = volley.get("_frozen_targets_override")
+        frozen_skips_by_line = volley.get("_frozen_skips_by_line_override")
+        if frozen_targets is None or frozen_skips_by_line is None:
+            frozen_targets, frozen_skips_by_line = _freeze_target_eligibility_for_weapon(
+                source_unit,
+                weapon,
+                volley["attack_upgrade"],
+                source_army.forge_level,
+                volley["runtime_line"],
+                targets,
+                target_army.forge_level,
+                registry,
+                workshop,
+                forge,
+                targeting,
+            )
         contexts[volley_index] = {
             "volley": volley,
             "source_unit": source_unit,
@@ -1529,20 +1594,16 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
         }
 
         # Freeze every address book before any shot in this formation phase can
-        # change slot occupancy or runtime-line inference.
-        for target_class, (enemies, signature) in frozen_targets.items():
-            address_key = (target_class, signature)
-            if address_key in address_books:
-                continue
-            addressed_slots = []
-            for enemy in enemies:
-                addressed_slots.extend(
-                    (slot.damage_position, enemy, slot)
-                    for slot in enemy.slots if slot.units
-                )
-            address_books[address_key] = tuple(
-                sorted(addressed_slots, key=lambda item: (
-                    item[0], item[1].unit.unit_id, item[1].unit.wave_id)))
+        # change slot occupancy or runtime-line inference. Wall fallthrough may
+        # inject a pre-frozen phase book so repeated single-ticket resolution
+        # cannot renumber surviving slots.
+        supplied_books = volley.get("_address_books_override") or {}
+        for address_key, addressed in supplied_books.items():
+            address_books.setdefault(address_key, addressed)
+        for address_key, addressed in _address_books_from_frozen_targets(
+            frozen_targets
+        ).items():
+            address_books.setdefault(address_key, addressed)
 
     for volley_index, row_number in _formation_shots(volleys):
         context = contexts.get(volley_index)
