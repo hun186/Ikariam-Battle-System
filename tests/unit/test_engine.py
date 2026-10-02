@@ -114,6 +114,41 @@ def test_intact_wall_does_not_expose_rear_ground_formations():
  )
 
 
+def test_nonpenetrating_artillery_ticket_does_not_time_travel_past_later_wall_breach():
+ s={
+  'policy':'experimental','battlefield':'land-small','max_rounds':1,
+  'wall_level':23,
+  'attacker':{'units':[
+   {'unit_id':'hoplite','quantity':150},
+   {'unit_id':'mortar','quantity':6,'attack_upgrade':6},
+   {'unit_id':'battering_ram','quantity':6,'attack_upgrade':6},
+  ]},
+  'defender':{'units':[{'unit_id':'hoplite','quantity':150}]},
+ }
+ result=simulate(s)
+
+ breaches=[e for e in result['events'] if e['type']=='wall_section_breached']
+ assert breaches and breaches[0]['details']['damage_position']==1
+
+ # Mortar row 6 creates the first breach. The five earlier Ram tickets were
+ # unable to penetrate the intact wall and must not be replayed after that
+ # breach; only the row-6 Ram ticket may continue to the newly exposed First.
+ ram_damage=[
+  e for e in result['events']
+  if e['type']=='damage'
+  and e['side']=='attacker'
+  and e['details'].get('source_unit_id')=='battering_ram'
+ ]
+ assert sum(e['details']['firing_units'] for e in ram_damage)==1
+ ram_withheld=[
+  e for e in result['events']
+  if e['type']=='shots_withheld_no_damageable_target'
+  and e['side']=='attacker'
+  and e['details'].get('source_unit_id')=='battering_ram'
+ ]
+ assert sum(e['details']['count'] for e in ram_withheld)==5
+
+
 def test_over_limit_player_defense_starts_on_land_max_with_wall_suppressed():
  s=scenario(rounds=1)
  s['town_hall_level']=1
