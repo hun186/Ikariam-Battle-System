@@ -272,7 +272,7 @@ def wall_status(
         **stats,
         "segments": wall_segments(field) if level else 0,
         "status": status,
-        "combat_model_status": "INPUT_CAPTURED_COMBAT_UNSUPPORTED",
+        "combat_model_status": "STRICT_GUARDED_EXPERIMENTAL_EXECUTABLE_WITH_GUARDS",
         "rule_id": TOWN_WALL_RULE_ID,
         "effect_applied": False,
         "active": bool(level) if active is None else bool(active),
