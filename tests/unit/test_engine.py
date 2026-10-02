@@ -61,6 +61,8 @@ def test_strict_positive_wall_level_stops_at_explicit_wall_boundary():
   'rule_id':'UNKNOWN-TOWN-WALL-COMBAT','effect_applied':False,
   'active':True,'inactive_reason':None,
  }
+ assert any('Strict Town Wall combat is guarded' in warning for warning in result['warnings'])
+ assert not any('Experimental Town Wall combat is enabled' in warning for warning in result['warnings'])
 
 
 def test_experimental_mortars_breach_active_wall_and_unlock_flanks():
@@ -74,6 +76,7 @@ def test_experimental_mortars_breach_active_wall_and_unlock_flanks():
   'defender':{'units':[{'unit_id':'hoplite','quantity':90}]},
  }
  result=simulate(s)
+ assert any('Experimental Town Wall combat is enabled' in warning for warning in result['warnings'])
  rules={e['details'].get('rule_id') for e in result['events'] if e['type']=='unsupported_mechanic'}
  assert 'UNKNOWN-TOWN-WALL-COMBAT' not in rules
  breaches=[e for e in result['events'] if e['type']=='wall_section_breached']
@@ -177,11 +180,11 @@ def test_wall_fallthrough_keeps_frozen_address_book_after_exposed_slot_dies():
   and e['side']=='attacker'
   and e['details'].get('source_unit_id')=='battering_ram'
  ]
- # Four Mortar columns expose two First positions before the first Ram
- # fallthrough ticket. Rows 3 and 4 kill those two addressed slots; row 5
- # must keep the same two-position address book and address the now-empty
- # first position instead of renumbering onto a newly breached/live slot.
- assert sum(e['details']['firing_units'] for e in ram_damage)==2
+ # The first Ram ticket sees only the first breached position and freezes
+ # that one-position address book. It kills that target; later Ram tickets
+ # must keep addressing the now-empty frozen position instead of renumbering
+ # onto subsequently breached/live First slots.
+ assert sum(e['details']['firing_units'] for e in ram_damage)==1
  assert any(e['details']['target_damage_position']==1 for e in empty)
 
 
