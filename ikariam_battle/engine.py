@@ -7,7 +7,6 @@ from typing import Any
 
 from .accuracy import EXPERIMENTAL_ACCURACY_MODEL_ID, select_accuracy_target
 from .battlefield import battlefield, deploy
-from .damage import RoundingPolicy, calculate_damage
 from .economy import MilitaryEconomyProfile
 from .events import Event
 from .formation import FormationRules, eligible_runtime_lines
@@ -1834,17 +1833,19 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 firing_phase, applied)
             if not a_volleys and not d_volleys:
                 continue
+            attacker_shots = _resolve_volleys(
+                a_volleys, defender, d_queues, registry, workshop, forge, targeting,
+                events, number, scenario.attacker, scenario.defender, d_dead, d_slot_dead, applied)
+            defender_shots = _resolve_volleys(
+                d_volleys, attacker, a_queues, registry, workshop, forge, targeting,
+                events, number, scenario.defender, scenario.attacker, a_dead, a_slot_dead, applied)
+            if not attacker_shots and not defender_shots:
+                continue
             round_had_fire = True
             _event(events, number, "fire", "formation_fire_phase", None,
                    firing_phase=firing_phase, simultaneous=True,
-                   attacker_shots=sum(len(v["row_numbers"]) for v in a_volleys),
-                   defender_shots=sum(len(v["row_numbers"]) for v in d_volleys))
-            _resolve_volleys(
-                a_volleys, defender, d_queues, registry, workshop, forge, targeting,
-                events, number, scenario.attacker, scenario.defender, d_dead, d_slot_dead, applied)
-            _resolve_volleys(
-                d_volleys, attacker, a_queues, registry, workshop, forge, targeting,
-                events, number, scenario.defender, scenario.attacker, a_dead, a_slot_dead, applied)
+                   attacker_shots=attacker_shots,
+                   defender_shots=defender_shots)
             _assume(applied, events, "EXP-SR-DISABLED-001", number, "fire")
             if _sr_trigger(firing_phase, attacker, defender):
                 _apply_slot_redistribution(attacker, a_queues)
