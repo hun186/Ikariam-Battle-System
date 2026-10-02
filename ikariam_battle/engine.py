@@ -5,6 +5,7 @@ from copy import deepcopy
 from decimal import Decimal
 from typing import Any
 
+from .accuracy import EXPERIMENTAL_ACCURACY_MODEL_ID, select_accuracy_target
 from .battlefield import battlefield, deploy
 from .damage import RoundingPolicy, calculate_damage
 from .economy import MilitaryEconomyProfile
@@ -26,7 +27,7 @@ from .wall import MAX_TOWN_WALL_LEVEL, TOWN_WALL_RULE_ID, wall_status
 
 
 EXPERIMENTAL_POLICIES = {
-    "EXP-D-KILL-SEQUENTIAL-001": "Resolve individual shots sequentially against the most-damaged current unit; discard overkill unless an unimplemented special kill rule applies.",
+    "EXP-D-KILL-SEQUENTIAL-001": "Resolve individual shots sequentially against the individual selected by the active targeting/Accuracy policy; discard overkill unless an unimplemented special kill rule applies.",
     "EXP-SLOT-DAMAGE-EVEN-001": "When RR leaves aggregate persistent damage in a slot, distribute it as evenly as possible across surviving units before sequential fire; exact within-slot allocation is unresolved.",
     "EXP-IR-DISABLED-001": "Immediate Redistribution has an implementation hook but its trigger is unknown, so it is not triggered.",
     "EXP-SR-DISABLED-001": "Slot Redistribution has an implementation hook but its trigger is unknown, so it is not triggered.",
@@ -34,7 +35,7 @@ EXPERIMENTAL_POLICIES = {
     "EXP-RR-ROUND-HALF-UP-001": "Round the total deployed RR share half-up, then assign remainder by damage priority.",
     "EXP-AMMO-STOP-001": "After primary ammunition is exhausted, do not silently switch to an unverified secondary weapon.",
     "EXP-AMMO-PARTIAL-ORDER-001": "Allocate a partial ammunition pool by source-slot damage priority.",
-    "EXP-ACCURACY-IGNORED-001": "Do not reduce Am hits by weapon accuracy because its algorithm is unresolved.",
+    EXPERIMENTAL_ACCURACY_MODEL_ID: "Use weapon Accuracy as a deterministic within-slot concentration threshold: one-shot-capable hits never miss; otherwise spread to healthier survivors until the most-damaged survivor remaining-HP% is <= Accuracy, then focus it.",
     "EXP-BATTLE-END-ROUND-BOUNDARY-001": "Evaluate battle-sustaining forces at the initial and completed-round boundaries.",
     "EXP-HEAL-NONE-001": "When Doctor capacity cannot clear all eligible Human persistent damage at a round boundary, do not apply partial healing because allocation and exact Healing/RR ordering are unresolved.",
     "EXP-MORALE-NONE-001": "Cook morale is not applied because the current morale algorithm is unresolved.",
@@ -1021,7 +1022,9 @@ def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitR
                    firing_phase=runtime_line, assumption_id="EXP-AMMO-STOP-001",
                    action="no_primary_fire_no_secondary_switch")
             continue
-        _assume(applied, events, "EXP-ACCURACY-IGNORED-001", number, "fire")
+        if weapon.accuracy is None:
+            raise ScenarioError(f"weapon accuracy missing for {unit.id}:{weapon.id}")
+        _assume(applied, events, EXPERIMENTAL_ACCURACY_MODEL_ID, number, "fire")
         _assume(applied, events, "EXP-ROUND-FLOOR-001", number, "fire")
         deployed = sorted((slot for slot in wave.slots if slot.units),
                           key=lambda slot: slot.damage_position)
@@ -1050,6 +1053,7 @@ def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitR
             "source_wave": wave.unit.wave_id,
             "runtime_line": runtime_line,
             "weapon_id": weapon.id,
+            "weapon_accuracy": weapon.accuracy,
             "attack_upgrade": wave.unit.attack_upgrade,
             "row_numbers": row_numbers,
             "source_damage_positions": source_damage_positions,
@@ -1112,19 +1116,24 @@ def _sr_trigger(*_args: Any, **_kwargs: Any) -> bool:
     return False
 
 
-def _apply_sequential_hit(slot, queue: list[int], hp: int, damage: int) -> tuple[int, int, int]:
-    """D-kill baseline: focus the most-damaged survivor; discard overkill."""
+def _apply_sequential_hit(
+    slot, queue: list[int], hp: int, damage: int, target_index: int = 0
+) -> tuple[int, int, int]:
+    """Apply one deterministic individual hit and discard overkill."""
     if not queue or not slot.units:
         return 0, 0, 0
-    prior_unit_damage = queue[0]
+    if not 0 <= target_index < len(queue):
+        raise ScenarioError("sequential-hit target index is outside survivor queue")
+    prior_unit_damage = queue[target_index]
     casualty = 0
     overkill = 0
     if prior_unit_damage + damage >= hp:
         casualty = 1
         overkill = max(0, prior_unit_damage + damage - hp)
-        queue.pop(0)
+        queue.pop(target_index)
     else:
-        queue[0] = prior_unit_damage + damage
+        queue[target_index] = prior_unit_damage + damage
+    queue.sort(reverse=True)
     slot.units = len(queue)
     slot.damage = sum(queue)
     return prior_unit_damage, casualty, overkill
@@ -1241,8 +1250,21 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
         queue_key = (enemy.unit.unit_id, enemy.unit.wave_id, target_slot.slot_id)
         queue = queues[queue_key]
         prior_slot_damage = target_slot.damage
+        if weapon.accuracy is None:
+            raise ScenarioError(f"weapon accuracy missing for {source_unit.id}:{weapon.id}")
+        accuracy_decision = select_accuracy_target(
+            queue,
+            target_unit.hit_points or 0,
+            damage_trace.final_damage,
+            weapon.accuracy,
+        )
         prior_unit_damage, killed, overkill = _apply_sequential_hit(
-            target_slot, queue, target_unit.hit_points or 0, damage_trace.final_damage)
+            target_slot,
+            queue,
+            target_unit.hit_points or 0,
+            damage_trace.final_damage,
+            accuracy_decision.target_index,
+        )
         casualties[target_slot.unit_id] += killed
         if killed:
             slot_casualties[(target_slot.wave_id, target_slot.slot_id)] += killed
@@ -1262,12 +1284,16 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             "overkill_discarded": 0,
             "prior_damage": prior_slot_damage,
             "first_target_unit_damage": prior_unit_damage,
+            "weapon_accuracy": weapon.accuracy,
+            "accuracy_model": EXPERIMENTAL_ACCURACY_MODEL_ID,
+            "accuracy_decisions": defaultdict(int),
             "_persistent_damage": target_slot.damage,
         })
         group["damage"] += damage_trace.final_damage
         group["firing_units"] += 1
         group["casualties"] += killed
         group["overkill_discarded"] += overkill
+        group["accuracy_decisions"][accuracy_decision.mode] += 1
         group["_persistent_damage"] = target_slot.damage
 
         if _ir_trigger(volley, enemy, target_slot, row_number):
@@ -1298,15 +1324,22 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                        "empty_addressed_shots_by_damage_position": dict(matrix["empty_hits"]),
                    })
         for group in context["damage_groups"].values():
-            details = {key: value for key, value in group.items()
-                       if key != "_persistent_damage"}
+            details = {
+                key: (dict(value) if key == "accuracy_decisions" else value)
+                for key, value in group.items()
+                if key != "_persistent_damage"
+            }
             _event(events, number, "fire", "damage", volley["side"],
                    firing_phase=volley["runtime_line"],
                    target_side="defender" if volley["side"] == "attacker" else "attacker",
                    source_unit_id=source_unit.id,
                    resolution="sequential_d_kill_baseline",
                    persistent_damage=group["_persistent_damage"],
-                   assumption_ids=["EXP-D-KILL-SEQUENTIAL-001", "EXP-IR-DISABLED-001"],
+                   assumption_ids=[
+                       "EXP-D-KILL-SEQUENTIAL-001",
+                       EXPERIMENTAL_ACCURACY_MODEL_ID,
+                       "EXP-IR-DISABLED-001",
+                   ],
                    **details)
 
 def _apply_slot_redistribution(

@@ -642,6 +642,8 @@ def test_mechanics_and_pdf_resources_are_first_class_tabs():
  assert '戰鬥機制狀態 / Mechanics Status' in body
  assert '這一頁是模擬器正確度的核心依據' in body
  assert '已知 / 已實作' in body and '部分已知 / 仍需校準' in body and '未知 / 目前限制' in body
+ assert 'Accuracy / Precision · Experimental concentration-v1' in body
+ assert '能一擊殺死滿血目標的攻擊不製造 miss' in body
  # Mechanics cards belong to the dedicated view, not the setup workbench.
  assert '<details class="mechanics-reference panel">' not in body
  setup=body.split('<section id="setupView">',1)[1].split('<section id="mechanicsView"',1)[0]

@@ -28,8 +28,11 @@ def test_strict_refuses_accuracy_targeting_and_other_unknowns():
 def test_experimental_names_accuracy_targeting_and_is_reproducible():
  first=simulate(scenario()); assert first==simulate(scenario())
  ids={a['id'] for a in first['assumptions']}
- assert {'EXP-D-KILL-SEQUENTIAL-001','EXP-ACCURACY-IGNORED-001',
+ assert {'EXP-D-KILL-SEQUENTIAL-001','EXP-ACCURACY-CONCENTRATION-001',
          'EXP-IR-DISABLED-001','EXP-SR-DISABLED-001'} <= ids
+ d_kill=next(a for a in first['assumptions'] if a['id']=='EXP-D-KILL-SEQUENTIAL-001')
+ assert 'selected by the active targeting/Accuracy policy' in d_kill['description']
+ assert 'most-damaged current unit' not in d_kill['description']
  assert 'EXP-TARGET-LEGACY-001' not in ids
  assert 'EXP-AMMO-PARTIAL-ORDER-001' not in ids
  assert len(ids)==len(first['assumptions'])
@@ -1687,6 +1690,68 @@ def test_partial_flank_casualties_reduce_later_long_range_shots():
                    if e['type']=='formation_fire_phase'
                    and e['details']['firing_phase']=='second')
  assert second_phase['details']['defender_shots']==84-killed
+
+
+def test_low_accuracy_one_shot_volley_does_not_manufacture_misses():
+ registry=UnitRegistry.load()
+ hp=registry.get('hoplite').hit_points
+ target=Wave(
+  ArmyUnit('hoplite',3,'target-wave'),0,
+  [Slot('first-1','first',1,1,'hoplite','target-wave',3,30,0)],
+ )
+ queues={('hoplite','target-wave','first-1'):[0,0,0]}
+ volleys=[{
+  'side':'attacker','source_unit':'mortar','source_wave':'source-wave',
+  'runtime_line':'third','weapon_id':'primary','attack_upgrade':0,
+  'row_numbers':[1,1,1],
+ }]
+ casualties=defaultdict(int); slot_casualties=defaultdict(int); events=[]
+ _resolve_volleys(
+  volleys,[target],queues,registry,WorkshopProfile.load(),ForgeProfile.load(),
+  TargetingProfile.load(),events,1,
+  Army((ArmyUnit('mortar',3,'source-wave'),),0),
+  Army((ArmyUnit('hoplite',3,'target-wave'),),0),
+  casualties,slot_casualties,{},
+ )
+ assert casualties['hoplite']==3
+ assert target.slots[0].units==0
+ damage=next(e for e in events if e.type=='damage')
+ assert damage.details['weapon_accuracy']==10
+ assert damage.details['accuracy_model']=='EXP-ACCURACY-CONCENTRATION-001'
+ assert damage.details['accuracy_decisions']=={'one_shot_bypass':3}
+
+
+def test_non_one_shot_accuracy_spreads_then_focuses_after_hp_threshold():
+ registry=UnitRegistry.load()
+ target=Wave(
+  ArmyUnit('steam_giant',3,'target-wave'),0,
+  [Slot('first-1','first',1,1,'steam_giant','target-wave',3,10,0)],
+ )
+ queues={('steam_giant','target-wave','first-1'):[0,0,0]}
+ volleys=[{
+  'side':'attacker','source_unit':'hoplite','source_wave':'source-wave',
+  'runtime_line':'first','weapon_id':'primary','attack_upgrade':0,
+  'row_numbers':[1,1,1,1,1],
+ }]
+ casualties=defaultdict(int); slot_casualties=defaultdict(int); events=[]
+ _resolve_volleys(
+  volleys,[target],queues,registry,WorkshopProfile.load(),ForgeProfile.load(),
+  TargetingProfile.load(),events,1,
+  Army((ArmyUnit('hoplite',5,'source-wave'),),0),
+  Army((ArmyUnit('steam_giant',3,'target-wave'),),0),
+  casualties,slot_casualties,{},
+ )
+ # Hoplite net hit is 300 vs Steam Giant. At 90% Accuracy the first four
+ # hits spread: 300/300/300, then one survivor crosses below 90% remaining HP
+ # at 600 damage and the fifth hit focuses it.
+ assert casualties.get('steam_giant',0)==0
+ assert queues[('steam_giant','target-wave','first-1')]==[900,300,300]
+ damage=next(e for e in events if e.type=='damage')
+ assert damage.details['weapon_accuracy']==90
+ assert damage.details['accuracy_decisions']=={
+  'spread_above_accuracy_threshold':4,
+  'focus_below_accuracy_threshold':1,
+ }
 
 
 def test_sequential_volley_resolution_differs_from_legacy_pooled_casualty_math():
