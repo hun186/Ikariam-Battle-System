@@ -30,6 +30,9 @@ def test_experimental_names_accuracy_targeting_and_is_reproducible():
  ids={a['id'] for a in first['assumptions']}
  assert {'EXP-D-KILL-SEQUENTIAL-001','EXP-ACCURACY-CONCENTRATION-001',
          'EXP-IR-DISABLED-001','EXP-SR-DISABLED-001'} <= ids
+ d_kill=next(a for a in first['assumptions'] if a['id']=='EXP-D-KILL-SEQUENTIAL-001')
+ assert 'selected by the active targeting/Accuracy policy' in d_kill['description']
+ assert 'most-damaged current unit' not in d_kill['description']
  assert 'EXP-TARGET-LEGACY-001' not in ids
  assert 'EXP-AMMO-PARTIAL-ORDER-001' not in ids
  assert len(ids)==len(first['assumptions'])
