@@ -1089,17 +1089,220 @@ def _formation_shots(volleys: list[dict[str, Any]]) -> list[tuple[int, int]]:
     return [(volley_index, row) for row, _, volley_index, _ in ordered]
 
 
+def _wall_exposed_target_view(
+    waves: list[Wave], registry: UnitRegistry, sections,
+) -> list[Wave]:
+    """View defender waves through currently breached Town Wall positions.
+
+    Non-First formations are unchanged. First-line Slot objects are shared with
+    the real waves so ordinary damage resolution mutates canonical combat state.
+    """
+    if not sections or not wall_flanks_locked(sections):
+        return waves
+    breached = set(wall_breached_positions(sections))
+    result: list[Wave] = []
+    for wave in waves:
+        unit = registry.get(wave.unit.unit_id)
+        if unit.role != "combat":
+            result.append(wave)
+            continue
+        first_slots = [slot for slot in wave.slots if slot.line == "first"]
+        if not first_slots:
+            result.append(wave)
+            continue
+        visible_slots = [
+            slot for slot in wave.slots
+            if slot.line != "first" or slot.damage_position in breached
+        ]
+        result.append(Wave(
+            wave.unit,
+            wave.reserve,
+            visible_slots,
+            wave.reserve_damage,
+            wave.ammo_pool_shots,
+            wave.support_units,
+            wave.ammo_capacity_shots,
+        ))
+    return result
+
+
+def _wall_source_positions(sections) -> set[int]:
+    if not sections or not wall_flanks_locked(sections):
+        return set()
+    return set(wall_breached_positions(sections))
+
+
+def _resolve_wall_artillery_volleys(
+    volleys: list[dict[str, Any]],
+    sections,
+    wall_level: int,
+    registry: UnitRegistry,
+    workshop: WorkshopProfile,
+    forge: ForgeProfile,
+    events: list[Event],
+    number: int,
+    source_army,
+    applied: dict[str, dict[str, str]],
+) -> tuple[list[dict[str, Any]], int]:
+    """Consume Artillery shots against an active wall and return leftovers.
+
+    Shot ownership/ammo is already reserved by _snapshot_phase_fire. A
+    non-penetrating wall candidate does not consume that ticket; it is left in
+    the returned volley so normal target priority can continue. Once every wall
+    section is breached, all later tickets likewise continue to unit targets.
+    """
+    if not sections or not wall_flanks_locked(sections):
+        return volleys, 0
+
+    prepared: list[list[tuple[int, int, int]]] = []
+    for volley in volleys:
+        rows = list(volley.get("row_numbers", ()))
+        positions = list(volley.get("source_damage_positions", ()))
+        if len(rows) != len(positions):
+            raise ScenarioError("wall artillery requires explicit source positions")
+        prepared.append([
+            (row, position, index)
+            for index, (row, position) in enumerate(zip(rows, positions))
+        ])
+
+    ordered: list[tuple[int, int, int, int]] = []
+    for volley_index, shots in enumerate(prepared):
+        for row, position, shot_index in shots:
+            ordered.append((row, position, volley_index, shot_index))
+    ordered.sort()
+
+    consumed: dict[int, set[int]] = defaultdict(set)
+    eligibility_reported: set[tuple[str, str, str]] = set()
+    fired = 0
+
+    for _row, _position, volley_index, shot_index in ordered:
+        if not wall_flanks_locked(sections):
+            break
+        volley = volleys[volley_index]
+        source_unit = registry.get(volley["source_unit"])
+        weapon = next(item for item in source_unit.weapons if item.id == volley["weapon_id"])
+        decision = wall_target_eligibility(
+            source_unit,
+            volley["attack_upgrade"],
+            source_army.forge_level,
+            wall_level,
+            workshop,
+            forge,
+            weapon=weapon,
+        )
+        if not decision.eligible:
+            key = (source_unit.id, weapon.id, decision.effective_attack)
+            if key not in eligibility_reported:
+                eligibility_reported.add(key)
+                _event(
+                    events, number, "fire", "target_ineligible", volley["side"],
+                    firing_phase=volley["runtime_line"],
+                    source_unit_id=source_unit.id,
+                    weapon_id=weapon.id,
+                    target_side="defender",
+                    target_line="wall",
+                    target_unit_id="town_wall",
+                    target_wave="town_wall",
+                    effective_attack=decision.effective_attack,
+                    effective_defense=decision.effective_defense,
+                    reason=decision.reason,
+                    rule_id=TARGET_PENETRATION_RULE_ID,
+                    action="skip_without_shot_or_ammunition",
+                )
+            continue
+
+        intact = sorted(
+            (section for section in sections if not section.destroyed),
+            key=lambda section: section.damage_position,
+        )
+        if not intact:
+            break
+        section = intact[0]
+
+        if volley.get("partial_firing_counts") is not None and not volley.get("partial_reported"):
+            _assume(applied, events, "EXP-AMMO-PARTIAL-ORDER-001", number, "fire")
+            _event(
+                events, number, "fire", "partial_ammunition", volley["side"],
+                unit_id=source_unit.id,
+                firing_phase=volley["runtime_line"],
+                assumption_id="EXP-AMMO-PARTIAL-ORDER-001",
+                firing_counts=volley["partial_firing_counts"],
+            )
+            volley["partial_reported"] = True
+
+        _assume(applied, events, "EXP-WALL-FOCUS-DAMAGE-PRIORITY-001", number, "fire")
+        _assume(applied, events, "EXP-WALL-ARTILLERY-SUCCESSFUL-HIT-001", number, "fire")
+        _assume(applied, events, "EXP-ROUND-FLOOR-001", number, "fire")
+        effective_attack = int(
+            Decimal(decision.effective_attack).quantize(Decimal("1"), rounding=ROUND_FLOOR)
+        )
+        hit = apply_wall_successful_hit(
+            sections, wall_level, section.damage_position, effective_attack
+        )
+        consumed[volley_index].add(shot_index)
+        fired += 1
+        _event(
+            events, number, "fire", "wall_damage", volley["side"],
+            firing_phase=volley["runtime_line"],
+            source_unit_id=source_unit.id,
+            weapon_id=weapon.id,
+            target_side="defender",
+            target_class="wall",
+            target_damage_position=section.damage_position,
+            wall_level=wall_level,
+            effective_attack=decision.effective_attack,
+            effective_defense=decision.effective_defense,
+            damage_applied=hit["damage_applied"],
+            persistent_damage=hit["persistent_damage"],
+            remaining_hit_points=hit["remaining_hit_points"],
+            breached=hit["destroyed"],
+            target_eligibility_rule=TARGET_PENETRATION_RULE_ID,
+            assumption_ids=[
+                "EXP-WALL-FOCUS-DAMAGE-PRIORITY-001",
+                "EXP-WALL-ARTILLERY-SUCCESSFUL-HIT-001",
+                "EXP-ROUND-FLOOR-001",
+            ],
+        )
+        if hit["destroyed"]:
+            _event(
+                events, number, "fire", "wall_section_breached", "defender",
+                damage_position=section.damage_position,
+                physical_position=section.physical_position,
+                wall_level=wall_level,
+                action="defender_first_line_position_exposed",
+            )
+
+    leftovers: list[dict[str, Any]] = []
+    for volley_index, volley in enumerate(volleys):
+        used = consumed.get(volley_index, set())
+        if not used:
+            leftovers.append(volley)
+            continue
+        rows = volley["row_numbers"]
+        positions = volley.get("source_damage_positions", [])
+        remaining_indexes = [i for i in range(len(rows)) if i not in used]
+        if not remaining_indexes:
+            continue
+        item = dict(volley)
+        item["row_numbers"] = [rows[i] for i in remaining_indexes]
+        item["source_damage_positions"] = [positions[i] for i in remaining_indexes]
+        leftovers.append(item)
+    return leftovers, fired
+
+
 def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitRegistry,
                          targeting: TargetingProfile, events: list[Event], number: int,
                          side: str, runtime_line: str,
-                         applied: dict[str, dict[str, str]]) -> list[dict[str, Any]]:
+                         applied: dict[str, dict[str, str]],
+                         *, force_source_fire: bool = False,
+                         allowed_source_positions: set[int] | None = None) -> list[dict[str, Any]]:
     """Freeze firing eligibility for one formation before either side takes damage."""
     volleys: list[dict[str, Any]] = []
     for wave in _combat_waves(source, registry):
         if _runtime_line(wave, registry) != runtime_line or not wave.slots or not wave.alive:
             continue
         enemies, _ = _target_waves_for_line(runtime_line, target, registry, targeting)
-        if not enemies:
+        if not enemies and not force_source_fire:
             continue
         unit = registry.get(wave.unit.unit_id)
         weapon = select_active_weapon(unit, runtime_line)
@@ -1111,8 +1314,17 @@ def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitR
             continue
         if weapon.accuracy is None:
             raise ScenarioError(f"weapon accuracy missing for {unit.id}:{weapon.id}")
-        deployed = sorted((slot for slot in wave.slots if slot.units),
-                          key=lambda slot: slot.damage_position)
+        deployed = sorted(
+            (
+                slot for slot in wave.slots
+                if slot.units
+                and (
+                    allowed_source_positions is None
+                    or slot.damage_position in allowed_source_positions
+                )
+            ),
+            key=lambda slot: slot.damage_position,
+        )
         firing_counts = [slot.units for slot in deployed]
         total_firing = sum(firing_counts)
         partial_firing_counts = None
