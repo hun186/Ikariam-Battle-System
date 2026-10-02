@@ -88,6 +88,56 @@ def test_physical_layout_and_center_first_deployment():
  assert (slot.damage_position,slot.physical_position)==(1,2)
 
 
+def test_long_range_and_artillery_choose_strongest_concrete_slot_groups():
+ registry=UnitRegistry.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'archer','quantity':700},
+  {'unit_id':'slinger','quantity':100},
+  {'unit_id':'sulphur_carabineer','quantity':60},
+  {'unit_id':'catapult','quantity':60},
+  {'unit_id':'mortar','quantity':36},
+ ]}),registry,field)
+
+ sulphur=next(w for w in waves if w.unit.unit_id=='sulphur_carabineer')
+ archer=next(w for w in waves if w.unit.unit_id=='archer')
+ slinger=next(w for w in waves if w.unit.unit_id=='slinger')
+ mortar=next(w for w in waves if w.unit.unit_id=='mortar')
+ catapult=next(w for w in waves if w.unit.unit_id=='catapult')
+
+ # 12 Sulphur Carabineers * 580 Damage = 6960 per full slot, stronger
+ # than 50 Archers * 100 = 5000 or 50 Slingers * 60 = 3000.
+ assert [(s.damage_position,s.units) for s in sulphur.slots]==[
+  (1,12),(2,12),(3,12),(4,12),(5,12)]
+ assert [(s.damage_position,s.units) for s in archer.slots]==[(6,50),(7,50)]
+ assert slinger.slots==[]
+ assert (sulphur.reserve,archer.reserve,slinger.reserve)==(0,600,100)
+
+ # 6 Mortars * 5400 Damage beats 6 Catapults * 2660, so all five
+ # artillery slots are Mortars and the remaining 6 Mortars stay Reserve.
+ assert [(s.damage_position,s.units) for s in mortar.slots]==[
+  (1,6),(2,6),(3,6),(4,6),(5,6)]
+ assert catapult.slots==[]
+ assert (mortar.reserve,catapult.reserve)==(6,60)
+
+
+def test_partial_artillery_groups_are_compared_by_the_group_that_fits_one_slot():
+ registry=UnitRegistry.load()
+
+ one_mortar=deploy(Army.from_dict({'units':[
+  {'unit_id':'mortar','quantity':1},
+  {'unit_id':'battering_ram','quantity':6},
+ ]}),registry,LAND_MINI)
+ assert next(w for w in one_mortar if w.unit.unit_id=='battering_ram').slots[0].units==6
+ assert next(w for w in one_mortar if w.unit.unit_id=='mortar').slots==[]
+
+ five_mortars=deploy(Army.from_dict({'units':[
+  {'unit_id':'mortar','quantity':5},
+  {'unit_id':'battering_ram','quantity':6},
+ ]}),registry,LAND_MINI)
+ assert next(w for w in five_mortars if w.unit.unit_id=='mortar').slots[0].units==5
+ assert next(w for w in five_mortars if w.unit.unit_id=='battering_ram').slots==[]
+
+
 def test_slot_space_divided_by_unit_size():
  registry=UnitRegistry.load()
  expected={'hoplite':30,'steam_giant':10,'sulphur_carabineer':7,'catapult':6,
@@ -151,6 +201,8 @@ def test_formation_profile_records_standard_order_and_remaining_combat_boundarie
  assert rules.lines['first']['deployment_order_authority']=='battlefield_geometry.damage_priority'
  assert rules.lines['first']['standard_physical_damage_labels_evidence']==[6,4,2,1,3,5,7]
  assert rules.lines['first']['class_precedence']==['heavy_infantry','light_infantry']
+ assert rules.lines['second']['unit_selection_policy']=='strongest_slot_group_primary_damage'
+ assert rules.lines['third']['unit_selection_policy']=='strongest_slot_group_primary_damage'
  assert 'UNKNOWN-MIXED-UNIT-AM-ROWS' not in rules.unknowns
  assert {'UNKNOWN-FALLBACK-LONG-RANGE-WEAPON','UNKNOWN-SECONDARY-WEAPON-TRIGGER'} <= set(rules.unknowns)
 
