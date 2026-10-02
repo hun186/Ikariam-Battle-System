@@ -72,6 +72,9 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert data['town_wall']['armor_formula']=='72 * level'
  assert data['town_wall']['damage_observed_points']=={'1':216,'9':504,'18':2160,'26':5580}
  assert data['town_wall']['successful_breach_hits_formula']=='ceil((1800 + 900*level) / (attack_damage - 72*level))'
+ assert data['town_wall']['targeting_contract']['artillery_priority']==['wall','first']
+ assert data['town_wall']['targeting_contract']['penetration_rule']=='effective_attack > effective_defense'
+ assert data['town_wall']['targeting_contract']['non_penetrating_target_consumes_ammunition'] is False
  assert data['garrison']['player_formula']=='250 + 50 * (town_hall_level + wall_level)'
  assert data['garrison']['max_town_hall_level']==66
  assert data['garrison']['open_field_battlefield']=='land-max'
