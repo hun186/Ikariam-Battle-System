@@ -313,3 +313,71 @@ def test_mixed_source_formation_freezes_address_book_per_eligibility_set():
     assert damage_by_source["spearman"] == "hoplite"
     assert damage_by_source["hoplite"] == "steam_giant"
 
+def test_promoted_light_elimination_does_not_shrink_frozen_first_address_book():
+    registry = UnitRegistry.load()
+    workshop = WorkshopProfile.load()
+    forge = ForgeProfile.load()
+    targeting = TargetingProfile.load()
+
+    # Swordsman is native Flank but is already promoted to runtime First.
+    promoted_sword = Wave(
+        ArmyUnit("swordsman", 1, "sword"),
+        0,
+        [Slot("first-1", "first", 1, 1, "swordsman", "sword", 1, 30, 0)],
+    )
+    hoplite = Wave(
+        ArmyUnit("hoplite", 1, "hop"),
+        0,
+        [Slot("first-2", "first", 2, 2, "hoplite", "hop", 1, 30, 0)],
+    )
+    queues = {
+        ("swordsman", "sword", "first-1"): [0],
+        ("hoplite", "hop", "first-2"): [0],
+    }
+    volleys = [{
+        "side": "attacker",
+        "source_unit": "mortar",
+        "source_wave": "mortar-source",
+        "runtime_line": "third",
+        "weapon_id": "primary",
+        "attack_upgrade": 0,
+        # Two row-1 source columns both address damage-position 1 in the frozen
+        # First book. The first kills Swordsman; the second must stay on the
+        # now-empty address rather than remap to Hoplite.
+        "row_numbers": [1, 1],
+        "source_damage_positions": [1, 2],
+    }]
+    events = []
+    casualties = defaultdict(int)
+    fired = _resolve_volleys(
+        volleys,
+        [promoted_sword, hoplite],
+        queues,
+        registry,
+        workshop,
+        forge,
+        targeting,
+        events,
+        1,
+        Army((ArmyUnit("mortar", 2, "mortar-source"),), 0),
+        Army((
+            ArmyUnit("swordsman", 1, "sword"),
+            ArmyUnit("hoplite", 1, "hop"),
+        ), 0),
+        casualties,
+        defaultdict(int),
+        {},
+    )
+
+    assert fired == 2
+    assert casualties["swordsman"] == 1
+    assert casualties.get("hoplite", 0) == 0
+    assert promoted_sword.slots[0].units == 0
+    assert hoplite.slots[0].units == 1
+    assert any(
+        event.type == "shot_addressed_empty_slot"
+        and event.details["target_unit_id"] == "swordsman"
+        and event.details["target_damage_position"] == 1
+        for event in events
+    )
+
