@@ -36,6 +36,193 @@ def test_experimental_names_accuracy_targeting_and_is_reproducible():
  assert any(e['type']=='damage_calculation' and e['details']['workshop_attack_level']==12 for e in first['events'])
 
 
+def test_typed_scenario_rejects_invalid_wall_level_like_dict_input():
+ attacker=Army.from_dict({'units':[{'unit_id':'hoplite','quantity':30}]})
+ defender=Army.from_dict({'units':[{'unit_id':'hoplite','quantity':30}]})
+ for bad in (49,True):
+  typed=Scenario(attacker,defender,policy=Policy.EXPERIMENTAL,battlefield='land-mini',max_rounds=1,wall_level=bad)
+  with pytest.raises(ScenarioError,match='wall_level must be 0..48'):
+   simulate(typed)
+
+
+def test_positive_wall_level_is_captured_and_stops_at_explicit_wall_boundary():
+ s=scenario(); s['wall_level']=20
+ result=simulate(s)
+ rules={e['details'].get('rule_id') for e in result['events'] if e['type']=='unsupported_mechanic'}
+ assert result['status']=='inconclusive' and result['rounds_completed']==0
+ assert 'UNKNOWN-TOWN-WALL-COMBAT' in rules
+ assert result['wall_status']=={
+  'level':20,'damage':4500,'accuracy':None,'hit_points':19800,'armor':1440,
+  'segments':3,'status':'unsupported_boundary',
+  'combat_model_status':'INPUT_CAPTURED_COMBAT_UNSUPPORTED',
+  'rule_id':'UNKNOWN-TOWN-WALL-COMBAT','effect_applied':False,
+  'active':True,'inactive_reason':None,
+ }
+ assert any('Town Wall input is captured' in warning for warning in result['warnings'])
+
+
+def test_over_limit_player_defense_starts_on_land_max_with_wall_suppressed():
+ s=scenario(rounds=1)
+ s['town_hall_level']=1
+ s['wall_level']=1
+ s['defender']['units']=[{'unit_id':'hoplite','quantity':351}]
+ result=simulate(s)
+ g=result['garrison_status']
+ assert g['garrison_limit']==350
+ assert g['counted_defenders']==351
+ assert g['open_field'] is True
+ assert g['effective_battlefield']=='land-max'
+ assert result['wall_status']['status']=='suppressed'
+ assert result['wall_status']['inactive_reason']=='open_field_garrison_limit'
+ assert not any(
+  e['type']=='unsupported_mechanic'
+  and e['details'].get('rule_id')=='UNKNOWN-TOWN-WALL-COMBAT'
+  for e in result['events']
+ )
+
+
+def test_defender_arrival_crossing_limit_detects_enter_open_field_transition():
+ s={
+  'policy':'experimental','battlefield':'land-mini','max_rounds':2,
+  'town_hall_level':1,'wall_level':0,
+  'attacker':{'units':[{'unit_id':'hoplite','quantity':90}]},
+  'defender':{'units':[
+   {'unit_id':'hoplite','quantity':299,'entry_batch_id':'g0','arrival_round':0},
+   {'unit_id':'hoplite','quantity':10,'entry_batch_id':'g1','arrival_round':1},
+  ]},
+ }
+ result=simulate(s)
+ transition=next(
+  e for e in result['events']
+  if e['type']=='unsupported_mechanic'
+  and e['details'].get('rule_id')=='UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION'
+ )
+ assert transition['round']==1
+ assert transition['details']['direction']=='enter_open_field'
+ assert transition['details']['counted_defenders']==309
+ assert transition['details']['garrison_limit']==300
+ assert transition['details']['from_battlefield']=='land-mini'
+ assert transition['details']['to_battlefield']=='land-max'
+ assert result['status']=='inconclusive'
+
+
+def test_enter_open_field_is_noop_when_already_land_max_without_wall():
+ s={
+  'policy':'experimental','battlefield':'land-max','max_rounds':1,
+  'town_hall_level':1,'wall_level':0,
+  'attacker':{'units':[{'unit_id':'hoplite','quantity':100}]},
+  'defender':{'units':[
+   {'unit_id':'hoplite','quantity':100,'entry_batch_id':'g0','arrival_round':0},
+   {'unit_id':'hoplite','quantity':201,'entry_batch_id':'g1','arrival_round':1},
+  ]},
+ }
+ result=simulate(s)
+ assert not any(
+  e['type']=='unsupported_mechanic'
+  and e['details'].get('rule_id')=='UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION'
+  for e in result['events']
+ )
+ changes=[
+  e for e in result['events']
+  if e['type']=='garrison_state_change'
+  and e['details'].get('direction')=='enter_open_field'
+ ]
+ assert changes
+ assert changes[-1]['details']['counted_defenders']==301
+ assert changes[-1]['details']['battlefield']=='land-max'
+ assert result['garrison_status']['transition_reached'] is True
+ assert result['garrison_status']['transition_blocked'] is False
+ assert result['garrison_status']['transition']['direction']=='enter_open_field'
+ assert result['garrison_status']['transition']['counted_defenders']==301
+
+
+def test_terminal_victory_precedes_unneeded_open_field_exit_transition():
+ s={
+  'policy':'experimental','battlefield':'land-mini','max_rounds':2,
+  'town_hall_level':1,'wall_level':0,
+  'attacker':{'forge_level':5,'units':[
+   # Fill all three firing formations evenly so stable per-formation target
+   # addressing cannot leave a partially addressed defender slot alive.
+   {'unit_id':'mortar','quantity':42,'attack_upgrade':1000},
+   {'unit_id':'sulphur_carabineer','quantity':49,'attack_upgrade':1000},
+   {'unit_id':'hoplite','quantity':350,'attack_upgrade':1000},
+  ]},
+  'defender':{'forge_level':0,'units':[
+   {'unit_id':'hoplite','quantity':301}
+  ]},
+ }
+ result=simulate(s)
+ assert result['status']=='completed'
+ assert result['outcome']=='attacker'
+ assert not any(
+  e['type']=='unsupported_mechanic'
+  and e['details'].get('rule_id')=='UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION'
+  for e in result['events']
+ )
+ assert any(
+  e['type']=='battle_termination'
+  and e['details'].get('losing_side')=='defender'
+  for e in result['events']
+ )
+
+
+def test_open_field_exit_threshold_is_detected_after_defender_casualties():
+ s={
+  'policy':'experimental','battlefield':'land-mini','max_rounds':3,
+  'town_hall_level':1,'wall_level':0,
+  'attacker':{'forge_level':5,'units':[
+   {'unit_id':'hoplite','quantity':350,'attack_upgrade':60}
+  ]},
+  'defender':{'forge_level':0,'units':[
+   {'unit_id':'hoplite','quantity':301}
+  ]},
+ }
+ result=simulate(s)
+ transitions=[
+  e for e in result['events']
+  if e['type']=='unsupported_mechanic'
+  and e['details'].get('rule_id')=='UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION'
+ ]
+ assert transitions
+ transition=transitions[-1]
+ assert transition['details']['direction']=='exit_open_field'
+ assert transition['details']['counted_defenders']<=300
+ assert transition['details']['from_battlefield']=='land-max'
+ assert transition['details']['to_battlefield']=='land-mini'
+ assert result['status']=='inconclusive'
+ assert result['garrison_status']['transition_reached'] is True
+
+
+def test_barbarian_over_limit_uses_same_open_field_threshold_rule():
+ s={
+  'policy':'experimental','battlefield':'land-small','max_rounds':1,
+  'barbarian_village_level':10,'wall_level':1,
+  'attacker':{'army_kind':'player','units':[{'unit_id':'hoplite','quantity':150}]},
+  'defender':{'army_kind':'barbarian','forge_level':0,'units':[
+   {'unit_id':'barbarian_clubman','quantity':801}
+  ]},
+ }
+ result=simulate(s)
+ g=result['garrison_status']
+ assert g['settlement_kind']=='barbarian_village'
+ assert g['barbarian_village_level']==10
+ assert g['garrison_limit']==800
+ assert g['counted_defenders']==801
+ assert g['open_field'] is True
+ assert g['effective_battlefield']=='land-max'
+
+
+def test_zero_wall_level_keeps_existing_unit_vs_unit_execution_path():
+ s=scenario(rounds=1); s['wall_level']=0
+ result=simulate(s)
+ assert result['wall_status']['status']=='not_present'
+ assert result['wall_status']['segments']==0
+ assert not any(
+  e['type']=='unsupported_mechanic' and e['details'].get('rule_id')=='UNKNOWN-TOWN-WALL-COMBAT'
+  for e in result['events']
+ )
+
+
 def test_symmetric_case_has_no_attacker_first_bias():
  s=scenario(); s['defender']=deepcopy(s['attacker']); r=simulate(s)
  assert r['casualties']['attacker']==r['casualties']['defender']

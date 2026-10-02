@@ -7,13 +7,13 @@
 - Complete reviewer-verified current data is distinct from empirical mechanics.
 - Ammo is a pooled shot count. Art of Warfare firing chronology and runtime-line target priorities are executable contracts; ignored accuracy remains a named experimental policy.
 - Doctor/Tender healing and Cook morale are separate support domains. Doctor healing now has an exact full-clear subset; partial-capacity allocation and exact Healing/RR ordering remain unknown, while Cook morale remains unresolved.
-- Support has separate deployed state; walls and garrison-limit escalation are out of current scope.
+- Support has separate deployed state. Player Town Hall/Wall inputs drive the current garrison formula, and configured Barbarian defenders use `(village + wall + 5) × 50` from the 2024 Gameforge-forum community report. Initial over-limit defense uses `land-max` with wall suppression; Doctor/Cook are excluded per v17.4. Threshold crossings are detected but cross-geometry transition and wall combat remain guarded.
 - Battle-end state separates actual main-line holders, unresolved fallback candidates, and non-sustaining survivors; fallback-required stops inconclusive and applied assumptions remain unique and conditional.
 - Function B must later call `simulate()` without duplicating rules.
 - Entry-batch ammo ownership and additive UI-derived HP/munition state are contracted; mixed source unit types now share one row-major Attacking Matrix while preserving per-wave weapon/ammo state. User-observed ranged fallback and initial-garrison retreat/rejoin remain calibration-only unsupported mechanics.
 
 ## Open Handoffs
-Naval geometry, automatic Town Hall/garrison/wall selection and transitions, accuracy, the actual healing/morale algorithms, kill-type selectors, rounding selector, SR/IR triggers and secondary-weapon triggers require future work.
+Naval geometry, calibrated garrison-driven cross-geometry transitions, executable wall combat/breach/refill/flank-lock semantics, further Barbarian garrison calibration, accuracy, the actual healing/morale algorithms, kill-type selectors, rounding selector, SR/IR triggers and secondary-weapon triggers require future work.
 
 ## Recent Outcomes
 - Barbarian Clubman is now classified as Heavy Infantry / First line independently of its Spearman-based numeric derivation. Mixed unit types in one runtime formation now execute as one row-major Attacking Matrix with a formation-wide frozen target address book, fixing the Catapult + Ram Round-0 debug blocker without merging their weapon/ammo state.

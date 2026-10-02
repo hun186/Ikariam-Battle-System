@@ -10,11 +10,19 @@ from .damage import RoundingPolicy, calculate_damage
 from .economy import MilitaryEconomyProfile
 from .events import Event
 from .formation import FormationRules, eligible_runtime_lines
+from .garrison import (
+    GARRISON_TRANSITION_RULE_ID,
+    MAX_BARBARIAN_VILLAGE_LEVEL,
+    MAX_TOWN_HALL_LEVEL,
+    counted_live_waves,
+    land_garrison_status,
+)
 from .models import Army, Policy, Scenario, ScenarioError, Slot, Wave
 from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 from .redistribution import SlotShare, reserve_redistribution
 from .units import UnitRegistry
 from .weapon_selection import UnsupportedWeaponSelection, select_active_weapon
+from .wall import MAX_TOWN_WALL_LEVEL, TOWN_WALL_RULE_ID, wall_status
 
 
 EXPERIMENTAL_POLICIES = {
@@ -1395,7 +1403,43 @@ def _validate_army_package(army: Army, registry: UnitRegistry, field) -> None:
 def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     if isinstance(scenario, dict): scenario = Scenario.from_dict(scenario)
     registry = UnitRegistry.load(scenario.profiles.unit_stats, include_barbarians=True)
-    field = battlefield(scenario.battlefield)
+    base_field = battlefield(scenario.battlefield)
+    if (isinstance(scenario.wall_level, bool) or not isinstance(scenario.wall_level, int)
+            or not 0 <= scenario.wall_level <= MAX_TOWN_WALL_LEVEL):
+        raise ScenarioError(f"wall_level must be 0..{MAX_TOWN_WALL_LEVEL}")
+    if (scenario.town_hall_level is not None
+            and (isinstance(scenario.town_hall_level, bool)
+                 or not isinstance(scenario.town_hall_level, int)
+                 or not 1 <= scenario.town_hall_level <= MAX_TOWN_HALL_LEVEL)):
+        raise ScenarioError(f"town_hall_level must be 1..{MAX_TOWN_HALL_LEVEL}")
+    if (scenario.barbarian_village_level is not None
+            and (isinstance(scenario.barbarian_village_level, bool)
+                 or not isinstance(scenario.barbarian_village_level, int)
+                 or not 1 <= scenario.barbarian_village_level <= MAX_BARBARIAN_VILLAGE_LEVEL)):
+        raise ScenarioError(
+            f"barbarian_village_level must be 1..{MAX_BARBARIAN_VILLAGE_LEVEL}"
+        )
+    if scenario.defender.army_kind == "barbarian" and scenario.town_hall_level is not None:
+        raise ScenarioError("town_hall_level is only valid for player defenders")
+    if scenario.defender.army_kind == "player" and scenario.barbarian_village_level is not None:
+        raise ScenarioError("barbarian_village_level is only valid for barbarian defenders")
+    if (scenario.wall_level or scenario.town_hall_level is not None
+            or scenario.barbarian_village_level is not None) and base_field.domain != "land":
+        raise ScenarioError("Settlement and Town Wall inputs are only valid for land battlefields")
+    garrison_initial = land_garrison_status(
+        town_hall_level=scenario.town_hall_level,
+        barbarian_village_level=scenario.barbarian_village_level,
+        wall_level=scenario.wall_level,
+        defender_army=scenario.defender,
+        base_battlefield_id=scenario.battlefield,
+        through_round=0,
+    )
+    open_field_active = bool(garrison_initial.get("open_field"))
+    garrison_limit = garrison_initial.get("garrison_limit")
+    field = battlefield(
+        garrison_initial["effective_battlefield"]
+        if open_field_active else scenario.battlefield
+    )
     formation_rules = FormationRules.load(scenario.profiles.formation)
     battle_end = BattleEndProfile.load(scenario.profiles.battle_end)
     # Validate every scheduled unit and package invariant now, including
@@ -1420,9 +1464,19 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     initial = {"attacker": _snapshot(attacker, registry, battle_end),
                "defender": _snapshot(defender, registry, battle_end)}
     warnings = ["Legacy empirical mechanics are being applied to review-supplied current numeric profiles; calibration is required."]
+    if open_field_active:
+        warnings.append(
+            "Defender exceeds the configured land garrison limit: the battle starts on land-max with the Town Wall suppressed."
+        )
+    elif scenario.wall_level:
+        warnings.append(
+            "Defender Town Wall input is captured, but wall targeting, breaching, refill, and flank-lock combat semantics are not executable yet."
+        )
     attacker_blockers = _preflight(attacker, registry, formation_rules, field)
     defender_blockers = _preflight(defender, registry, formation_rules, field)
     blockers = sorted(set(attacker_blockers + defender_blockers))
+    if scenario.wall_level and not open_field_active:
+        blockers.append(TOWN_WALL_RULE_ID)
     initial_states = {side: state["continuation_state"] for side, state in initial.items()}
     fallback_sides = [side for side, state in initial_states.items()
                       if state == ContinuationState.FALLBACK_REQUIRED.value]
@@ -1451,7 +1505,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         return _unsupported(scenario, events, initial, sorted(set(blockers)), warnings)
     if {"UNKNOWN-MULTIPLE-TARGET-WAVES",
         "UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS",
-        "UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT"} & set(blockers):
+        "UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT",
+        TOWN_WALL_RULE_ID} & set(blockers):
         return _unsupported(scenario, events, initial, blockers, warnings)
     applied: dict[str, dict[str, str]] = {}
     for side, side_blockers in (("attacker", attacker_blockers), ("defender", defender_blockers)):
@@ -1507,6 +1562,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     fallback_boundary = False
     both_zero_boundary = False
     cross_wave_boundary = False
+    garrison_transition_boundary = False
     engagement_started = all(
         state == ContinuationState.SUSTAINING.value for state in initial_states.values())
     for number in range(1, scenario.max_rounds + 1):
@@ -1514,6 +1570,42 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         defender_arrivals = _arrival_waves(scenario.defender, number, registry, events, "defender")
         attacker.extend(attacker_arrivals)
         defender.extend(defender_arrivals)
+        if garrison_limit is not None and not open_field_active:
+            counted_defenders = counted_live_waves(defender, registry)
+            if counted_defenders > garrison_limit:
+                geometry_changes = field.id != "land-max"
+                wall_suppresses = bool(scenario.wall_level)
+                if geometry_changes or wall_suppresses:
+                    _event(
+                        events, number, "round_start", "unsupported_mechanic", "defender",
+                        rule_id=GARRISON_TRANSITION_RULE_ID,
+                        direction="enter_open_field",
+                        counted_defenders=counted_defenders,
+                        garrison_limit=garrison_limit,
+                        from_battlefield=field.id,
+                        to_battlefield="land-max",
+                        wall_suppressed=wall_suppresses,
+                    )
+                    completed = number
+                    attacker_state = _snapshot(attacker, registry, battle_end)
+                    defender_state = _snapshot(defender, registry, battle_end)
+                    rounds.append({
+                        "round": number,
+                        "attacker": attacker_state,
+                        "defender": defender_state,
+                        "casualties": {"attacker": {}, "defender": {}},
+                    })
+                    garrison_transition_boundary = True
+                    break
+                open_field_active = True
+                _event(
+                    events, number, "round_start", "garrison_state_change", "defender",
+                    direction="enter_open_field",
+                    counted_defenders=counted_defenders,
+                    garrison_limit=garrison_limit,
+                    battlefield="land-max",
+                    wall_suppressed=False,
+                )
         arrival_blockers = {
             "attacker": _preflight(attacker_arrivals, registry, formation_rules, field),
             "defender": _preflight(defender_arrivals, registry, formation_rules, field),
@@ -1670,6 +1762,37 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                        surviving_non_sustaining={"attacker":_non_sustaining(attacker_state),
                                                  "defender":_non_sustaining(defender_state)})
                 break
+
+        # A garrison threshold transition matters only if combat continues into
+        # another round. If this round already ended the battle, no formation
+        # needs to be remapped and the terminal outcome remains authoritative.
+        if garrison_limit is not None and open_field_active:
+            counted_defenders = counted_live_waves(defender, registry)
+            if counted_defenders <= garrison_limit:
+                geometry_changes = scenario.battlefield != "land-max"
+                wall_reappears = bool(scenario.wall_level)
+                if geometry_changes or wall_reappears:
+                    _event(
+                        events, number, "round_end", "unsupported_mechanic", "defender",
+                        rule_id=GARRISON_TRANSITION_RULE_ID,
+                        direction="exit_open_field",
+                        counted_defenders=counted_defenders,
+                        garrison_limit=garrison_limit,
+                        from_battlefield="land-max",
+                        to_battlefield=scenario.battlefield,
+                        wall_reappears=wall_reappears,
+                    )
+                    garrison_transition_boundary = True
+                    break
+                open_field_active = False
+                _event(
+                    events, number, "round_end", "garrison_state_change", "defender",
+                    direction="exit_open_field",
+                    counted_defenders=counted_defenders,
+                    garrison_limit=garrison_limit,
+                    battlefield="land-max",
+                    wall_reappears=False,
+                )
         if not a_dead and not d_dead and not round_had_fire:
             if not engagement_started and any(pending_now.values()):
                 continue
@@ -1692,6 +1815,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             scenario.defender, scenario.max_rounds, registry, battle_end),
     }
     if (fallback_boundary or both_zero_boundary or cross_wave_boundary
+            or garrison_transition_boundary
             or (final_losing is not None
                 and pending_handoff_after_horizon.get(final_losing))
             or (not engagement_started
@@ -1943,6 +2067,52 @@ def _attach_battle_statistics(
     }
     result["healing_status"] = healing_status
     result["morale_status"] = _morale_status(scenario, result)
+
+    garrison = land_garrison_status(
+        town_hall_level=scenario.town_hall_level,
+        barbarian_village_level=scenario.barbarian_village_level,
+        wall_level=scenario.wall_level,
+        defender_army=scenario.defender,
+        base_battlefield_id=scenario.battlefield,
+        through_round=0,
+    )
+    transition_events = [
+        event for event in result.get("events", [])
+        if (
+            event.get("type") == "garrison_state_change"
+            or (
+                event.get("type") == "unsupported_mechanic"
+                and event.get("details", {}).get("rule_id") == GARRISON_TRANSITION_RULE_ID
+            )
+        )
+    ]
+    final_remaining = result.get("final_state", {}).get("defender", {}).get("remaining", {})
+    final_counted = sum(
+        int(quantity)
+        for unit_id, quantity in final_remaining.items()
+        if unit_id not in {"doctor", "cook"}
+    )
+    if garrison.get("modeled"):
+        garrison["final_counted_defenders"] = final_counted
+        garrison["final_open_field_threshold"] = final_counted > int(garrison["garrison_limit"])
+        garrison["transition_reached"] = bool(transition_events)
+        garrison["transition"] = transition_events[-1].get("details") if transition_events else None
+        garrison["transition_blocked"] = bool(
+            transition_events
+            and transition_events[-1].get("type") == "unsupported_mechanic"
+        )
+    result["garrison_status"] = garrison
+
+    initial_open = bool(garrison.get("open_field")) if garrison.get("modeled") else False
+    wall_inactive_reason = None
+    if scenario.wall_level and initial_open:
+        wall_inactive_reason = "open_field_garrison_limit"
+    result["wall_status"] = wall_status(
+        scenario.wall_level,
+        battlefield(scenario.battlefield),
+        active=False if wall_inactive_reason else None,
+        inactive_reason=wall_inactive_reason,
+    )
     return result
 
 def simulate(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:

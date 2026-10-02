@@ -62,6 +62,23 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert len(data['barbarian_units'])==9
  assert data['barbarian_profile_metadata']['simulation_status']=='LAND_COMBAT_READY'
  assert data['report_transport']=={'default_mode':'summary','default_round_page_size':10,'max_round_page_size':20}
+ assert data['town_wall']['max_level']==48
+ assert data['town_wall']['input_supported'] is True
+ assert data['town_wall']['combat_model_status']=='INPUT_CAPTURED_COMBAT_UNSUPPORTED'
+ assert data['town_wall']['rule_id']=='UNKNOWN-TOWN-WALL-COMBAT'
+ assert data['town_wall']['published_stat_fields']==['hit_points','armor','damage']
+ assert data['town_wall']['unresolved_current_stat_fields']==['accuracy']
+ assert data['town_wall']['hit_points_formula']=='1800 + 900 * level'
+ assert data['town_wall']['armor_formula']=='72 * level'
+ assert data['town_wall']['damage_observed_points']=={'1':216,'9':504,'18':2160,'26':5580}
+ assert data['town_wall']['successful_breach_hits_formula']=='ceil((1800 + 900*level) / (attack_damage - 72*level))'
+ assert data['garrison']['player_formula']=='250 + 50 * (town_hall_level + wall_level)'
+ assert data['garrison']['max_town_hall_level']==66
+ assert data['garrison']['open_field_battlefield']=='land-max'
+ assert data['garrison']['excluded_land_units_since_17_4_0']==['cook','doctor']
+ assert data['garrison']['barbarian_formula']=='(barbarian_village_level + wall_level + 5) * 50'
+ assert data['garrison']['barbarian_formula_status']=='GAMEFORGE_FORUM_2024_COMMUNITY_REPORT'
+ assert data['garrison']['max_barbarian_village_level']==50
  assert all(
   u['domain']=='land' and u['army_kind']=='barbarian'
   and not u['selectable_by_player'] and u['selectable_in_simulator'] and u['simulation_ready']
@@ -87,6 +104,85 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert data['combat_chronology']['sr_trigger']=='UNKNOWN_DISABLED'
  assert (hoplite['resource_cost_basis_total'],hoplite['general_score'])==(70,'1.4')
  assert (carabineer['resource_cost_basis_total'],carabineer['general_score'])==(200,'4')
+
+def test_wall_level_api_validation_and_summary_boundary():
+ value=payload()
+ value['wall_level']=20
+ status,data=post(value)
+ assert status==200
+ assert data['status']=='inconclusive' and data['rounds_completed']==0
+ assert data['wall_status']['level']==20
+ assert data['wall_status']['segments']==3
+ assert data['wall_status']['hit_points']==19800
+ assert data['wall_status']['armor']==1440
+ assert data['wall_status']['damage']==4500
+ assert data['wall_status']['accuracy'] is None
+ assert any(
+  event['type']=='unsupported_mechanic'
+  and event['details'].get('rule_id')=='UNKNOWN-TOWN-WALL-COMBAT'
+  for event in data['events']
+ )
+
+ valid=payload(); valid['wall_level']=48
+ valid_status,valid_data=post(valid)
+ assert valid_status==200 and valid_data['wall_status']['level']==48
+ invalid=payload(); invalid['wall_level']=49
+ bad_status,bad=post(invalid)
+ assert bad_status==400
+ assert bad=={'error':'wall_level must be 0..48'}
+
+
+def test_summary_reports_noop_garrison_crossing_even_when_event_is_filtered():
+ value=payload()
+ value['battlefield']='land-max'
+ value['max_rounds']=1
+ value['town_hall_level']=1
+ value['wall_level']=0
+ value['defender']['units']=[
+  {'unit_id':'hoplite','quantity':100,'entry_batch_id':'g0','arrival_round':0},
+  {'unit_id':'hoplite','quantity':201,'entry_batch_id':'g1','arrival_round':1},
+ ]
+ status,data=post(value)
+ assert status==200
+ assert data['garrison_status']['transition_reached'] is True
+ assert data['garrison_status']['transition_blocked'] is False
+ assert data['garrison_status']['transition']['direction']=='enter_open_field'
+ assert data['garrison_status']['transition']['counted_defenders']==301
+ assert not any(event['type']=='garrison_state_change' for event in data['events'])
+
+
+def test_player_garrison_over_limit_uses_open_field_and_suppresses_wall():
+ value=payload()
+ value['town_hall_level']=1
+ value['wall_level']=1
+ value['defender']['units']=[{'unit_id':'hoplite','quantity':351}]
+ status,data=post(value)
+ assert status==200
+ assert data['garrison_status']['garrison_limit']==350
+ assert data['garrison_status']['open_field'] is True
+ assert data['garrison_status']['effective_battlefield']=='land-max'
+ assert data['wall_status']['status']=='suppressed'
+ assert data['wall_status']['inactive_reason']=='open_field_garrison_limit'
+ assert not any(
+  event['type']=='unsupported_mechanic'
+  and event['details'].get('rule_id')=='UNKNOWN-TOWN-WALL-COMBAT'
+  for event in data['events']
+ )
+
+
+def test_barbarian_garrison_formula_is_executable_when_village_level_is_configured():
+ value={'policy':'experimental','battlefield':'land-small','max_rounds':1,
+   'barbarian_village_level':10,'wall_level':1,
+   'attacker':{'army_kind':'player','units':[{'unit_id':'hoplite','quantity':150}]},
+   'defender':{'army_kind':'barbarian','forge_level':0,'units':[
+     {'unit_id':'barbarian_clubman','quantity':801}]}}
+ status,data=post(value)
+ assert status==200
+ assert data['garrison_status']['settlement_kind']=='barbarian_village'
+ assert data['garrison_status']['garrison_limit']==800
+ assert data['garrison_status']['open_field'] is True
+ assert data['garrison_status']['effective_battlefield']=='land-max'
+
 
 def test_malformed_army_kind_values_return_json_400():
  for bad in ([],{},None,False):
@@ -258,7 +354,7 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert "unit.semantic_class==='light_infantry'&&field.lines.first" in body
  assert "minus.textContent=step?'−'+step" in body and "plus.textContent=step?'＋'+step" in body
  assert "const submittedBattlefield=battlefield.value" in body
- assert "lastBattlefieldId=submittedBattlefield" in body
+ assert "lastBattlefieldId=data.garrison_status?.effective_battlefield||submittedBattlefield" in body
  assert "if(maxField)battlefield.value=maxField.id" in body
  assert "if(metadata.forge_levels['5'])select.value='5'" in body
  assert "line.physical_order.length*Math.floor(line.slot_space/unit.size)" in body
@@ -581,6 +677,30 @@ def test_setup_presets_share_the_canonical_setup_serializer_and_public_entrypoin
  assert '自訂套裝只保存在此瀏覽器' in body
  assert "'UNKNOWN-FORMATION-FALLBACK':'主戰線需要 fallback。" in body
  assert '整個 Light Infantry wave 可完整轉入 First 的情況已支援' in body
+ assert body==Path('public/index.html').read_text()
+
+
+def test_land_setup_exposes_defender_wall_and_preserves_it_in_presets_and_scenario():
+ body=Path('index.html').read_text()
+ assert 'id="defenderTownHallLevel"' in body
+ assert 'id="defenderBarbarianVillageLevel"' in body
+ assert 'id="defenderWallLevel"' in body
+ assert 'function populateTownHallLevel(){' in body
+ assert 'function populateBarbarianVillageLevel(){' in body
+ assert 'function populateWallLevels(){' in body
+ assert "wall_level:Math.max(0,Math.trunc(+defenderWallLevel.value||0))" in body
+ assert "town_hall_level:armyKind('defender')==='player'?" in body
+ assert "barbarian_village_level:armyKind('defender')==='barbarian'?" in body
+ assert "const wallLevel=Math.max(0,Math.min(wallMax,Math.trunc(Number(config.wall_level)||0)))" in body
+ assert "defenderWallLevel.value=String(wallLevel)" in body
+ assert "wall_level:0,town_hall_level:25,barbarian_village_level:null" in body
+ assert "wall_level:0,town_hall_level:null,barbarian_village_level:50" in body
+ assert "'UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION':'防守方駐軍數跨過 garrison limit" in body
+ assert "'UNKNOWN-TOWN-WALL-COMBAT':'防守方已設定城牆。" in body
+ assert '城牆 Lv0–48' in body
+ assert 'HP = 1800 + 900 × Lv、Armor = 72 × Lv' in body
+ assert 'Lv1=216、Lv9=504、Lv18=2160、Lv26=5580' in body
+ assert 'Accuracy：新版待校準' in body
  assert body==Path('public/index.html').read_text()
 
 
