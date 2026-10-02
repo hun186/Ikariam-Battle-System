@@ -64,7 +64,7 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert data['report_transport']=={'default_mode':'summary','default_round_page_size':10,'max_round_page_size':20}
  assert data['town_wall']['max_level']==48
  assert data['town_wall']['input_supported'] is True
- assert data['town_wall']['combat_model_status']=='INPUT_CAPTURED_COMBAT_UNSUPPORTED'
+ assert data['town_wall']['combat_model_status']=='STRICT_GUARDED_EXPERIMENTAL_EXECUTABLE_WITH_GUARDS'
  assert data['town_wall']['rule_id']=='UNKNOWN-TOWN-WALL-COMBAT'
  assert data['town_wall']['published_stat_fields']==['hit_points','armor','damage']
  assert data['town_wall']['unresolved_current_stat_fields']==['accuracy']
@@ -108,22 +108,33 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert (hoplite['resource_cost_basis_total'],hoplite['general_score'])==(70,'1.4')
  assert (carabineer['resource_cost_basis_total'],carabineer['general_score'])==(200,'4')
 
-def test_wall_level_api_validation_and_summary_boundary():
+def test_wall_level_api_validation_and_policy_split():
  value=payload()
  value['wall_level']=20
  status,data=post(value)
  assert status==200
- assert data['status']=='inconclusive' and data['rounds_completed']==0
  assert data['wall_status']['level']==20
  assert data['wall_status']['segments']==3
  assert data['wall_status']['hit_points']==19800
  assert data['wall_status']['armor']==1440
  assert data['wall_status']['damage']==4500
  assert data['wall_status']['accuracy'] is None
- assert any(
+ assert data['wall_status']['combat_model_status']=='EXPERIMENTAL_EXECUTABLE_WITH_GUARDS'
+ assert not any(
   event['type']=='unsupported_mechanic'
   and event['details'].get('rule_id')=='UNKNOWN-TOWN-WALL-COMBAT'
   for event in data['events']
+ )
+
+ strict=payload('strict'); strict['wall_level']=20
+ strict_status,strict_data=post(strict)
+ assert strict_status==200
+ assert strict_data['status']=='inconclusive'
+ assert strict_data['rounds_completed']==0
+ assert any(
+  event['type']=='unsupported_mechanic'
+  and event['details'].get('rule_id')=='UNKNOWN-TOWN-WALL-COMBAT'
+  for event in strict_data['events']
  )
 
  valid=payload(); valid['wall_level']=48
