@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from copy import deepcopy
-from decimal import Decimal
+from decimal import Decimal, ROUND_FLOOR
 from typing import Any
 
 from .accuracy import EXPERIMENTAL_ACCURACY_MODEL_ID, select_accuracy_target
@@ -20,10 +20,25 @@ from .garrison import (
 from .models import Army, Policy, Scenario, ScenarioError, Slot, Wave
 from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 from .redistribution import SlotShare, reserve_redistribution
-from .target_eligibility import TARGET_PENETRATION_RULE_ID, unit_target_eligibility
+from .target_eligibility import (
+    TARGET_PENETRATION_RULE_ID,
+    unit_target_eligibility,
+    wall_target_eligibility,
+)
 from .units import UnitRegistry
 from .weapon_selection import UnsupportedWeaponSelection, select_active_weapon
-from .wall import MAX_TOWN_WALL_LEVEL, TOWN_WALL_RULE_ID, wall_status
+from .wall import (
+    MAX_TOWN_WALL_LEVEL,
+    TOWN_WALL_RULE_ID,
+    apply_exact_wall_redistribution,
+    apply_wall_successful_hit,
+    initial_wall_sections,
+    wall_breached_positions,
+    wall_flanks_locked,
+    wall_redistribution_plan,
+    wall_section_snapshot,
+    wall_status,
+)
 
 
 EXPERIMENTAL_POLICIES = {
@@ -39,6 +54,9 @@ EXPERIMENTAL_POLICIES = {
     "EXP-BATTLE-END-ROUND-BOUNDARY-001": "Evaluate battle-sustaining forces at the initial and completed-round boundaries.",
     "EXP-HEAL-NONE-001": "When Doctor capacity cannot clear all eligible Human persistent damage at a round boundary, do not apply partial healing because allocation and exact Healing/RR ordering are unresolved.",
     "EXP-MORALE-NONE-001": "Cook morale is not applied because the current morale algorithm is unresolved.",
+    "EXP-WALL-FOCUS-DAMAGE-PRIORITY-001": "When eligible Artillery attacks an active Town Wall, concentrate successful hits on the lowest surviving wall damage-position until that section breaches, then continue to the next section; breach count is evidence-backed but exact section-address order remains a calibration hypothesis.",
+    "EXP-WALL-ARTILLERY-SUCCESSFUL-HIT-001": "Treat each penetration-eligible Artillery firing ticket directed at the Town Wall as a successful wall hit. This matches successful-hit breach arithmetic and observed multi-section breach counts; exact wall Accuracy interaction remains unresolved.",
+    "EXP-WALL-OFFENSE-NONE-001": "Do not apply Town Wall offensive fire while its current Accuracy/individual-target interaction remains unresolved; defender troops exposed through breached sections may still fire normally.",
 }
 
 
