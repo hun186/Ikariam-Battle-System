@@ -973,7 +973,10 @@ def _freeze_target_eligibility_for_weapon(
     workshop: WorkshopProfile,
     forge: ForgeProfile,
     targeting: TargetingProfile,
-) -> tuple[dict[str, tuple[tuple[Wave, ...], tuple[tuple[str, str], ...]]], list[dict[str, Any]]]:
+) -> tuple[
+    dict[str, tuple[tuple[Wave, ...], tuple[tuple[str, str], ...]]],
+    dict[str, tuple[dict[str, Any], ...]],
+]:
     """Freeze penetrable target-wave sets for one source weapon at phase start.
 
     Runtime-line membership must not be re-derived after casualties. In
@@ -982,7 +985,7 @@ def _freeze_target_eligibility_for_weapon(
     """
     _guard_single_line_waves(targets)
     frozen: dict[str, tuple[tuple[Wave, ...], tuple[tuple[str, str], ...]]] = {}
-    skipped: list[dict[str, Any]] = []
+    skipped_by_line: dict[str, tuple[dict[str, Any], ...]] = {}
     combat_targets = _combat_waves(targets, registry)
     for target_line in targeting.priorities[source_line]:
         candidates = [
@@ -991,6 +994,7 @@ def _freeze_target_eligibility_for_weapon(
             and _runtime_line(wave, registry) == target_line
         ]
         eligible: list[Wave] = []
+        skipped: list[dict[str, Any]] = []
         for wave in candidates:
             target_unit = registry.get(wave.unit.unit_id)
             decision, _ = unit_target_eligibility(
@@ -1015,13 +1019,15 @@ def _freeze_target_eligibility_for_weapon(
                     "effective_defense": decision.effective_defense,
                     "reason": decision.reason,
                 })
+        if skipped:
+            skipped_by_line[target_line] = tuple(skipped)
         if eligible:
             frozen_waves = tuple(eligible)
             signature = tuple(sorted(
                 (wave.unit.unit_id, wave.unit.wave_id) for wave in frozen_waves
             ))
             frozen[target_line] = (frozen_waves, signature)
-    return frozen, skipped
+    return frozen, skipped_by_line
 
 
 def _shot_rows(firing_counts: list[int]) -> list[int]:
@@ -1227,7 +1233,7 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             continue
         source_unit = registry.get(volley["source_unit"])
         weapon = next(item for item in source_unit.weapons if item.id == volley["weapon_id"])
-        frozen_targets, skipped = _freeze_target_eligibility_for_weapon(
+        frozen_targets, frozen_skips_by_line = _freeze_target_eligibility_for_weapon(
             source_unit,
             weapon,
             volley["attack_upgrade"],
@@ -1240,25 +1246,16 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             forge,
             targeting,
         )
-        eligibility_skips = {}
-        for item in skipped:
-            skip_key = (
-                item["target_line"],
-                item["target_unit_id"],
-                item["target_wave"],
-                item["effective_attack"],
-                item["effective_defense"],
-            )
-            eligibility_skips[skip_key] = item
         contexts[volley_index] = {
             "volley": volley,
             "source_unit": source_unit,
             "weapon": weapon,
             "frozen_targets": frozen_targets,
+            "frozen_skips_by_line": frozen_skips_by_line,
             "matrix_groups": {},
             "damage_groups": {},
             "calculation_keys": set(),
-            "eligibility_skips": eligibility_skips,
+            "eligibility_skips": {},
             "withheld_shots": 0,
             "fired_shots": 0,
             "partial_reported": False,
@@ -1295,6 +1292,15 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
         target_class = None
         eligibility_signature = ()
         for candidate_class in targeting.priorities[volley["runtime_line"]]:
+            for item in context["frozen_skips_by_line"].get(candidate_class, ()):
+                skip_key = (
+                    item["target_line"],
+                    item["target_unit_id"],
+                    item["target_wave"],
+                    item["effective_attack"],
+                    item["effective_defense"],
+                )
+                context["eligibility_skips"][skip_key] = item
             frozen_entry = context["frozen_targets"].get(candidate_class)
             if frozen_entry is None:
                 continue
