@@ -2687,15 +2687,36 @@ def _attach_battle_statistics(
     result["garrison_status"] = garrison
 
     initial_open = bool(garrison.get("open_field")) if garrison.get("modeled") else False
+    wall_runtime = result.pop("_wall_runtime", None)
     wall_inactive_reason = None
+    runtime_active = None
     if scenario.wall_level and initial_open:
         wall_inactive_reason = "open_field_garrison_limit"
-    result["wall_status"] = wall_status(
+        runtime_active = False
+    if wall_runtime is not None:
+        runtime_active = bool(wall_runtime.get("active"))
+        if runtime_active:
+            wall_inactive_reason = None
+
+    status = wall_status(
         scenario.wall_level,
         battlefield(scenario.battlefield),
-        active=False if wall_inactive_reason else None,
+        active=runtime_active,
         inactive_reason=wall_inactive_reason,
     )
+    if wall_runtime is not None and runtime_active:
+        status.update({
+            "status": (
+                "breached"
+                if wall_runtime.get("fully_breached") else "active"
+            ),
+            "combat_model_status": "EXPERIMENTAL_EXECUTABLE_WITH_GUARDS",
+            "effect_applied": True,
+            "sections_state": wall_runtime.get("sections", []),
+            "breached_positions": wall_runtime.get("breached_positions", []),
+            "flanks_locked": bool(wall_runtime.get("flanks_locked")),
+        })
+    result["wall_status"] = status
     return result
 
 def simulate(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
