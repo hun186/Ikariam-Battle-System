@@ -961,7 +961,7 @@ def _target(source: Wave, targets: list[Wave], registry: UnitRegistry,
     return _target_for_line(_runtime_line(source, registry), targets, registry, targeting)
 
 
-def _eligible_target_waves_for_weapon(
+def _freeze_target_eligibility_for_weapon(
     source_unit,
     weapon,
     attack_upgrade: int,
@@ -973,19 +973,22 @@ def _eligible_target_waves_for_weapon(
     workshop: WorkshopProfile,
     forge: ForgeProfile,
     targeting: TargetingProfile,
-) -> tuple[list[Wave], str | None, tuple[tuple[str, str], ...], list[dict[str, Any]]]:
-    """Return the first priority class containing a deployed penetrable target.
+) -> tuple[dict[str, tuple[tuple[Wave, ...], tuple[tuple[str, str], ...]]], list[dict[str, Any]]]:
+    """Freeze penetrable target-wave sets for one source weapon at phase start.
 
-    Eligibility is weapon-specific. A target with effective DEF >= effective
-    ATK is skipped before a shot is created; selection then continues through
-    the runtime line's ordinary target-priority list.
+    Runtime-line membership must not be re-derived after casualties. In
+    particular, a promoted Light wave that is eliminated during the phase would
+    otherwise fall back to its native line and shrink the frozen address book.
     """
     _guard_single_line_waves(targets)
+    frozen: dict[str, tuple[tuple[Wave, ...], tuple[tuple[str, str], ...]]] = {}
     skipped: list[dict[str, Any]] = []
+    combat_targets = _combat_waves(targets, registry)
     for target_line in targeting.priorities[source_line]:
         candidates = [
-            wave for wave in _combat_waves(targets, registry)
-            if _runtime_line(wave, registry) == target_line and wave.slots
+            wave for wave in combat_targets
+            if any(slot.units > 0 for slot in wave.slots)
+            and _runtime_line(wave, registry) == target_line
         ]
         eligible: list[Wave] = []
         for wave in candidates:
@@ -1003,7 +1006,7 @@ def _eligible_target_waves_for_weapon(
             )
             if decision.eligible:
                 eligible.append(wave)
-            elif any(slot.units > 0 for slot in wave.slots):
+            else:
                 skipped.append({
                     "target_line": target_line,
                     "target_unit_id": target_unit.id,
@@ -1012,14 +1015,13 @@ def _eligible_target_waves_for_weapon(
                     "effective_defense": decision.effective_defense,
                     "reason": decision.reason,
                 })
-        if eligible and any(
-            slot.units > 0 for wave in eligible for slot in wave.slots
-        ):
+        if eligible:
+            frozen_waves = tuple(eligible)
             signature = tuple(sorted(
-                (wave.unit.unit_id, wave.unit.wave_id) for wave in eligible
+                (wave.unit.unit_id, wave.unit.wave_id) for wave in frozen_waves
             ))
-            return eligible, target_line, signature, skipped
-    return [], None, (), skipped
+            frozen[target_line] = (frozen_waves, signature)
+    return frozen, skipped
 
 
 def _shot_rows(firing_counts: list[int]) -> list[int]:
@@ -1219,28 +1221,64 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                       slot_casualties: dict[tuple[str, str], int],
                       applied: dict[str, dict[str, str]]) -> int:
     contexts: dict[int, dict[str, Any]] = {}
+    address_books: dict[tuple[str, tuple[tuple[str, str], ...]], tuple[Any, ...]] = {}
     for volley_index, volley in enumerate(volleys):
         if not volley["row_numbers"]:
             continue
         source_unit = registry.get(volley["source_unit"])
         weapon = next(item for item in source_unit.weapons if item.id == volley["weapon_id"])
+        frozen_targets, skipped = _freeze_target_eligibility_for_weapon(
+            source_unit,
+            weapon,
+            volley["attack_upgrade"],
+            source_army.forge_level,
+            volley["runtime_line"],
+            targets,
+            target_army.forge_level,
+            registry,
+            workshop,
+            forge,
+            targeting,
+        )
+        eligibility_skips = {}
+        for item in skipped:
+            skip_key = (
+                item["target_line"],
+                item["target_unit_id"],
+                item["target_wave"],
+                item["effective_attack"],
+                item["effective_defense"],
+            )
+            eligibility_skips[skip_key] = item
         contexts[volley_index] = {
             "volley": volley,
             "source_unit": source_unit,
             "weapon": weapon,
+            "frozen_targets": frozen_targets,
             "matrix_groups": {},
             "damage_groups": {},
             "calculation_keys": set(),
-            "eligibility_skips": {},
+            "eligibility_skips": eligibility_skips,
             "withheld_shots": 0,
             "fired_shots": 0,
             "partial_reported": False,
         }
 
-    # A frozen target address book is shared whenever source weapons have the
-    # same penetrable target-wave set. Different weapons may legitimately have
-    # different books when armour makes some targets ineligible.
-    address_books: dict[tuple[str, tuple[tuple[str, str], ...]], tuple[Any, ...]] = {}
+        # Freeze every address book before any shot in this formation phase can
+        # change slot occupancy or runtime-line inference.
+        for target_class, (enemies, signature) in frozen_targets.items():
+            address_key = (target_class, signature)
+            if address_key in address_books:
+                continue
+            addressed_slots = []
+            for enemy in enemies:
+                addressed_slots.extend(
+                    (slot.damage_position, enemy, slot)
+                    for slot in enemy.slots if slot.units
+                )
+            address_books[address_key] = tuple(
+                sorted(addressed_slots, key=lambda item: (
+                    item[0], item[1].unit.unit_id, item[1].unit.wave_id)))
 
     for volley_index, row_number in _formation_shots(volleys):
         context = contexts.get(volley_index)
@@ -1253,31 +1291,21 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
         damage_groups = context["damage_groups"]
         calculation_keys = context["calculation_keys"]
 
-        enemies, target_class, eligibility_signature, skipped = (
-            _eligible_target_waves_for_weapon(
-                source_unit,
-                weapon,
-                volley["attack_upgrade"],
-                source_army.forge_level,
-                volley["runtime_line"],
-                targets,
-                target_army.forge_level,
-                registry,
-                workshop,
-                forge,
-                targeting,
-            )
-        )
-        for item in skipped:
-            skip_key = (
-                item["target_line"],
-                item["target_unit_id"],
-                item["target_wave"],
-                item["effective_attack"],
-                item["effective_defense"],
-            )
-            context["eligibility_skips"][skip_key] = item
-        if not enemies or target_class is None:
+        enemies = ()
+        target_class = None
+        eligibility_signature = ()
+        for candidate_class in targeting.priorities[volley["runtime_line"]]:
+            frozen_entry = context["frozen_targets"].get(candidate_class)
+            if frozen_entry is None:
+                continue
+            candidate_waves, candidate_signature = frozen_entry
+            if any(slot.units > 0 for wave in candidate_waves for slot in wave.slots):
+                enemies = candidate_waves
+                target_class = candidate_class
+                eligibility_signature = candidate_signature
+                break
+
+        if target_class is None:
             context["withheld_shots"] += 1
             ammo_owner = volley.get("source_wave_state")
             if ammo_owner is not None and ammo_owner.ammo_pool_shots is not None:
@@ -1285,16 +1313,6 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             continue
 
         address_key = (target_class, eligibility_signature)
-        if address_key not in address_books:
-            addressed_slots = []
-            for enemy in enemies:
-                addressed_slots.extend(
-                    (slot.damage_position, enemy, slot)
-                    for slot in enemy.slots if slot.units
-                )
-            address_books[address_key] = tuple(
-                sorted(addressed_slots, key=lambda item: (
-                    item[0], item[1].unit.unit_id, item[1].unit.wave_id)))
         addressed = address_books[address_key]
         if not addressed:
             context["withheld_shots"] += 1
