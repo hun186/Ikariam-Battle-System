@@ -24,6 +24,7 @@
 - Slot 填入／同 wave 回合重建要依 PDF damage priority 的中央優先實體順序；回合開始不得把倖存兵留在可由已支援 formation 規則消除的內側空洞。Same-wave rebuild 本身仍不得跨 wave、跨 line 或新增 slot。其後有兩條窄化的 cross-wave compaction：(1) 同一 entry batch 的 Heavy Infantry 可在既有 First-line slots 內跨兵種中央優先重排；(2) 相同 unit_id 的不同 waves／entry batches 可在相同既有 runtime line slots 內依 arrival/batch 順序接替，ammo、damage、upgrade 與 wave identity 必須各自保留。兩者都不得新增 physical slot；第二條不得跨 line 或推導 fallback，且不同兵種跨 entry batch 仍 unsupported。
 - Barbarian Clubman 的 tactical semantic class 是 `heavy_infantry`、native line 是 `first`；與 Spearman 的 equivalence 只可用於有證據的數值推導，不得反推為 Light Infantry。
 - 同一 runtime formation 可由多種 unit type 組成；Attacking Matrix 必須以整個 formation 共用 row-major source columns 與 target address book，不能因 source wave/unit 改變而重新編號目標。每個 source wave 的 weapon、Workshop、ammo 仍獨立。
+- Accuracy 的官方演算法仍未知；Strict 必須保留 `UNKNOWN-ACCURACY`。Experimental 不得把 Accuracy 當成每發獨立 Bernoulli miss：目前 `EXP-ACCURACY-CONCENTRATION-001` 只在已選定 slot 內做 deterministic individual-target concentration；one-shot-capable hit 不製造 miss，非 one-shot 以最殘血目標 remaining-HP% 與 weapon Accuracy 的門檻決定 spread/focus。新實戰證據可替換此假說，但不得悄悄改動 AM addressing、target priority、Damage、Ammo 或 firing chronology。
 - 最快驗證：`pytest -q`
 <!-- END CODEX PROJECT QUICKSTART -->
 
