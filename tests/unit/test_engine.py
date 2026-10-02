@@ -88,6 +88,32 @@ def test_experimental_mortars_breach_active_wall_and_unlock_flanks():
          }
 
 
+def test_intact_wall_does_not_expose_rear_ground_formations():
+ s={
+  'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+  'wall_level':48,
+  'attacker':{'units':[
+   {'unit_id':'hoplite','quantity':90},
+   {'unit_id':'sulphur_carabineer','quantity':21},
+  ]},
+  'defender':{'units':[
+   {'unit_id':'hoplite','quantity':90},
+   {'unit_id':'sulphur_carabineer','quantity':21},
+  ]},
+ }
+ result=simulate(s)
+ assert result['wall_status']['flanks_locked'] is True
+ assert result['wall_status']['breached_positions']==[]
+ assert all(section['damage']==0 for section in result['wall_status']['sections_state'])
+ assert result['final_state']['defender']['remaining']['sulphur_carabineer']==21
+ assert not any(
+  e['type']=='damage'
+  and e['side']=='attacker'
+  and e['details'].get('target_line') in {'second','third','flank'}
+  for e in result['events']
+ )
+
+
 def test_over_limit_player_defense_starts_on_land_max_with_wall_suppressed():
  s=scenario(rounds=1)
  s['town_hall_level']=1
