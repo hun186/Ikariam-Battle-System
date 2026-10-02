@@ -27,7 +27,7 @@ from .wall import MAX_TOWN_WALL_LEVEL, TOWN_WALL_RULE_ID, wall_status
 
 
 EXPERIMENTAL_POLICIES = {
-    "EXP-D-KILL-SEQUENTIAL-001": "Resolve individual shots sequentially against the most-damaged current unit; discard overkill unless an unimplemented special kill rule applies.",
+    "EXP-D-KILL-SEQUENTIAL-001": "Resolve individual shots sequentially against the individual selected by the active targeting/Accuracy policy; discard overkill unless an unimplemented special kill rule applies.",
     "EXP-SLOT-DAMAGE-EVEN-001": "When RR leaves aggregate persistent damage in a slot, distribute it as evenly as possible across surviving units before sequential fire; exact within-slot allocation is unresolved.",
     "EXP-IR-DISABLED-001": "Immediate Redistribution has an implementation hook but its trigger is unknown, so it is not triggered.",
     "EXP-SR-DISABLED-001": "Slot Redistribution has an implementation hook but its trigger is unknown, so it is not triggered.",
