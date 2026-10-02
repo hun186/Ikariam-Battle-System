@@ -1557,7 +1557,11 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                 ammo_owner.ammo_pool_shots += 1
             continue
 
-        if volley.get("partial_firing_counts") is not None and not context["partial_reported"]:
+        if (
+            volley.get("partial_firing_counts") is not None
+            and not volley.get("partial_reported")
+            and not context["partial_reported"]
+        ):
             _assume(applied, events, "EXP-AMMO-PARTIAL-ORDER-001", number, "fire")
             _event(
                 events, number, "fire", "partial_ammunition", volley["side"],
