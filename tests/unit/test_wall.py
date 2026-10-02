@@ -1,3 +1,4 @@
+import pytest
 from ikariam_battle.battlefield import LAND_BATTLEFIELDS
 from ikariam_battle.wall import (
  MAX_TOWN_WALL_LEVEL, apply_exact_wall_redistribution,
