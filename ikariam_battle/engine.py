@@ -1090,15 +1090,25 @@ def _formation_shots(volleys: list[dict[str, Any]]) -> list[tuple[int, int]]:
 
 
 def _wall_exposed_target_view(
-    waves: list[Wave], registry: UnitRegistry, sections,
+    waves: list[Wave], registry: UnitRegistry, sections, source_line: str,
 ) -> list[Wave]:
-    """View defender waves through currently breached Town Wall positions.
+    """Return only targets whose wall interaction is currently calibrated.
 
-    Non-First formations are unchanged. First-line Slot objects are shared with
-    the real waves so ordinary damage resolution mutates canonical combat state.
+    Air combat is unaffected by Town Wall geometry, so Balloon/Anti-Balloon
+    phases retain the ordinary target set. While any wall section survives,
+    ground formations may address only defender First-line slots whose exact
+    damage-position has already been breached. Rear ground formations are not
+    exposed merely because an unbreached First slot is hidden; doing so would
+    invent a wall-bypass rule that is not yet calibrated.
+
+    Slot objects are shared with canonical waves so ordinary damage resolution
+    still mutates the real combat state.
     """
     if not sections or not wall_flanks_locked(sections):
         return waves
+    if source_line in {"balloon", "anti-balloon"}:
+        return waves
+
     breached = set(wall_breached_positions(sections))
     result: list[Wave] = []
     for wave in waves:
@@ -1106,13 +1116,9 @@ def _wall_exposed_target_view(
         if unit.role != "combat":
             result.append(wave)
             continue
-        first_slots = [slot for slot in wave.slots if slot.line == "first"]
-        if not first_slots:
-            result.append(wave)
-            continue
         visible_slots = [
             slot for slot in wave.slots
-            if slot.line != "first" or slot.damage_position in breached
+            if slot.line == "first" and slot.damage_position in breached
         ]
         result.append(Wave(
             wave.unit,
@@ -2160,7 +2166,9 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 continue
 
             attacker_target_view = (
-                _wall_exposed_target_view(defender, registry, wall_sections)
+                _wall_exposed_target_view(
+                    defender, registry, wall_sections, firing_phase
+                )
                 if wall_runtime_active and wall_sections else defender
             )
             defender_first_positions = None
@@ -2202,7 +2210,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                     scenario.attacker, applied,
                 )
                 attacker_target_view = _wall_exposed_target_view(
-                    defender, registry, wall_sections
+                    defender, registry, wall_sections, firing_phase
                 )
 
             if (
