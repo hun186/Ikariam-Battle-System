@@ -86,7 +86,7 @@ def plan_initial_formation(army: Army, registry: UnitRegistry, field, rules: For
             raise ScenarioError(f"unsupported deployment order authority for {line_name}")
         return field.lines[line_name].damage_priority
 
-    def place(item, line_name: str) -> None:
+    def place_one(item, line_name: str, damage_position: int) -> None:
         unit = registry.get(item.unit_id)
         geometry = field.lines.get(line_name)
         if geometry is None or unit.role != "combat":
@@ -94,14 +94,64 @@ def plan_initial_formation(army: Army, registry: UnitRegistry, field, rules: For
         capacity = geometry.slot_space // unit.size
         used = occupied.setdefault(line_name, set())
         key = (item.unit_id, item.wave_id)
+        if not remaining[key] or damage_position in used:
+            return
+        quantity = min(remaining[key], capacity)
+        placements.append(FormationPlacement(
+            item.unit_id, item.wave_id, line_name,
+            geometry.physical_position(damage_position), damage_position,
+            quantity, capacity,
+        ))
+        remaining[key] -= quantity
+        used.add(damage_position)
+
+    def place(item, line_name: str) -> None:
         for damage_position in placement_order(line_name):
-            if not remaining[key] or damage_position in used:
-                continue
-            quantity = min(remaining[key], capacity)
-            placements.append(FormationPlacement(item.unit_id, item.wave_id, line_name,
-                geometry.physical_position(damage_position), damage_position, quantity, capacity))
-            remaining[key] -= quantity
-            used.add(damage_position)
+            place_one(item, line_name, damage_position)
+
+    def strongest_group_candidate(item, line_name: str) -> tuple[int, int, int]:
+        """Score the concrete group that could occupy the next slot.
+
+        The in-game help says Long-range and Artillery select the strongest
+        units first, while the historical battlefield-fill fix refers to the
+        strongest *group*. User-observed partial groups distinguish those two:
+        one Mortar can lose a slot to six Rams, while five Mortars beat the same
+        six Rams. Until stronger evidence identifies a different selector, use
+        the directly observable slot group attack value:
+            min(remaining, slot_capacity) * primary weapon Damage.
+        The following tuple gives deterministic secondary tie-breaks only.
+        """
+        unit = registry.get(item.unit_id)
+        geometry = field.lines[line_name]
+        capacity = geometry.slot_space // unit.size
+        quantity = min(remaining[(item.unit_id, item.wave_id)], capacity)
+        damage = unit.primary_weapon.damage
+        if damage is None:
+            raise ScenarioError(f"primary weapon damage missing for formation selection: {unit.id}")
+        return quantity * damage, damage, quantity
+
+    def place_strongest_groups(line_name: str) -> None:
+        """Choose the best concrete candidate again for every physical slot."""
+        for damage_position in placement_order(line_name):
+            candidates = [
+                item for item in ordered_units
+                if remaining[(item.unit_id, item.wave_id)] > 0
+                and line_name in eligible_runtime_lines(registry.get(item.unit_id), rules, field)
+            ]
+            if not candidates:
+                break
+            # Highest slot-group attack wins. formation_order_key is used only
+            # as a stable final tie-break, not as combat strength.
+            chosen = min(
+                candidates,
+                key=lambda item: (
+                    -strongest_group_candidate(item, line_name)[0],
+                    -strongest_group_candidate(item, line_name)[1],
+                    -strongest_group_candidate(item, line_name)[2],
+                    item.formation_order_key,
+                ),
+            )
+            place_one(chosen, line_name, damage_position)
 
     # The first line is planned globally: heavy before light. A partial heavy
     # batch owns its slot; a fallback class is never mixed into that slot.
@@ -117,6 +167,16 @@ def plan_initial_formation(army: Army, registry: UnitRegistry, field, rules: For
     for line_name in field.lines:
         if line_name == "first":
             continue
+        selection_policy = rules.lines[line_name].get(
+            "unit_selection_policy", "formation_order"
+        )
+        if selection_policy == "strongest_slot_group_primary_damage":
+            place_strongest_groups(line_name)
+            continue
+        if selection_policy != "formation_order":
+            raise ScenarioError(
+                f"unsupported unit selection policy for {line_name}: {selection_policy}"
+            )
         for item in ordered_units:
             if line_name in eligible_runtime_lines(registry.get(item.unit_id), rules, field):
                 place(item, line_name)
