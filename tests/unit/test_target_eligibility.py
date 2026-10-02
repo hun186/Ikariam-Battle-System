@@ -120,6 +120,67 @@ def test_nonpenetrable_priority_target_is_skipped_for_next_damageable_formation(
     assert damage.details["target_class"] == "second"
 
 
+def test_finite_ammo_weapon_skips_armored_first_and_spends_only_on_next_target():
+    registry = UnitRegistry.load()
+    workshop = WorkshopProfile.load()
+    forge = ForgeProfile.load()
+    targeting = TargetingProfile.load()
+
+    attacker_army = Army.from_dict({
+        "forge_level": 0,
+        "units": [{"unit_id": "sulphur_carabineer", "quantity": 1}],
+    })
+    defender_army = Army.from_dict({
+        "forge_level": 0,
+        "units": [
+            {"unit_id": "steam_giant", "quantity": 1, "armor_upgrade": 104},
+            {"unit_id": "slinger", "quantity": 1},
+        ],
+    })
+    attacker = deploy(attacker_army, registry, LAND_MINI)
+    defender = deploy(defender_army, registry, LAND_MINI)
+    source_wave = next(wave for wave in attacker if wave.unit.unit_id == "sulphur_carabineer")
+    assert source_wave.ammo_pool_shots == 3
+
+    events = []
+    applied = {}
+    volleys = _snapshot_phase_fire(
+        attacker, defender, registry, targeting, events, 1, "attacker", "second", applied
+    )
+    assert source_wave.ammo_pool_shots == 2
+
+    queues = _build_damage_queues(defender, registry, events, 1, "defender", applied)
+    fired = _resolve_volleys(
+        volleys,
+        defender,
+        queues,
+        registry,
+        workshop,
+        forge,
+        targeting,
+        events,
+        1,
+        attacker_army,
+        defender_army,
+        defaultdict(int),
+        defaultdict(int),
+        applied,
+    )
+
+    assert fired == 1
+    assert source_wave.ammo_pool_shots == 2
+    assert any(
+        event.type == "target_ineligible"
+        and event.details["target_unit_id"] == "steam_giant"
+        and event.details["effective_attack"] == "580"
+        and event.details["effective_defense"] == 580
+        for event in events
+    )
+    damage = next(event for event in events if event.type == "damage")
+    assert damage.details["target_unit_id"] == "slinger"
+    assert damage.details["target_class"] == "second"
+
+
 def test_no_damageable_target_preserves_finite_ammunition():
     registry = UnitRegistry.load()
     workshop = WorkshopProfile.load()
@@ -140,15 +201,15 @@ def test_no_damageable_target_preserves_finite_ammunition():
     attacker = deploy(attacker_army, registry, LAND_MINI)
     defender = deploy(defender_army, registry, LAND_MINI)
     source_wave = next(wave for wave in attacker if wave.unit.unit_id == "sulphur_carabineer")
+    source_wave.ammo_pool_shots = 5
     before = source_wave.ammo_pool_shots
-    assert before == 63
 
     events = []
     applied = {}
     volleys = _snapshot_phase_fire(
         attacker, defender, registry, targeting, events, 1, "attacker", "second", applied
     )
-    assert source_wave.ammo_pool_shots == 42  # reserved firing tickets
+    assert source_wave.ammo_pool_shots == 0  # five reserved firing tickets
 
     queues = _build_damage_queues(defender, registry, events, 1, "defender", applied)
     fired = _resolve_volleys(
@@ -175,9 +236,11 @@ def test_no_damageable_target_preserves_finite_ammunition():
         event for event in events
         if event.type == "shots_withheld_no_damageable_target"
     )
-    assert withheld.details["count"] == 21
-    assert withheld.details["ammunition_preserved"] == 21
+    assert withheld.details["count"] == 5
+    assert withheld.details["ammunition_preserved"] == 5
     assert withheld.details["rule_id"] == TARGET_PENETRATION_RULE_ID
+    assert not any(event.type == "partial_ammunition" for event in events)
+    assert "EXP-AMMO-PARTIAL-ORDER-001" not in applied
 
 def test_mixed_source_formation_freezes_address_book_per_eligibility_set():
     registry = UnitRegistry.load()
