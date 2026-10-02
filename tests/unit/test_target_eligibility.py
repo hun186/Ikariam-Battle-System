@@ -6,7 +6,7 @@ from ikariam_battle.engine import (
     _resolve_volleys,
     _snapshot_phase_fire,
 )
-from ikariam_battle.models import Army
+from ikariam_battle.models import Army, ArmyUnit, Slot, Wave
 from ikariam_battle.profiles import ForgeProfile, TargetingProfile, WorkshopProfile
 from ikariam_battle.target_eligibility import (
     TARGET_PENETRATION_RULE_ID,
@@ -178,3 +178,75 @@ def test_no_damageable_target_preserves_finite_ammunition():
     assert withheld.details["count"] == 21
     assert withheld.details["ammunition_preserved"] == 21
     assert withheld.details["rule_id"] == TARGET_PENETRATION_RULE_ID
+
+def test_mixed_source_formation_freezes_address_book_per_eligibility_set():
+    registry = UnitRegistry.load()
+    workshop = WorkshopProfile.load()
+    forge = ForgeProfile.load()
+    targeting = TargetingProfile.load()
+
+    steam = Wave(
+        ArmyUnit("steam_giant", 1, "steam", armor_upgrade=4),
+        0,
+        [Slot("first-1", "first", 1, 1, "steam_giant", "steam", 1, 10, 0)],
+    )
+    hoplite = Wave(
+        ArmyUnit("hoplite", 1, "hop"),
+        0,
+        [Slot("first-2", "first", 2, 2, "hoplite", "hop", 1, 30, 0)],
+    )
+    queues = {
+        ("steam_giant", "steam", "first-1"): [0],
+        ("hoplite", "hop", "first-2"): [0],
+    }
+    volleys = [
+        {
+            "side": "attacker",
+            "source_unit": "spearman",
+            "source_wave": "spear",
+            "runtime_line": "first",
+            "weapon_id": "primary",
+            "attack_upgrade": 0,
+            "row_numbers": [1],
+            "source_damage_positions": [1],
+        },
+        {
+            "side": "attacker",
+            "source_unit": "hoplite",
+            "source_wave": "source-hop",
+            "runtime_line": "first",
+            "weapon_id": "primary",
+            "attack_upgrade": 0,
+            "row_numbers": [1],
+            "source_damage_positions": [2],
+        },
+    ]
+    events = []
+    _resolve_volleys(
+        volleys,
+        [steam, hoplite],
+        queues,
+        registry,
+        workshop,
+        forge,
+        targeting,
+        events,
+        1,
+        Army((ArmyUnit("spearman", 1, "spear"), ArmyUnit("hoplite", 1, "source-hop")), 0),
+        Army((ArmyUnit("steam_giant", 1, "steam", armor_upgrade=4), ArmyUnit("hoplite", 1, "hop")), 0),
+        defaultdict(int),
+        defaultdict(int),
+        {},
+    )
+
+    damage_by_source = {
+        event.details["source_unit_id"]: event.details["target_unit_id"]
+        for event in events
+        if event.type == "damage"
+    }
+    # Spearman ATK 80 cannot penetrate Steam Giant DEF 80, so its frozen
+    # address set contains only Hoplite. Hoplite ATK 360 can penetrate both and
+    # gets a different frozen set whose row-1 address is Steam Giant position 1.
+    assert damage_by_source["spearman"] == "hoplite"
+    assert damage_by_source["hoplite"] == "steam_giant"
+
