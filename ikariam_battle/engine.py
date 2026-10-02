@@ -1142,20 +1142,29 @@ def _resolve_wall_artillery_volleys(
     volleys: list[dict[str, Any]],
     sections,
     wall_level: int,
+    targets: list[Wave],
+    queues: dict[tuple[str, str, str], list[int]],
     registry: UnitRegistry,
     workshop: WorkshopProfile,
     forge: ForgeProfile,
+    targeting: TargetingProfile,
     events: list[Event],
     number: int,
     source_army,
+    target_army,
+    casualties: dict[str, int],
+    slot_casualties: dict[tuple[str, str], int],
     applied: dict[str, dict[str, str]],
 ) -> tuple[list[dict[str, Any]], int]:
-    """Consume Artillery shots against an active wall and return leftovers.
+    """Resolve Artillery wall priority without reordering skipped tickets.
 
-    Shot ownership/ammo is already reserved by _snapshot_phase_fire. A
-    non-penetrating wall candidate does not consume that ticket; it is left in
-    the returned volley so normal target priority can continue. Once every wall
-    section is breached, all later tickets likewise continue to unit targets.
+    Shot ownership/ammo is already reserved by _snapshot_phase_fire. Each
+    row-major ticket is resolved against the wall state that exists at that
+    exact point. A non-penetrating wall candidate immediately continues through
+    ordinary target priority using only First positions already exposed at that
+    moment; if none are damageable the ticket is refunded by _resolve_volleys.
+    Once every wall section is breached, later tickets are returned to the
+    ordinary formation resolver.
     """
     if not sections or not wall_flanks_locked(sections):
         return volleys, 0
@@ -1215,6 +1224,28 @@ def _resolve_wall_artillery_volleys(
                     rule_id=TARGET_PENETRATION_RULE_ID,
                     action="skip_without_shot_or_ammunition",
                 )
+
+            # This ticket must continue target selection at its original
+            # row-major position, not after later wall hits have changed which
+            # First positions are exposed.
+            rows = volley["row_numbers"]
+            positions = volley.get("source_damage_positions", [])
+            single = dict(volley)
+            single["row_numbers"] = [rows[shot_index]]
+            single["source_damage_positions"] = [positions[shot_index]]
+            visible_now = _wall_exposed_target_view(
+                targets, registry, sections, volley["runtime_line"]
+            )
+            ordinary_shots = _resolve_volleys(
+                [single], visible_now, queues,
+                registry, workshop, forge, targeting,
+                events, number, source_army, target_army,
+                casualties, slot_casualties, applied,
+            )
+            if ordinary_shots and single.get("partial_firing_counts") is not None:
+                volley["partial_reported"] = True
+            consumed[volley_index].add(shot_index)
+            fired += ordinary_shots
             continue
 
         intact = sorted(
@@ -2206,8 +2237,10 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             ):
                 a_volleys, wall_shots = _resolve_wall_artillery_volleys(
                     a_volleys, wall_sections, scenario.wall_level,
-                    registry, workshop, forge, events, number,
-                    scenario.attacker, applied,
+                    defender, d_queues,
+                    registry, workshop, forge, targeting,
+                    events, number, scenario.attacker, scenario.defender,
+                    d_dead, d_slot_dead, applied,
                 )
                 attacker_target_view = _wall_exposed_target_view(
                     defender, registry, wall_sections, firing_phase
