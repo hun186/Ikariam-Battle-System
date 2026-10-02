@@ -11,6 +11,8 @@ TOWN_WALL_SOURCE_URL = "https://gameforge.com/en-GB/games/ikariam-city-wall.html
 TOWN_WALL_COMMUNITY_SOURCE_URL = "https://ikariam.fandom.com/wiki/Building%3ATown_wall"
 TOWN_WALL_FORUM_MAX_SOURCE_URL = "https://forum.ikariam.gameforge.com/forum/thread/102643-wbbl-worldwide-biggest-building-levels/"
 TOWN_WALL_FORUM_COMBAT_SOURCE_URL = "https://forum.ikariam.gameforge.com/forum/thread/92826-freighters-and-pushing/"
+TOWN_WALL_FORUM_TARGETING_SOURCE_URL = "https://forum.ikariam.gameforge.com/forum/thread/95872-%D0%B2%D0%B5%D1%80%D1%81%D0%B8%D1%8F-0-4-2-%D0%BF%D0%BE-%D0%BF%D0%BE%D0%BB%D0%BA%D0%B0%D0%BC/"
+TOWN_WALL_FORUM_PENETRATION_SOURCE_URL = "https://forum.ikariam.gameforge.com/forum/thread/30537-taverna-kaikias/?pageNo=70"
 TOWN_WALL_V13_CHANGELOG_URL = "https://forum.ikariam.gameforge.com/forum/thread/107634-infinite-horizons-milestone-2/"
 TOWN_WALL_V13_STATS_DISCUSSION_URL = "https://forum.ikariam.gameforge.com/forum/thread/107659-infinite-horizons-2/"
 
@@ -116,6 +118,14 @@ def wall_profile_metadata() -> dict[str, Any]:
         "damage_observed_points": {"1": 216, "9": 504, "18": 2160, "26": 5580},
         "successful_breach_hits_formula": "ceil((1800 + 900*level) / (attack_damage - 72*level))",
         "successful_breach_hits_scope": "successful hits only; excludes accuracy and shot allocation",
+        "targeting_contract": {
+            "status": "TARGET_PRIORITY_KNOWN_COMBAT_STILL_GUARDED",
+            "artillery_priority": ["wall", "first"],
+            "rule": "Attacking land artillery targets the Town Wall before ordinary First-line units while intact wall sections are present.",
+            "penetration_rule": "effective_attack > effective_defense",
+            "non_penetrating_target_consumes_ammunition": False,
+            "non_penetrating_target_action": "skip_and_continue_target_priority",
+        },
         "source_type": "MIXED_CURRENT_REFERENCE",
         "gameforge_reference_max_level": GAMEFORGE_WALL_REFERENCE_MAX_LEVEL,
         "current_game_max_level_evidence": "GAMEFORGE_FORUM_PLUS_COMMUNITY_TABLE",
@@ -124,6 +134,8 @@ def wall_profile_metadata() -> dict[str, Any]:
             TOWN_WALL_COMMUNITY_SOURCE_URL,
             TOWN_WALL_FORUM_MAX_SOURCE_URL,
             TOWN_WALL_FORUM_COMBAT_SOURCE_URL,
+            TOWN_WALL_FORUM_TARGETING_SOURCE_URL,
+            TOWN_WALL_FORUM_PENETRATION_SOURCE_URL,
             TOWN_WALL_V13_CHANGELOG_URL,
             TOWN_WALL_V13_STATS_DISCUSSION_URL,
         ],
