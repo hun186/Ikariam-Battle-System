@@ -52,7 +52,7 @@ EXPERIMENTAL_POLICIES = {
     "EXP-IR-DISABLED-001": "Immediate Redistribution has an implementation hook but its trigger is unknown, so it is not triggered.",
     "EXP-SR-DISABLED-001": "Slot Redistribution has an implementation hook but its trigger is unknown, so it is not triggered.",
     SWORDSMAN_IKILL_RULE_ID: "For Swordsman flank target slots whose six reduced-AM source columns are all odd, use aggregate I-kill only when prior persistent damage plus incoming damage divides target HP exactly; this reproduces the empirical paper's historical full-formation divisible case.",
-    SWORDSMAN_MKILL_RULE_ID: "For the same six-odd-column Swordsman flank shape when exact division fails, start from sequential D-kill then recover one third of discarded overkill into a slot-level redistributed pool. The one-third factor is a current user-observation calibration hypothesis; Accuracy remains a higher-level unresolved selector candidate.",
+    SWORDSMAN_MKILL_RULE_ID: "For Swordsman flank target slots with odd reduced-AM source columns in the two-hit regime, pair hits as D-kill, pool each odd column's tail hit, add phase-start persistent damage, and allow one P/M-style recount per odd column capped by min(pair overkill, HP remaining after the first hit). Accuracy remains an unresolved higher-level selector candidate rather than a fabricated multiplier.",
     "EXP-ROUND-FLOOR-001": "Floor non-integer net damage; the general selector is unknown.",
     "EXP-RR-ROUND-HALF-UP-001": "Round the total deployed RR share half-up, then assign remainder by damage priority.",
     "EXP-AMMO-STOP-001": "After primary ammunition is exhausted, do not silently switch to an unverified secondary weapon.",
@@ -2003,7 +2003,15 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                             applied, events, SWORDSMAN_MKILL_RULE_ID,
                             number, "fire", volley["side"],
                         )
-                        resolution = "swordsman_flank_m_kill_overkill_third"
+                        group["mkill_hit_damage"] = adjustment.hit_damage
+                        group["mkill_baseline_d_kills"] = adjustment.baseline_d_kills
+                        group["mkill_odd_column_count"] = adjustment.odd_column_count
+                        group["mkill_odd_tail_damage"] = adjustment.odd_tail_damage
+                        group["mkill_p_m_recount_per_odd_column"] = (
+                            adjustment.p_m_recount_per_odd_column
+                        )
+                        group["mkill_phase_start_damage"] = adjustment.phase_start_damage
+                        resolution = "swordsman_flank_m_kill_odd_column_p_m_recount"
                         assumption_ids = [
                             "EXP-D-KILL-SEQUENTIAL-001",
                             SWORDSMAN_MKILL_RULE_ID,
