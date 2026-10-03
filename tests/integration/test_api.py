@@ -700,6 +700,8 @@ def test_setup_presets_share_the_canonical_setup_serializer_and_public_entrypoin
  assert 'const config=setupConfigurationFromUi(),{setup_version,...scenario}=config;' in body
  assert "const config=setupConfigurationFromUi(),items=readUserPresets()" in body
  assert "applySetupConfiguration(builtinPresetConfiguration(builtinPreset.value))" in body
+ assert "policy.addEventListener('change',updateWallControl)" in body
+ assert "if(['experimental','strict'].includes(config.policy))policy.value=config.policy;\n  updateWallControl();" in body
  assert "clearSideRows('attacker');clearSideRows('defender')" in body
  assert "battleDomain.value=field.domain;refreshBattlefieldOptions(field.id)" in body
  assert "setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100" in body
