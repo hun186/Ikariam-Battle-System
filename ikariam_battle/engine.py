@@ -18,9 +18,9 @@ from .garrison import (
     land_garrison_status,
 )
 from .kill_calibration import (
-    RULE_ID as SWORDSMAN_MKILL_CALIBRATION_RULE_ID,
-    SwordsmanSlotCalibration,
-    swordsman_full_flank_plan,
+    IKILL_RULE_ID as SWORDSMAN_IKILL_RULE_ID,
+    MKILL_RULE_ID as SWORDSMAN_MKILL_RULE_ID,
+    swordsman_flank_kill_adjustment,
 )
 from .models import Army, Policy, Scenario, ScenarioError, Slot, Wave
 from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
@@ -51,7 +51,8 @@ EXPERIMENTAL_POLICIES = {
     "EXP-SLOT-DAMAGE-EVEN-001": "When RR leaves aggregate persistent damage in a slot, distribute it as evenly as possible across surviving units before sequential fire; exact within-slot allocation is unresolved.",
     "EXP-IR-DISABLED-001": "Immediate Redistribution has an implementation hook but its trigger is unknown, so it is not triggered.",
     "EXP-SR-DISABLED-001": "Slot Redistribution has an implementation hook but its trigger is unknown, so it is not triggered.",
-    SWORDSMAN_MKILL_CALIBRATION_RULE_ID: "Use the exact user-observed full 6x40 Swordsman flank outcome only for the reviewed Forge-5 Workshop pairs (24 ATK -> 18 DEF and 18 ATK -> 26 DEF); central 42-hit slots override the generic D-kill result, while all other M-kill selectors remain unresolved.",
+    SWORDSMAN_IKILL_RULE_ID: "For Swordsman flank target slots whose six reduced-AM source columns are all odd, use aggregate I-kill only when prior persistent damage plus incoming damage divides target HP exactly; this reproduces the empirical paper's historical full-formation divisible case.",
+    SWORDSMAN_MKILL_RULE_ID: "For the same six-odd-column Swordsman flank shape when exact division fails, start from sequential D-kill then recover one third of discarded overkill into a slot-level redistributed pool. The one-third factor is a current user-observation calibration hypothesis; Accuracy remains a higher-level unresolved selector candidate.",
     "EXP-ROUND-FLOOR-001": "Floor non-integer net damage; the general selector is unknown.",
     "EXP-RR-ROUND-HALF-UP-001": "Round the total deployed RR share half-up, then assign remainder by damage priority.",
     "EXP-AMMO-STOP-001": "After primary ammunition is exhausted, do not silently switch to an unverified secondary weapon.",
@@ -1092,7 +1093,7 @@ def _shot_source_positions(deployed: list[Slot], firing_counts: list[int]) -> li
             if count >= row]
 
 
-def _formation_shots(volleys: list[dict[str, Any]]) -> list[tuple[int, int]]:
+def _formation_shots(volleys: list[dict[str, Any]]) -> list[tuple[int, int, int | None]]:
     """Merge mixed source waves into one row-major Attacking Matrix sequence.
 
     Each volley still owns its weapon, upgrades and ammunition pool. The AM row
@@ -1105,7 +1106,7 @@ def _formation_shots(volleys: list[dict[str, Any]]) -> list[tuple[int, int]]:
         rows = list(volley.get("row_numbers", ()))
         positions = volley.get("source_damage_positions")
         if not isinstance(positions, list) or len(positions) != len(rows):
-            return [(volley_index, row)
+            return [(volley_index, row, None)
                     for volley_index, item in enumerate(volleys)
                     for row in item.get("row_numbers", ())]
         prepared.append((rows, positions))
@@ -1115,7 +1116,8 @@ def _formation_shots(volleys: list[dict[str, Any]]) -> list[tuple[int, int]]:
         for shot_index, (row, position) in enumerate(zip(rows, positions)):
             ordered.append((row, position, volley_index, shot_index))
     ordered.sort()
-    return [(volley_index, row) for row, _, volley_index, _ in ordered]
+    return [(volley_index, row, position)
+            for row, position, volley_index, _ in ordered]
 
 
 def _wall_exposed_target_view(
@@ -1690,7 +1692,7 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
         ).items():
             address_books.setdefault(address_key, addressed)
 
-    for volley_index, row_number in _formation_shots(volleys):
+    for volley_index, row_number, source_damage_position in _formation_shots(volleys):
         context = contexts.get(volley_index)
         if context is None:
             continue
