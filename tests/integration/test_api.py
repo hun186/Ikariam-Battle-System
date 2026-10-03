@@ -725,7 +725,7 @@ def test_land_setup_exposes_defender_wall_and_preserves_it_in_presets_and_scenar
  assert "wall_level:0,town_hall_level:25,barbarian_village_level:null" in body
  assert "wall_level:0,town_hall_level:null,barbarian_village_level:50" in body
  assert "'UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION':'防守方駐軍數跨過 garrison limit" in body
- assert "'UNKNOWN-TOWN-WALL-COMBAT':'防守方已設定城牆。" in body
+ assert "'UNKNOWN-TOWN-WALL-COMBAT':'Strict 模式遇到 active Town Wall 時停止於此 evidence boundary。" in body
  assert '城牆 Lv0–48' in body
  assert 'HP = 1800 + 900 × Lv、Armor = 72 × Lv' in body
  assert 'Lv1=216、Lv9=504、Lv18=2160、Lv26=5580' in body
