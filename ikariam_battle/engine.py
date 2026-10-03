@@ -1430,17 +1430,38 @@ def _resolve_wall_artillery_volleys(
     leftovers: list[dict[str, Any]] = []
     for volley_index, volley in enumerate(volleys):
         used = consumed.get(volley_index, set())
-        if not used:
-            leftovers.append(volley)
-            continue
         rows = volley["row_numbers"]
         positions = volley.get("source_damage_positions", [])
         remaining_indexes = [i for i in range(len(rows)) if i not in used]
         if not remaining_indexes:
             continue
+
         item = dict(volley)
         item["row_numbers"] = [rows[i] for i in remaining_indexes]
         item["source_damage_positions"] = [positions[i] for i in remaining_indexes]
+
+        # A nonpenetrating source may have frozen its ordinary First-line
+        # fallthrough book before later Artillery tickets fully breached the
+        # wall. Carry that phase-start book onto any leftover tickets instead
+        # of letting the caller rebuild addresses from newly exposed slots.
+        source_unit = registry.get(volley["source_unit"])
+        weapon = next(
+            candidate for candidate in source_unit.weapons
+            if candidate.id == volley["weapon_id"]
+        )
+        source_key = (
+            source_unit.id, weapon.id, int(volley["attack_upgrade"])
+        )
+        legal_signature = fallthrough_source_signatures.get(source_key)
+        frozen = (
+            fallthrough_freezes.get(legal_signature)
+            if legal_signature is not None else None
+        )
+        if frozen is not None:
+            item["_frozen_targets_override"] = frozen[0]
+            item["_frozen_skips_by_line_override"] = frozen[1]
+            item["_address_books_override"] = frozen[2]
+
         leftovers.append(item)
     return leftovers, fired
 
