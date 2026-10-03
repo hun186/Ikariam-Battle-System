@@ -344,6 +344,39 @@ def test_over_limit_player_defense_starts_on_land_max_with_wall_suppressed():
  )
 
 
+def test_same_geometry_wall_reactivates_before_terminal_defender_loss():
+ s={
+  'policy':'experimental','battlefield':'land-max','max_rounds':2,
+  'town_hall_level':1,'wall_level':1,
+  'attacker':{'forge_level':5,'units':[
+   {'unit_id':'mortar','quantity':30,'attack_upgrade':1000},
+   {'unit_id':'hoplite','quantity':350,'attack_upgrade':1000},
+  ]},
+  'defender':{'forge_level':0,'units':[
+   {'unit_id':'hoplite','quantity':351}
+  ]},
+ }
+ result=simulate(s)
+
+ changes=[
+  e for e in result['events']
+  if e['type']=='garrison_state_change'
+  and e['details'].get('direction')=='exit_open_field'
+ ]
+ assert changes and changes[0]['round']==1
+ assert changes[0]['details']['counted_defenders']<=350
+ assert changes[0]['details']['wall_reappears'] is True
+ assert changes[0]['details']['wall_state']=='fresh_intact_sections'
+ assert not any(
+  e['type']=='battle_termination'
+  and e['round']==1
+  and e['details'].get('losing_side')=='defender'
+  for e in result['events']
+ )
+ assert result['rounds_completed']>=2
+ assert result['wall_status']['status']!='suppressed'
+
+
 def test_defender_arrival_crossing_limit_detects_enter_open_field_transition():
  s={
   'policy':'experimental','battlefield':'land-mini','max_rounds':2,
