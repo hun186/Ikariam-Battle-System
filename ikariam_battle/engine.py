@@ -2531,21 +2531,6 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             if not a_volleys and not d_volleys and not wall_shots:
                 continue
 
-            a_swordsman_calibration = ()
-            d_swordsman_calibration = ()
-            if firing_phase == "flank":
-                swordsman_hp = registry.get("swordsman").hit_points or 0
-                a_swordsman_calibration = swordsman_full_flank_plan(
-                    a_volleys, attacker_target_view,
-                    scenario.attacker, scenario.defender,
-                    target_hit_points=swordsman_hp,
-                )
-                d_swordsman_calibration = swordsman_full_flank_plan(
-                    d_volleys, attacker,
-                    scenario.defender, scenario.attacker,
-                    target_hit_points=swordsman_hp,
-                )
-
             attacker_shots = wall_shots + _resolve_volleys(
                 a_volleys, attacker_target_view, d_queues,
                 registry, workshop, forge, targeting,
@@ -2554,15 +2539,6 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             defender_shots = _resolve_volleys(
                 d_volleys, attacker, a_queues, registry, workshop, forge, targeting,
                 events, number, scenario.defender, scenario.attacker, a_dead, a_slot_dead, applied)
-
-            _apply_swordsman_full_flank_calibration(
-                a_swordsman_calibration, d_queues, d_dead, d_slot_dead,
-                events, number, "attacker", applied, registry,
-            )
-            _apply_swordsman_full_flank_calibration(
-                d_swordsman_calibration, a_queues, a_dead, a_slot_dead,
-                events, number, "defender", applied, registry,
-            )
 
             if not attacker_shots and not defender_shots:
                 continue
