@@ -1665,7 +1665,7 @@ def test_user_observed_full_swordsman_flank_mkill_hypothesis_matches_round_one()
   ]},
  }
  result=simulate(s)
- round_one=result['rounds'][0]
+ round_one=next(row for row in result['rounds'] if row['round']==1)
 
  def flank(state):
   return sorted(
