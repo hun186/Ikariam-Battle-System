@@ -30,7 +30,9 @@ def test_browser_wall_copy_matches_strict_experimental_policy_split():
  assert 'Experimental 可執行具名假設下的 Artillery 破牆' in html
  assert "wall.status==='unsupported_boundary'" in html
  assert "wall.status==='breached'" in html
+ assert "wall.status==='not_reached'" in html
  assert 'Experimental wall runtime' in html
+ assert 'Experimental wall capability 可執行，但本次戰鬥在進入牆戰前已結束' in html
  assert '城牆本身的破牆戰仍停在 UNKNOWN-TOWN-WALL-COMBAT' not in html
  assert 'HP 扣減／破洞、守軍補位與 Flank 鎖定仍停在 UNKNOWN-TOWN-WALL-COMBAT' not in html
 
