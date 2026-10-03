@@ -1212,12 +1212,16 @@ def _resolve_wall_artillery_volleys(
     consumed: dict[int, set[int]] = defaultdict(set)
     eligibility_reported: set[tuple[str, str, str]] = set()
     fallthrough_freezes: dict[
-        tuple[str, str, int],
+        tuple[tuple[str, tuple[tuple[str, str], ...]], ...],
         tuple[
             dict[str, tuple[tuple[Wave, ...], tuple[tuple[str, str], ...]]],
             dict[str, tuple[dict[str, Any], ...]],
             dict[tuple[str, tuple[tuple[str, str], ...]], tuple[Any, ...]],
         ],
+    ] = {}
+    fallthrough_source_signatures: dict[
+        tuple[str, str, int],
+        tuple[tuple[str, tuple[tuple[str, str], ...]], ...],
     ] = {}
     fired = 0
 
@@ -1268,10 +1272,14 @@ def _resolve_wall_artillery_volleys(
                 targets, registry, sections, volley["runtime_line"]
             )
 
-            freeze_key = (
+            source_key = (
                 source_unit.id, weapon.id, int(volley["attack_upgrade"])
             )
-            frozen = fallthrough_freezes.get(freeze_key)
+            legal_signature = fallthrough_source_signatures.get(source_key)
+            frozen = (
+                fallthrough_freezes.get(legal_signature)
+                if legal_signature is not None else None
+            )
             if frozen is None:
                 candidate_targets, candidate_skips = _freeze_target_eligibility_for_weapon(
                     source_unit,
@@ -1287,12 +1295,60 @@ def _resolve_wall_artillery_volleys(
                     targeting,
                 )
                 if candidate_targets:
-                    frozen = (
-                        candidate_targets,
-                        candidate_skips,
-                        _address_books_from_frozen_targets(candidate_targets),
+                    legal_signature = tuple(
+                        (target_class, signature)
+                        for target_class, (_waves, signature)
+                        in candidate_targets.items()
                     )
-                    fallthrough_freezes[freeze_key] = frozen
+                    fallthrough_source_signatures[source_key] = legal_signature
+                    frozen = fallthrough_freezes.get(legal_signature)
+                    if frozen is None:
+                        frozen = (
+                            candidate_targets,
+                            candidate_skips,
+                            _address_books_from_frozen_targets(candidate_targets),
+                        )
+                        fallthrough_freezes[legal_signature] = frozen
+
+                    # Cache equivalent source weapons while these targets are
+                    # still live. Later source types in the same formation
+                    # phase must reuse the same address book even if an earlier
+                    # type kills the last unit at one of those addresses.
+                    for other in volleys:
+                        other_unit = registry.get(other["source_unit"])
+                        other_weapon = next(
+                            item for item in other_unit.weapons
+                            if item.id == other["weapon_id"]
+                        )
+                        other_key = (
+                            other_unit.id,
+                            other_weapon.id,
+                            int(other["attack_upgrade"]),
+                        )
+                        if other_key in fallthrough_source_signatures:
+                            continue
+                        other_targets, _ = _freeze_target_eligibility_for_weapon(
+                            other_unit,
+                            other_weapon,
+                            other["attack_upgrade"],
+                            source_army.forge_level,
+                            other["runtime_line"],
+                            visible_now,
+                            target_army.forge_level,
+                            registry,
+                            workshop,
+                            forge,
+                            targeting,
+                        )
+                        if not other_targets:
+                            continue
+                        other_signature = tuple(
+                            (target_class, signature)
+                            for target_class, (_waves, signature)
+                            in other_targets.items()
+                        )
+                        if other_signature == legal_signature:
+                            fallthrough_source_signatures[other_key] = legal_signature
             if frozen is not None:
                 single["_frozen_targets_override"] = frozen[0]
                 single["_frozen_skips_by_line_override"] = frozen[1]
