@@ -2516,6 +2516,42 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             "defender": _pending_sustaining_arrivals(
                 scenario.defender, number, registry, battle_end),
         }
+
+        # A same-geometry open-field exit is a state-only transition: no slot
+        # remap is required on land-max. Apply it before termination so a fresh
+        # active wall can sustain the defender even when the last First-line
+        # unit died in this same round. Geometry-changing exits remain guarded
+        # later and do not override an already terminal battle.
+        if (
+            garrison_limit is not None
+            and open_field_active
+            and scenario.battlefield == "land-max"
+        ):
+            counted_defenders = counted_live_waves(defender, registry)
+            if counted_defenders <= garrison_limit:
+                wall_reappears = bool(scenario.wall_level)
+                open_field_active = False
+                if wall_reappears:
+                    wall_runtime_active = True
+                    wall_sections = initial_wall_sections(
+                        scenario.wall_level, field
+                    )
+                    states["defender"] = ContinuationState.SUSTAINING.value
+                    effective_defender_state["continuation_state"] = (
+                        ContinuationState.SUSTAINING.value
+                    )
+                _event(
+                    events, number, "round_end", "garrison_state_change", "defender",
+                    direction="exit_open_field",
+                    counted_defenders=counted_defenders,
+                    garrison_limit=garrison_limit,
+                    battlefield="land-max",
+                    wall_reappears=wall_reappears,
+                    wall_state=(
+                        "fresh_intact_sections"
+                        if wall_reappears else "not_present"
+                    ),
+                )
         if all(state == ContinuationState.NOT_SUSTAINING.value for state in states.values()):
             if not engagement_started and any(pending_now.values()):
                 _event(events, number, "battle_start", "waiting_for_arrival", None,
@@ -2548,9 +2584,9 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                                                  "defender":_non_sustaining(defender_state)})
                 break
 
-        # A garrison threshold transition matters only if combat continues into
-        # another round. If this round already ended the battle, no formation
-        # needs to be remapped and the terminal outcome remains authoritative.
+        # Geometry-changing garrison exits still require remapping and remain
+        # guarded. Same-geometry land-max exits were already applied above
+        # before termination because they can reactivate a sustaining wall.
         if garrison_limit is not None and open_field_active:
             counted_defenders = counted_live_waves(defender, registry)
             if counted_defenders <= garrison_limit:
