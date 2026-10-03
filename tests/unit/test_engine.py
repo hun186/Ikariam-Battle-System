@@ -1652,7 +1652,7 @@ def test_art_of_warfare_firing_order_profile_and_artillery_targets_are_exact():
  assert 'second' not in t.priorities['third'] and 'third' not in t.priorities['third']
 
 
-def test_user_observed_full_swordsman_flank_mkill_calibration_matches_round_one():
+def test_user_observed_full_swordsman_flank_mkill_hypothesis_matches_round_one():
  s={
   'policy':'experimental','battlefield':'land-max','max_rounds':1,
   'attacker':{'forge_level':5,'units':[
@@ -1678,34 +1678,53 @@ def test_user_observed_full_swordsman_flank_mkill_calibration_matches_round_one(
 
  assert [slot['casualties'] for slot in attacker_flank]==[18,21,21,21,21,18]
  assert [slot['casualties'] for slot in defender_flank]==[18,24,24,24,24,18]
- assert [slot['hit_points_percent'] for slot in attacker_flank[1:5]]==[99.01]*4
- assert [slot['hit_points_percent'] for slot in defender_flank[1:5]]==[99.01]*4
+ assert [slot['damage'] for slot in attacker_flank]==[0,42,42,42,42,0]
+ assert [slot['damage'] for slot in defender_flank]==[0,12,12,12,12,0]
+ assert [slot['hit_points_percent'] for slot in attacker_flank[1:5]]==[99.39]*4
+ assert [slot['hit_points_percent'] for slot in defender_flank[1:5]]==[99.79]*4
  assert attacker_flank[0]['hit_points_percent']==100
  assert attacker_flank[-1]['hit_points_percent']==100
  assert defender_flank[0]['hit_points_percent']==100
  assert defender_flank[-1]['hit_points_percent']==100
 
  ids={item['id'] for item in result['assumptions']}
- assert 'EXP-SWORDSMAN-FULL-FLANK-MKILL-CALIBRATION-001' in ids
- calibrated=[
+ assert 'EXP-SWORDSMAN-FLANK-MKILL-OVERKILL-THIRD-001' in ids
+ modeled=[
   event for event in result['events']
   if event['type']=='damage'
-  and event['details'].get('resolution')=='user_observed_swordsman_full_flank_mkill_calibration'
+  and event['details'].get('resolution')=='swordsman_flank_m_kill_overkill_third'
  ]
- assert len(calibrated)==8
- assert {event['details']['target_damage_position'] for event in calibrated}=={1,2,3,4}
- assert all(event['details']['reported_damage_percent']==1 for event in calibrated)
+ assert len(modeled)==8
+ assert {event['details']['target_damage_position'] for event in modeled}=={1,2,3,4}
+ assert all(set(event['details']['source_column_hits'].values())=={7} for event in modeled)
  assert {
-  event['details']['baseline_casualties'] for event in calibrated
-  if event['side']=='attacker'
- }=={21}
+  (event['details']['baseline_casualties'],
+   event['details']['casualties'],
+   event['details']['recovered_overkill'],
+   event['details']['persistent_damage'])
+  for event in modeled if event['side']=='attacker'
+ }=={(21,24,1092,12)}
  assert {
-  event['details']['casualties'] for event in calibrated
-  if event['side']=='attacker'
- }=={24}
+  (event['details']['baseline_casualties'],
+   event['details']['casualties'],
+   event['details']['recovered_overkill'],
+   event['details']['persistent_damage'])
+  for event in modeled if event['side']=='defender'
+ }=={(21,21,42,42)}
+
+ outer=[
+  event for event in result['events']
+  if event['type']=='damage'
+  and event['details'].get('source_unit_id')=='swordsman'
+  and event['details'].get('target_unit_id')=='swordsman'
+  and event['details'].get('target_damage_position') in {5,6}
+ ]
+ assert len(outer)==4
+ assert all(event['details']['resolution']=='sequential_d_kill_baseline' for event in outer)
+ assert all(set(event['details']['source_column_hits'].values())=={6} for event in outer)
 
 
-def test_swordsman_mkill_calibration_does_not_generalize_to_nearby_upgrades():
+def test_swordsman_mkill_hypothesis_generalizes_by_damage_not_upgrade_fixture():
  s={
   'policy':'experimental','battlefield':'land-max','max_rounds':1,
   'attacker':{'forge_level':5,'units':[
@@ -1718,14 +1737,17 @@ def test_swordsman_mkill_calibration_does_not_generalize_to_nearby_upgrades():
   ]},
  }
  result=simulate(s)
- assert 'EXP-SWORDSMAN-FULL-FLANK-MKILL-CALIBRATION-001' not in {
+ assert 'EXP-SWORDSMAN-FLANK-MKILL-OVERKILL-THIRD-001' in {
   item['id'] for item in result['assumptions']
  }
- assert not any(
-  event['type']=='damage'
-  and event['details'].get('resolution')=='user_observed_swordsman_full_flank_mkill_calibration'
-  for event in result['events']
- )
+ modeled=[
+  event for event in result['events']
+  if event['type']=='damage'
+  and event['details'].get('resolution')=='swordsman_flank_m_kill_overkill_third'
+ ]
+ assert modeled
+ assert all(set(event['details']['source_column_hits'].values())=={7} for event in modeled)
+ assert all('baseline_overkill_discarded' in event['details'] for event in modeled)
 
 
 def test_flank_phase_can_kill_long_range_before_long_range_fires():
