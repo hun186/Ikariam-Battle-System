@@ -240,5 +240,21 @@ def test_user_observed_swordsman_full_flank_fixture_matches_calibrated_engine():
     assert result.reached_round == 1
     assert result.blockers == ()
     assert result.assessments
-    assert all(item.status == MATCH for item in result.assessments)
+    casualty_assessments = [
+        item for item in result.assessments if item.field == "casualties"
+    ]
+    assert casualty_assessments
+    assert all(item.status == MATCH for item in casualty_assessments)
+
+    mismatches = [item for item in result.assessments if item.status == MISMATCH]
+    assert {
+        (item.side, item.line, item.damage_position, item.field)
+        for item in mismatches
+    } == {
+        ("defender", "flank", 1, "damage_percent"),
+        ("defender", "flank", 2, "damage_percent"),
+        ("defender", "flank", 3, "damage_percent"),
+        ("defender", "flank", 4, "damage_percent"),
+    }
+    assert all(item.simulated == 0 for item in mismatches)
 
