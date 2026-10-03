@@ -1866,6 +1866,10 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             "accuracy_model": EXPERIMENTAL_ACCURACY_MODEL_ID,
             "target_eligibility_rule": TARGET_PENETRATION_RULE_ID,
             "accuracy_decisions": defaultdict(int),
+            "source_column_hits": defaultdict(int),
+            "_initial_units": target_slot.units + killed,
+            "_target_slot": target_slot,
+            "_queue_key": queue_key,
             "_persistent_damage": target_slot.damage,
         })
         group["damage"] += damage_trace.final_damage
@@ -1873,6 +1877,8 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
         group["casualties"] += killed
         group["overkill_discarded"] += overkill
         group["accuracy_decisions"][accuracy_decision.mode] += 1
+        if source_damage_position is not None:
+            group["source_column_hits"][source_damage_position] += 1
         group["_persistent_damage"] = target_slot.damage
 
         if _ir_trigger(volley, enemy, target_slot, row_number):
