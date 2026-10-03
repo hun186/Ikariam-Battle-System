@@ -24,6 +24,19 @@ def post_raw(value):
  response=asyncio.run(request('POST','/api/simulate',json.dumps(value).encode()))
  return response[0]['status'],json.loads(response[1]['body'])
 
+def test_browser_wall_copy_matches_strict_experimental_policy_split():
+ html=Path('public/index.html').read_text(encoding='utf-8')
+ assert 'Strict 的 active-wall 戰鬥停在 UNKNOWN-TOWN-WALL-COMBAT' in html
+ assert 'Experimental 可執行具名假設下的 Artillery 破牆' in html
+ assert "wall.status==='unsupported_boundary'" in html
+ assert "wall.status==='breached'" in html
+ assert "wall.status==='not_reached'" in html
+ assert 'Experimental wall runtime' in html
+ assert 'Experimental wall capability 可執行，但本次戰鬥在進入牆戰前已結束' in html
+ assert '城牆本身的破牆戰仍停在 UNKNOWN-TOWN-WALL-COMBAT' not in html
+ assert 'HP 扣減／破洞、守軍補位與 Flank 鎖定仍停在 UNKNOWN-TOWN-WALL-COMBAT' not in html
+
+
 def test_barbarian_metadata_contract_is_documented():
  contract=Path('.codex/contracts.md').read_text()
  assert 'barbarian_profile_metadata' in contract and 'barbarian_units' in contract
@@ -64,7 +77,7 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert data['report_transport']=={'default_mode':'summary','default_round_page_size':10,'max_round_page_size':20}
  assert data['town_wall']['max_level']==48
  assert data['town_wall']['input_supported'] is True
- assert data['town_wall']['combat_model_status']=='INPUT_CAPTURED_COMBAT_UNSUPPORTED'
+ assert data['town_wall']['combat_model_status']=='STRICT_GUARDED_EXPERIMENTAL_EXECUTABLE_WITH_GUARDS'
  assert data['town_wall']['rule_id']=='UNKNOWN-TOWN-WALL-COMBAT'
  assert data['town_wall']['published_stat_fields']==['hit_points','armor','damage']
  assert data['town_wall']['unresolved_current_stat_fields']==['accuracy']
@@ -108,22 +121,33 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert (hoplite['resource_cost_basis_total'],hoplite['general_score'])==(70,'1.4')
  assert (carabineer['resource_cost_basis_total'],carabineer['general_score'])==(200,'4')
 
-def test_wall_level_api_validation_and_summary_boundary():
+def test_wall_level_api_validation_and_policy_split():
  value=payload()
  value['wall_level']=20
  status,data=post(value)
  assert status==200
- assert data['status']=='inconclusive' and data['rounds_completed']==0
  assert data['wall_status']['level']==20
  assert data['wall_status']['segments']==3
  assert data['wall_status']['hit_points']==19800
  assert data['wall_status']['armor']==1440
  assert data['wall_status']['damage']==4500
  assert data['wall_status']['accuracy'] is None
- assert any(
+ assert data['wall_status']['combat_model_status']=='EXPERIMENTAL_EXECUTABLE_WITH_GUARDS'
+ assert not any(
   event['type']=='unsupported_mechanic'
   and event['details'].get('rule_id')=='UNKNOWN-TOWN-WALL-COMBAT'
   for event in data['events']
+ )
+
+ strict=payload('strict'); strict['wall_level']=20
+ strict_status,strict_data=post(strict)
+ assert strict_status==200
+ assert strict_data['status']=='inconclusive'
+ assert strict_data['rounds_completed']==0
+ assert any(
+  event['type']=='unsupported_mechanic'
+  and event['details'].get('rule_id')=='UNKNOWN-TOWN-WALL-COMBAT'
+  for event in strict_data['events']
  )
 
  valid=payload(); valid['wall_level']=48
@@ -678,6 +702,8 @@ def test_setup_presets_share_the_canonical_setup_serializer_and_public_entrypoin
  assert 'const config=setupConfigurationFromUi(),{setup_version,...scenario}=config;' in body
  assert "const config=setupConfigurationFromUi(),items=readUserPresets()" in body
  assert "applySetupConfiguration(builtinPresetConfiguration(builtinPreset.value))" in body
+ assert "policy.addEventListener('change',updateWallControl)" in body
+ assert "if(['experimental','strict'].includes(config.policy))policy.value=config.policy;\n  updateWallControl();" in body
  assert "clearSideRows('attacker');clearSideRows('defender')" in body
  assert "battleDomain.value=field.domain;refreshBattlefieldOptions(field.id)" in body
  assert "setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100" in body
@@ -703,7 +729,7 @@ def test_land_setup_exposes_defender_wall_and_preserves_it_in_presets_and_scenar
  assert "wall_level:0,town_hall_level:25,barbarian_village_level:null" in body
  assert "wall_level:0,town_hall_level:null,barbarian_village_level:50" in body
  assert "'UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION':'防守方駐軍數跨過 garrison limit" in body
- assert "'UNKNOWN-TOWN-WALL-COMBAT':'防守方已設定城牆。" in body
+ assert "'UNKNOWN-TOWN-WALL-COMBAT':'Strict 模式遇到 active Town Wall 時停止於此 evidence boundary。" in body
  assert '城牆 Lv0–48' in body
  assert 'HP = 1800 + 900 × Lv、Armor = 72 × Lv' in body
  assert 'Lv1=216、Lv9=504、Lv18=2160、Lv26=5580' in body

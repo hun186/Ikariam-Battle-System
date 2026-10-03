@@ -92,7 +92,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
       </section>
     </div>
 
-    <div class="setup-note">預設仍維持最大陸戰戰場與 Player Lv5 熔爐、單純前線，避免一打開就塞滿大量兵力；需要多戰線驗證時可用上方「綜合陸戰」快速設定。Player 防守方可設定市政廳 Lv1–66 與城牆 Lv0–48；駐軍上限 = 250 + 50 × (市政廳 Lv + 城牆 Lv)。Barbarian 防守方可設定村落 Lv1–50；目前 2024 Gameforge 論壇實戰規則為 (村落 Lv + 城牆 Lv + 5) × 50。兩者依 v17.4 排除 Doctor / Cook（海軍則排除 Tender）；守軍數高於上限時先以最大陸戰戰場進行野戰、城牆不出場。當傷亡使守軍回到上限內時，模擬會偵測到應縮回原戰場／城牆重現的 transition，但跨 geometry 重建尚未校準，因此會停在 UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION。城牆本身的破牆戰仍停在 UNKNOWN-TOWN-WALL-COMBAT。每列的 ±一格 由目前戰場的 slot space ÷ unit size 動態計算。Barbarian 套裝固定無 Workshop、無 Forge、無分批進場，軍分為 0；目前兵力數量仍由使用者手動輸入，不會依村落等級自動產生。</div>
+    <div class="setup-note">預設仍維持最大陸戰戰場與 Player Lv5 熔爐、單純前線，避免一打開就塞滿大量兵力；需要多戰線驗證時可用上方「綜合陸戰」快速設定。Player 防守方可設定市政廳 Lv1–66 與城牆 Lv0–48；駐軍上限 = 250 + 50 × (市政廳 Lv + 城牆 Lv)。Barbarian 防守方可設定村落 Lv1–50；目前 2024 Gameforge 論壇實戰規則為 (村落 Lv + 城牆 Lv + 5) × 50。兩者依 v17.4 排除 Doctor / Cook（海軍則排除 Tender）；守軍數高於上限時先以最大陸戰戰場進行野戰、城牆不出場。當傷亡使守軍回到上限內時，模擬會偵測到應縮回原戰場／城牆重現的 transition；同為 land-max 的 state-only 回復可讓新鮮城牆於下一回合重新出場，跨 geometry 重建仍停在 UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION。Strict 的 active-wall 戰鬥停在 UNKNOWN-TOWN-WALL-COMBAT；Experimental 可執行具名假設下的 Artillery 破牆、破口 First 暴露、Flank lock 與可整除牆傷重分配。每列的 ±一格 由目前戰場的 slot space ÷ unit size 動態計算。Barbarian 套裝固定無 Workshop、無 Forge、無分批進場，軍分為 0；目前兵力數量仍由使用者手動輸入，不會依村落等級自動產生。</div>
     <details class="barbarian-reference"><summary>野蠻人兵種資料與出現等級（9 種）</summary><div class="barbarian-note">Barbarian Village 陸軍兵種已可作為獨立 Army package 進入模擬；這裡保留來源、數值與首次出現等級參考。若設定 Village Lv，駐軍上限採 2024 Gameforge 論壇的現行社群實戰規則：(Village Lv + Wall Lv + 5) × 50；這不是 Gameforge 官方規格。較舊 guide 的 ≈250 + 75 × Wall 僅保留為歷史近似。完整守軍數量與城牆等級仍不會由 Village Lv 自動生成。</div><div id="barbarianCatalog" class="barbarian-grid"></div></details>
     <div class="actions"><div class="action-row"><button id="simulate" class="primary" type="button">開始模擬</button><button id="downloadSetup" class="secondary" type="button">下載兵力設定 Debug JSON</button></div><div id="error" class="error" role="alert"></div></div>
   </section>
@@ -119,7 +119,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
         <div class="mechanics-card mechanics-partial"><b>Healing · 部分已知 / 部分實作</b><p>Doctor 只治療 Human，Machine 不可治療。目前 Machine：Steam Giant、Ram、Catapult、Mortar、Gyrocopter、Bombardier。每回合治療會在下一回合戰鬥開始前反映。現行 derived capacity 為每名 Doctor 4000。當總容量足以清除全部可治療 Human persistent damage 時，引擎會直接全清，這個結果不受 Healing / RR 先後影響；容量不足時，allocation 與精確 Healing / RR 順序仍未知，因此不猜部分分配。</p></div>
         <div class="mechanics-card mechanics-partial"><b>RR 後 slot 內部傷害分配 · 未完全確立</b><p>PDF 能確立 wave → slot 的 RR，但 slot aggregate damage 如何落到 individual units 仍有未解處。Experimental 現採均勻分配後再逐擊，並以 named assumption 顯示。</p></div>
         <div class="mechanics-card mechanics-partial"><b>Garrison / Open field · 部分實作</b><p>Player 陸軍駐軍上限 = 250 + 50 × (Town Hall Lv + Wall Lv)；Barbarian 若設定 Village Lv，採 2024 Gameforge 論壇社群規則 (Village Lv + Wall Lv + 5) × 50。判斷使用實際兵隻數，不看 unit Size；v17.4 起 Doctor / Cook 不計。守軍嚴格大於上限時使用 land-max 野戰且城牆不出場；等於上限仍非野戰。戰鬥中跨回上限時會偵測到 transition，但跨 geometry 的 wave / damage / ammo 重建尚未校準，因此以 UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION 停止。</p></div>
-        <div class="mechanics-card mechanics-partial"><b>Town Wall / 城牆 · Infinite Horizons 數值已更新</b><p>防守方可設定 Lv0–48。每段城牆 HP = 1800 + 900 × Lv、Armor = 72 × Lv；Damage 則沿用舊三段公式再 ×18：Lv1–9 = (10 + 2×Lv)×18、Lv10–19 = (30 + 5×Lv)×18、Lv20+ = (50 + 10×Lv)×18。現行觀察點 Lv1=216、Lv9=504、Lv18=2160、Lv26=5580 均吻合。已知 active Wall 存在時攻方 Land Artillery 優先 Wall，且打不穿 Armor 的 weapon 不建立 shot、不耗 ammo；但牆段 shot allocation、Wall Accuracy、HP 扣減／破洞、守軍補位與 Flank 鎖定仍停在 UNKNOWN-TOWN-WALL-COMBAT。</p></div>
+        <div class="mechanics-card mechanics-partial"><b>Town Wall / 城牆 · Infinite Horizons 數值已更新</b><p>防守方可設定 Lv0–48。每段城牆 HP = 1800 + 900 × Lv、Armor = 72 × Lv；Damage 則沿用舊三段公式再 ×18：Lv1–9 = (10 + 2×Lv)×18、Lv10–19 = (30 + 5×Lv)×18、Lv20+ = (50 + 10×Lv)×18。現行觀察點 Lv1=216、Lv9=504、Lv18=2160、Lv26=5580 均吻合。已知 active Wall 存在時攻方 Land Artillery 優先 Wall，且打不穿 Armor 的 weapon 不把 shot 浪費在牆上。Strict 仍停在 UNKNOWN-TOWN-WALL-COMBAT；Experimental 已執行牆段 HP／破洞、破口對應 First 暴露、任一牆段存活時 Flank lock、以及可整除的回合間牆傷重分配。牆段先後順序與每個可穿甲 Artillery ticket 視為 successful wall hit 都是具名 Experimental assumption；Wall 本身 Accuracy／個體目標、非整除重分配與跨 geometry transition 仍未校準。</p></div>
         <div class="mechanics-card mechanics-partial"><b>海戰 / Naval</b><p>海戰採同一套 formation-phase 架構：填補順序與開火順序分開，同 formation 雙方同時射擊。Tender 可修護軍艦；naval battlefield geometry 尚未開放執行，因此目前先保存共用 chronology contract。</p></div>
       </div>
       <div class="accuracy-note"><b>如何解讀這一頁：</b>「已知」不代表所有細節都來自 Gameforge 原始程式碼，而是代表目前有足夠 evidence 支撐可執行 contract；「部分已知／未知」就是結果精度的邊界，不應被模擬器悄悄猜成確定答案。</div>
@@ -321,8 +321,13 @@ function updateWallControl(){
   const field=currentField(),isLand=field?.domain==='land';
   defenderWallLevel.disabled=!isLand;
   const segments=isLand?(field?.lines?.first?.physical_order?.length||0):0;
+  const selectedPolicy=document.getElementById('policy')?.value||'experimental';
   defenderWallLevel.title=isLand
-    ?('目前戰場對應 '+segments+' 段城牆；Lv>0 的戰鬥語意目前停在 '+(metadata?.town_wall?.rule_id||'UNKNOWN-TOWN-WALL-COMBAT'))
+    ?('目前戰場對應 '+segments+' 段城牆；'+(
+      selectedPolicy==='strict'
+        ?('Strict 的 active-wall 戰鬥停在 '+(metadata?.town_wall?.rule_id||'UNKNOWN-TOWN-WALL-COMBAT'))
+        :'Experimental 可執行具名假設下的 Artillery 破牆／破口 First 暴露／Flank lock；未校準邊界仍會明確停止'
+    ))
     :'城牆只適用於陸戰';
 }
 function populateBattleDomains(){
@@ -611,6 +616,7 @@ function applySetupConfiguration(config){
   if(!domainOption)throw Error('套裝指定的 battle type 目前不可執行。');
   battleDomain.value=field.domain;refreshBattlefieldOptions(field.id);
   if(['experimental','strict'].includes(config.policy))policy.value=config.policy;
+  updateWallControl();
   maxRounds.value=Math.max(1,Math.min(1000,Math.trunc(Number(config.max_rounds)||100)));
   const wallMax=Math.max(0,Number(metadata?.town_wall?.max_level??48));
   const wallLevel=Math.max(0,Math.min(wallMax,Math.trunc(Number(config.wall_level)||0)));
@@ -863,7 +869,7 @@ function safetyNoticesHtml(data){
     'UNKNOWN-FORMATION-FALLBACK':'主戰線需要 fallback。整個 Light Infantry wave 可完整轉入 First 的情況已支援；這個邊界代表仍需要同 wave 跨 First/Flank 分兵、Long-range 前移／武器切換，或其他尚未驗證的 fallback。',
     'UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS':'同一 wave 同時跨多條 runtime line 的戰鬥與 RR 尚未完整校準。',
     'UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION':'防守方駐軍數跨過 garrison limit，野戰狀態需要切換：可能從原戰場進入 land-max，或由 land-max 縮回原戰場並讓城牆重新出現。門檻已能準確偵測，但跨 geometry 的 wave/slot/damage/ammo 重建尚未校準。',
-    'UNKNOWN-TOWN-WALL-COMBAT':'防守方已設定城牆。城牆等級、每段公開數值、段數、Artillery→Wall 優先與 ATK>DEF 穿甲資格已記錄；但牆段 shot allocation、Wall Accuracy、HP 扣減／破洞、守軍補位與 Flank 鎖定尚未接入引擎，因此不會把有牆戰場當成無牆戰場繼續計算。',
+    'UNKNOWN-TOWN-WALL-COMBAT':'Strict 模式遇到 active Town Wall 時停止於此 evidence boundary。Experimental 已可在具名假設下執行 Artillery 破牆、破口 First 暴露、Flank lock 與可整除牆傷重分配；Wall offensive Accuracy、非整除重分配與其他未校準牆戰細節仍會另以明確 boundary 停止。',
   };
   const roundCap=data.events.find(e=>e.type==='safety_limit_reached');
   if(roundCap)cards.push('<div class="safety-card warning"><b>Safety round cap reached / 已達安全回合上限</b><div>Simulation stopped at '+esc(roundCap.details?.limit)+' rounds without a resolved outcome.</div></div>');
@@ -888,7 +894,26 @@ function safetyNoticesHtml(data){
     cards.push('<div class="safety-card '+(garrison.open_field?'warning':'assumption')+'"><b>Garrison / 駐軍上限</b><div>'+settlementText+' + 城牆 Lv'+esc(garrison.wall_level)+' → 上限 '+esc(garrison.garrison_limit)+'；開戰可計數守軍 '+esc(garrison.counted_defenders)+'（Doctor/Cook 不計）。'+(garrison.open_field?'因超過上限，初始為 land-max 野戰、城牆不出場。':'未超過上限，使用原戰場。')+(garrison.transition_reached?' 本次已到達野戰狀態切換門檻。':'')+'</div></div>');
   }
   const wall=data.wall_status;
-  if((wall?.level||0)>0)cards.push('<div class="safety-card '+(wall.status==='suppressed'?'warning':'blocker')+'"><b>Town Wall / 城牆 Lv'+esc(wall.level)+'</b><div>'+esc(wall.segments)+' 段 · 每段 HP '+esc(wall.hit_points)+' · Armor '+esc(wall.armor)+' · Damage '+esc(wall.damage)+' · Accuracy：新版待校準。'+(wall.status==='suppressed'?'目前因野戰狀態暫不出場。':'破一段牆的成功命中算術可用 HP ÷ (單發 Damage − Armor)；實際迫砲數仍受 Accuracy / shot allocation 影響。戰鬥處理目前停在 '+esc(wall.rule_id)+'。')+'</div></div>');
+  if((wall?.level||0)>0){
+    let wallClass='assumption',wallDetail='';
+    if(wall.status==='suppressed'){
+      wallClass='warning';
+      wallDetail='目前因野戰狀態暫不出場。';
+    }else if(wall.status==='unsupported_boundary'){
+      wallClass='blocker';
+      wallDetail='Strict / evidence-safe：active-wall 戰鬥停在 '+esc(wall.rule_id)+'。';
+    }else{
+      const breached=(wall.breached_positions||[]).map(esc);
+      wallDetail=wall.status==='not_reached'
+        ?'Experimental wall capability 可執行，但本次戰鬥在進入牆戰前已結束；沒有套用城牆戰鬥效果。'
+        :('Experimental wall runtime：'+(
+          wall.status==='breached'
+            ?'全部牆段已突破。'
+            :('已突破 damage position '+(breached.length?breached.join(', '):'無')+'；'+(wall.flanks_locked?'Flank 仍鎖定。':'Flank 已解鎖。'))
+        )+' 牆段順序、wall successful-hit 與 Wall offensive Accuracy 仍屬具名假設／未校準邊界。');
+    }
+    cards.push('<div class="safety-card '+wallClass+'"><b>Town Wall / 城牆 Lv'+esc(wall.level)+'</b><div>'+esc(wall.segments)+' 段 · 每段 HP '+esc(wall.hit_points)+' · Armor '+esc(wall.armor)+' · Damage '+esc(wall.damage)+' · Accuracy：新版待校準。'+wallDetail+'</div></div>');
+  }
   const healing=data.healing_status,healingSides=healing?.sides||{},aDoctor=healingSides.attacker?.doctor_count||0,dDoctor=healingSides.defender?.doctor_count||0;
   if(aDoctor||dDoctor){
     const healingStatuses=[healingSides.attacker?.status,healingSides.defender?.status].filter(Boolean);
@@ -1002,6 +1027,7 @@ async function boot(){
 }
 battleDomain.addEventListener('change',()=>refreshBattlefieldOptions());
 battlefield.addEventListener('change',()=>{updateArmyPackageAvailability();updateWallControl();updateSlotButtons();updateAllUnitStats()});
+policy.addEventListener('change',updateWallControl);
 document.getElementById('aArmyKind').addEventListener('change',()=>toggleArmyPackage('attacker'));
 document.getElementById('dArmyKind').addEventListener('change',()=>toggleArmyPackage('defender'));
 researchMode.addEventListener('change',()=>document.body.classList.toggle('research',researchMode.checked));

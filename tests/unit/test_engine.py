@@ -48,8 +48,8 @@ def test_typed_scenario_rejects_invalid_wall_level_like_dict_input():
    simulate(typed)
 
 
-def test_positive_wall_level_is_captured_and_stops_at_explicit_wall_boundary():
- s=scenario(); s['wall_level']=20
+def test_strict_positive_wall_level_stops_at_explicit_wall_boundary():
+ s=scenario('strict'); s['wall_level']=20
  result=simulate(s)
  rules={e['details'].get('rule_id') for e in result['events'] if e['type']=='unsupported_mechanic'}
  assert result['status']=='inconclusive' and result['rounds_completed']==0
@@ -61,7 +61,267 @@ def test_positive_wall_level_is_captured_and_stops_at_explicit_wall_boundary():
   'rule_id':'UNKNOWN-TOWN-WALL-COMBAT','effect_applied':False,
   'active':True,'inactive_reason':None,
  }
- assert any('Town Wall input is captured' in warning for warning in result['warnings'])
+ assert any('Strict Town Wall combat is guarded' in warning for warning in result['warnings'])
+ assert not any('Experimental Town Wall combat is enabled' in warning for warning in result['warnings'])
+
+
+def test_experimental_active_wall_early_exit_reports_capability_not_strict_boundary():
+ s={
+  'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+  'wall_level':20,
+  'attacker':{'units':[{'unit_id':'mortar','quantity':6}]},
+  'defender':{'units':[{'unit_id':'hoplite','quantity':90}]},
+ }
+ result=simulate(s)
+ assert result['rounds_completed']==0
+ assert result['outcome']=='defender'
+ wall=result['wall_status']
+ assert wall['status']=='not_reached'
+ assert wall['combat_model_status']=='EXPERIMENTAL_EXECUTABLE_WITH_GUARDS'
+ assert wall['effect_applied'] is False
+ assert wall['active'] is True
+ assert wall['breached_positions']==[]
+ assert wall['flanks_locked'] is True
+ assert len(wall['sections_state'])==3
+ assert all(section['damage']==0 and not section['destroyed'] for section in wall['sections_state'])
+ assert not any(
+  e['type']=='unsupported_mechanic'
+  and e['details'].get('rule_id')=='UNKNOWN-TOWN-WALL-COMBAT'
+  for e in result['events']
+ )
+
+
+def test_experimental_mortars_breach_active_wall_and_unlock_flanks():
+ s={
+  'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+  'wall_level':1,
+  'attacker':{'units':[
+   {'unit_id':'hoplite','quantity':90},
+   {'unit_id':'mortar','quantity':6},
+  ]},
+  'defender':{'units':[{'unit_id':'hoplite','quantity':90}]},
+ }
+ result=simulate(s)
+ assert any('Experimental Town Wall combat is enabled' in warning for warning in result['warnings'])
+ rules={e['details'].get('rule_id') for e in result['events'] if e['type']=='unsupported_mechanic'}
+ assert 'UNKNOWN-TOWN-WALL-COMBAT' not in rules
+ breaches=[e for e in result['events'] if e['type']=='wall_section_breached']
+ assert [e['details']['damage_position'] for e in breaches]==[1,2,3]
+ assert result['wall_status']['status']=='breached'
+ assert result['wall_status']['breached_positions']==[1,2,3]
+ assert result['wall_status']['flanks_locked'] is False
+ assert result['wall_status']['combat_model_status']=='EXPERIMENTAL_EXECUTABLE_WITH_GUARDS'
+ assert {'EXP-WALL-FOCUS-DAMAGE-PRIORITY-001',
+         'EXP-WALL-ARTILLERY-SUCCESSFUL-HIT-001'} <= {
+          item['id'] for item in result['assumptions']
+         }
+
+
+def test_intact_wall_does_not_expose_rear_ground_formations():
+ s={
+  'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+  'wall_level':48,
+  'attacker':{'units':[
+   {'unit_id':'hoplite','quantity':90},
+   {'unit_id':'sulphur_carabineer','quantity':21},
+  ]},
+  'defender':{'units':[
+   {'unit_id':'hoplite','quantity':90},
+   {'unit_id':'sulphur_carabineer','quantity':21},
+  ]},
+ }
+ result=simulate(s)
+ assert result['wall_status']['flanks_locked'] is True
+ assert result['wall_status']['breached_positions']==[]
+ assert all(section['damage']==0 for section in result['wall_status']['sections_state'])
+ assert result['final_state']['defender']['remaining']['sulphur_carabineer']==21
+ assert not any(
+  e['type']=='damage'
+  and e['side']=='attacker'
+  and e['details'].get('target_line') in {'second','third','flank'}
+  for e in result['events']
+ )
+
+
+def test_surviving_wall_keeps_battle_alive_after_defender_first_is_eliminated():
+ s={
+  'policy':'experimental','battlefield':'land-max','max_rounds':2,
+  'wall_level':23,
+  'attacker':{'units':[
+   {'unit_id':'hoplite','quantity':350},
+   {'unit_id':'mortar','quantity':24,'attack_upgrade':6},
+   {'unit_id':'battering_ram','quantity':6,'attack_upgrade':6},
+  ]},
+  'defender':{'units':[{'unit_id':'hoplite','quantity':1}]},
+ }
+ result=simulate(s)
+
+ first_round=next(row for row in result['rounds'] if row['round']==1)
+ assert first_round['defender']['continuation_state']=='not_sustaining'
+ round_one_breaches=[
+  e['details']['damage_position']
+  for e in result['events']
+  if e['type']=='wall_section_breached' and e['round']==1
+ ]
+ assert round_one_breaches==[1,2,3,4]
+ assert not any(
+  e['type']=='battle_termination' and e['round']==1
+  for e in result['events']
+ )
+ assert result['rounds_completed']>=2
+
+
+def test_nonpenetrating_artillery_ticket_does_not_time_travel_past_later_wall_breach():
+ s={
+  'policy':'experimental','battlefield':'land-small','max_rounds':1,
+  'wall_level':23,
+  'attacker':{'units':[
+   {'unit_id':'hoplite','quantity':150},
+   {'unit_id':'mortar','quantity':6,'attack_upgrade':6},
+   {'unit_id':'battering_ram','quantity':6,'attack_upgrade':6},
+  ]},
+  'defender':{'units':[{'unit_id':'hoplite','quantity':150}]},
+ }
+ result=simulate(s)
+
+ breaches=[e for e in result['events'] if e['type']=='wall_section_breached']
+ assert breaches and breaches[0]['details']['damage_position']==1
+
+ # Mortar row 6 creates the first breach. The five earlier Ram tickets were
+ # unable to penetrate the intact wall and must not be replayed after that
+ # breach; only the row-6 Ram ticket may continue to the newly exposed First.
+ ram_damage=[
+  e for e in result['events']
+  if e['type']=='damage'
+  and e['side']=='attacker'
+  and e['details'].get('source_unit_id')=='battering_ram'
+ ]
+ assert sum(e['details']['firing_units'] for e in ram_damage)==1
+ ram_withheld=[
+  e for e in result['events']
+  if e['type']=='shots_withheld_no_damageable_target'
+  and e['side']=='attacker'
+  and e['details'].get('source_unit_id')=='battering_ram'
+ ]
+ assert sum(e['details']['count'] for e in ram_withheld)==5
+
+
+def test_wall_fallthrough_keeps_frozen_address_book_after_exposed_slot_dies():
+ s={
+  'policy':'experimental','battlefield':'land-max','max_rounds':1,
+  'wall_level':23,
+  'attacker':{'units':[
+   {'unit_id':'hoplite','quantity':350},
+   {'unit_id':'mortar','quantity':24,'attack_upgrade':6},
+   {'unit_id':'battering_ram','quantity':6,'attack_upgrade':6},
+  ]},
+  'defender':{'units':[
+   {'unit_id':'hoplite','quantity':1},
+   {'unit_id':'steam_giant','quantity':1},
+  ]},
+ }
+ result=simulate(s)
+
+ ram_damage=[
+  e for e in result['events']
+  if e['type']=='damage'
+  and e['side']=='attacker'
+  and e['details'].get('source_unit_id')=='battering_ram'
+ ]
+ empty=[
+  e for e in result['events']
+  if e['type']=='shot_addressed_empty_slot'
+  and e['side']=='attacker'
+  and e['details'].get('source_unit_id')=='battering_ram'
+ ]
+ # The first Ram ticket sees only the first breached position and freezes
+ # that one-position address book. It kills that target; later Ram tickets
+ # must keep addressing the now-empty frozen position instead of renumbering
+ # onto subsequently breached/live First slots.
+ assert sum(e['details']['firing_units'] for e in ram_damage)==1
+ assert any(e['details']['target_damage_position']==1 for e in empty)
+
+
+def test_wall_full_breach_preserves_existing_fallthrough_book_for_leftovers():
+ s={
+  'policy':'experimental','battlefield':'land-max','max_rounds':1,
+  'wall_level':23,
+  'attacker':{'units':[
+   {'unit_id':'hoplite','quantity':350},
+   {'unit_id':'mortar','quantity':24,'attack_upgrade':1000},
+   {'unit_id':'battering_ram','quantity':6},
+  ]},
+  'defender':{'units':[{'unit_id':'hoplite','quantity':350}]},
+ }
+ result=simulate(s)
+
+ breaches=[
+  e['details']['damage_position']
+  for e in result['events']
+  if e['type']=='wall_section_breached' and e['round']==1
+ ]
+ assert breaches==[1,2,3,4,5,6,7]
+
+ ram_targets=[
+  e['details']['target_damage_position']
+  for e in result['events']
+  if e['side']=='attacker'
+  and e['details'].get('source_unit_id')=='battering_ram'
+  and e['type'] in {'damage','shot_addressed_empty_slot'}
+ ]
+ # The first Ram ticket falls through while only positions 1-4 are exposed,
+ # freezing that address set. Mortars then fully breach the wall before later
+ # Ram rows resolve; those leftovers must retain the earlier book rather than
+ # rebuilding against all seven newly exposed First positions.
+ assert ram_targets
+ assert set(ram_targets) <= {1,2,3,4}
+ assert 6 not in ram_targets
+
+
+def test_equivalent_nonpenetrating_artillery_share_wall_fallthrough_address_book():
+ s={
+  'policy':'experimental','battlefield':'land-max','max_rounds':1,
+  'wall_level':40,
+  'attacker':{'units':[
+   {'unit_id':'hoplite','quantity':350},
+   {'unit_id':'mortar','quantity':18},
+   {'unit_id':'catapult','quantity':6},
+   {'unit_id':'battering_ram','quantity':6},
+  ]},
+  'defender':{'units':[{'unit_id':'hoplite','quantity':1}]},
+ }
+ result=simulate(s)
+
+ catapult_damage=[
+  e for e in result['events']
+  if e['type']=='damage'
+  and e['side']=='attacker'
+  and e['details'].get('source_unit_id')=='catapult'
+ ]
+ ram_empty=[
+  e for e in result['events']
+  if e['type']=='shot_addressed_empty_slot'
+  and e['side']=='attacker'
+  and e['details'].get('source_unit_id')=='battering_ram'
+ ]
+ ram_withheld=[
+  e for e in result['events']
+  if e['type']=='shots_withheld_no_damageable_target'
+  and e['side']=='attacker'
+  and e['details'].get('source_unit_id')=='battering_ram'
+ ]
+
+ # Three Mortar columns breach the first Lv40 wall section on row 5.
+ # Catapult and Ram are both nonpenetrating against the wall but have the
+ # same legal First-wave set. Catapult freezes position 1 and kills its sole
+ # Hoplite; the following Ram ticket must reuse that same book and address
+ # the now-empty position rather than rebuilding/withholding.
+ assert sum(e['details']['firing_units'] for e in catapult_damage)==1
+ assert any(e['details']['target_damage_position']==1 for e in ram_empty)
+ # Rows 1-4 occur before the Mortars create the first breach, so those Ram
+ # tickets are correctly withheld. After the breach, the later Ram tickets
+ # must use the frozen shared book and therefore are not withheld.
+ assert sum(e['details']['count'] for e in ram_withheld)==4
 
 
 def test_over_limit_player_defense_starts_on_land_max_with_wall_suppressed():
@@ -82,6 +342,39 @@ def test_over_limit_player_defense_starts_on_land_max_with_wall_suppressed():
   and e['details'].get('rule_id')=='UNKNOWN-TOWN-WALL-COMBAT'
   for e in result['events']
  )
+
+
+def test_same_geometry_wall_reactivates_before_terminal_defender_loss():
+ s={
+  'policy':'experimental','battlefield':'land-max','max_rounds':2,
+  'town_hall_level':1,'wall_level':1,
+  'attacker':{'forge_level':5,'units':[
+   {'unit_id':'mortar','quantity':30,'attack_upgrade':1000},
+   {'unit_id':'hoplite','quantity':350,'attack_upgrade':1000},
+  ]},
+  'defender':{'forge_level':0,'units':[
+   {'unit_id':'hoplite','quantity':351}
+  ]},
+ }
+ result=simulate(s)
+
+ changes=[
+  e for e in result['events']
+  if e['type']=='garrison_state_change'
+  and e['details'].get('direction')=='exit_open_field'
+ ]
+ assert changes and changes[0]['round']==1
+ assert changes[0]['details']['counted_defenders']<=350
+ assert changes[0]['details']['wall_reappears'] is True
+ assert changes[0]['details']['wall_state']=='fresh_intact_sections'
+ assert not any(
+  e['type']=='battle_termination'
+  and e['round']==1
+  and e['details'].get('losing_side')=='defender'
+  for e in result['events']
+ )
+ assert result['rounds_completed']>=2
+ assert result['wall_status']['status']!='suppressed'
 
 
 def test_defender_arrival_crossing_limit_detects_enter_open_field_transition():
@@ -194,6 +487,56 @@ def test_open_field_exit_threshold_is_detected_after_defender_casualties():
  assert transition['details']['to_battlefield']=='land-mini'
  assert result['status']=='inconclusive'
  assert result['garrison_status']['transition_reached'] is True
+
+
+def test_same_geometry_open_field_exit_reactivates_wall_without_garrison_boundary():
+ s={
+  'policy':'experimental','battlefield':'land-max','max_rounds':2,
+  'town_hall_level':25,'wall_level':3,
+  'attacker':{'forge_level':5,'units':[
+   {'unit_id':'hoplite','quantity':700,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'swordsman','quantity':480,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'sulphur_carabineer','quantity':168,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'mortar','quantity':60,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'bombardier','quantity':60,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'gyrocopter','quantity':120,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'cook','quantity':15,'entry_batch_id':'attacker-batch-1'},
+   {'unit_id':'doctor','quantity':15,'entry_batch_id':'attacker-batch-1'},
+  ]},
+  'defender':{'forge_level':5,'units':[
+   {'unit_id':'steam_giant','quantity':224,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'swordsman','quantity':480,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'archer','quantity':700,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'slinger','quantity':100,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'sulphur_carabineer','quantity':60,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'catapult','quantity':60,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'mortar','quantity':36,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'bombardier','quantity':60,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'gyrocopter','quantity':120,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'cook','quantity':15,'entry_batch_id':'defender-batch-1'},
+   {'unit_id':'doctor','quantity':15,'entry_batch_id':'defender-batch-1'},
+  ]},
+ }
+ result=simulate(s)
+ assert result['garrison_status']['garrison_limit']==1650
+ assert result['garrison_status']['open_field'] is True
+ changes=[
+  e for e in result['events']
+  if e['type']=='garrison_state_change'
+  and e['details'].get('direction')=='exit_open_field'
+ ]
+ assert changes
+ assert changes[0]['round']==1
+ assert changes[0]['details']['battlefield']=='land-max'
+ assert changes[0]['details']['wall_reappears'] is True
+ assert changes[0]['details']['wall_state']=='fresh_intact_sections'
+ assert not any(
+  e['type']=='unsupported_mechanic'
+  and e['details'].get('rule_id')=='UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION'
+  for e in result['events']
+ )
+ assert result['rounds_completed']>=2
+ assert any(e['type']=='wall_damage' and e['round']==2 for e in result['events'])
 
 
 def test_barbarian_over_limit_uses_same_open_field_threshold_rule():

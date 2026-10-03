@@ -50,10 +50,12 @@
       "verification": "REVIEWER_WEB_VERIFIED_PLUS_USER_OBSERVATION"
     },
     "wall_targeting_contract": {
-      "status": "KNOWN_TARGET_PRIORITY_COMBAT_STILL_GUARDED",
-      "rule": "When an active Town Wall is present, land Artillery targets Wall before ordinary First-line units; if no wall remains, Artillery continues to First.",
-      "source_type": "GAMEFORGE_FORUM_GUIDE",
-      "verification": "REVIEWER_WEB_VERIFIED"
+      "status": "STRICT_GUARDED_EXPERIMENTAL_EXECUTABLE",
+      "rule": "When an active Town Wall is present, land Artillery targets Wall before ordinary First-line units; if the wall is fully breached, remaining Artillery fire continues to ordinary First priority.",
+      "source_type": "GAMEFORGE_FORUM_GUIDE_PLUS_USER_BATTLE_OBSERVATION",
+      "verification": "REVIEWER_WEB_VERIFIED_PLUS_USER_OBSERVATION",
+      "experimental_section_allocation": "Concentrate penetrating Artillery shots on the lowest surviving wall damage-position until breach, then advance.",
+      "non_penetrating_action": "Do not spend the firing ticket on the wall; continue ordinary priority."
     }
   },
   "priorities": {

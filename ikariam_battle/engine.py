@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from copy import deepcopy
-from decimal import Decimal
+from decimal import Decimal, ROUND_FLOOR
 from typing import Any
 
 from .accuracy import EXPERIMENTAL_ACCURACY_MODEL_ID, select_accuracy_target
@@ -20,10 +20,25 @@ from .garrison import (
 from .models import Army, Policy, Scenario, ScenarioError, Slot, Wave
 from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 from .redistribution import SlotShare, reserve_redistribution
-from .target_eligibility import TARGET_PENETRATION_RULE_ID, unit_target_eligibility
+from .target_eligibility import (
+    TARGET_PENETRATION_RULE_ID,
+    unit_target_eligibility,
+    wall_target_eligibility,
+)
 from .units import UnitRegistry
 from .weapon_selection import UnsupportedWeaponSelection, select_active_weapon
-from .wall import MAX_TOWN_WALL_LEVEL, TOWN_WALL_RULE_ID, wall_status
+from .wall import (
+    MAX_TOWN_WALL_LEVEL,
+    TOWN_WALL_RULE_ID,
+    apply_exact_wall_redistribution,
+    apply_wall_successful_hit,
+    initial_wall_sections,
+    wall_breached_positions,
+    wall_flanks_locked,
+    wall_redistribution_plan,
+    wall_section_snapshot,
+    wall_status,
+)
 
 
 EXPERIMENTAL_POLICIES = {
@@ -39,6 +54,9 @@ EXPERIMENTAL_POLICIES = {
     "EXP-BATTLE-END-ROUND-BOUNDARY-001": "Evaluate battle-sustaining forces at the initial and completed-round boundaries.",
     "EXP-HEAL-NONE-001": "When Doctor capacity cannot clear all eligible Human persistent damage at a round boundary, do not apply partial healing because allocation and exact Healing/RR ordering are unresolved.",
     "EXP-MORALE-NONE-001": "Cook morale is not applied because the current morale algorithm is unresolved.",
+    "EXP-WALL-FOCUS-DAMAGE-PRIORITY-001": "When eligible Artillery attacks an active Town Wall, concentrate successful hits on the lowest surviving wall damage-position until that section breaches, then continue to the next section; breach count is evidence-backed but exact section-address order remains a calibration hypothesis.",
+    "EXP-WALL-ARTILLERY-SUCCESSFUL-HIT-001": "Treat each penetration-eligible Artillery firing ticket directed at the Town Wall as a successful wall hit. This matches successful-hit breach arithmetic and observed multi-section breach counts; exact wall Accuracy interaction remains unresolved.",
+    "EXP-WALL-OFFENSE-NONE-001": "Do not apply Town Wall offensive fire while its current Accuracy/individual-target interaction remains unresolved; defender troops exposed through breached sections may still fire normally.",
 }
 
 
@@ -1030,6 +1048,29 @@ def _freeze_target_eligibility_for_weapon(
     return frozen, skipped_by_line
 
 
+def _address_books_from_frozen_targets(
+    frozen_targets: dict[str, tuple[tuple[Wave, ...], tuple[tuple[str, str], ...]]],
+) -> dict[tuple[str, tuple[tuple[str, str], ...]], tuple[Any, ...]]:
+    """Materialize stable slot addresses from a frozen target-wave set."""
+    books: dict[tuple[str, tuple[tuple[str, str], ...]], tuple[Any, ...]] = {}
+    for target_class, (enemies, signature) in frozen_targets.items():
+        addressed_slots = []
+        for enemy in enemies:
+            addressed_slots.extend(
+                (slot.damage_position, enemy, slot)
+                for slot in enemy.slots if slot.units
+            )
+        books[(target_class, signature)] = tuple(
+            sorted(
+                addressed_slots,
+                key=lambda item: (
+                    item[0], item[1].unit.unit_id, item[1].unit.wave_id,
+                ),
+            )
+        )
+    return books
+
+
 def _shot_rows(firing_counts: list[int]) -> list[int]:
     """Expand an Am source into individual shots while preserving row order."""
     return [row
@@ -1071,17 +1112,373 @@ def _formation_shots(volleys: list[dict[str, Any]]) -> list[tuple[int, int]]:
     return [(volley_index, row) for row, _, volley_index, _ in ordered]
 
 
+def _wall_exposed_target_view(
+    waves: list[Wave], registry: UnitRegistry, sections, source_line: str,
+) -> list[Wave]:
+    """Return only targets whose wall interaction is currently calibrated.
+
+    Air combat is unaffected by Town Wall geometry, so Balloon/Anti-Balloon
+    phases retain the ordinary target set. While any wall section survives,
+    ground formations may address only defender First-line slots whose exact
+    damage-position has already been breached. Rear ground formations are not
+    exposed merely because an unbreached First slot is hidden; doing so would
+    invent a wall-bypass rule that is not yet calibrated.
+
+    Slot objects are shared with canonical waves so ordinary damage resolution
+    still mutates the real combat state.
+    """
+    if not sections or not wall_flanks_locked(sections):
+        return waves
+    if source_line in {"balloon", "anti-balloon"}:
+        return waves
+
+    breached = set(wall_breached_positions(sections))
+    result: list[Wave] = []
+    for wave in waves:
+        unit = registry.get(wave.unit.unit_id)
+        if unit.role != "combat":
+            result.append(wave)
+            continue
+        visible_slots = [
+            slot for slot in wave.slots
+            if slot.line == "first" and slot.damage_position in breached
+        ]
+        result.append(Wave(
+            wave.unit,
+            wave.reserve,
+            visible_slots,
+            wave.reserve_damage,
+            wave.ammo_pool_shots,
+            wave.support_units,
+            wave.ammo_capacity_shots,
+        ))
+    return result
+
+
+def _wall_source_positions(sections) -> set[int] | None:
+    if not sections or not wall_flanks_locked(sections):
+        return None
+    return set(wall_breached_positions(sections))
+
+
+def _resolve_wall_artillery_volleys(
+    volleys: list[dict[str, Any]],
+    sections,
+    wall_level: int,
+    targets: list[Wave],
+    queues: dict[tuple[str, str, str], list[int]],
+    registry: UnitRegistry,
+    workshop: WorkshopProfile,
+    forge: ForgeProfile,
+    targeting: TargetingProfile,
+    events: list[Event],
+    number: int,
+    source_army,
+    target_army,
+    casualties: dict[str, int],
+    slot_casualties: dict[tuple[str, str], int],
+    applied: dict[str, dict[str, str]],
+) -> tuple[list[dict[str, Any]], int]:
+    """Resolve Artillery wall priority without reordering skipped tickets.
+
+    Shot ownership/ammo is already reserved by _snapshot_phase_fire. Each
+    row-major ticket is resolved against the wall state that exists at that
+    exact point. A non-penetrating wall candidate immediately continues through
+    ordinary target priority using only First positions already exposed at that
+    moment; if none are damageable the ticket is refunded by _resolve_volleys.
+    Once every wall section is breached, later tickets are returned to the
+    ordinary formation resolver.
+    """
+    if not sections or not wall_flanks_locked(sections):
+        return volleys, 0
+
+    prepared: list[list[tuple[int, int, int]]] = []
+    for volley in volleys:
+        rows = list(volley.get("row_numbers", ()))
+        positions = list(volley.get("source_damage_positions", ()))
+        if len(rows) != len(positions):
+            raise ScenarioError("wall artillery requires explicit source positions")
+        prepared.append([
+            (row, position, index)
+            for index, (row, position) in enumerate(zip(rows, positions))
+        ])
+
+    ordered: list[tuple[int, int, int, int]] = []
+    for volley_index, shots in enumerate(prepared):
+        for row, position, shot_index in shots:
+            ordered.append((row, position, volley_index, shot_index))
+    ordered.sort()
+
+    consumed: dict[int, set[int]] = defaultdict(set)
+    eligibility_reported: set[tuple[str, str, str]] = set()
+    fallthrough_freezes: dict[
+        tuple[tuple[str, tuple[tuple[str, str], ...]], ...],
+        tuple[
+            dict[str, tuple[tuple[Wave, ...], tuple[tuple[str, str], ...]]],
+            dict[str, tuple[dict[str, Any], ...]],
+            dict[tuple[str, tuple[tuple[str, str], ...]], tuple[Any, ...]],
+        ],
+    ] = {}
+    fallthrough_source_signatures: dict[
+        tuple[str, str, int],
+        tuple[tuple[str, tuple[tuple[str, str], ...]], ...],
+    ] = {}
+    fired = 0
+
+    for _row, _position, volley_index, shot_index in ordered:
+        if not wall_flanks_locked(sections):
+            break
+        volley = volleys[volley_index]
+        source_unit = registry.get(volley["source_unit"])
+        weapon = next(item for item in source_unit.weapons if item.id == volley["weapon_id"])
+        decision = wall_target_eligibility(
+            source_unit,
+            volley["attack_upgrade"],
+            source_army.forge_level,
+            wall_level,
+            workshop,
+            forge,
+            weapon=weapon,
+        )
+        if not decision.eligible:
+            key = (source_unit.id, weapon.id, decision.effective_attack)
+            if key not in eligibility_reported:
+                eligibility_reported.add(key)
+                _event(
+                    events, number, "fire", "target_ineligible", volley["side"],
+                    firing_phase=volley["runtime_line"],
+                    source_unit_id=source_unit.id,
+                    weapon_id=weapon.id,
+                    target_side="defender",
+                    target_line="wall",
+                    target_unit_id="town_wall",
+                    target_wave="town_wall",
+                    effective_attack=decision.effective_attack,
+                    effective_defense=decision.effective_defense,
+                    reason=decision.reason,
+                    rule_id=TARGET_PENETRATION_RULE_ID,
+                    action="skip_without_shot_or_ammunition",
+                )
+
+            # This ticket must continue target selection at its original
+            # row-major position, not after later wall hits have changed which
+            # First positions are exposed.
+            rows = volley["row_numbers"]
+            positions = volley.get("source_damage_positions", [])
+            single = dict(volley)
+            single["row_numbers"] = [rows[shot_index]]
+            single["source_damage_positions"] = [positions[shot_index]]
+            visible_now = _wall_exposed_target_view(
+                targets, registry, sections, volley["runtime_line"]
+            )
+
+            source_key = (
+                source_unit.id, weapon.id, int(volley["attack_upgrade"])
+            )
+            legal_signature = fallthrough_source_signatures.get(source_key)
+            frozen = (
+                fallthrough_freezes.get(legal_signature)
+                if legal_signature is not None else None
+            )
+            if frozen is None:
+                candidate_targets, candidate_skips = _freeze_target_eligibility_for_weapon(
+                    source_unit,
+                    weapon,
+                    volley["attack_upgrade"],
+                    source_army.forge_level,
+                    volley["runtime_line"],
+                    visible_now,
+                    target_army.forge_level,
+                    registry,
+                    workshop,
+                    forge,
+                    targeting,
+                )
+                if candidate_targets:
+                    legal_signature = tuple(
+                        (target_class, signature)
+                        for target_class, (_waves, signature)
+                        in candidate_targets.items()
+                    )
+                    fallthrough_source_signatures[source_key] = legal_signature
+                    frozen = fallthrough_freezes.get(legal_signature)
+                    if frozen is None:
+                        frozen = (
+                            candidate_targets,
+                            candidate_skips,
+                            _address_books_from_frozen_targets(candidate_targets),
+                        )
+                        fallthrough_freezes[legal_signature] = frozen
+
+                    # Cache equivalent source weapons while these targets are
+                    # still live. Later source types in the same formation
+                    # phase must reuse the same address book even if an earlier
+                    # type kills the last unit at one of those addresses.
+                    for other in volleys:
+                        other_unit = registry.get(other["source_unit"])
+                        other_weapon = next(
+                            item for item in other_unit.weapons
+                            if item.id == other["weapon_id"]
+                        )
+                        other_key = (
+                            other_unit.id,
+                            other_weapon.id,
+                            int(other["attack_upgrade"]),
+                        )
+                        if other_key in fallthrough_source_signatures:
+                            continue
+                        other_targets, _ = _freeze_target_eligibility_for_weapon(
+                            other_unit,
+                            other_weapon,
+                            other["attack_upgrade"],
+                            source_army.forge_level,
+                            other["runtime_line"],
+                            visible_now,
+                            target_army.forge_level,
+                            registry,
+                            workshop,
+                            forge,
+                            targeting,
+                        )
+                        if not other_targets:
+                            continue
+                        other_signature = tuple(
+                            (target_class, signature)
+                            for target_class, (_waves, signature)
+                            in other_targets.items()
+                        )
+                        if other_signature == legal_signature:
+                            fallthrough_source_signatures[other_key] = legal_signature
+            if frozen is not None:
+                single["_frozen_targets_override"] = frozen[0]
+                single["_frozen_skips_by_line_override"] = frozen[1]
+                single["_address_books_override"] = frozen[2]
+
+            ordinary_shots = _resolve_volleys(
+                [single], visible_now, queues,
+                registry, workshop, forge, targeting,
+                events, number, source_army, target_army,
+                casualties, slot_casualties, applied,
+            )
+            if ordinary_shots and single.get("partial_firing_counts") is not None:
+                volley["partial_reported"] = True
+            consumed[volley_index].add(shot_index)
+            fired += ordinary_shots
+            continue
+
+        intact = sorted(
+            (section for section in sections if not section.destroyed),
+            key=lambda section: section.damage_position,
+        )
+        if not intact:
+            break
+        section = intact[0]
+
+        if volley.get("partial_firing_counts") is not None and not volley.get("partial_reported"):
+            _assume(applied, events, "EXP-AMMO-PARTIAL-ORDER-001", number, "fire")
+            _event(
+                events, number, "fire", "partial_ammunition", volley["side"],
+                unit_id=source_unit.id,
+                firing_phase=volley["runtime_line"],
+                assumption_id="EXP-AMMO-PARTIAL-ORDER-001",
+                firing_counts=volley["partial_firing_counts"],
+            )
+            volley["partial_reported"] = True
+
+        _assume(applied, events, "EXP-WALL-FOCUS-DAMAGE-PRIORITY-001", number, "fire")
+        _assume(applied, events, "EXP-WALL-ARTILLERY-SUCCESSFUL-HIT-001", number, "fire")
+        _assume(applied, events, "EXP-ROUND-FLOOR-001", number, "fire")
+        effective_attack = int(
+            Decimal(decision.effective_attack).quantize(Decimal("1"), rounding=ROUND_FLOOR)
+        )
+        hit = apply_wall_successful_hit(
+            sections, wall_level, section.damage_position, effective_attack
+        )
+        consumed[volley_index].add(shot_index)
+        fired += 1
+        _event(
+            events, number, "fire", "wall_damage", volley["side"],
+            firing_phase=volley["runtime_line"],
+            source_unit_id=source_unit.id,
+            weapon_id=weapon.id,
+            target_side="defender",
+            target_class="wall",
+            target_damage_position=section.damage_position,
+            wall_level=wall_level,
+            effective_attack=decision.effective_attack,
+            effective_defense=decision.effective_defense,
+            damage_applied=hit["damage_applied"],
+            persistent_damage=hit["persistent_damage"],
+            remaining_hit_points=hit["remaining_hit_points"],
+            breached=hit["destroyed"],
+            target_eligibility_rule=TARGET_PENETRATION_RULE_ID,
+            assumption_ids=[
+                "EXP-WALL-FOCUS-DAMAGE-PRIORITY-001",
+                "EXP-WALL-ARTILLERY-SUCCESSFUL-HIT-001",
+                "EXP-ROUND-FLOOR-001",
+            ],
+        )
+        if hit["destroyed"]:
+            _event(
+                events, number, "fire", "wall_section_breached", "defender",
+                damage_position=section.damage_position,
+                physical_position=section.physical_position,
+                wall_level=wall_level,
+                action="defender_first_line_position_exposed",
+            )
+
+    leftovers: list[dict[str, Any]] = []
+    for volley_index, volley in enumerate(volleys):
+        used = consumed.get(volley_index, set())
+        rows = volley["row_numbers"]
+        positions = volley.get("source_damage_positions", [])
+        remaining_indexes = [i for i in range(len(rows)) if i not in used]
+        if not remaining_indexes:
+            continue
+
+        item = dict(volley)
+        item["row_numbers"] = [rows[i] for i in remaining_indexes]
+        item["source_damage_positions"] = [positions[i] for i in remaining_indexes]
+
+        # A nonpenetrating source may have frozen its ordinary First-line
+        # fallthrough book before later Artillery tickets fully breached the
+        # wall. Carry that phase-start book onto any leftover tickets instead
+        # of letting the caller rebuild addresses from newly exposed slots.
+        source_unit = registry.get(volley["source_unit"])
+        weapon = next(
+            candidate for candidate in source_unit.weapons
+            if candidate.id == volley["weapon_id"]
+        )
+        source_key = (
+            source_unit.id, weapon.id, int(volley["attack_upgrade"])
+        )
+        legal_signature = fallthrough_source_signatures.get(source_key)
+        frozen = (
+            fallthrough_freezes.get(legal_signature)
+            if legal_signature is not None else None
+        )
+        if frozen is not None:
+            item["_frozen_targets_override"] = frozen[0]
+            item["_frozen_skips_by_line_override"] = frozen[1]
+            item["_address_books_override"] = frozen[2]
+
+        leftovers.append(item)
+    return leftovers, fired
+
+
 def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitRegistry,
                          targeting: TargetingProfile, events: list[Event], number: int,
                          side: str, runtime_line: str,
-                         applied: dict[str, dict[str, str]]) -> list[dict[str, Any]]:
+                         applied: dict[str, dict[str, str]],
+                         *, force_source_fire: bool = False,
+                         allowed_source_positions: set[int] | None = None) -> list[dict[str, Any]]:
     """Freeze firing eligibility for one formation before either side takes damage."""
     volleys: list[dict[str, Any]] = []
     for wave in _combat_waves(source, registry):
         if _runtime_line(wave, registry) != runtime_line or not wave.slots or not wave.alive:
             continue
         enemies, _ = _target_waves_for_line(runtime_line, target, registry, targeting)
-        if not enemies:
+        if not enemies and not force_source_fire:
             continue
         unit = registry.get(wave.unit.unit_id)
         weapon = select_active_weapon(unit, runtime_line)
@@ -1093,8 +1490,17 @@ def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitR
             continue
         if weapon.accuracy is None:
             raise ScenarioError(f"weapon accuracy missing for {unit.id}:{weapon.id}")
-        deployed = sorted((slot for slot in wave.slots if slot.units),
-                          key=lambda slot: slot.damage_position)
+        deployed = sorted(
+            (
+                slot for slot in wave.slots
+                if slot.units
+                and (
+                    allowed_source_positions is None
+                    or slot.damage_position in allowed_source_positions
+                )
+            ),
+            key=lambda slot: slot.damage_position,
+        )
         firing_counts = [slot.units for slot in deployed]
         total_firing = sum(firing_counts)
         partial_firing_counts = None
@@ -1233,19 +1639,22 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             continue
         source_unit = registry.get(volley["source_unit"])
         weapon = next(item for item in source_unit.weapons if item.id == volley["weapon_id"])
-        frozen_targets, frozen_skips_by_line = _freeze_target_eligibility_for_weapon(
-            source_unit,
-            weapon,
-            volley["attack_upgrade"],
-            source_army.forge_level,
-            volley["runtime_line"],
-            targets,
-            target_army.forge_level,
-            registry,
-            workshop,
-            forge,
-            targeting,
-        )
+        frozen_targets = volley.get("_frozen_targets_override")
+        frozen_skips_by_line = volley.get("_frozen_skips_by_line_override")
+        if frozen_targets is None or frozen_skips_by_line is None:
+            frozen_targets, frozen_skips_by_line = _freeze_target_eligibility_for_weapon(
+                source_unit,
+                weapon,
+                volley["attack_upgrade"],
+                source_army.forge_level,
+                volley["runtime_line"],
+                targets,
+                target_army.forge_level,
+                registry,
+                workshop,
+                forge,
+                targeting,
+            )
         contexts[volley_index] = {
             "volley": volley,
             "source_unit": source_unit,
@@ -1259,23 +1668,21 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             "withheld_shots": 0,
             "fired_shots": 0,
             "partial_reported": False,
+            "forced_address_keys": set(),
         }
 
         # Freeze every address book before any shot in this formation phase can
-        # change slot occupancy or runtime-line inference.
-        for target_class, (enemies, signature) in frozen_targets.items():
-            address_key = (target_class, signature)
-            if address_key in address_books:
-                continue
-            addressed_slots = []
-            for enemy in enemies:
-                addressed_slots.extend(
-                    (slot.damage_position, enemy, slot)
-                    for slot in enemy.slots if slot.units
-                )
-            address_books[address_key] = tuple(
-                sorted(addressed_slots, key=lambda item: (
-                    item[0], item[1].unit.unit_id, item[1].unit.wave_id)))
+        # change slot occupancy or runtime-line inference. Wall fallthrough may
+        # inject a pre-frozen phase book so repeated single-ticket resolution
+        # cannot renumber surviving slots.
+        supplied_books = volley.get("_address_books_override") or {}
+        contexts[volley_index]["forced_address_keys"] = set(supplied_books)
+        for address_key, addressed in supplied_books.items():
+            address_books.setdefault(address_key, addressed)
+        for address_key, addressed in _address_books_from_frozen_targets(
+            frozen_targets
+        ).items():
+            address_books.setdefault(address_key, addressed)
 
     for volley_index, row_number in _formation_shots(volleys):
         context = contexts.get(volley_index)
@@ -1305,7 +1712,11 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             if frozen_entry is None:
                 continue
             candidate_waves, candidate_signature = frozen_entry
-            if any(slot.units > 0 for wave in candidate_waves for slot in wave.slots):
+            address_key = (candidate_class, candidate_signature)
+            if (
+                any(slot.units > 0 for wave in candidate_waves for slot in wave.slots)
+                or address_key in context["forced_address_keys"]
+            ):
                 enemies = candidate_waves
                 target_class = candidate_class
                 eligibility_signature = candidate_signature
@@ -1327,7 +1738,11 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                 ammo_owner.ammo_pool_shots += 1
             continue
 
-        if volley.get("partial_firing_counts") is not None and not context["partial_reported"]:
+        if (
+            volley.get("partial_firing_counts") is not None
+            and not volley.get("partial_reported")
+            and not context["partial_reported"]
+        ):
             _assume(applied, events, "EXP-AMMO-PARTIAL-ORDER-001", number, "fire")
             _event(
                 events, number, "fire", "partial_ammunition", volley["side"],
@@ -1538,8 +1953,25 @@ def _apply_slot_redistribution(
 
 
 
-def _termination(attacker: dict[str, Any], defender: dict[str, Any]) -> tuple[str | None, str | None]:
+def _wall_sustains_defender(
+    wall_runtime_active: bool, wall_sections: list[Any]
+) -> bool:
+    return bool(
+        wall_runtime_active
+        and wall_sections
+        and wall_flanks_locked(wall_sections)
+    )
+
+
+def _termination(
+    attacker: dict[str, Any],
+    defender: dict[str, Any],
+    *,
+    defender_wall_sustaining: bool = False,
+) -> tuple[str | None, str | None]:
     a, d = attacker["continuation_state"], defender["continuation_state"]
+    if defender_wall_sustaining:
+        d = ContinuationState.SUSTAINING.value
     if ContinuationState.FALLBACK_REQUIRED.value in {a, d}: return None, None
     if a == ContinuationState.SUSTAINING.value and d == ContinuationState.NOT_SUSTAINING.value:
         return "attacker", "defender"
@@ -1655,6 +2087,11 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         garrison_initial["effective_battlefield"]
         if open_field_active else scenario.battlefield
     )
+    wall_runtime_active = bool(scenario.wall_level) and not open_field_active
+    wall_sections = (
+        initial_wall_sections(scenario.wall_level, field)
+        if wall_runtime_active else []
+    )
     formation_rules = FormationRules.load(scenario.profiles.formation)
     battle_end = BattleEndProfile.load(scenario.profiles.battle_end)
     # Validate every scheduled unit and package invariant now, including
@@ -1683,16 +2120,22 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         warnings.append(
             "Defender exceeds the configured land garrison limit: the battle starts on land-max with the Town Wall suppressed."
         )
+    elif scenario.wall_level and scenario.policy is Policy.EXPERIMENTAL:
+        warnings.append(
+            "Experimental Town Wall combat is enabled: Artillery breach arithmetic, breached-position exposure, and flank lock are executable; exact wall offensive Accuracy and wall-section target order remain named experimental boundaries."
+        )
     elif scenario.wall_level:
         warnings.append(
-            "Defender Town Wall input is captured, but wall targeting, breaching, refill, and flank-lock combat semantics are not executable yet."
+            "Strict Town Wall combat is guarded at UNKNOWN-TOWN-WALL-COMBAT; no Experimental wall mechanics are applied."
         )
     attacker_blockers = _preflight(attacker, registry, formation_rules, field)
     defender_blockers = _preflight(defender, registry, formation_rules, field)
     blockers = sorted(set(attacker_blockers + defender_blockers))
-    if scenario.wall_level and not open_field_active:
+    if scenario.wall_level and not open_field_active and scenario.policy is Policy.STRICT:
         blockers.append(TOWN_WALL_RULE_ID)
     initial_states = {side: state["continuation_state"] for side, state in initial.items()}
+    if _wall_sustains_defender(wall_runtime_active, wall_sections):
+        initial_states["defender"] = ContinuationState.SUSTAINING.value
     fallback_sides = [side for side, state in initial_states.items()
                       if state == ContinuationState.FALLBACK_REQUIRED.value]
     initial_pending = {
@@ -1701,7 +2144,13 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         "defender": _pending_sustaining_arrivals(
             scenario.defender, 0, registry, battle_end),
     }
-    initial_outcome, initial_losing = _termination(initial["attacker"], initial["defender"])
+    initial_outcome, initial_losing = _termination(
+        initial["attacker"],
+        initial["defender"],
+        defender_wall_sustaining=_wall_sustains_defender(
+            wall_runtime_active, wall_sections
+        ),
+    )
     initial_waiting = initial_outcome is not None and bool(initial_pending.get(initial_losing or ""))
     both_initially_empty_but_pending = (
         all(state == ContinuationState.NOT_SUSTAINING.value for state in initial_states.values())
@@ -1720,8 +2169,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         return _unsupported(scenario, events, initial, sorted(set(blockers)), warnings)
     if {"UNKNOWN-MULTIPLE-TARGET-WAVES",
         "UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS",
-        "UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT",
-        TOWN_WALL_RULE_ID} & set(blockers):
+        "UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT"} & set(blockers):
         return _unsupported(scenario, events, initial, blockers, warnings)
     applied: dict[str, dict[str, str]] = {}
     for side, side_blockers in (("attacker", attacker_blockers), ("defender", defender_blockers)):
@@ -1759,7 +2207,13 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                next_arrival_round=min(row["arrival_round"] for row in initial_pending[initial_losing]))
     elif initial_outcome is not None:
         _assume(applied, events, "EXP-BATTLE-END-ROUND-BOUNDARY-001", 0, "battle_end")
-        _, losing = _termination(initial["attacker"], initial["defender"])
+        _, losing = _termination(
+            initial["attacker"],
+            initial["defender"],
+            defender_wall_sustaining=_wall_sustains_defender(
+                wall_runtime_active, wall_sections
+            ),
+        )
         _event(events, 0, "battle_end", "battle_termination", None,
                reason="no_battle_sustaining_units", losing_side=losing,
                surviving_non_sustaining={side: _non_sustaining(state) for side, state in initial.items()})
@@ -1778,6 +2232,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     both_zero_boundary = False
     cross_wave_boundary = False
     garrison_transition_boundary = False
+    wall_combat_boundary = False
     engagement_started = all(
         state == ContinuationState.SUSTAINING.value for state in initial_states.values())
     for number in range(1, scenario.max_rounds + 1):
@@ -1834,6 +2289,36 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         _prepare_round_start(
             defender, events, number, "defender", applied,
             registry, formation_rules, field, support)
+        if wall_runtime_active and wall_sections:
+            redistribution = wall_redistribution_plan(
+                wall_sections, scenario.wall_level
+            )
+            if redistribution["total_damage"]:
+                if redistribution["status"] == "rounding_unresolved":
+                    _event(
+                        events, number, "round_start", "unsupported_mechanic", "defender",
+                        rule_id="UNKNOWN-TOWN-WALL-REDISTRIBUTION-ROUNDING",
+                        wall_level=scenario.wall_level,
+                        **redistribution,
+                    )
+                    completed = number
+                    attacker_state = _snapshot(attacker, registry, battle_end)
+                    defender_state = _snapshot(defender, registry, battle_end)
+                    rounds.append({
+                        "round": number,
+                        "attacker": attacker_state,
+                        "defender": defender_state,
+                        "casualties": {"attacker": {}, "defender": {}},
+                    })
+                    wall_combat_boundary = True
+                    break
+                apply_exact_wall_redistribution(
+                    wall_sections, scenario.wall_level
+                )
+                _event(
+                    events, number, "round_start", "wall_damage_redistributed",
+                    "defender", wall_level=scenario.wall_level, **redistribution,
+                )
         cross_wave = {
             "attacker": _cross_wave_rebuild_requirements(attacker, registry, formation_rules, field),
             "defender": _cross_wave_rebuild_requirements(defender, registry, formation_rules, field),
@@ -1862,6 +2347,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             "attacker": _snapshot(attacker, registry, battle_end)["continuation_state"],
             "defender": _snapshot(defender, registry, battle_end)["continuation_state"],
         }
+        if _wall_sustains_defender(wall_runtime_active, wall_sections):
+            round_start_states["defender"] = ContinuationState.SUSTAINING.value
         if all(state == ContinuationState.SUSTAINING.value
                for state in round_start_states.values()):
             engagement_started = True
@@ -1873,17 +2360,91 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         a_queues = _build_damage_queues(attacker, registry, events, number, "attacker", applied)
         d_queues = _build_damage_queues(defender, registry, events, number, "defender", applied)
         for firing_phase in targeting.firing_order:
+            if (
+                firing_phase == "flank"
+                and wall_runtime_active
+                and wall_sections
+                and wall_flanks_locked(wall_sections)
+            ):
+                _event(
+                    events, number, "fire", "wall_flank_lock", None,
+                    firing_phase="flank",
+                    surviving_wall_positions=[
+                        section.damage_position
+                        for section in wall_sections if not section.destroyed
+                    ],
+                    action="skip_flank_phase",
+                )
+                continue
+
+            attacker_target_view = (
+                _wall_exposed_target_view(
+                    defender, registry, wall_sections, firing_phase
+                )
+                if wall_runtime_active and wall_sections else defender
+            )
+            defender_first_positions = None
+            if (
+                firing_phase == "first"
+                and wall_runtime_active
+                and wall_sections
+                and wall_flanks_locked(wall_sections)
+            ):
+                defender_first_positions = _wall_source_positions(wall_sections)
+
             a_volleys = _snapshot_phase_fire(
-                attacker, defender, registry, targeting, events, number, "attacker",
-                firing_phase, applied)
+                attacker, attacker_target_view, registry, targeting,
+                events, number, "attacker", firing_phase, applied,
+                force_source_fire=(
+                    firing_phase == "third"
+                    and wall_runtime_active
+                    and wall_sections
+                    and wall_flanks_locked(wall_sections)
+                ),
+            )
             d_volleys = _snapshot_phase_fire(
                 defender, attacker, registry, targeting, events, number, "defender",
-                firing_phase, applied)
-            if not a_volleys and not d_volleys:
+                firing_phase, applied,
+                allowed_source_positions=defender_first_positions,
+            )
+
+            wall_shots = 0
+            if (
+                firing_phase == "third"
+                and a_volleys
+                and wall_runtime_active
+                and wall_sections
+                and wall_flanks_locked(wall_sections)
+            ):
+                a_volleys, wall_shots = _resolve_wall_artillery_volleys(
+                    a_volleys, wall_sections, scenario.wall_level,
+                    defender, d_queues,
+                    registry, workshop, forge, targeting,
+                    events, number, scenario.attacker, scenario.defender,
+                    d_dead, d_slot_dead, applied,
+                )
+                attacker_target_view = _wall_exposed_target_view(
+                    defender, registry, wall_sections, firing_phase
+                )
+
+            if (
+                firing_phase == "first"
+                and wall_runtime_active
+                and wall_sections
+                and wall_flanks_locked(wall_sections)
+            ):
+                _assume(
+                    applied, events, "EXP-WALL-OFFENSE-NONE-001",
+                    number, "fire", "defender",
+                )
+
+            if not a_volleys and not d_volleys and not wall_shots:
                 continue
-            attacker_shots = _resolve_volleys(
-                a_volleys, defender, d_queues, registry, workshop, forge, targeting,
-                events, number, scenario.attacker, scenario.defender, d_dead, d_slot_dead, applied)
+            attacker_shots = wall_shots + _resolve_volleys(
+                a_volleys, attacker_target_view, d_queues,
+                registry, workshop, forge, targeting,
+                events, number, scenario.attacker, scenario.defender,
+                d_dead, d_slot_dead, applied)
             defender_shots = _resolve_volleys(
                 d_volleys, attacker, a_queues, registry, workshop, forge, targeting,
                 events, number, scenario.defender, scenario.attacker, a_dead, a_slot_dead, applied)
@@ -1936,6 +2497,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                     and _has_supported_round_start_first_placement(
                         side_waves, registry, formation_rules, field)):
                 states[side] = ContinuationState.SUSTAINING.value
+        if _wall_sustains_defender(wall_runtime_active, wall_sections):
+            states["defender"] = ContinuationState.SUSTAINING.value
         effective_attacker_state = dict(attacker_state)
         effective_defender_state = dict(defender_state)
         effective_attacker_state["continuation_state"] = states["attacker"]
@@ -1953,6 +2516,42 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             "defender": _pending_sustaining_arrivals(
                 scenario.defender, number, registry, battle_end),
         }
+
+        # A same-geometry open-field exit is a state-only transition: no slot
+        # remap is required on land-max. Apply it before termination so a fresh
+        # active wall can sustain the defender even when the last First-line
+        # unit died in this same round. Geometry-changing exits remain guarded
+        # later and do not override an already terminal battle.
+        if (
+            garrison_limit is not None
+            and open_field_active
+            and scenario.battlefield == "land-max"
+        ):
+            counted_defenders = counted_live_waves(defender, registry)
+            if counted_defenders <= garrison_limit:
+                wall_reappears = bool(scenario.wall_level)
+                open_field_active = False
+                if wall_reappears:
+                    wall_runtime_active = True
+                    wall_sections = initial_wall_sections(
+                        scenario.wall_level, field
+                    )
+                    states["defender"] = ContinuationState.SUSTAINING.value
+                    effective_defender_state["continuation_state"] = (
+                        ContinuationState.SUSTAINING.value
+                    )
+                _event(
+                    events, number, "round_end", "garrison_state_change", "defender",
+                    direction="exit_open_field",
+                    counted_defenders=counted_defenders,
+                    garrison_limit=garrison_limit,
+                    battlefield="land-max",
+                    wall_reappears=wall_reappears,
+                    wall_state=(
+                        "fresh_intact_sections"
+                        if wall_reappears else "not_present"
+                    ),
+                )
         if all(state == ContinuationState.NOT_SUSTAINING.value for state in states.values()):
             if not engagement_started and any(pending_now.values()):
                 _event(events, number, "battle_start", "waiting_for_arrival", None,
@@ -1965,7 +2564,12 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 both_zero_boundary = True
                 break
         outcome, losing = _termination(
-            effective_attacker_state, effective_defender_state)
+            effective_attacker_state,
+            effective_defender_state,
+            defender_wall_sustaining=_wall_sustains_defender(
+                wall_runtime_active, wall_sections
+            ),
+        )
         if outcome is not None:
             losing_pending = pending_now.get(losing or "", [])
             if not engagement_started and losing_pending:
@@ -1980,15 +2584,15 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                                                  "defender":_non_sustaining(defender_state)})
                 break
 
-        # A garrison threshold transition matters only if combat continues into
-        # another round. If this round already ended the battle, no formation
-        # needs to be remapped and the terminal outcome remains authoritative.
+        # Geometry-changing garrison exits still require remapping and remain
+        # guarded. Same-geometry land-max exits were already applied above
+        # before termination because they can reactivate a sustaining wall.
         if garrison_limit is not None and open_field_active:
             counted_defenders = counted_live_waves(defender, registry)
             if counted_defenders <= garrison_limit:
                 geometry_changes = scenario.battlefield != "land-max"
                 wall_reappears = bool(scenario.wall_level)
-                if geometry_changes or wall_reappears:
+                if geometry_changes:
                     _event(
                         events, number, "round_end", "unsupported_mechanic", "defender",
                         rule_id=GARRISON_TRANSITION_RULE_ID,
@@ -2002,13 +2606,22 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                     garrison_transition_boundary = True
                     break
                 open_field_active = False
+                if wall_reappears:
+                    wall_runtime_active = True
+                    wall_sections = initial_wall_sections(
+                        scenario.wall_level, field
+                    )
                 _event(
                     events, number, "round_end", "garrison_state_change", "defender",
                     direction="exit_open_field",
                     counted_defenders=counted_defenders,
                     garrison_limit=garrison_limit,
                     battlefield="land-max",
-                    wall_reappears=False,
+                    wall_reappears=wall_reappears,
+                    wall_state=(
+                        "fresh_intact_sections"
+                        if wall_reappears else "not_present"
+                    ),
                 )
         if not a_dead and not d_dead and not round_had_fire:
             if not engagement_started and any(pending_now.values()):
@@ -2018,7 +2631,13 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         _event(events, scenario.max_rounds, "battle_end", "safety_limit_reached", None,
                reason="max_rounds_reached", limit=scenario.max_rounds)
     final = {"attacker":_snapshot(attacker,registry,battle_end),"defender":_snapshot(defender,registry,battle_end)}
-    outcome, final_losing = _termination(final["attacker"], final["defender"])
+    outcome, final_losing = _termination(
+        final["attacker"],
+        final["defender"],
+        defender_wall_sustaining=_wall_sustains_defender(
+            wall_runtime_active, wall_sections
+        ),
+    )
     pending_handoff_after_horizon = {
         "attacker": _has_supported_round_start_first_placement(
             attacker, registry, formation_rules, field),
@@ -2032,7 +2651,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             scenario.defender, scenario.max_rounds, registry, battle_end),
     }
     if (fallback_boundary or both_zero_boundary or cross_wave_boundary
-            or garrison_transition_boundary
+            or garrison_transition_boundary or wall_combat_boundary
             or (final_losing is not None
                 and pending_handoff_after_horizon.get(final_losing))
             or (not engagement_started
@@ -2040,10 +2659,28 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 and pending_after_horizon.get(final_losing))):
         outcome = None
     outcome = outcome or "inconclusive"
+    wall_runtime = None
+    if scenario.wall_level:
+        wall_runtime = {
+            "active": wall_runtime_active,
+            "sections": wall_section_snapshot(
+                wall_sections, scenario.wall_level
+            ) if wall_sections else [],
+            "breached_positions": list(wall_breached_positions(wall_sections)),
+            "flanks_locked": (
+                wall_flanks_locked(wall_sections)
+                if wall_runtime_active and wall_sections else False
+            ),
+            "fully_breached": bool(
+                wall_sections
+                and not wall_flanks_locked(wall_sections)
+            ),
+        }
     return {"profiles":scenario.profiles.__dict__,"policy":scenario.policy.value,"status":"completed" if outcome != "inconclusive" else "inconclusive",
             "outcome":outcome,"rounds_completed":completed,"casualties":{k:dict(v) for k,v in total.items()},
             "initial_state":initial,"final_state":final,"rounds":rounds,"events":[e.as_dict() for e in events],
-            "assumptions":list(applied.values()),"warnings":warnings}
+            "assumptions":list(applied.values()),"warnings":warnings,
+            "_wall_runtime":wall_runtime}
 
 
 def _decimal_json(value: Decimal) -> int | float:
@@ -2321,15 +2958,54 @@ def _attach_battle_statistics(
     result["garrison_status"] = garrison
 
     initial_open = bool(garrison.get("open_field")) if garrison.get("modeled") else False
+    wall_runtime = result.pop("_wall_runtime", None)
     wall_inactive_reason = None
+    runtime_active = None
     if scenario.wall_level and initial_open:
         wall_inactive_reason = "open_field_garrison_limit"
-    result["wall_status"] = wall_status(
+        runtime_active = False
+    if wall_runtime is not None:
+        runtime_active = bool(wall_runtime.get("active"))
+        if runtime_active:
+            wall_inactive_reason = None
+
+    status = wall_status(
         scenario.wall_level,
         battlefield(scenario.battlefield),
-        active=False if wall_inactive_reason else None,
+        active=runtime_active,
         inactive_reason=wall_inactive_reason,
     )
+    if wall_runtime is not None and runtime_active:
+        status.update({
+            "status": (
+                "breached"
+                if wall_runtime.get("fully_breached") else "active"
+            ),
+            "combat_model_status": "EXPERIMENTAL_EXECUTABLE_WITH_GUARDS",
+            "effect_applied": True,
+            "sections_state": wall_runtime.get("sections", []),
+            "breached_positions": wall_runtime.get("breached_positions", []),
+            "flanks_locked": bool(wall_runtime.get("flanks_locked")),
+        })
+    elif (
+        scenario.wall_level
+        and scenario.policy is Policy.EXPERIMENTAL
+        and runtime_active is not False
+    ):
+        untouched_sections = initial_wall_sections(
+            scenario.wall_level, battlefield(scenario.battlefield)
+        )
+        status.update({
+            "status": "not_reached",
+            "combat_model_status": "EXPERIMENTAL_EXECUTABLE_WITH_GUARDS",
+            "effect_applied": False,
+            "sections_state": wall_section_snapshot(
+                untouched_sections, scenario.wall_level
+            ),
+            "breached_positions": [],
+            "flanks_locked": bool(untouched_sections),
+        })
+    result["wall_status"] = status
     return result
 
 def simulate(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:

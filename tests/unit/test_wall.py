@@ -144,11 +144,11 @@ def test_wall_redistribution_excludes_destroyed_sections_and_preserves_breach():
  assert by_position[2].damage==600 and by_position[3].damage==600
 
 
-def test_wall_metadata_is_input_supported_but_combat_guarded():
+def test_wall_metadata_reports_strict_guard_and_experimental_execution():
  metadata=wall_profile_metadata()
  assert metadata['max_level']==48
  assert metadata['input_supported'] is True
- assert metadata['combat_model_status']=='INPUT_CAPTURED_COMBAT_UNSUPPORTED'
+ assert metadata['combat_model_status']=='STRICT_GUARDED_EXPERIMENTAL_EXECUTABLE_WITH_GUARDS'
  assert metadata['rule_id']=='UNKNOWN-TOWN-WALL-COMBAT'
  assert metadata['source_type']=='MIXED_CURRENT_REFERENCE'
  assert metadata['gameforge_reference_max_level']==46
@@ -164,10 +164,11 @@ def test_wall_metadata_is_input_supported_but_combat_guarded():
  }
  assert metadata['damage_observed_points']=={'1':216,'9':504,'18':2160,'26':5580}
  assert metadata['successful_breach_hits_formula']=='ceil((1800 + 900*level) / (attack_damage - 72*level))'
- assert metadata['section_state_contract']['status']=='EXECUTABLE_CORE_ENGINE_GUARDED'
+ assert metadata['section_state_contract']['status']=='EXECUTABLE_CORE_AND_EXPERIMENTAL_ENGINE'
  assert metadata['section_state_contract']['identity']=='selected battlefield First-line damage_position'
  assert metadata['section_state_contract']['flank_lock']=='locked while any wall section survives'
  assert metadata['section_state_contract']['redistribution_rounding']=='unresolved when total damage is not evenly divisible'
+ assert metadata['targeting_contract']['status']=='STRICT_GUARDED_EXPERIMENTAL_EXECUTABLE'
  assert metadata['targeting_contract']['artillery_priority']==['wall','first']
  assert metadata['targeting_contract']['penetration_rule']=='effective_attack > effective_defense'
  assert metadata['targeting_contract']['non_penetrating_target_consumes_ammunition'] is False
