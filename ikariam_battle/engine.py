@@ -1934,97 +1934,100 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                        "empty_addressed_shots_by_damage_position": dict(matrix["empty_hits"]),
                    })
         for group in context["damage_groups"].values():
+            resolution = "sequential_d_kill_baseline"
+            assumption_ids = [
+                "EXP-D-KILL-SEQUENTIAL-001",
+                EXPERIMENTAL_ACCURACY_MODEL_ID,
+                "EXP-IR-DISABLED-001",
+            ]
+
+            if (
+                source_unit.id == "swordsman"
+                and group["target_unit_id"] == "swordsman"
+                and group["target_line"] == "flank"
+            ):
+                target_unit = registry.get(group["target_unit_id"])
+                adjustment = swordsman_flank_kill_adjustment(
+                    initial_units=group["_initial_units"],
+                    hit_points=target_unit.hit_points or 0,
+                    incoming_damage=group["damage"],
+                    prior_damage=group["prior_damage"],
+                    baseline_casualties=group["casualties"],
+                    baseline_persistent_damage=group["_persistent_damage"],
+                    baseline_overkill_discarded=group["overkill_discarded"],
+                    source_column_hits=group["source_column_hits"],
+                )
+                if adjustment is not None and adjustment.mode != "d_kill_even_columns":
+                    target_slot = group["_target_slot"]
+                    delta = adjustment.casualties - group["casualties"]
+                    if delta < 0 or delta > target_slot.units:
+                        raise ScenarioError(
+                            "swordsman kill hypothesis produced invalid casualty adjustment"
+                        )
+                    if delta:
+                        target_slot.units -= delta
+                        casualties[target_slot.unit_id] += delta
+                        slot_casualties[
+                            (target_slot.wave_id, target_slot.slot_id)
+                        ] += delta
+                    target_slot.damage = adjustment.persistent_damage
+                    queues[group["_queue_key"]] = sorted(
+                        _even_unit_damage(target_slot.damage, target_slot.units),
+                        reverse=True,
+                    )
+
+                    group["baseline_casualties"] = group["casualties"]
+                    group["baseline_persistent_damage"] = group["_persistent_damage"]
+                    group["baseline_overkill_discarded"] = group["overkill_discarded"]
+                    group["casualties"] = adjustment.casualties
+                    group["overkill_discarded"] = adjustment.discarded_overkill
+                    group["_persistent_damage"] = adjustment.persistent_damage
+                    group["recovered_overkill"] = adjustment.recovered_overkill
+                    group["kill_selector"] = adjustment.mode
+                    group["accuracy_selector_status"] = (
+                        "constant_swordsman_accuracy_not_identifying_selector"
+                    )
+
+                    if adjustment.mode == "i_kill_exact_division":
+                        _assume(
+                            applied, events, SWORDSMAN_IKILL_RULE_ID,
+                            number, "fire", volley["side"],
+                        )
+                        resolution = "swordsman_flank_i_kill_exact_division"
+                        assumption_ids = [
+                            SWORDSMAN_IKILL_RULE_ID,
+                            EXPERIMENTAL_ACCURACY_MODEL_ID,
+                        ]
+                    else:
+                        _assume(
+                            applied, events, SWORDSMAN_MKILL_RULE_ID,
+                            number, "fire", volley["side"],
+                        )
+                        resolution = "swordsman_flank_m_kill_overkill_third"
+                        assumption_ids = [
+                            "EXP-D-KILL-SEQUENTIAL-001",
+                            SWORDSMAN_MKILL_RULE_ID,
+                            EXPERIMENTAL_ACCURACY_MODEL_ID,
+                        ]
+
             details = {
-                key: (dict(value) if key == "accuracy_decisions" else value)
+                key: (
+                    dict(value)
+                    if key in {"accuracy_decisions", "source_column_hits"}
+                    else value
+                )
                 for key, value in group.items()
-                if key != "_persistent_damage"
+                if not key.startswith("_")
             }
             _event(events, number, "fire", "damage", volley["side"],
                    firing_phase=volley["runtime_line"],
                    target_side="defender" if volley["side"] == "attacker" else "attacker",
                    source_unit_id=source_unit.id,
-                   resolution="sequential_d_kill_baseline",
+                   resolution=resolution,
                    persistent_damage=group["_persistent_damage"],
-                   assumption_ids=[
-                       "EXP-D-KILL-SEQUENTIAL-001",
-                       EXPERIMENTAL_ACCURACY_MODEL_ID,
-                       "EXP-IR-DISABLED-001",
-                   ],
+                   assumption_ids=assumption_ids,
                    **details)
     return sum(context["fired_shots"] for context in contexts.values())
-
-def _apply_swordsman_full_flank_calibration(
-    plan: tuple[SwordsmanSlotCalibration, ...],
-    queues: dict[tuple[str, str, str], list[int]],
-    casualties: dict[str, int],
-    slot_casualties: dict[tuple[str, str], int],
-    events: list[Event],
-    number: int,
-    source_side: str,
-    applied: dict[str, dict[str, str]],
-    registry: UnitRegistry,
-) -> None:
-    """Replace only the exact central-slot outcomes covered by the user fixture."""
-    if not plan:
-        return
-    _assume(
-        applied, events, SWORDSMAN_MKILL_CALIBRATION_RULE_ID,
-        number, "fire", source_side,
-    )
-    for outcome in plan:
-        slot = outcome.target_slot
-        wave = outcome.target_wave
-        hp = registry.get(slot.unit_id).hit_points or 0
-        key = (slot.wave_id, slot.slot_id)
-        baseline_casualties = slot_casualties.get(key, 0)
-        delta = outcome.casualties - baseline_casualties
-        casualties[slot.unit_id] += delta
-        slot_casualties[key] = outcome.casualties
-        slot.units = 40 - outcome.casualties
-        slot.damage = outcome.persistent_damage
-
-        queue_key = (wave.unit.unit_id, wave.unit.wave_id, slot.slot_id)
-        queues[queue_key] = sorted(
-            _even_unit_damage(outcome.persistent_damage, slot.units),
-            reverse=True,
-        )
-
-        matching = [
-            event for event in events
-            if event.round == number
-            and event.type == "damage"
-            and event.side == source_side
-            and event.details.get("source_unit_id") == "swordsman"
-            and event.details.get("target_unit_id") == "swordsman"
-            and event.details.get("target_line") == "flank"
-            and event.details.get("target_slot") == slot.slot_id
-        ]
-        if len(matching) != 1:
-            raise ScenarioError(
-                "swordsman M-kill calibration requires one damage event per target slot"
-            )
-        details = matching[0].details
-        baseline_damage = details.get("persistent_damage", 0)
-        gross_damage = int(details.get("damage", 0))
-        details.update({
-            "baseline_resolution": details.get("resolution"),
-            "baseline_casualties": baseline_casualties,
-            "baseline_persistent_damage": baseline_damage,
-            "resolution": "user_observed_swordsman_full_flank_mkill_calibration",
-            "casualties": outcome.casualties,
-            "persistent_damage": outcome.persistent_damage,
-            "reported_damage_percent": outcome.reported_damage_percent,
-            "overkill_discarded": max(
-                0,
-                gross_damage - outcome.casualties * hp - outcome.persistent_damage,
-            ),
-            "calibration_rule_id": SWORDSMAN_MKILL_CALIBRATION_RULE_ID,
-            "assumption_ids": [
-                SWORDSMAN_MKILL_CALIBRATION_RULE_ID,
-                "EXP-ROUND-FLOOR-001",
-            ],
-        })
-
 
 def _apply_slot_redistribution(
     waves: list[Wave], queues: dict[tuple[str, str, str], list[int]]
