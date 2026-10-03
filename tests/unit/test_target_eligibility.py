@@ -60,6 +60,25 @@ def test_wall_penetration_helper_matches_observed_skip_rule():
     assert rifle_decision.effective_defense == 3456
 
 
+def test_wall_penetration_uses_same_floor_rounding_as_hit_application():
+    registry = UnitRegistry.load()
+    workshop = WorkshopProfile.load()
+    forge = ForgeProfile.load()
+    ram = registry.get("battering_ram")
+
+    decision = wall_target_eligibility(
+        ram, 15, 1, 25, workshop, forge, weapon=ram.primary_weapon
+    )
+
+    # Raw Forge result is 1800.625, but wall hit application uses integer
+    # floor damage. Eligibility must use that same 1800 value, which equals
+    # Lv25 wall Armor and is therefore ineligible.
+    assert decision.effective_attack == "1800"
+    assert decision.effective_defense == 1800
+    assert decision.eligible is False
+    assert decision.reason == "effective_attack_not_above_defense"
+
+
 def test_nonpenetrable_priority_target_is_skipped_for_next_damageable_formation():
     registry = UnitRegistry.load()
     workshop = WorkshopProfile.load()
