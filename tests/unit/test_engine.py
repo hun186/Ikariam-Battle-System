@@ -1678,21 +1678,21 @@ def test_user_observed_full_swordsman_flank_mkill_hypothesis_matches_round_one()
 
  assert [slot['casualties'] for slot in attacker_flank]==[18,21,21,21,21,18]
  assert [slot['casualties'] for slot in defender_flank]==[18,24,24,24,24,18]
- assert [slot['damage'] for slot in attacker_flank]==[0,42,42,42,42,0]
- assert [slot['damage'] for slot in defender_flank]==[0,12,12,12,12,0]
- assert [slot['hit_points_percent'] for slot in attacker_flank[1:5]]==[99.39]*4
- assert [slot['hit_points_percent'] for slot in defender_flank[1:5]]==[99.79]*4
+ assert [slot['damage'] for slot in attacker_flank]==[0,54,54,54,54,0]
+ assert [slot['damage'] for slot in defender_flank]==[0,0,0,0,0,0]
+ assert [slot['hit_points_percent'] for slot in attacker_flank[1:5]]==[99.21]*4
+ assert [slot['hit_points_percent'] for slot in defender_flank[1:5]]==[100]*4
  assert attacker_flank[0]['hit_points_percent']==100
  assert attacker_flank[-1]['hit_points_percent']==100
  assert defender_flank[0]['hit_points_percent']==100
  assert defender_flank[-1]['hit_points_percent']==100
 
  ids={item['id'] for item in result['assumptions']}
- assert 'EXP-SWORDSMAN-FLANK-MKILL-OVERKILL-THIRD-001' in ids
+ assert 'EXP-SWORDSMAN-FLANK-ODD-COLUMN-PM-RECOUNT-001' in ids
  modeled=[
   event for event in result['events']
   if event['type']=='damage'
-  and event['details'].get('resolution')=='swordsman_flank_m_kill_overkill_third'
+  and event['details'].get('resolution')=='swordsman_flank_m_kill_odd_column_p_m_recount'
  ]
  assert len(modeled)==8
  assert {event['details']['target_damage_position'] for event in modeled}=={1,2,3,4}
@@ -1703,14 +1703,28 @@ def test_user_observed_full_swordsman_flank_mkill_hypothesis_matches_round_one()
    event['details']['recovered_overkill'],
    event['details']['persistent_damage'])
   for event in modeled if event['side']=='attacker'
- }=={(21,24,1092,12)}
+ }=={(21,24,612,0)}
  assert {
   (event['details']['baseline_casualties'],
    event['details']['casualties'],
    event['details']['recovered_overkill'],
    event['details']['persistent_damage'])
   for event in modeled if event['side']=='defender'
- }=={(21,21,42,42)}
+ }=={(21,21,36,54)}
+ assert {
+  (event['details']['mkill_hit_damage'],
+   event['details']['mkill_odd_column_count'],
+   event['details']['mkill_odd_tail_damage'],
+   event['details']['mkill_p_m_recount_per_odd_column'])
+  for event in modeled if event['side']=='attacker'
+ }=={(258,6,1548,102)}
+ assert {
+  (event['details']['mkill_hit_damage'],
+   event['details']['mkill_odd_column_count'],
+   event['details']['mkill_odd_tail_damage'],
+   event['details']['mkill_p_m_recount_per_odd_column'])
+  for event in modeled if event['side']=='defender'
+ }=={(183,6,1098,6)}
 
  outer=[
   event for event in result['events']
@@ -1737,13 +1751,13 @@ def test_swordsman_mkill_hypothesis_generalizes_by_damage_not_upgrade_fixture():
   ]},
  }
  result=simulate(s)
- assert 'EXP-SWORDSMAN-FLANK-MKILL-OVERKILL-THIRD-001' in {
+ assert 'EXP-SWORDSMAN-FLANK-ODD-COLUMN-PM-RECOUNT-001' in {
   item['id'] for item in result['assumptions']
  }
  modeled=[
   event for event in result['events']
   if event['type']=='damage'
-  and event['details'].get('resolution')=='swordsman_flank_m_kill_overkill_third'
+  and event['details'].get('resolution')=='swordsman_flank_m_kill_odd_column_p_m_recount'
  ]
  assert modeled
  assert all(set(event['details']['source_column_hits'].values())=={7} for event in modeled)
