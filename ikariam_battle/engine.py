@@ -17,6 +17,11 @@ from .garrison import (
     counted_live_waves,
     land_garrison_status,
 )
+from .kill_calibration import (
+    RULE_ID as SWORDSMAN_MKILL_CALIBRATION_RULE_ID,
+    SwordsmanSlotCalibration,
+    swordsman_full_flank_plan,
+)
 from .models import Army, Policy, Scenario, ScenarioError, Slot, Wave
 from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 from .redistribution import SlotShare, reserve_redistribution
@@ -46,6 +51,7 @@ EXPERIMENTAL_POLICIES = {
     "EXP-SLOT-DAMAGE-EVEN-001": "When RR leaves aggregate persistent damage in a slot, distribute it as evenly as possible across surviving units before sequential fire; exact within-slot allocation is unresolved.",
     "EXP-IR-DISABLED-001": "Immediate Redistribution has an implementation hook but its trigger is unknown, so it is not triggered.",
     "EXP-SR-DISABLED-001": "Slot Redistribution has an implementation hook but its trigger is unknown, so it is not triggered.",
+    SWORDSMAN_MKILL_CALIBRATION_RULE_ID: "Use the exact user-observed full 6x40 Swordsman flank outcome only for the reviewed Forge-5 Workshop pairs (24 ATK -> 18 DEF and 18 ATK -> 26 DEF); central 42-hit slots override the generic D-kill result, while all other M-kill selectors remain unresolved.",
     "EXP-ROUND-FLOOR-001": "Floor non-integer net damage; the general selector is unknown.",
     "EXP-RR-ROUND-HALF-UP-001": "Round the total deployed RR share half-up, then assign remainder by damage priority.",
     "EXP-AMMO-STOP-001": "After primary ammunition is exhausted, do not silently switch to an unverified secondary weapon.",
@@ -1939,6 +1945,79 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                    **details)
     return sum(context["fired_shots"] for context in contexts.values())
 
+def _apply_swordsman_full_flank_calibration(
+    plan: tuple[SwordsmanSlotCalibration, ...],
+    queues: dict[tuple[str, str, str], list[int]],
+    casualties: dict[str, int],
+    slot_casualties: dict[tuple[str, str], int],
+    events: list[Event],
+    number: int,
+    source_side: str,
+    applied: dict[str, dict[str, str]],
+    registry: UnitRegistry,
+) -> None:
+    """Replace only the exact central-slot outcomes covered by the user fixture."""
+    if not plan:
+        return
+    _assume(
+        applied, events, SWORDSMAN_MKILL_CALIBRATION_RULE_ID,
+        number, "fire", source_side,
+    )
+    for outcome in plan:
+        slot = outcome.target_slot
+        wave = outcome.target_wave
+        hp = registry.get(slot.unit_id).hit_points or 0
+        key = (slot.wave_id, slot.slot_id)
+        baseline_casualties = slot_casualties.get(key, 0)
+        delta = outcome.casualties - baseline_casualties
+        casualties[slot.unit_id] += delta
+        slot_casualties[key] = outcome.casualties
+        slot.units = 40 - outcome.casualties
+        slot.damage = outcome.persistent_damage
+
+        queue_key = (wave.unit.unit_id, wave.unit.wave_id, slot.slot_id)
+        queues[queue_key] = sorted(
+            _even_unit_damage(outcome.persistent_damage, slot.units),
+            reverse=True,
+        )
+
+        matching = [
+            event for event in events
+            if event.round == number
+            and event.type == "damage"
+            and event.side == source_side
+            and event.details.get("source_unit_id") == "swordsman"
+            and event.details.get("target_unit_id") == "swordsman"
+            and event.details.get("target_line") == "flank"
+            and event.details.get("target_slot") == slot.slot_id
+        ]
+        if len(matching) != 1:
+            raise ScenarioError(
+                "swordsman M-kill calibration requires one damage event per target slot"
+            )
+        details = matching[0].details
+        baseline_damage = details.get("persistent_damage", 0)
+        gross_damage = int(details.get("damage", 0))
+        details.update({
+            "baseline_resolution": details.get("resolution"),
+            "baseline_casualties": baseline_casualties,
+            "baseline_persistent_damage": baseline_damage,
+            "resolution": "user_observed_swordsman_full_flank_mkill_calibration",
+            "casualties": outcome.casualties,
+            "persistent_damage": outcome.persistent_damage,
+            "reported_damage_percent": outcome.reported_damage_percent,
+            "overkill_discarded": max(
+                0,
+                gross_damage - outcome.casualties * hp - outcome.persistent_damage,
+            ),
+            "calibration_rule_id": SWORDSMAN_MKILL_CALIBRATION_RULE_ID,
+            "assumption_ids": [
+                SWORDSMAN_MKILL_CALIBRATION_RULE_ID,
+                "EXP-ROUND-FLOOR-001",
+            ],
+        })
+
+
 def _apply_slot_redistribution(
     waves: list[Wave], queues: dict[tuple[str, str, str], list[int]]
 ) -> None:
@@ -2440,6 +2519,22 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
 
             if not a_volleys and not d_volleys and not wall_shots:
                 continue
+
+            a_swordsman_calibration = ()
+            d_swordsman_calibration = ()
+            if firing_phase == "flank":
+                swordsman_hp = registry.get("swordsman").hit_points or 0
+                a_swordsman_calibration = swordsman_full_flank_plan(
+                    a_volleys, attacker_target_view,
+                    scenario.attacker, scenario.defender,
+                    target_hit_points=swordsman_hp,
+                )
+                d_swordsman_calibration = swordsman_full_flank_plan(
+                    d_volleys, attacker,
+                    scenario.defender, scenario.attacker,
+                    target_hit_points=swordsman_hp,
+                )
+
             attacker_shots = wall_shots + _resolve_volleys(
                 a_volleys, attacker_target_view, d_queues,
                 registry, workshop, forge, targeting,
@@ -2448,6 +2543,16 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             defender_shots = _resolve_volleys(
                 d_volleys, attacker, a_queues, registry, workshop, forge, targeting,
                 events, number, scenario.defender, scenario.attacker, a_dead, a_slot_dead, applied)
+
+            _apply_swordsman_full_flank_calibration(
+                a_swordsman_calibration, d_queues, d_dead, d_slot_dead,
+                events, number, "attacker", applied, registry,
+            )
+            _apply_swordsman_full_flank_calibration(
+                d_swordsman_calibration, a_queues, a_dead, a_slot_dead,
+                events, number, "defender", applied, registry,
+            )
+
             if not attacker_shots and not defender_shots:
                 continue
             round_had_fire = True
