@@ -616,6 +616,7 @@ function applySetupConfiguration(config){
   if(!domainOption)throw Error('套裝指定的 battle type 目前不可執行。');
   battleDomain.value=field.domain;refreshBattlefieldOptions(field.id);
   if(['experimental','strict'].includes(config.policy))policy.value=config.policy;
+  updateWallControl();
   maxRounds.value=Math.max(1,Math.min(1000,Math.trunc(Number(config.max_rounds)||100)));
   const wallMax=Math.max(0,Number(metadata?.town_wall?.max_level??48));
   const wallLevel=Math.max(0,Math.min(wallMax,Math.trunc(Number(config.wall_level)||0)));
@@ -1024,6 +1025,7 @@ async function boot(){
 }
 battleDomain.addEventListener('change',()=>refreshBattlefieldOptions());
 battlefield.addEventListener('change',()=>{updateArmyPackageAvailability();updateWallControl();updateSlotButtons();updateAllUnitStats()});
+policy.addEventListener('change',updateWallControl);
 document.getElementById('aArmyKind').addEventListener('change',()=>toggleArmyPackage('attacker'));
 document.getElementById('dArmyKind').addEventListener('change',()=>toggleArmyPackage('defender'));
 researchMode.addEventListener('change',()=>document.body.classList.toggle('research',researchMode.checked));
