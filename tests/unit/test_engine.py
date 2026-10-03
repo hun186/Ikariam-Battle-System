@@ -228,7 +228,10 @@ def test_equivalent_nonpenetrating_artillery_share_wall_fallthrough_address_book
  # the now-empty position rather than rebuilding/withholding.
  assert sum(e['details']['firing_units'] for e in catapult_damage)==1
  assert any(e['details']['target_damage_position']==1 for e in ram_empty)
- assert not ram_withheld
+ # Rows 1-4 occur before the Mortars create the first breach, so those Ram
+ # tickets are correctly withheld. After the breach, the later Ram tickets
+ # must use the frozen shared book and therefore are not withheld.
+ assert sum(e['details']['count'] for e in ram_withheld)==4
 
 
 def test_over_limit_player_defense_starts_on_land_max_with_wall_suppressed():
