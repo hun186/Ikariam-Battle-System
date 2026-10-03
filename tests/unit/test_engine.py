@@ -188,6 +188,49 @@ def test_wall_fallthrough_keeps_frozen_address_book_after_exposed_slot_dies():
  assert any(e['details']['target_damage_position']==1 for e in empty)
 
 
+def test_equivalent_nonpenetrating_artillery_share_wall_fallthrough_address_book():
+ s={
+  'policy':'experimental','battlefield':'land-max','max_rounds':1,
+  'wall_level':40,
+  'attacker':{'units':[
+   {'unit_id':'hoplite','quantity':350},
+   {'unit_id':'mortar','quantity':18},
+   {'unit_id':'catapult','quantity':6},
+   {'unit_id':'battering_ram','quantity':6},
+  ]},
+  'defender':{'units':[{'unit_id':'hoplite','quantity':1}]},
+ }
+ result=simulate(s)
+
+ catapult_damage=[
+  e for e in result['events']
+  if e['type']=='damage'
+  and e['side']=='attacker'
+  and e['details'].get('source_unit_id')=='catapult'
+ ]
+ ram_empty=[
+  e for e in result['events']
+  if e['type']=='shot_addressed_empty_slot'
+  and e['side']=='attacker'
+  and e['details'].get('source_unit_id')=='battering_ram'
+ ]
+ ram_withheld=[
+  e for e in result['events']
+  if e['type']=='shots_withheld_no_damageable_target'
+  and e['side']=='attacker'
+  and e['details'].get('source_unit_id')=='battering_ram'
+ ]
+
+ # Three Mortar columns breach the first Lv40 wall section on row 5.
+ # Catapult and Ram are both nonpenetrating against the wall but have the
+ # same legal First-wave set. Catapult freezes position 1 and kills its sole
+ # Hoplite; the following Ram ticket must reuse that same book and address
+ # the now-empty position rather than rebuilding/withholding.
+ assert sum(e['details']['firing_units'] for e in catapult_damage)==1
+ assert any(e['details']['target_damage_position']==1 for e in ram_empty)
+ assert not ram_withheld
+
+
 def test_over_limit_player_defense_starts_on_land_max_with_wall_suppressed():
  s=scenario(rounds=1)
  s['town_hall_level']=1
