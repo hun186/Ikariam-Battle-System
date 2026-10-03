@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import Decimal, ROUND_FLOOR
 
 from .damage import DamageTrace, RoundingPolicy, calculate_damage
 from .profiles import ForgeProfile, WorkshopProfile
@@ -88,7 +88,8 @@ def wall_target_eligibility(
     if weapon.damage is None:
         raise ValueError("weapon damage is required for wall eligibility")
     base = weapon.damage + workshop.bonus(attacker.domain, attack_upgrade)
-    effective_attack = Decimal(base) * forge.effect(attacker_forge).damage_multiplier
+    raw_effective_attack = Decimal(base) * forge.effect(attacker_forge).damage_multiplier
+    effective_attack = raw_effective_attack.quantize(Decimal("1"), rounding=ROUND_FLOOR)
     effective_defense = int(wall_stats(wall_level)["armor"] or 0)
     eligible = effective_attack > Decimal(effective_defense)
     return TargetEligibility(
