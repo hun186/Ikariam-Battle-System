@@ -65,6 +65,32 @@ def test_strict_positive_wall_level_stops_at_explicit_wall_boundary():
  assert not any('Experimental Town Wall combat is enabled' in warning for warning in result['warnings'])
 
 
+def test_experimental_active_wall_early_exit_reports_capability_not_strict_boundary():
+ s={
+  'policy':'experimental','battlefield':'land-mini','max_rounds':1,
+  'wall_level':20,
+  'attacker':{'units':[{'unit_id':'mortar','quantity':6}]},
+  'defender':{'units':[{'unit_id':'hoplite','quantity':90}]},
+ }
+ result=simulate(s)
+ assert result['rounds_completed']==0
+ assert result['outcome']=='defender'
+ wall=result['wall_status']
+ assert wall['status']=='not_reached'
+ assert wall['combat_model_status']=='EXPERIMENTAL_EXECUTABLE_WITH_GUARDS'
+ assert wall['effect_applied'] is False
+ assert wall['active'] is True
+ assert wall['breached_positions']==[]
+ assert wall['flanks_locked'] is True
+ assert len(wall['sections_state'])==3
+ assert all(section['damage']==0 and not section['destroyed'] for section in wall['sections_state'])
+ assert not any(
+  e['type']=='unsupported_mechanic'
+  and e['details'].get('rule_id')=='UNKNOWN-TOWN-WALL-COMBAT'
+  for e in result['events']
+ )
+
+
 def test_experimental_mortars_breach_active_wall_and_unlock_flanks():
  s={
   'policy':'experimental','battlefield':'land-mini','max_rounds':1,
