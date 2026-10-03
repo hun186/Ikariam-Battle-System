@@ -904,11 +904,13 @@ function safetyNoticesHtml(data){
       wallDetail='Strict / evidence-safe：active-wall 戰鬥停在 '+esc(wall.rule_id)+'。';
     }else{
       const breached=(wall.breached_positions||[]).map(esc);
-      wallDetail='Experimental wall runtime：'+(
-        wall.status==='breached'
-          ?'全部牆段已突破。'
-          :('已突破 damage position '+(breached.length?breached.join(', '):'無')+'；'+(wall.flanks_locked?'Flank 仍鎖定。':'Flank 已解鎖。'))
-      )+' 牆段順序、wall successful-hit 與 Wall offensive Accuracy 仍屬具名假設／未校準邊界。';
+      wallDetail=wall.status==='not_reached'
+        ?'Experimental wall capability 可執行，但本次戰鬥在進入牆戰前已結束；沒有套用城牆戰鬥效果。'
+        :('Experimental wall runtime：'+(
+          wall.status==='breached'
+            ?'全部牆段已突破。'
+            :('已突破 damage position '+(breached.length?breached.join(', '):'無')+'；'+(wall.flanks_locked?'Flank 仍鎖定。':'Flank 已解鎖。'))
+        )+' 牆段順序、wall successful-hit 與 Wall offensive Accuracy 仍屬具名假設／未校準邊界。');
     }
     cards.push('<div class="safety-card '+wallClass+'"><b>Town Wall / 城牆 Lv'+esc(wall.level)+'</b><div>'+esc(wall.segments)+' 段 · 每段 HP '+esc(wall.hit_points)+' · Armor '+esc(wall.armor)+' · Damage '+esc(wall.damage)+' · Accuracy：新版待校準。'+wallDetail+'</div></div>');
   }
