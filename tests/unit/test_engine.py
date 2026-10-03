@@ -117,6 +117,34 @@ def test_intact_wall_does_not_expose_rear_ground_formations():
  )
 
 
+def test_surviving_wall_keeps_battle_alive_after_defender_first_is_eliminated():
+ s={
+  'policy':'experimental','battlefield':'land-max','max_rounds':2,
+  'wall_level':23,
+  'attacker':{'units':[
+   {'unit_id':'hoplite','quantity':350},
+   {'unit_id':'mortar','quantity':24,'attack_upgrade':6},
+   {'unit_id':'battering_ram','quantity':6,'attack_upgrade':6},
+  ]},
+  'defender':{'units':[{'unit_id':'hoplite','quantity':1}]},
+ }
+ result=simulate(s)
+
+ first_round=next(row for row in result['rounds'] if row['round']==1)
+ assert first_round['defender']['continuation_state']=='not_sustaining'
+ round_one_breaches=[
+  e['details']['damage_position']
+  for e in result['events']
+  if e['type']=='wall_section_breached' and e['round']==1
+ ]
+ assert round_one_breaches==[1,2,3,4]
+ assert not any(
+  e['type']=='battle_termination' and e['round']==1
+  for e in result['events']
+ )
+ assert result['rounds_completed']>=2
+
+
 def test_nonpenetrating_artillery_ticket_does_not_time_travel_past_later_wall_breach():
  s={
   'policy':'experimental','battlefield':'land-small','max_rounds':1,
