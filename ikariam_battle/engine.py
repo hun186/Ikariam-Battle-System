@@ -1591,6 +1591,7 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             "withheld_shots": 0,
             "fired_shots": 0,
             "partial_reported": False,
+            "forced_address_keys": set(),
         }
 
         # Freeze every address book before any shot in this formation phase can
@@ -1598,6 +1599,7 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
         # inject a pre-frozen phase book so repeated single-ticket resolution
         # cannot renumber surviving slots.
         supplied_books = volley.get("_address_books_override") or {}
+        contexts[volley_index]["forced_address_keys"] = set(supplied_books)
         for address_key, addressed in supplied_books.items():
             address_books.setdefault(address_key, addressed)
         for address_key, addressed in _address_books_from_frozen_targets(
@@ -1633,7 +1635,11 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             if frozen_entry is None:
                 continue
             candidate_waves, candidate_signature = frozen_entry
-            if any(slot.units > 0 for wave in candidate_waves for slot in wave.slots):
+            address_key = (candidate_class, candidate_signature)
+            if (
+                any(slot.units > 0 for wave in candidate_waves for slot in wave.slots)
+                or address_key in context["forced_address_keys"]
+            ):
                 enemies = candidate_waves
                 target_class = candidate_class
                 eligibility_signature = candidate_signature
