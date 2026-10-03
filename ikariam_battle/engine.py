@@ -2930,6 +2930,24 @@ def _attach_battle_statistics(
             "breached_positions": wall_runtime.get("breached_positions", []),
             "flanks_locked": bool(wall_runtime.get("flanks_locked")),
         })
+    elif (
+        scenario.wall_level
+        and scenario.policy is Policy.EXPERIMENTAL
+        and runtime_active is not False
+    ):
+        untouched_sections = initial_wall_sections(
+            scenario.wall_level, battlefield(scenario.battlefield)
+        )
+        status.update({
+            "status": "not_reached",
+            "combat_model_status": "EXPERIMENTAL_EXECUTABLE_WITH_GUARDS",
+            "effect_applied": False,
+            "sections_state": wall_section_snapshot(
+                untouched_sections, scenario.wall_level
+            ),
+            "breached_positions": [],
+            "flanks_locked": bool(untouched_sections),
+        })
     result["wall_status"] = status
     return result
 
