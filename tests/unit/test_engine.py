@@ -242,6 +242,42 @@ def test_wall_fallthrough_keeps_frozen_address_book_after_exposed_slot_dies():
  assert any(e['details']['target_damage_position']==1 for e in empty)
 
 
+def test_wall_full_breach_preserves_existing_fallthrough_book_for_leftovers():
+ s={
+  'policy':'experimental','battlefield':'land-max','max_rounds':1,
+  'wall_level':23,
+  'attacker':{'units':[
+   {'unit_id':'hoplite','quantity':350},
+   {'unit_id':'mortar','quantity':24,'attack_upgrade':1000},
+   {'unit_id':'battering_ram','quantity':6},
+  ]},
+  'defender':{'units':[{'unit_id':'hoplite','quantity':350}]},
+ }
+ result=simulate(s)
+
+ breaches=[
+  e['details']['damage_position']
+  for e in result['events']
+  if e['type']=='wall_section_breached' and e['round']==1
+ ]
+ assert breaches==[1,2,3,4,5,6,7]
+
+ ram_targets=[
+  e['details']['target_damage_position']
+  for e in result['events']
+  if e['side']=='attacker'
+  and e['details'].get('source_unit_id')=='battering_ram'
+  and e['type'] in {'damage','shot_addressed_empty_slot'}
+ ]
+ # The first Ram ticket falls through while only positions 1-4 are exposed,
+ # freezing that address set. Mortars then fully breach the wall before later
+ # Ram rows resolve; those leftovers must retain the earlier book rather than
+ # rebuilding against all seven newly exposed First positions.
+ assert ram_targets
+ assert set(ram_targets) <= {1,2,3,4}
+ assert 6 not in ram_targets
+
+
 def test_equivalent_nonpenetrating_artillery_share_wall_fallthrough_address_book():
  s={
   'policy':'experimental','battlefield':'land-max','max_rounds':1,
