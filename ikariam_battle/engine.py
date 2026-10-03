@@ -1932,8 +1932,25 @@ def _apply_slot_redistribution(
 
 
 
-def _termination(attacker: dict[str, Any], defender: dict[str, Any]) -> tuple[str | None, str | None]:
+def _wall_sustains_defender(
+    wall_runtime_active: bool, wall_sections: list[Any]
+) -> bool:
+    return bool(
+        wall_runtime_active
+        and wall_sections
+        and wall_flanks_locked(wall_sections)
+    )
+
+
+def _termination(
+    attacker: dict[str, Any],
+    defender: dict[str, Any],
+    *,
+    defender_wall_sustaining: bool = False,
+) -> tuple[str | None, str | None]:
     a, d = attacker["continuation_state"], defender["continuation_state"]
+    if defender_wall_sustaining:
+        d = ContinuationState.SUSTAINING.value
     if ContinuationState.FALLBACK_REQUIRED.value in {a, d}: return None, None
     if a == ContinuationState.SUSTAINING.value and d == ContinuationState.NOT_SUSTAINING.value:
         return "attacker", "defender"
@@ -2096,6 +2113,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     if scenario.wall_level and not open_field_active and scenario.policy is Policy.STRICT:
         blockers.append(TOWN_WALL_RULE_ID)
     initial_states = {side: state["continuation_state"] for side, state in initial.items()}
+    if _wall_sustains_defender(wall_runtime_active, wall_sections):
+        initial_states["defender"] = ContinuationState.SUSTAINING.value
     fallback_sides = [side for side, state in initial_states.items()
                       if state == ContinuationState.FALLBACK_REQUIRED.value]
     initial_pending = {
@@ -2104,7 +2123,13 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         "defender": _pending_sustaining_arrivals(
             scenario.defender, 0, registry, battle_end),
     }
-    initial_outcome, initial_losing = _termination(initial["attacker"], initial["defender"])
+    initial_outcome, initial_losing = _termination(
+        initial["attacker"],
+        initial["defender"],
+        defender_wall_sustaining=_wall_sustains_defender(
+            wall_runtime_active, wall_sections
+        ),
+    )
     initial_waiting = initial_outcome is not None and bool(initial_pending.get(initial_losing or ""))
     both_initially_empty_but_pending = (
         all(state == ContinuationState.NOT_SUSTAINING.value for state in initial_states.values())
@@ -2161,7 +2186,13 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                next_arrival_round=min(row["arrival_round"] for row in initial_pending[initial_losing]))
     elif initial_outcome is not None:
         _assume(applied, events, "EXP-BATTLE-END-ROUND-BOUNDARY-001", 0, "battle_end")
-        _, losing = _termination(initial["attacker"], initial["defender"])
+        _, losing = _termination(
+            initial["attacker"],
+            initial["defender"],
+            defender_wall_sustaining=_wall_sustains_defender(
+                wall_runtime_active, wall_sections
+            ),
+        )
         _event(events, 0, "battle_end", "battle_termination", None,
                reason="no_battle_sustaining_units", losing_side=losing,
                surviving_non_sustaining={side: _non_sustaining(state) for side, state in initial.items()})
@@ -2295,6 +2326,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             "attacker": _snapshot(attacker, registry, battle_end)["continuation_state"],
             "defender": _snapshot(defender, registry, battle_end)["continuation_state"],
         }
+        if _wall_sustains_defender(wall_runtime_active, wall_sections):
+            round_start_states["defender"] = ContinuationState.SUSTAINING.value
         if all(state == ContinuationState.SUSTAINING.value
                for state in round_start_states.values()):
             engagement_started = True
@@ -2443,6 +2476,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                     and _has_supported_round_start_first_placement(
                         side_waves, registry, formation_rules, field)):
                 states[side] = ContinuationState.SUSTAINING.value
+        if _wall_sustains_defender(wall_runtime_active, wall_sections):
+            states["defender"] = ContinuationState.SUSTAINING.value
         effective_attacker_state = dict(attacker_state)
         effective_defender_state = dict(defender_state)
         effective_attacker_state["continuation_state"] = states["attacker"]
@@ -2472,7 +2507,12 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 both_zero_boundary = True
                 break
         outcome, losing = _termination(
-            effective_attacker_state, effective_defender_state)
+            effective_attacker_state,
+            effective_defender_state,
+            defender_wall_sustaining=_wall_sustains_defender(
+                wall_runtime_active, wall_sections
+            ),
+        )
         if outcome is not None:
             losing_pending = pending_now.get(losing or "", [])
             if not engagement_started and losing_pending:
@@ -2534,7 +2574,13 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         _event(events, scenario.max_rounds, "battle_end", "safety_limit_reached", None,
                reason="max_rounds_reached", limit=scenario.max_rounds)
     final = {"attacker":_snapshot(attacker,registry,battle_end),"defender":_snapshot(defender,registry,battle_end)}
-    outcome, final_losing = _termination(final["attacker"], final["defender"])
+    outcome, final_losing = _termination(
+        final["attacker"],
+        final["defender"],
+        defender_wall_sustaining=_wall_sustains_defender(
+            wall_runtime_active, wall_sections
+        ),
+    )
     pending_handoff_after_horizon = {
         "attacker": _has_supported_round_start_first_placement(
             attacker, registry, formation_rules, field),
