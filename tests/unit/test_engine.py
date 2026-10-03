@@ -1652,6 +1652,82 @@ def test_art_of_warfare_firing_order_profile_and_artillery_targets_are_exact():
  assert 'second' not in t.priorities['third'] and 'third' not in t.priorities['third']
 
 
+def test_user_observed_full_swordsman_flank_mkill_calibration_matches_round_one():
+ s={
+  'policy':'experimental','battlefield':'land-max','max_rounds':1,
+  'attacker':{'forge_level':5,'units':[
+   {'unit_id':'hoplite','quantity':350},
+   {'unit_id':'swordsman','quantity':240,'attack_upgrade':24,'armor_upgrade':26},
+  ]},
+  'defender':{'forge_level':5,'units':[
+   {'unit_id':'hoplite','quantity':350},
+   {'unit_id':'swordsman','quantity':240,'attack_upgrade':18,'armor_upgrade':18},
+  ]},
+ }
+ result=simulate(s)
+ round_one=result['rounds'][0]
+
+ def flank(state):
+  return sorted(
+   (slot for slot in state['slots'] if slot['line']=='flank'),
+   key=lambda slot:slot['physical_position'],
+  )
+
+ attacker_flank=flank(round_one['attacker'])
+ defender_flank=flank(round_one['defender'])
+
+ assert [slot['casualties'] for slot in attacker_flank]==[18,21,21,21,21,18]
+ assert [slot['casualties'] for slot in defender_flank]==[18,24,24,24,24,18]
+ assert [slot['hit_points_percent'] for slot in attacker_flank[1:5]]==[99.01]*4
+ assert [slot['hit_points_percent'] for slot in defender_flank[1:5]]==[99.01]*4
+ assert attacker_flank[0]['hit_points_percent']==100
+ assert attacker_flank[-1]['hit_points_percent']==100
+ assert defender_flank[0]['hit_points_percent']==100
+ assert defender_flank[-1]['hit_points_percent']==100
+
+ ids={item['id'] for item in result['assumptions']}
+ assert 'EXP-SWORDSMAN-FULL-FLANK-MKILL-CALIBRATION-001' in ids
+ calibrated=[
+  event for event in result['events']
+  if event['type']=='damage'
+  and event['details'].get('resolution')=='user_observed_swordsman_full_flank_mkill_calibration'
+ ]
+ assert len(calibrated)==8
+ assert {event['details']['target_damage_position'] for event in calibrated}=={1,2,3,4}
+ assert all(event['details']['reported_damage_percent']==1 for event in calibrated)
+ assert {
+  event['details']['baseline_casualties'] for event in calibrated
+  if event['side']=='attacker'
+ }=={21}
+ assert {
+  event['details']['casualties'] for event in calibrated
+  if event['side']=='attacker'
+ }=={24}
+
+
+def test_swordsman_mkill_calibration_does_not_generalize_to_nearby_upgrades():
+ s={
+  'policy':'experimental','battlefield':'land-max','max_rounds':1,
+  'attacker':{'forge_level':5,'units':[
+   {'unit_id':'hoplite','quantity':350},
+   {'unit_id':'swordsman','quantity':240,'attack_upgrade':23,'armor_upgrade':25},
+  ]},
+  'defender':{'forge_level':5,'units':[
+   {'unit_id':'hoplite','quantity':350},
+   {'unit_id':'swordsman','quantity':240,'attack_upgrade':17,'armor_upgrade':17},
+  ]},
+ }
+ result=simulate(s)
+ assert 'EXP-SWORDSMAN-FULL-FLANK-MKILL-CALIBRATION-001' not in {
+  item['id'] for item in result['assumptions']
+ }
+ assert not any(
+  event['type']=='damage'
+  and event['details'].get('resolution')=='user_observed_swordsman_full_flank_mkill_calibration'
+  for event in result['events']
+ )
+
+
 def test_flank_phase_can_kill_long_range_before_long_range_fires():
  s={'policy':'experimental','battlefield':'land-max','max_rounds':1,
     'attacker':{'units':[{'unit_id':'hoplite','quantity':350},
