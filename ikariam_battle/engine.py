@@ -1895,10 +1895,15 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
     # runtime formation. Same-unit waves share one row-major AM, so calculating
     # per volley would make casualties depend on how the caller split one army
     # into entry batches.
-    if contexts and all(
+    if (
+        contexts
+        and source_army.forge_level == 5
+        and target_army.forge_level == 5
+        and all(
         context["source_unit"].id == "swordsman"
         and context["volley"].get("runtime_line") == "flank"
         for context in contexts.values()
+        )
     ):
         formation_groups: dict[tuple[Any, ...], dict[str, Any]] = {}
         for volley_index in sorted(contexts):
