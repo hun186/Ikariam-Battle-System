@@ -121,6 +121,8 @@ def swordsman_flank_kill_adjustment(
     # Current modern M-kill calibration is intentionally limited to the exact
     # full 6x40 central reduced-AM shape. Other odd/mixed shapes stay on the
     # generic D-kill baseline until more observations exist.
+    if initial_units != 40:
+        return None
     if len(hits_by_column) != 6 or any(hits != 7 for hits in hits_by_column):
         return None
     if not (0 < hit_damage < hit_points and 2 * hit_damage >= hit_points):
