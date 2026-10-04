@@ -56,13 +56,12 @@ def test_current_strong_case_uses_odd_tail_plus_capped_pm_recount():
     assert result.mode == "m_kill_odd_column_p_m_recount"
     assert result.baseline_d_kills == 18
     assert result.odd_column_count == 6
-    assert result.odd_tail_damage == 1548
-    assert result.p_m_recount_per_odd_column == 102
-    assert result.recovered_overkill == 612
-    assert (result.casualties, result.persistent_damage) == (24, 0)
+    assert result.retained_overkill_events == 7
+    assert result.recovered_overkill == 1092
+    assert (result.casualties, result.persistent_damage) == (24, 12)
 
 
-def test_one_point_prior_rr_damage_makes_strong_case_report_99_percent_compatible():
+def test_phase_start_rr_damage_is_added_to_row_pig_m_pool():
     result = swordsman_flank_kill_adjustment(
         initial_units=40,
         hit_points=360,
@@ -74,12 +73,10 @@ def test_one_point_prior_rr_damage_makes_strong_case_report_99_percent_compatibl
         source_column_hits=SIX_ODD_COLUMNS,
     )
     assert result is not None
-    assert (result.casualties, result.persistent_damage) == (24, 1)
-    # 16 survivors -> 5760 HP; 1 point is within the old report model's
-    # 1%-damage interval, hence compatible with a displayed 99% life value.
+    assert (result.casualties, result.persistent_damage) == (24, 13)
 
 
-def test_current_weak_case_predicts_21_deaths_and_54_damage():
+def test_current_weak_case_predicts_21_deaths_and_42_damage():
     result = swordsman_flank_kill_adjustment(
         initial_units=40,
         hit_points=360,
@@ -93,17 +90,13 @@ def test_current_weak_case_predicts_21_deaths_and_54_damage():
     assert result is not None
     assert result.mode == "m_kill_odd_column_p_m_recount"
     assert result.baseline_d_kills == 18
-    assert result.odd_tail_damage == 1098
-    assert result.p_m_recount_per_odd_column == 6
-    assert result.recovered_overkill == 36
-    assert (result.casualties, result.persistent_damage) == (21, 54)
+    assert result.retained_overkill_events == 7
+    assert result.recovered_overkill == 42
+    assert (result.casualties, result.persistent_damage) == (21, 42)
     assert 1 <= result.persistent_damage <= 68
 
 
-def test_mixed_column_parity_uses_same_odd_column_accounting_not_fixture_lookup():
-    # The hypothesis is intentionally column-derived; it is not tied to the
-    # exact 6x7 user fixture. This synthetic shape verifies the calculation is
-    # driven by the reduced-AM column counts.
+def test_other_odd_or_mixed_column_shapes_stay_on_generic_baseline():
     columns = {1: 7, 2: 7, 3: 7, 4: 6, 5: 6, 6: 6}
     total_hits = sum(columns.values())
     result = swordsman_flank_kill_adjustment(
@@ -116,11 +109,8 @@ def test_mixed_column_parity_uses_same_odd_column_accounting_not_fixture_lookup(
         baseline_overkill_discarded=0,
         source_column_hits=columns,
     )
-    assert result is not None
-    assert result.mode == "m_kill_odd_column_p_m_recount"
-    assert result.odd_column_count == 3
-
+    assert result is None
 
 def test_rule_ids_are_explicit_experimental_hypotheses():
     assert IKILL_RULE_ID == "EXP-SWORDSMAN-FLANK-IKILL-EXACT-DIVISION-001"
-    assert MKILL_RULE_ID == "EXP-SWORDSMAN-FLANK-ODD-COLUMN-PM-RECOUNT-001"
+    assert MKILL_RULE_ID == "EXP-SWORDSMAN-FULL-FLANK-ROW-PIG-MKILL-001"
