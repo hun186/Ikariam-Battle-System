@@ -2001,7 +2001,7 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                     if adjustment.mode == "i_kill_exact_division"
                     else SWORDSMAN_MKILL_RULE_ID
                 ),
-                number, "fire", contexts[0]["volley"]["side"],
+                number, "fire", next(iter(contexts.values()))["volley"]["side"],
             )
 
     for volley_index in sorted(contexts):
@@ -2066,7 +2066,8 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             details = {
                 key: (
                     dict(value)
-                    if key in {"accuracy_decisions", "source_column_hits"}
+                    if key in {"accuracy_decisions", "source_column_hits",
+                               "formation_source_column_hits"}
                     else value
                 )
                 for key, value in group.items()
