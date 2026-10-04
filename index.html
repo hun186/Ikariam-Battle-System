@@ -157,9 +157,9 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
     <section class="panel result-shell">
       <div class="report-head"><h2>逐回合戰報</h2><div class="report-tools"><button id="downloadRoundDebug" class="secondary" type="button">下載本回合 Debug JSON</button><div id="roundDebugError" class="error" aria-hidden="true"></div></div><div id="roundMetrics" class="report-metrics"></div></div>
       <div id="roundPager" class="round-bar" aria-label="Round navigation"></div>
-      <div id="roundSafetyNotices" class="safety-notices"></div>
       <div id="roundCaption" class="round-caption"></div>
       <div id="battleBoard" class="battle-board"></div>
+      <div id="roundSafetyNotices" class="safety-notices"></div>
       <div id="researchData" class="research-drawer research-only"></div>
     </section>
   </section>
@@ -799,23 +799,34 @@ function formationGrid(state,name,geometry){
   return '<div class="formation">'+rows.join('')+'</div>';
 }
 function reserveGroups(state){
-  const groups=new Map();
+  const groups=new Map(),slotDamageByWave=new Map();
+  const waveKey=(unitId,waveId,batchId)=>JSON.stringify([unitId,waveId,batchId]);
+  for(const slot of state.slots||[]){
+    const key=waveKey(slot.unit_id,slot.wave_id,slot.entry_batch_id);
+    slotDamageByWave.set(key,(slotDamageByWave.get(key)||0)+Number(slot.damage||0));
+  }
   for(const wave of state.waves||[]){
     if(!wave.reserve)continue;
     const unit=unitById(wave.unit_id),hp=Number(unit?.hit_points||0),maxHp=Number(wave.reserve)*hp;
+    const reserveDamage=Number(wave.reserve_damage||0);
+    const deployedDamage=slotDamageByWave.get(waveKey(wave.unit_id,wave.wave_id,wave.entry_batch_id))||0;
     const group=groups.get(wave.unit_id)||{unit_id:wave.unit_id,count:0,max_hp:0,remaining_hp:0,batches:[]};
-    group.count+=Number(wave.reserve);group.max_hp+=maxHp;group.remaining_hp+=Math.max(0,maxHp-Number(wave.reserve_damage||0));
-    group.batches.push({id:wave.entry_batch_id,count:Number(wave.reserve),damage:Number(wave.reserve_damage||0),hp_percent:wave.reserve_hit_points_percent,munition_percent:wave.munition_percent});
+    group.count+=Number(wave.reserve);group.max_hp+=maxHp;group.remaining_hp+=Math.max(0,maxHp-reserveDamage);
+    group.batches.push({id:wave.entry_batch_id,count:Number(wave.reserve),damage:reserveDamage,deployed_damage:deployedDamage,total_damage:reserveDamage+deployedDamage,hp_percent:wave.reserve_hit_points_percent,munition_percent:wave.munition_percent});
     groups.set(wave.unit_id,group);
   }
   return [...groups.values()].map(group=>({...group,hp_percent:group.max_hp?Math.max(0,Math.min(100,100*group.remaining_hp/group.max_hp)):0}));
 }
 function reserveCard(group){
   const unit=unitById(group.unit_id),batches=group.batches;
-  const detail=batches.map(batch=>'<br>Batch '+esc(batch.id)+': '+batch.count+' · HP '+statNumber(batch.hp_percent)+'%'+(batch.munition_percent==null?'':' · Ammo '+statNumber(batch.munition_percent)+'%')).join('');
-  const tip=tooltipAttribute('<b>'+esc(unit?.display_name||group.unit_id)+' Reserve</b><br>Total: '+group.count+'<br>Reserve HP: '+statNumber(group.hp_percent)+'%'+
-    '<br>Persistent reserve damage: '+group.batches.reduce((sum,b)=>sum+b.damage,0)+detail);
-  return '<div class="reserve-card" tabindex="0" data-tooltip="'+tip+'"><div class="reserve-card-main"><div aria-hidden="true">'+unitIconHtml(unit,'unit-art')+'</div>'+hpBar(group.hp_percent,'Reserve HP')+'</div>'+
+  const reserveDamage=batches.reduce((sum,b)=>sum+b.damage,0);
+  const deployedDamage=batches.reduce((sum,b)=>sum+b.deployed_damage,0);
+  const waveDamage=batches.reduce((sum,b)=>sum+b.total_damage,0);
+  const detail=batches.map(batch=>'<br>Batch '+esc(batch.id)+': '+batch.count+' · RR Reserve HP '+statNumber(batch.hp_percent)+'% · Reserve dmg '+batch.damage+' · Deployed dmg '+batch.deployed_damage+(batch.munition_percent==null?'':' · Ammo '+statNumber(batch.munition_percent)+'%')).join('');
+  const tip=tooltipAttribute('<b>'+esc(unit?.display_name||group.unit_id)+' Reserve</b><br>Total: '+group.count+'<br>RR Reserve HP: '+statNumber(group.hp_percent)+'%'+
+    '<br>Reserve persistent damage: '+reserveDamage+'<br>Current deployed persistent damage: '+deployedDamage+'<br>Wave persistent damage total: '+waveDamage+
+    '<br><small>Round snapshots are post-combat. New deployed damage is redistributed at the next round start after any supported Healing step.</small>'+detail);
+  return '<div class="reserve-card" tabindex="0" data-tooltip="'+tip+'"><div class="reserve-card-main"><div aria-hidden="true">'+unitIconHtml(unit,'unit-art')+'</div>'+hpBar(group.hp_percent,'RR Reserve HP')+'</div>'+
     '<div class="reserve-card-count">'+group.count+'</div><div class="reserve-card-name">'+esc(unit?.display_name||group.unit_id)+'</div>'+
     (batches.length>1?'<span class="batch-badge">'+batches.length+'批</span>':'')+'</div>';
 }
@@ -826,8 +837,9 @@ function reserveBox(state,name,geometry){
   const reserve=reserveGroups(state),support=Object.entries(state.deployed_support||{}).filter(([,n])=>n);
   const flankReserve=reserve.some(group=>unitById(group.unit_id)?.native_line==='flank');
   const note=flankReserve&&!geometry.flank?'<div class="reserve-note">此戰場沒有 Flank slot；未能補入前線的側翼兵會留在 Reserve。</div>':'';
+  const rrNote=reserve.length?'<div class="reserve-note">Reserve HP 是目前 snapshot 中經上一個回合邊界 RR 分到 Reserve 的 persistent damage；本回合新傷仍在 deployed slots，下一回合開始才經 Healing／RR 重分配。若 Doctor full-clear 生效，Reserve 持續 100% 是預期結果。</div>':'';
   return '<aside class="reserve-box"><h3>'+name+' Reserve</h3>'+
-    (reserve.length?'<div class="reserve-grid">'+reserve.map(reserveCard).join('')+'</div>':'<div class="reserve-empty">No reserve</div>')+note+
+    (reserve.length?'<div class="reserve-grid">'+reserve.map(reserveCard).join('')+'</div>':'<div class="reserve-empty">No reserve</div>')+rrNote+note+
     '<h3 style="margin-top:12px">Support</h3>'+
     (support.length?'<div class="support-grid">'+supportCards(support)+'</div>':'<div class="reserve-empty">No deployed support</div>')+
     '</aside>';
