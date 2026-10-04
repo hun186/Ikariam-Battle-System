@@ -1,5 +1,6 @@
 from ikariam_battle.battlefield import NAVAL_BATTLEFIELDS, battlefield_metadata, deploy
 from ikariam_battle.engine import _prepare_round_start, _snapshot_phase_fire, simulate
+from ikariam_battle.formation import FormationRules
 from ikariam_battle.models import Army, ArmyUnit, Slot, Wave
 from ikariam_battle.profiles import TargetingProfile
 from ikariam_battle.units import UnitRegistry
@@ -179,3 +180,31 @@ def test_exhausted_naval_long_range_front_uses_secondary_without_primary_ammo():
     assert volleys[0]["weapon_id"] == registry.get("mortar_ship").weapons[1].id
     assert source.ammo_pool_shots == 0
     assert not any(e.type == "ammo_exhausted" for e in events)
+
+
+def test_naval_front_fallback_preserves_light_before_exhausted_long_range():
+    registry = UnitRegistry.load()
+    field = NAVAL_BATTLEFIELDS["naval-max"]
+    rules = FormationRules.load("formation-naval")
+    ram = Wave(
+        ArmyUnit("ram_ship", 6, "ram-wave"),
+        0,
+        [Slot("flank-1", "flank", 6, 1, "ram_ship", "ram-wave", 6, 6)],
+    )
+    mortar = Wave(
+        ArmyUnit("mortar_ship", 6, "mortar-wave"),
+        0,
+        [Slot("second-1", "second", 6, 1, "mortar_ship", "mortar-wave", 6, 6)],
+        0,
+        0,
+        0,
+        30,
+    )
+    events=[]; applied={}
+    _prepare_round_start(
+        [ram,mortar],events,2,"attacker",applied,
+        registry=registry,rules=rules,field=field,
+    )
+    ram_first=min(slot.damage_position for slot in ram.slots if slot.line=="first")
+    mortar_first=min(slot.damage_position for slot in mortar.slots if slot.line=="first")
+    assert ram_first < mortar_first

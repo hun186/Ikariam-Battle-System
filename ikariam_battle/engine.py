@@ -55,7 +55,7 @@ EXPERIMENTAL_POLICIES = {
     SWORDSMAN_MKILL_RULE_ID: "For the current full 6x40 Swordsman-vs-Swordsman central flank shape (six 7-hit reduced-AM columns) in the two-hit regime, start from the generic sequential D-kill result and retain one lethal-pair overkill per AM row into an M-pool; convert that pool to additional casualties plus persistent damage. Outer six-hit columns remain D-kill. Accuracy remains an unresolved higher-level selector candidate rather than a fabricated multiplier.",
     "EXP-ROUND-FLOOR-001": "Floor non-integer net damage; the general selector is unknown.",
     "EXP-RR-ROUND-HALF-UP-001": "Round the total deployed RR share half-up, then assign remainder by damage priority.",
-    "EXP-AMMO-STOP-001": "After primary ammunition is exhausted, do not silently switch to an unverified secondary weapon.",
+    "EXP-AMMO-STOP-001": "After primary ammunition is exhausted, do not silently switch to an unverified secondary weapon while the unit remains in its native firing formation. Official naval exhausted Long-Range -> Front fallback is handled separately.",
     "EXP-AMMO-PARTIAL-ORDER-001": "Allocate a partial ammunition pool by source-slot damage priority.",
     EXPERIMENTAL_ACCURACY_MODEL_ID: "Use weapon Accuracy as a deterministic within-slot concentration threshold: one-shot-capable hits never miss; otherwise spread to healthier survivors until the most-damaged survivor remaining-HP% is <= Accuracy, then focus it.",
     "EXP-BATTLE-END-ROUND-BOUNDARY-001": "Evaluate battle-sustaining forces at the initial and completed-round boundaries.",
@@ -797,10 +797,16 @@ def _supported_whole_wave_first_fallback(
             quantity * damage, damage, quantity, wave.unit.formation_order_key,
         )
 
-    # Naval Front is weakest-first. Land keeps its historical canonical order.
+    # Naval Front preserves the official class precedence: Light Battleships
+    # before exhausted Long-Range Battleships; each class is weakest-first.
+    # Land keeps its historical canonical order.
     candidates = [wave for wave in waves if supported_fallback(wave)]
     if field.domain == "naval":
-        candidates.sort(key=fallback_strength)
+        def naval_fallback_rank(wave: Wave):
+            unit = registry.get(wave.unit.unit_id)
+            class_rank = 0 if unit.semantic_class == "light_infantry" else 1
+            return (class_rank, *fallback_strength(wave))
+        candidates.sort(key=naval_fallback_rank)
     else:
         candidates.sort(key=lambda wave: wave.unit.formation_order_key)
 
