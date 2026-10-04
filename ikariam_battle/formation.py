@@ -130,48 +130,75 @@ def plan_initial_formation(army: Army, registry: UnitRegistry, field, rules: For
             raise ScenarioError(f"primary weapon damage missing for formation selection: {unit.id}")
         return quantity * damage, damage, quantity
 
-    def place_strongest_groups(line_name: str) -> None:
-        """Choose the best concrete candidate again for every physical slot."""
+    def place_ranked_groups(
+        line_name: str, *, strongest: bool,
+        semantic_class: str | None = None,
+    ) -> None:
+        """Choose a concrete strongest/weakest slot group for each open slot."""
         for damage_position in placement_order(line_name):
             candidates = [
                 item for item in ordered_units
                 if remaining[(item.unit_id, item.wave_id)] > 0
-                and line_name in eligible_runtime_lines(registry.get(item.unit_id), rules, field)
+                and (semantic_class is None
+                     or registry.get(item.unit_id).semantic_class == semantic_class)
+                and line_name in eligible_runtime_lines(
+                    registry.get(item.unit_id), rules, field)
             ]
             if not candidates:
                 break
-            # Highest slot-group attack wins. formation_order_key is used only
-            # as a stable final tie-break, not as combat strength.
-            chosen = min(
-                candidates,
-                key=lambda item: (
-                    -strongest_group_candidate(item, line_name)[0],
-                    -strongest_group_candidate(item, line_name)[1],
-                    -strongest_group_candidate(item, line_name)[2],
-                    item.formation_order_key,
-                ),
-            )
+
+            def rank(item):
+                score = strongest_group_candidate(item, line_name)
+                signed = tuple(-value for value in score) if strongest else score
+                return (*signed, item.formation_order_key)
+
+            chosen = min(candidates, key=rank)
             place_one(chosen, line_name, damage_position)
 
-    # The first line is planned globally: heavy before light. A partial heavy
-    # batch owns its slot; a fallback class is never mixed into that slot.
+    # The first line is planned globally: class precedence remains authoritative.
+    # A profile may additionally rank concrete groups within each class.
     _, precedence, _ = _first_line_contract(rules)
+    first_policy = rules.lines["first"].get(
+        "unit_selection_policy", "formation_order")
     for semantic_class in precedence:
+        if first_policy in {
+            "strongest_slot_group_primary_damage",
+            "weakest_slot_group_primary_damage",
+        }:
+            place_ranked_groups(
+                "first",
+                strongest=first_policy.startswith("strongest"),
+                semantic_class=semantic_class,
+            )
+            continue
+        if first_policy != "formation_order":
+            raise ScenarioError(
+                f"unsupported unit selection policy for first: {first_policy}"
+            )
         for item in ordered_units:
             unit = registry.get(item.unit_id)
-            if unit.semantic_class == semantic_class and "first" in eligible_runtime_lines(unit, rules, field):
+            if (
+                unit.semantic_class == semantic_class
+                and "first" in eligible_runtime_lines(unit, rules, field)
+            ):
                 place(item, "first")
 
-    # Only after front requirements have consumed light infantry do remaining
-    # units enter their native lines. This gives front-before-flank precedence.
+    # Only after front requirements have consumed light units do remaining
+    # units enter native lines. This preserves front-before-flank fallback.
     for line_name in field.lines:
         if line_name == "first":
             continue
         selection_policy = rules.lines[line_name].get(
             "unit_selection_policy", "formation_order"
         )
-        if selection_policy == "strongest_slot_group_primary_damage":
-            place_strongest_groups(line_name)
+        if selection_policy in {
+            "strongest_slot_group_primary_damage",
+            "weakest_slot_group_primary_damage",
+        }:
+            place_ranked_groups(
+                line_name,
+                strongest=selection_policy.startswith("strongest"),
+            )
             continue
         if selection_policy != "formation_order":
             raise ScenarioError(

@@ -3,8 +3,19 @@
     "profile": "formation-naval",
     "version": 1,
     "domain": "naval",
-    "implementation_status": "NAVAL_MAX_EXPERIMENTAL_EXECUTABLE",
+    "implementation_status": "NAVAL_MAX_OFFICIAL_HELP_FORMATION_EXECUTABLE_WITH_FALLBACK_GUARD",
     "sources": [
+      {
+        "source_type": "GAMEFORGE_IN_GAME_HELP",
+        "title": "The Naval Battlefield",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "claims": [
+          "formation eligibility and support-reserve behavior",
+          "strongest/weakest placement priorities",
+          "formation fill order",
+          "same-formation simultaneous fire"
+        ]
+      },
       {
         "source_type": "GAMEFORGE_FORUM_CURRENT_GUIDE",
         "title": "SISTEMA DE BATALHA DO IKARIAM [3]",
@@ -32,14 +43,15 @@
         "light_infantry"
       ],
       "deployment_order_authority": "battlefield_geometry.damage_priority",
-      "implementation_status": "STEAM_FIRE_FIRST_RAM_FALLBACK"
+      "implementation_status": "OFFICIAL_HEAVY_FIRST_WEAK_TO_STRONG_LIGHT_FALLBACK;DEPLETED_LONG_RANGE_FALLBACK_UNRESOLVED",
+      "unit_selection_policy": "weakest_slot_group_primary_damage"
     },
     "second": {
       "eligible_native_lines": [
         "second"
       ],
       "deployment_order_authority": "battlefield_geometry.damage_priority",
-      "implementation_status": "NATIVE_ONLY",
+      "implementation_status": "OFFICIAL_STRONGEST_FIRST",
       "unit_selection_policy": "strongest_slot_group_primary_damage"
     },
     "third": {
@@ -47,7 +59,7 @@
         "third"
       ],
       "deployment_order_authority": "battlefield_geometry.damage_priority",
-      "implementation_status": "DIVING_BOAT_AND_ROCKET_NATIVE",
+      "implementation_status": "OFFICIAL_STRONGEST_FIRST",
       "unit_selection_policy": "strongest_slot_group_primary_damage"
     },
     "flank": {
@@ -55,27 +67,30 @@
         "flank"
       ],
       "deployment_order_authority": "battlefield_geometry.damage_priority",
-      "implementation_status": "RAM_SHIP_NATIVE"
+      "implementation_status": "OFFICIAL_STRONGEST_FIRST",
+      "unit_selection_policy": "strongest_slot_group_primary_damage"
     },
     "balloon": {
       "eligible_native_lines": [
         "balloon"
       ],
       "deployment_order_authority": "battlefield_geometry.damage_priority",
-      "implementation_status": "BALLOON_CARRIER_NATIVE"
+      "implementation_status": "OFFICIAL_WEAKEST_FIRST",
+      "unit_selection_policy": "weakest_slot_group_primary_damage"
     },
     "anti-balloon": {
       "eligible_native_lines": [
         "anti-balloon"
       ],
       "deployment_order_authority": "battlefield_geometry.damage_priority",
-      "implementation_status": "PADDLE_SPEEDBOAT_NATIVE"
+      "implementation_status": "OFFICIAL_STRONGEST_FIRST",
+      "unit_selection_policy": "strongest_slot_group_primary_damage"
     }
   },
   "unknowns": [
-    "UNKNOWN-NAVAL-TARGET-PRIORITIES",
     "UNKNOWN-SECONDARY-WEAPON-TRIGGER",
     "UNKNOWN-TENDER-HEALING-ALLOCATION",
-    "UNKNOWN-NAVAL-KILL-REDISTRIBUTION-SELECTOR"
+    "UNKNOWN-NAVAL-KILL-REDISTRIBUTION-SELECTOR",
+    "UNKNOWN-NAVAL-DEPLETED-LONG-RANGE-FRONT-FALLBACK"
   ]
 }

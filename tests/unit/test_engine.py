@@ -1645,6 +1645,55 @@ def test_doctor_partial_healing_stays_named_assumption_when_capacity_is_insuffic
  assert not any(event.type=='healing' for event in events)
 
 
+
+
+def test_tender_full_clear_uses_current_4000_capacity_for_naval_damage():
+ registry=UnitRegistry.load(); support=SupportProfile.load()
+ tender=Wave(ArmyUnit('tender',1,'tender'),0,[],0,None,1)
+ ram=Wave(
+  ArmyUnit('ram_ship',10,'ram'),0,
+  [Slot('flank-1','flank',2,1,'ram_ship','ram',10,10,3500)],
+ )
+ events=[]; applied={}
+ _prepare_round_start(
+  [tender,ram],events,2,'attacker',applied,
+  registry=registry,support=support,
+ )
+ assert ram.slots[0].damage==0
+ heal=next(
+  event for event in events
+  if event.type=='healing' and event.details.get('support_unit_id')=='tender'
+ )
+ assert heal.details['tender_count']==1
+ assert heal.details['capacity']==4000
+ assert heal.details['healing']==3500
+ assert heal.details['eligibility']=='all_naval_combat'
+ assert 'EXP-TENDER-HEAL-NONE-001' not in applied
+
+
+def test_tender_insufficient_capacity_does_not_invent_partial_allocation():
+ registry=UnitRegistry.load(); support=SupportProfile.load()
+ tender=Wave(ArmyUnit('tender',1,'tender'),0,[],0,None,1)
+ ram=Wave(
+  ArmyUnit('ram_ship',10,'ram'),0,
+  [Slot('flank-1','flank',2,1,'ram_ship','ram',10,10,4500)],
+ )
+ events=[]; applied={}
+ _prepare_round_start(
+  [tender,ram],events,2,'attacker',applied,
+  registry=registry,support=support,
+ )
+ assert ram.slots[0].damage==4500
+ assert 'EXP-TENDER-HEAL-NONE-001' in applied
+ unresolved=next(
+  event for event in events
+  if event.type=='healing_allocation_unresolved'
+  and event.details.get('support_unit_id')=='tender'
+ )
+ assert unresolved.details['capacity']==4000
+ assert unresolved.details['eligible_damage']==4500
+
+
 def test_art_of_warfare_firing_order_profile_and_artillery_targets_are_exact():
  t=TargetingProfile.load()
  assert t.firing_order==('anti-balloon','balloon','third','flank','second','first')

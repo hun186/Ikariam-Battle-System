@@ -116,11 +116,11 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
         <div class="mechanics-card mechanics-known"><b>RR · Reserve Redistribution · 已實作</b><p>回合間，同一 entry batch / wave 的 persistent damage 會連同 reserve 一起重新分配；不同 wave 不共享舊傷。</p></div>
         <div class="mechanics-card mechanics-unknown"><b>IR / SR · Trigger 未知，現在不觸發</b><p>IR 可能發生在 individual shots 之間；SR 可能發生在一條 formation 射完、下一條 formation 開火前。引擎保留 redistribution hook，但 trigger 尚未確立，因此目前固定不觸發。</p></div>
         <div class="mechanics-card mechanics-partial"><b>D-kill / P-kill / I-kill · 部分已知</b><p>目前 Experimental baseline 使用逐擊 D-kill：一發一發計算，死亡立即生效，overkill 預設丟棄。P-kill 在部分實戰會把 overkill 重新分配給 survivors；I-kill、IR-kill、PIR-kill、M-kill 亦有實驗觀察，但一般觸發條件仍未知，因此目前不自動套用。</p></div>
-        <div class="mechanics-card mechanics-partial"><b>Healing · 部分已知 / 部分實作</b><p>Doctor 只治療 Human，Machine 不可治療。目前 Machine：Steam Giant、Ram、Catapult、Mortar、Gyrocopter、Bombardier。每回合治療會在下一回合戰鬥開始前反映。現行 derived capacity 為每名 Doctor 4000。當總容量足以清除全部可治療 Human persistent damage 時，引擎會直接全清，這個結果不受 Healing / RR 先後影響；容量不足時，allocation 與精確 Healing / RR 順序仍未知，因此不猜部分分配。</p></div>
+        <div class="mechanics-card mechanics-partial"><b>Healing / Repair · 部分已知 / 部分實作</b><p>Doctor 只治療 Human，Machine 不可治療；現行容量為每名 Doctor 4000/回合。Tender 從 Reserve 發揮效果，現行修護容量同樣為每艘 4000/回合，適用海軍 combat units。當 Doctor 或 Tender 的總容量足以清除全部符合資格的 persistent damage 時，引擎會直接 full-clear；這個結果不受 Healing / RR 先後影響。容量不足時，allocation 與精確 Healing / RR 順序仍未知，因此不猜部分分配。</p></div>
         <div class="mechanics-card mechanics-partial"><b>RR 後 slot 內部傷害分配 · 未完全確立</b><p>PDF 能確立 wave → slot 的 RR，但 slot aggregate damage 如何落到 individual units 仍有未解處。Experimental 現採均勻分配後再逐擊，並以 named assumption 顯示。</p></div>
         <div class="mechanics-card mechanics-partial"><b>Garrison / Open field · 部分實作</b><p>Player 陸軍駐軍上限 = 250 + 50 × (Town Hall Lv + Wall Lv)；Barbarian 若設定 Village Lv，採 2024 Gameforge 論壇社群規則 (Village Lv + Wall Lv + 5) × 50。判斷使用實際兵隻數，不看 unit Size；v17.4 起 Doctor / Cook 不計。守軍嚴格大於上限時使用 land-max 野戰且城牆不出場；等於上限仍非野戰。戰鬥中跨回上限時會偵測到 transition，但跨 geometry 的 wave / damage / ammo 重建尚未校準，因此以 UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION 停止。</p></div>
         <div class="mechanics-card mechanics-partial"><b>Town Wall / 城牆 · Infinite Horizons 數值已更新</b><p>防守方可設定 Lv0–48。每段城牆 HP = 1800 + 900 × Lv、Armor = 72 × Lv；Damage 則沿用舊三段公式再 ×18：Lv1–9 = (10 + 2×Lv)×18、Lv10–19 = (30 + 5×Lv)×18、Lv20+ = (50 + 10×Lv)×18。現行觀察點 Lv1=216、Lv9=504、Lv18=2160、Lv26=5580 均吻合。已知 active Wall 存在時攻方 Land Artillery 優先 Wall，且打不穿 Armor 的 weapon 不把 shot 浪費在牆上。Strict 仍停在 UNKNOWN-TOWN-WALL-COMBAT；Experimental 已執行牆段 HP／破洞、破口對應 First 暴露、任一牆段存活時 Flank lock、以及可整除的回合間牆傷重分配。牆段先後順序與每個可穿甲 Artillery ticket 視為 successful wall hit 都是具名 Experimental assumption；Wall 本身 Accuracy／個體目標、非整除重分配與跨 geometry transition 仍未校準。</p></div>
-        <div class="mechanics-card mechanics-partial"><b>海戰 / Naval · Experimental naval-max</b><p>最大海戰場已開放 Experimental 執行：使用現行社群驗證的 7格前線／6格側翼／7格長程／5格 first-strike／2格 carrier／2格 speedboat geometry，以及 Speedboat → Carrier → Flank → First-strike → Long-range → Front 的 firing order。AM、RR、Damage、Ammo 共用同一引擎；海軍 target priority 目前仍以具名類比假設執行，Strict 停在 UNKNOWN-NAVAL-TARGET-PRIORITIES。Tender 精確修護 allocation 尚未建模；較小海戰場與野蠻人艦隊現行完整數值表仍待證據。</p></div>
+        <div class="mechanics-card mechanics-partial"><b>海戰 / Naval · naval-max 已可執行</b><p>官方 Help 已明確給出各 formation 的填格強弱順位、目標優先序、填格總順序與開火順序；因此這些已不再是陸戰類比假設。現行順序為 Carrier Evasion → Carrier → First Strike → Flank → Long-range → Front，同 formation 雙方同時射擊。AM、RR、Damage、Ammo 共用同一引擎。仍待校準的是 Long-range 無彈藥後補 Front 的動態細節、一般 D/P/M/IR/SR selector，以及 Tender 容量不足時的修護 allocation。Tender 現行修護量為每艘每回合 4000；容量足以全清 naval persistent damage 時已可安全套用 full-clear。</p></div>
       </div>
       <div class="accuracy-note"><b>如何解讀這一頁：</b>「已知」不代表所有細節都來自 Gameforge 原始程式碼，而是代表目前有足夠 evidence 支撐可執行 contract；「部分已知／未知」就是結果精度的邊界，不應被模擬器悄悄猜成確定答案。</div>
     </section>
@@ -941,6 +941,21 @@ function safetyNoticesHtml(data){
     }
     cards.push('<div class="safety-card warning"><b>Healing / 治療部分建模</b><div>攻擊方 Doctor '+aDoctor+'；防守方 Doctor '+dDoctor+'。'+healingHandling+' 每名 Doctor derived capacity = '+esc(healing.derived_capacity_per_doctor)+'；已知治療為每回合效果，並在下一回合戰鬥開始前反映。精確 Healing / RR 先後與容量不足時的 allocation 仍未知；full-clear 子集因結果為全部傷害歸零，不受先後順序影響。</div></div>');
   }
+  const tender=data.tender_status,tenderSides=tender?.sides||{},aTender=tenderSides.attacker?.tender_count||0,dTender=tenderSides.defender?.tender_count||0;
+  if(aTender||dTender){
+    const tenderStatuses=[tenderSides.attacker?.status,tenderSides.defender?.status].filter(Boolean);
+    let tenderHandling;
+    if(tenderStatuses.includes('partial_allocation_unresolved')){
+      tenderHandling='Experimental：4000/艘/回合的總容量不足以全清 naval persistent damage 時，依 '+esc(tender.experimental_assumption_id)+' 不猜部分 allocation。';
+    }else if(tenderStatuses.includes('unsupported_boundary')){
+      tenderHandling='Strict：Tender 容量已知，但部分 allocation 仍停在 '+esc(tender.strict_rule_id)+'。';
+    }else if(tenderStatuses.includes('applied_exact_subset')){
+      tenderHandling='已套用可確定的 full-clear 子集：Tender 總容量足以清除該回合全部 naval persistent damage。';
+    }else{
+      tenderHandling='尚未到達需要實際修護的回合交界，或該時點沒有 naval persistent damage。';
+    }
+    cards.push('<div class="safety-card warning"><b>Tender / 海軍修護部分建模</b><div>攻擊方 Tender '+aTender+'；防守方 Tender '+dTender+'。'+tenderHandling+' 每艘 Tender capacity = '+esc(tender.capacity_per_tender)+' / 回合；效果由 Reserve 生效。精確 Healing / RR 先後與容量不足 allocation 仍未知。</div></div>');
+  }
   if(blockers.length)cards.push('<div class="safety-card blocker"><b>Unsupported mechanics / 無法安全判定</b><ul>'+blockers.map(id=>'<li><b>'+esc(id)+'</b>'+(blockerHelp[id]?'<div>'+esc(blockerHelp[id])+'</div>':'')+'</li>').join('')+'</ul></div>');
   if(warnings.length)cards.push('<div class="safety-card warning"><b>Evidence warnings</b><ul>'+warnings.map(item=>'<li>'+esc(item)+'</li>').join('')+'</ul></div>');
   if(assumptions.length)cards.push('<div class="safety-card assumption"><b>Experimental assumptions actually used</b><ul>'+assumptions.map(item=>'<li>'+esc(item.id)+': '+esc(item.description)+'</li>').join('')+'</ul></div>');
@@ -1003,16 +1018,18 @@ async function downloadCurrentRoundDebug(){
 function summarySide(side,label){
   const initial=lastResult.initial_state[side].remaining||{},final=lastResult.final_state[side].remaining||{},loss=lastResult.casualties[side]||{};
   const ids=[...new Set([...Object.keys(initial),...Object.keys(final),...Object.keys(loss)])].filter(id=>(initial[id]||final[id]||loss[id]));
-  const military=lastResult.military_score?.[side]||{},combat=lastResult.combat_statistics?.[side]||{},morale=lastResult.morale_status?.sides?.[side]||{},healing=lastResult.healing_status?.sides?.[side]||{};
+  const military=lastResult.military_score?.[side]||{},combat=lastResult.combat_statistics?.[side]||{},morale=lastResult.morale_status?.sides?.[side]||{},healing=lastResult.healing_status?.sides?.[side]||{},tender=lastResult.tender_status?.sides?.[side]||{};
   const moraleStatusLabel={ignored_by_named_assumption:'假設忽略',unsupported_boundary:'Strict 邊界',not_reached:'尚未到達',not_present:'未使用'}[morale.status]||'未建模';
   const moraleText=(morale.cook_count||0)?'Cook '+morale.cook_count+' · '+moraleStatusLabel:'Cook 0 · 未使用';
   const healingStatusLabel={applied_exact_subset:'已套用可確定子集',partial_allocation_unresolved:'部分分配未知',unsupported_boundary:'Strict 邊界',not_reached:'尚未到達',not_present:'未使用'}[healing.status]||'部分建模';
   const healingText=(healing.doctor_count||0)?'Doctor '+healing.doctor_count+' · '+healingStatusLabel:'Doctor 0 · 未使用';
+  const tenderStatusLabel={applied_exact_subset:'已套用可確定子集',partial_allocation_unresolved:'部分分配未知',unsupported_boundary:'Strict 邊界',not_reached:'尚未到達',not_present:'未使用'}[tender.status]||'部分建模';
+  const tenderText=(tender.tender_count||0)?'Tender '+tender.tender_count+' · '+tenderStatusLabel:'Tender 0 · 未使用';
   const appliedHealing=Number(combat.engine_healing_applied||0);
   const grossHealing=combat.gross_healing==null?'部分未知 · 已套用 '+appliedHealing.toLocaleString():Number(combat.gross_healing||0).toLocaleString();
   return '<section class="panel summary-side"><h3>'+label+'</h3><table class="summary-table"><thead><tr><th>兵種</th><th>初始</th><th>損失</th><th>剩餘</th></tr></thead><tbody>'+
     ids.map(id=>{const unit=unitById(id);return '<tr><td>'+esc(unit?.display_name||id)+'</td><td>'+(initial[id]||0)+'</td><td class="loss">−'+(loss[id]||0)+'</td><td>'+(final[id]||0)+'</td></tr>'}).join('')+
-    '</tbody></table><div class="side-stats"><div class="side-stat"><span>軍分損失</span><b>−'+(military.general_score_lost??0)+'</b></div><div class="side-stat"><span>造成軍分消減</span><b>'+(military.general_score_destroyed??0)+'</b></div><div class="side-stat"><span>Gross damage dealt</span><b>'+Number(combat.gross_damage_dealt||0).toLocaleString()+'</b></div><div class="side-stat"><span>Gross damage taken</span><b>'+Number(combat.gross_damage_taken||0).toLocaleString()+'</b></div><div class="side-stat"><span>Healing</span><b>'+grossHealing+'</b></div><div class="side-stat"><span>Doctor / 治療</span><b>'+esc(healingText)+'</b></div><div class="side-stat"><span>Cook / 士氣</span><b>'+esc(moraleText)+'</b></div></div></section>';
+    '</tbody></table><div class="side-stats"><div class="side-stat"><span>軍分損失</span><b>−'+(military.general_score_lost??0)+'</b></div><div class="side-stat"><span>造成軍分消減</span><b>'+(military.general_score_destroyed??0)+'</b></div><div class="side-stat"><span>Gross damage dealt</span><b>'+Number(combat.gross_damage_dealt||0).toLocaleString()+'</b></div><div class="side-stat"><span>Gross damage taken</span><b>'+Number(combat.gross_damage_taken||0).toLocaleString()+'</b></div><div class="side-stat"><span>Healing</span><b>'+grossHealing+'</b></div><div class="side-stat"><span>Doctor / 治療</span><b>'+esc(healingText)+'</b></div><div class="side-stat"><span>Tender / 修護</span><b>'+esc(tenderText)+'</b></div><div class="side-stat"><span>Cook / 士氣</span><b>'+esc(moraleText)+'</b></div></div></section>';
 }
 function renderSummary(){
   const aLoss=Object.values(lastResult.casualties.attacker||{}).reduce((a,b)=>a+b,0),dLoss=Object.values(lastResult.casualties.defender||{}).reduce((a,b)=>a+b,0);

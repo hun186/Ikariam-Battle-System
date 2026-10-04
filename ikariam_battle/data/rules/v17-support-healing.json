@@ -29,7 +29,10 @@
     "land_doctor": "human",
     "machine_excluded": true,
     "confidence": "COMMUNITY_AND_EMPIRICAL",
-    "note": "Doctors do not heal land Machine units; Steam Giant exclusion is explicitly used in the empirical paper."
+    "note": "Doctors do not heal land Machine units; Steam Giant exclusion is explicitly used in the empirical paper.",
+    "naval_tender": "all_naval_combat",
+    "tender_capacity": 4000,
+    "tender_capacity_confidence": "USER_CURRENT_VERSION_CONFIRMATION_PLUS_DERIVED_V17_MULTIPLIER"
   },
   "timing_contract": {
     "status": "PARTIAL_KNOWN",
@@ -47,8 +50,11 @@
   },
   "executable_subset": {
     "status": "IMPLEMENTED_ORDER_INVARIANT_FULL_CLEAR",
-    "rule": "If total Doctor capacity covers all persistent damage on eligible Human combat waves, clear that damage at the round boundary before RR. Because all eligible damage becomes zero, unknown Healing-vs-RR ordering cannot change the result.",
-    "insufficient_capacity": "EXP-HEAL-NONE-001",
-    "incomplete_reason": "Allocation priority across partially healable eligible waves/slots is unresolved."
+    "rule": "If total Doctor capacity covers all eligible Human land persistent damage, or total Tender capacity covers all naval combat persistent damage, clear that eligible damage at the round boundary before RR. Full-clear is order-invariant.",
+    "insufficient_capacity": {
+      "doctor": "EXP-HEAL-NONE-001",
+      "tender": "EXP-TENDER-HEAL-NONE-001"
+    },
+    "incomplete_reason": "Allocation priority across partially healable eligible Doctor/Tender waves and exact Healing-vs-RR order are unresolved."
   }
 }

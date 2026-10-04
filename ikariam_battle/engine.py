@@ -271,6 +271,91 @@ def _apply_supported_doctor_healing(
     return eligible_damage
 
 
+def _apply_supported_tender_healing(
+    waves: list[Wave], registry: UnitRegistry, support: SupportProfile,
+    events: list[Event], number: int, side: str,
+    applied: dict[str, dict[str, str]],
+) -> int:
+    """Apply the order-invariant full-clear subset of Tender repair.
+
+    Current Tender capacity is 4000 per Tender per round. Exact allocation when
+    capacity is insufficient and exact Healing/RR order remain unresolved, so
+    only the full-clear case is executable.
+    """
+    tender_count = sum(
+        wave.support_units
+        for wave in waves
+        if wave.unit.unit_id == "tender" and wave.support_units > 0
+    )
+    if not tender_count:
+        return 0
+
+    damaged: list[tuple[Wave, int]] = []
+    for wave in waves:
+        if not wave.alive:
+            continue
+        unit = registry.get(wave.unit.unit_id)
+        if unit.role != "combat" or unit.domain != "naval":
+            continue
+        total_damage = wave.reserve_damage + sum(slot.damage for slot in wave.slots)
+        if total_damage > 0:
+            damaged.append((wave, total_damage))
+
+    eligible_damage = sum(total for _, total in damaged)
+    if not eligible_damage:
+        return 0
+
+    capacity = tender_count * support.derived_capacity
+    if capacity < eligible_damage:
+        _assume(
+            applied, events, "EXP-TENDER-HEAL-NONE-001",
+            number, "heal", side,
+        )
+        _event(
+            events, number, "heal", "healing_allocation_unresolved", side,
+            support_unit_id="tender",
+            tender_count=tender_count,
+            capacity=capacity,
+            eligible_damage=eligible_damage,
+            unresolved_damage=eligible_damage,
+            rule_id="UNKNOWN-TENDER-HEALING-ALLOCATION",
+            action="no_partial_healing_applied",
+        )
+        return 0
+
+    by_wave: list[dict[str, Any]] = []
+    by_unit: dict[str, int] = defaultdict(int)
+    for wave, total_damage in damaged:
+        by_wave.append({
+            "unit_id": wave.unit.unit_id,
+            "wave_id": wave.unit.wave_id,
+            "healing": total_damage,
+        })
+        by_unit[wave.unit.unit_id] += total_damage
+        wave.reserve_damage = 0
+        for slot in wave.slots:
+            slot.damage = 0
+
+    _event(
+        events, number, "heal", "healing", side,
+        support_unit_id="tender",
+        tender_count=tender_count,
+        capacity=capacity,
+        eligible_damage_before=eligible_damage,
+        healing=eligible_damage,
+        unused_capacity=capacity - eligible_damage,
+        affected_waves=sorted(
+            by_wave, key=lambda item: (item["unit_id"], item["wave_id"])
+        ),
+        affected_units=dict(sorted(by_unit.items())),
+        eligibility="all_naval_combat",
+        timing="round_boundary_before_next_combat",
+        exact_subset="capacity_covers_all_eligible_persistent_damage",
+        healing_rr_order="order_invariant_for_full_clear",
+    )
+    return eligible_damage
+
+
 def _redistribute(waves: list[Wave], events: list[Event], number: int, side: str,
                   applied: dict[str, dict[str, str]]) -> None:
     _guard_single_line_waves(waves)
@@ -832,7 +917,7 @@ def _prepare_round_start(
     rules: FormationRules | None = None, field=None,
     support: SupportProfile | None = None,
 ) -> None:
-    """Re-pack, apply safe Doctor healing when exact, then RR persistent damage."""
+    """Re-pack, apply safe Doctor/Tender full-clear healing, then RR damage."""
     _rebuild_formation(waves, events, number, side)
     if registry is not None and rules is not None and field is not None:
         _supported_same_batch_heavy_first_handoffs(
@@ -851,9 +936,11 @@ def _prepare_round_start(
     if registry is not None and support is not None:
         _apply_supported_doctor_healing(
             waves, registry, support, events, number, side, applied)
+        _apply_supported_tender_healing(
+            waves, registry, support, events, number, side, applied)
     # RR must see the final deployment after every supported compaction. The
-    # healing subset above is intentionally limited to full-clear cases, so the
-    # unknown Healing/RR order cannot alter its result.
+    # healing subsets above are intentionally limited to full-clear cases, so
+    # the unknown Healing/RR order cannot alter their result.
     _redistribute(waves, events, number, side, applied)
 
 
@@ -2302,7 +2389,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         else scenario.profiles.formation
     )
     targeting_profile = (
-        "experimental-community-naval-targeting"
+        "official-help-naval-targeting"
         if field.domain == "naval" else scenario.profiles.targeting
     )
     formation_rules = FormationRules.load(formation_profile)
@@ -2331,7 +2418,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     warnings = ["Legacy empirical mechanics are being applied to review-supplied current numeric profiles; calibration is required."]
     if field.domain == "naval":
         warnings.append(
-            "Experimental naval-max execution is enabled: max-field geometry and firing order are current-community grounded, while exact naval target priorities, Tender allocation, and kill/redistribution selectors still require calibration."
+            "Naval-max formation fill order, target priorities, and firing order follow official in-game Help. Remaining naval calibration boundaries are depleted long-range fallback to Front, Tender partial allocation, and kill/redistribution selectors."
         )
     if open_field_active:
         warnings.append(
@@ -2348,8 +2435,6 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     attacker_blockers = _preflight(attacker, registry, formation_rules, field)
     defender_blockers = _preflight(defender, registry, formation_rules, field)
     blockers = sorted(set(attacker_blockers + defender_blockers))
-    if field.domain == "naval":
-        blockers.append("UNKNOWN-NAVAL-TARGET-PRIORITIES")
     if scenario.wall_level and not open_field_active and scenario.policy is Policy.STRICT:
         blockers.append(TOWN_WALL_RULE_ID)
     initial_states = {side: state["continuation_state"] for side, state in initial.items()}
@@ -2391,17 +2476,9 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         "UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT"} & set(blockers):
         return _unsupported(scenario, events, initial, blockers, warnings)
     applied: dict[str, dict[str, str]] = {}
-    if field.domain == "naval":
-        _assume(
-            applied, events,
-            "EXP-NAVAL-TARGETING-LAND-ROLE-ANALOGY-001",
-            0, "preflight",
-        )
     for side, side_blockers in (("attacker", attacker_blockers), ("defender", defender_blockers)):
         if "UNKNOWN-MORALE-SUPPORT" in side_blockers:
             _assume(applied, events, "EXP-MORALE-NONE-001", 0, "preflight", side)
-        if "UNKNOWN-TENDER-HEALING-ALLOCATION" in side_blockers:
-            _assume(applied, events, "EXP-TENDER-HEAL-NONE-001", 0, "preflight", side)
     if fallback_sides:
         _event(events, 0, "battle_end", "unsupported_mechanic", None,
                rule_id="UNKNOWN-FORMATION-FALLBACK", affected_sides=fallback_sides)
@@ -3033,6 +3110,67 @@ def _healing_status(
         "sides": sides,
     }
 
+
+def _tender_status(
+    scenario: Scenario,
+    result: dict[str, Any],
+    support: SupportProfile,
+) -> dict[str, Any]:
+    assumption_id = "EXP-TENDER-HEAL-NONE-001"
+    strict_rule_id = "UNKNOWN-TENDER-HEALING-ALLOCATION"
+    sides: dict[str, dict[str, Any]] = {}
+    for side, army in (("attacker", scenario.attacker), ("defender", scenario.defender)):
+        tender_count = sum(unit.quantity for unit in army.units if unit.unit_id == "tender")
+        heal_events = [
+            event for event in result.get("events", [])
+            if event.get("type") == "healing"
+            and event.get("side") == side
+            and event.get("details", {}).get("support_unit_id") == "tender"
+        ]
+        applied_amount = sum(
+            int(event.get("details", {}).get("healing", 0))
+            for event in heal_events
+        )
+        reach_round = _support_assumption_round(result, assumption_id, side)
+        strict_reached = _strict_support_boundary_reached(
+            scenario, result, side, "tender", strict_rule_id)
+        if not tender_count:
+            status = "not_present"
+            amount: int | None = 0
+        elif strict_reached:
+            status = "unsupported_boundary"
+            amount = None
+        elif reach_round is not None:
+            status = "partial_allocation_unresolved"
+            amount = None
+        elif heal_events:
+            status = "applied_exact_subset"
+            amount = applied_amount
+        else:
+            status = "not_reached"
+            amount = 0
+        sides[side] = {
+            "tender_count": tender_count,
+            "status": status,
+            "effect_applied": bool(applied_amount),
+            "healing_amount": amount,
+            "engine_healing_applied": applied_amount,
+        }
+    return {
+        "modeled": False,
+        "partial_model": True,
+        "model_status": "EXACT_FULL_CLEAR_SUBSET_ONLY",
+        "strict_rule_id": strict_rule_id,
+        "experimental_assumption_id": assumption_id,
+        "capacity_per_tender": support.derived_capacity,
+        "capacity_is_allocation_formula": False,
+        "timing_contract": "per_round_before_next_round_combat",
+        "healing_rr_order": "UNKNOWN_EXCEPT_FULL_CLEAR_IS_ORDER_INVARIANT",
+        "executable_subset": "capacity_covers_all_naval_persistent_damage",
+        "sides": sides,
+    }
+
+
 def _attach_battle_statistics(
     result: dict[str, Any],
     economy: MilitaryEconomyProfile,
@@ -3084,8 +3222,13 @@ def _attach_battle_statistics(
 
     support = SupportProfile.load(scenario.profiles.support)
     healing_status = _healing_status(scenario, result, support)
+    tender_status = _tender_status(scenario, result, support)
     healing_reach_round = {
         side: _support_assumption_round(result, "EXP-HEAL-NONE-001", side)
+        for side in ("attacker", "defender")
+    }
+    tender_reach_round = {
+        side: _support_assumption_round(result, "EXP-TENDER-HEAL-NONE-001", side)
         for side in ("attacker", "defender")
     }
     gross_dealt = {"attacker": 0, "defender": 0}
@@ -3137,9 +3280,18 @@ def _attach_battle_statistics(
             cumulative[side]["damage_taken"] += stats[side]["damage_taken"]
             cumulative[side]["healing"] += stats[side]["healing"]
             support_round = healing_reach_round[side]
-            healing_unknown = support_round is not None and number >= support_round
-            if scenario.policy == Policy.STRICT and _strict_support_boundary_reached(
-                    scenario, result, side, "doctor", "UNKNOWN-HEALING-ALLOCATION"):
+            tender_round = tender_reach_round[side]
+            healing_unknown = (
+                (support_round is not None and number >= support_round)
+                or (tender_round is not None and number >= tender_round)
+            )
+            if scenario.policy == Policy.STRICT and (
+                _strict_support_boundary_reached(
+                    scenario, result, side, "doctor", "UNKNOWN-HEALING-ALLOCATION")
+                or _strict_support_boundary_reached(
+                    scenario, result, side, "tender",
+                    "UNKNOWN-TENDER-HEALING-ALLOCATION")
+            ):
                 healing_unknown = True
             row_combat[side] = {
                 "damage_dealt": stats[side]["damage_dealt"],
@@ -3157,14 +3309,19 @@ def _attach_battle_statistics(
             "gross_damage_taken": gross_taken[side],
             "gross_healing": None if (
                 healing_reach_round[side] is not None
+                or tender_reach_round[side] is not None
                 or _strict_support_boundary_reached(
                     scenario, result, side, "doctor", "UNKNOWN-HEALING-ALLOCATION")
+                or _strict_support_boundary_reached(
+                    scenario, result, side, "tender",
+                    "UNKNOWN-TENDER-HEALING-ALLOCATION")
             ) else gross_healing_applied[side],
             "engine_healing_applied": gross_healing_applied[side],
         }
         for side in ("attacker", "defender")
     }
     result["healing_status"] = healing_status
+    result["tender_status"] = tender_status
     result["morale_status"] = _morale_status(scenario, result)
 
     garrison = land_garrison_status(
