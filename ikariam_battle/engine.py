@@ -17,6 +17,11 @@ from .garrison import (
     counted_live_waves,
     land_garrison_status,
 )
+from .kill_calibration import (
+    IKILL_RULE_ID as SWORDSMAN_IKILL_RULE_ID,
+    MKILL_RULE_ID as SWORDSMAN_MKILL_RULE_ID,
+    swordsman_flank_kill_adjustment,
+)
 from .models import Army, Policy, Scenario, ScenarioError, Slot, Wave
 from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 from .redistribution import SlotShare, reserve_redistribution
@@ -46,6 +51,8 @@ EXPERIMENTAL_POLICIES = {
     "EXP-SLOT-DAMAGE-EVEN-001": "When RR leaves aggregate persistent damage in a slot, distribute it as evenly as possible across surviving units before sequential fire; exact within-slot allocation is unresolved.",
     "EXP-IR-DISABLED-001": "Immediate Redistribution has an implementation hook but its trigger is unknown, so it is not triggered.",
     "EXP-SR-DISABLED-001": "Slot Redistribution has an implementation hook but its trigger is unknown, so it is not triggered.",
+    SWORDSMAN_IKILL_RULE_ID: "For Swordsman flank target slots whose six reduced-AM source columns are all odd, use aggregate I-kill only when prior persistent damage plus incoming damage divides target HP exactly; this reproduces the empirical paper's historical full-formation divisible case.",
+    SWORDSMAN_MKILL_RULE_ID: "For the current full 6x40 Swordsman-vs-Swordsman central flank shape (six 7-hit reduced-AM columns) in the two-hit regime, start from the generic sequential D-kill result and retain one lethal-pair overkill per AM row into an M-pool; convert that pool to additional casualties plus persistent damage. Outer six-hit columns remain D-kill. Accuracy remains an unresolved higher-level selector candidate rather than a fabricated multiplier.",
     "EXP-ROUND-FLOOR-001": "Floor non-integer net damage; the general selector is unknown.",
     "EXP-RR-ROUND-HALF-UP-001": "Round the total deployed RR share half-up, then assign remainder by damage priority.",
     "EXP-AMMO-STOP-001": "After primary ammunition is exhausted, do not silently switch to an unverified secondary weapon.",
@@ -1086,7 +1093,7 @@ def _shot_source_positions(deployed: list[Slot], firing_counts: list[int]) -> li
             if count >= row]
 
 
-def _formation_shots(volleys: list[dict[str, Any]]) -> list[tuple[int, int]]:
+def _formation_shots(volleys: list[dict[str, Any]]) -> list[tuple[int, int, int | None]]:
     """Merge mixed source waves into one row-major Attacking Matrix sequence.
 
     Each volley still owns its weapon, upgrades and ammunition pool. The AM row
@@ -1099,7 +1106,7 @@ def _formation_shots(volleys: list[dict[str, Any]]) -> list[tuple[int, int]]:
         rows = list(volley.get("row_numbers", ()))
         positions = volley.get("source_damage_positions")
         if not isinstance(positions, list) or len(positions) != len(rows):
-            return [(volley_index, row)
+            return [(volley_index, row, None)
                     for volley_index, item in enumerate(volleys)
                     for row in item.get("row_numbers", ())]
         prepared.append((rows, positions))
@@ -1109,7 +1116,8 @@ def _formation_shots(volleys: list[dict[str, Any]]) -> list[tuple[int, int]]:
         for shot_index, (row, position) in enumerate(zip(rows, positions)):
             ordered.append((row, position, volley_index, shot_index))
     ordered.sort()
-    return [(volley_index, row) for row, _, volley_index, _ in ordered]
+    return [(volley_index, row, position)
+            for row, position, volley_index, _ in ordered]
 
 
 def _wall_exposed_target_view(
@@ -1528,6 +1536,9 @@ def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitR
             "attack_upgrade": wave.unit.attack_upgrade,
             "row_numbers": row_numbers,
             "source_damage_positions": source_damage_positions,
+            "source_phase_start_slot_units": {
+                slot.damage_position: slot.units for slot in deployed
+            },
             "source_wave_state": wave,
             "partial_firing_counts": partial_firing_counts,
         })
@@ -1634,6 +1645,11 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                       applied: dict[str, dict[str, str]]) -> int:
     contexts: dict[int, dict[str, Any]] = {}
     address_books: dict[tuple[str, tuple[tuple[str, str], ...]], tuple[Any, ...]] = {}
+    phase_start_slots = {
+        (wave.unit.unit_id, wave.unit.wave_id, slot.slot_id): (slot.units, slot.damage)
+        for wave in targets
+        for slot in wave.slots
+    }
     for volley_index, volley in enumerate(volleys):
         if not volley["row_numbers"]:
             continue
@@ -1684,7 +1700,7 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
         ).items():
             address_books.setdefault(address_key, addressed)
 
-    for volley_index, row_number in _formation_shots(volleys):
+    for volley_index, row_number, source_damage_position in _formation_shots(volleys):
         context = contexts.get(volley_index)
         if context is None:
             continue
@@ -1858,6 +1874,11 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             "accuracy_model": EXPERIMENTAL_ACCURACY_MODEL_ID,
             "target_eligibility_rule": TARGET_PENETRATION_RULE_ID,
             "accuracy_decisions": defaultdict(int),
+            "source_column_hits": defaultdict(int),
+            "_initial_units": target_slot.units + killed,
+            "_target_slot": target_slot,
+            "_target_wave_state": enemy,
+            "_queue_key": queue_key,
             "_persistent_damage": target_slot.damage,
         })
         group["damage"] += damage_trace.final_damage
@@ -1865,12 +1886,179 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
         group["casualties"] += killed
         group["overkill_discarded"] += overkill
         group["accuracy_decisions"][accuracy_decision.mode] += 1
+        if source_damage_position is not None:
+            group["source_column_hits"][source_damage_position] += 1
         group["_persistent_damage"] = target_slot.damage
 
         if _ir_trigger(volley, enemy, target_slot, row_number):
             _rebalance_damage_queue(queue)
             target_slot.damage = sum(queue)
             group["_persistent_damage"] = target_slot.damage
+
+    # Apply the Swordsman kill hypothesis once per target slot across the whole
+    # runtime formation. Same-unit waves share one row-major AM, so calculating
+    # per volley would make casualties depend on how the caller split one army
+    # into entry batches.
+    if (
+        contexts
+        and source_army.forge_level == 5
+        and target_army.forge_level == 5
+        and all(
+        context["source_unit"].id == "swordsman"
+        and context["volley"].get("runtime_line") == "flank"
+        for context in contexts.values()
+        )
+    ):
+        source_phase_start_slot_units: dict[int, int] = defaultdict(int)
+        source_armor_upgrades: set[int] = set()
+        for context in contexts.values():
+            for position, units in context["volley"].get(
+                "source_phase_start_slot_units", {}
+            ).items():
+                source_phase_start_slot_units[position] += units
+            source_wave_state = context["volley"].get("source_wave_state")
+            if source_wave_state is not None:
+                source_armor_upgrades.add(source_wave_state.unit.armor_upgrade)
+
+        formation_groups: dict[tuple[Any, ...], dict[str, Any]] = {}
+        for volley_index in sorted(contexts):
+            context = contexts[volley_index]
+            for damage_key, group in context["damage_groups"].items():
+                if group["target_unit_id"] != "swordsman" or group["target_line"] != "flank":
+                    continue
+                key = (
+                    group["target_unit_id"], group["target_wave"],
+                    group["target_slot"], group["target_class"], damage_key[-1],
+                )
+                aggregate = formation_groups.setdefault(key, {
+                    "damage": 0,
+                    "overkill_discarded": 0,
+                    "source_column_hits": defaultdict(int),
+                    "members": [],
+                    "target_slot": group["_target_slot"],
+                    "target_wave_state": group["_target_wave_state"],
+                    "queue_key": group["_queue_key"],
+                })
+                aggregate["damage"] += group["damage"]
+                aggregate["overkill_discarded"] += group["overkill_discarded"]
+                for position, hits in group["source_column_hits"].items():
+                    aggregate["source_column_hits"][position] += hits
+                aggregate["members"].append(group)
+
+        for aggregate in formation_groups.values():
+            target_slot = aggregate["target_slot"]
+            queue_key = aggregate["queue_key"]
+            start_units, start_damage = phase_start_slots[queue_key]
+            baseline_casualties = start_units - target_slot.units
+            baseline_persistent_damage = target_slot.damage
+            target_unit = registry.get(target_slot.unit_id)
+
+            reciprocal_hit_damage = None
+            if len(source_armor_upgrades) == 1:
+                target_wave_state = aggregate["target_wave_state"]
+                reciprocal_weapon = select_active_weapon(target_unit, "flank")
+                reciprocal_eligibility, reciprocal_trace = unit_target_eligibility(
+                    target_unit,
+                    target_unit,
+                    target_wave_state.unit.attack_upgrade,
+                    next(iter(source_armor_upgrades)),
+                    target_army.forge_level,
+                    source_army.forge_level,
+                    workshop,
+                    forge,
+                    weapon=reciprocal_weapon,
+                )
+                if reciprocal_eligibility.eligible:
+                    reciprocal_hit_damage = reciprocal_trace.final_damage
+
+            adjustment = swordsman_flank_kill_adjustment(
+                initial_units=start_units,
+                hit_points=target_unit.hit_points or 0,
+                incoming_damage=aggregate["damage"],
+                prior_damage=start_damage,
+                baseline_casualties=baseline_casualties,
+                baseline_persistent_damage=target_slot.damage,
+                baseline_overkill_discarded=aggregate["overkill_discarded"],
+                source_column_hits=aggregate["source_column_hits"],
+                source_slot_units=source_phase_start_slot_units,
+                reciprocal_hit_damage=reciprocal_hit_damage,
+            )
+            if adjustment is None or adjustment.mode == "d_kill_even_columns":
+                continue
+
+            delta = adjustment.casualties - baseline_casualties
+            if delta < 0 or delta > target_slot.units:
+                raise ScenarioError(
+                    "formation-scope swordsman kill hypothesis produced invalid casualty adjustment"
+                )
+            if delta:
+                target_slot.units -= delta
+                casualties[target_slot.unit_id] += delta
+                slot_casualties[
+                    (target_slot.wave_id, target_slot.slot_id)
+                ] += delta
+            target_slot.damage = adjustment.persistent_damage
+            queues[queue_key] = sorted(
+                _even_unit_damage(target_slot.damage, target_slot.units),
+                reverse=True,
+            )
+
+            representative = aggregate["members"][0]
+            representative["casualties"] += delta
+            representative["_persistent_damage"] = adjustment.persistent_damage
+            representative["baseline_casualties"] = baseline_casualties
+            representative["baseline_persistent_damage"] = baseline_persistent_damage
+            representative["baseline_overkill_discarded"] = aggregate[
+                "overkill_discarded"
+            ]
+            representative["baseline_formation_casualties"] = baseline_casualties
+            representative["baseline_formation_persistent_damage"] = (
+                adjustment.phase_start_damage
+            )
+            representative["formation_source_column_hits"] = defaultdict(
+                int, aggregate["source_column_hits"]
+            )
+            representative["formation_source_slot_units"] = dict(
+                source_phase_start_slot_units
+            )
+            representative["reciprocal_hit_damage"] = reciprocal_hit_damage
+            representative["recovered_overkill"] = adjustment.recovered_overkill
+            representative["kill_selector"] = adjustment.mode
+            representative["accuracy_selector_status"] = (
+                "constant_swordsman_accuracy_not_identifying_selector"
+            )
+            representative["mkill_hit_damage"] = adjustment.hit_damage
+            representative["mkill_retained_overkill_events"] = (
+                adjustment.retained_overkill_events
+            )
+            representative["mkill_recovered_overkill"] = adjustment.recovered_overkill
+            representative["mkill_hits_to_kill"] = adjustment.hits_to_kill
+            representative["mkill_reciprocal_hits_to_kill"] = (
+                adjustment.reciprocal_hits_to_kill
+            )
+            representative["_resolution_override"] = (
+                "swordsman_flank_i_kill_exact_division"
+                if adjustment.mode == "i_kill_exact_division"
+                else "swordsman_symmetric_two_hit_row_pm_mkill"
+            )
+            representative["_assumption_override"] = (
+                [SWORDSMAN_IKILL_RULE_ID, EXPERIMENTAL_ACCURACY_MODEL_ID]
+                if adjustment.mode == "i_kill_exact_division"
+                else [
+                    "EXP-D-KILL-SEQUENTIAL-001",
+                    SWORDSMAN_MKILL_RULE_ID,
+                    EXPERIMENTAL_ACCURACY_MODEL_ID,
+                ]
+            )
+            _assume(
+                applied, events,
+                (
+                    SWORDSMAN_IKILL_RULE_ID
+                    if adjustment.mode == "i_kill_exact_division"
+                    else SWORDSMAN_MKILL_RULE_ID
+                ),
+                number, "fire", next(iter(contexts.values()))["volley"]["side"],
+            )
 
     for volley_index in sorted(contexts):
         context = contexts[volley_index]
@@ -1920,22 +2108,35 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                        "empty_addressed_shots_by_damage_position": dict(matrix["empty_hits"]),
                    })
         for group in context["damage_groups"].values():
+            resolution = "sequential_d_kill_baseline"
+            assumption_ids = [
+                "EXP-D-KILL-SEQUENTIAL-001",
+                EXPERIMENTAL_ACCURACY_MODEL_ID,
+                "EXP-IR-DISABLED-001",
+            ]
+
+            if group.get("_resolution_override"):
+                resolution = group["_resolution_override"]
+                assumption_ids = group["_assumption_override"]
+
             details = {
-                key: (dict(value) if key == "accuracy_decisions" else value)
+                key: (
+                    dict(value)
+                    if key in {"accuracy_decisions", "source_column_hits",
+                               "formation_source_column_hits",
+                               "formation_source_slot_units"}
+                    else value
+                )
                 for key, value in group.items()
-                if key != "_persistent_damage"
+                if not key.startswith("_")
             }
             _event(events, number, "fire", "damage", volley["side"],
                    firing_phase=volley["runtime_line"],
                    target_side="defender" if volley["side"] == "attacker" else "attacker",
                    source_unit_id=source_unit.id,
-                   resolution="sequential_d_kill_baseline",
+                   resolution=resolution,
                    persistent_damage=group["_persistent_damage"],
-                   assumption_ids=[
-                       "EXP-D-KILL-SEQUENTIAL-001",
-                       EXPERIMENTAL_ACCURACY_MODEL_ID,
-                       "EXP-IR-DISABLED-001",
-                   ],
+                   assumption_ids=assumption_ids,
                    **details)
     return sum(context["fired_shots"] for context in contexts.values())
 
@@ -2440,6 +2641,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
 
             if not a_volleys and not d_volleys and not wall_shots:
                 continue
+
             attacker_shots = wall_shots + _resolve_volleys(
                 a_volleys, attacker_target_view, d_queues,
                 registry, workshop, forge, targeting,
@@ -2448,6 +2650,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             defender_shots = _resolve_volleys(
                 d_volleys, attacker, a_queues, registry, workshop, forge, targeting,
                 events, number, scenario.defender, scenario.attacker, a_dead, a_slot_dead, applied)
+
             if not attacker_shots and not defender_shots:
                 continue
             round_had_fire = True

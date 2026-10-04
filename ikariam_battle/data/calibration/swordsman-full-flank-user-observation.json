@@ -1,0 +1,128 @@
+{
+  "fixture_id": "swordsman-full-flank-user-observation-2026-06-25",
+  "evidence_class": "USER_PROVIDED_BATTLE_OBSERVATION",
+  "source_note": "Battle report dated 2026-06-25 (transcribed during the 2026-10-03 calibration work): both sides field six flank slots of 40 Swordsmen. Attacker Workshop Swordsman 24 attack / 26 armor; defender 18 attack / 18 armor. Both sides use Forge level 5 in this calibration scenario. Left-to-right attacker losses 18,21,21,21,21,18 and defender losses 18,24,24,24,24,18; surviving slot life display is 100%,99%,99%,99%,99%,100% on both sides. Life display is represented as complementary damage_percent 0/1 only for this calibration fixture; exact life-percent UI semantics remain unresolved.",
+  "game_version": "battle-report-2026-06-25",
+  "round_number": 1,
+  "scenario": {
+    "policy": "experimental",
+    "battlefield": "land-max",
+    "max_rounds": 1,
+    "attacker": {
+      "forge_level": 5,
+      "units": [
+        {
+          "unit_id": "hoplite",
+          "quantity": 350
+        },
+        {
+          "unit_id": "swordsman",
+          "quantity": 240,
+          "attack_upgrade": 24,
+          "armor_upgrade": 26
+        }
+      ]
+    },
+    "defender": {
+      "forge_level": 5,
+      "units": [
+        {
+          "unit_id": "hoplite",
+          "quantity": 350
+        },
+        {
+          "unit_id": "swordsman",
+          "quantity": 240,
+          "attack_upgrade": 18,
+          "armor_upgrade": 18
+        }
+      ]
+    }
+  },
+  "observations": [
+    {
+      "side": "attacker",
+      "line": "flank",
+      "damage_position": 6,
+      "casualties": 18,
+      "damage_percent": 0
+    },
+    {
+      "side": "attacker",
+      "line": "flank",
+      "damage_position": 4,
+      "casualties": 21,
+      "damage_percent": 1
+    },
+    {
+      "side": "attacker",
+      "line": "flank",
+      "damage_position": 2,
+      "casualties": 21,
+      "damage_percent": 1
+    },
+    {
+      "side": "attacker",
+      "line": "flank",
+      "damage_position": 1,
+      "casualties": 21,
+      "damage_percent": 1
+    },
+    {
+      "side": "attacker",
+      "line": "flank",
+      "damage_position": 3,
+      "casualties": 21,
+      "damage_percent": 1
+    },
+    {
+      "side": "attacker",
+      "line": "flank",
+      "damage_position": 5,
+      "casualties": 18,
+      "damage_percent": 0
+    },
+    {
+      "side": "defender",
+      "line": "flank",
+      "damage_position": 6,
+      "casualties": 18,
+      "damage_percent": 0
+    },
+    {
+      "side": "defender",
+      "line": "flank",
+      "damage_position": 4,
+      "casualties": 24,
+      "damage_percent": 1
+    },
+    {
+      "side": "defender",
+      "line": "flank",
+      "damage_position": 2,
+      "casualties": 24,
+      "damage_percent": 1
+    },
+    {
+      "side": "defender",
+      "line": "flank",
+      "damage_position": 1,
+      "casualties": 24,
+      "damage_percent": 1
+    },
+    {
+      "side": "defender",
+      "line": "flank",
+      "damage_position": 3,
+      "casualties": 24,
+      "damage_percent": 1
+    },
+    {
+      "side": "defender",
+      "line": "flank",
+      "damage_position": 5,
+      "casualties": 18,
+      "damage_percent": 0
+    }
+  ]
+}

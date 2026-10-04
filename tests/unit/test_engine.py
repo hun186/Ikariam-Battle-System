@@ -1652,6 +1652,158 @@ def test_art_of_warfare_firing_order_profile_and_artillery_targets_are_exact():
  assert 'second' not in t.priorities['third'] and 'third' not in t.priorities['third']
 
 
+def test_user_observed_full_swordsman_flank_mkill_hypothesis_matches_round_one():
+ s={
+  'policy':'experimental','battlefield':'land-max','max_rounds':1,
+  'attacker':{'forge_level':5,'units':[
+   {'unit_id':'hoplite','quantity':350},
+   {'unit_id':'swordsman','quantity':240,'attack_upgrade':24,'armor_upgrade':26},
+  ]},
+  'defender':{'forge_level':5,'units':[
+   {'unit_id':'hoplite','quantity':350},
+   {'unit_id':'swordsman','quantity':240,'attack_upgrade':18,'armor_upgrade':18},
+  ]},
+ }
+ result=simulate(s)
+ round_one=next(row for row in result['rounds'] if row['round']==1)
+
+ def flank(state):
+  return sorted(
+   (slot for slot in state['slots'] if slot['line']=='flank'),
+   key=lambda slot:slot['physical_position'],
+  )
+
+ attacker_flank=flank(round_one['attacker'])
+ defender_flank=flank(round_one['defender'])
+
+ assert [slot['casualties'] for slot in attacker_flank]==[18,21,21,21,21,18]
+ assert [slot['casualties'] for slot in defender_flank]==[18,24,24,24,24,18]
+ assert [slot['damage'] for slot in attacker_flank]==[0,42,42,42,42,0]
+ assert [slot['damage'] for slot in defender_flank]==[0,12,12,12,12,0]
+ assert [slot['hit_points_percent'] for slot in attacker_flank[1:5]]==[99.39]*4
+ assert [slot['hit_points_percent'] for slot in defender_flank[1:5]]==[99.79]*4
+ assert attacker_flank[0]['hit_points_percent']==100
+ assert attacker_flank[-1]['hit_points_percent']==100
+ assert defender_flank[0]['hit_points_percent']==100
+ assert defender_flank[-1]['hit_points_percent']==100
+
+ ids={item['id'] for item in result['assumptions']}
+ assert 'EXP-SWORDSMAN-SYMMETRIC-2HIT-ROW-PM-MKILL-001' in ids
+ modeled=[
+  event for event in result['events']
+  if event['type']=='damage'
+  and event['details'].get('resolution')=='swordsman_symmetric_two_hit_row_pm_mkill'
+ ]
+ assert len(modeled)==8
+ assert {event['details']['target_damage_position'] for event in modeled}=={1,2,3,4}
+ assert all(set(event['details'].get('formation_source_column_hits',
+                                     event['details']['source_column_hits']).values())=={7}
+            for event in modeled)
+ assert {
+  (event['details']['baseline_casualties'],
+   event['details']['casualties'],
+   event['details']['recovered_overkill'],
+   event['details']['persistent_damage'])
+  for event in modeled if event['side']=='attacker'
+ }=={(21,24,1092,12)}
+ assert {
+  (event['details']['baseline_casualties'],
+   event['details']['casualties'],
+   event['details']['recovered_overkill'],
+   event['details']['persistent_damage'])
+  for event in modeled if event['side']=='defender'
+ }=={(21,21,42,42)}
+ assert {
+  (event['details']['mkill_hit_damage'],
+   event['details']['mkill_retained_overkill_events'],
+   event['details']['mkill_recovered_overkill'])
+  for event in modeled if event['side']=='attacker'
+ }=={(258,7,1092)}
+ assert {
+  (event['details']['mkill_hit_damage'],
+   event['details']['mkill_retained_overkill_events'],
+   event['details']['mkill_recovered_overkill'])
+  for event in modeled if event['side']=='defender'
+ }=={(183,7,42)}
+
+ outer=[
+  event for event in result['events']
+  if event['type']=='damage'
+  and event['details'].get('source_unit_id')=='swordsman'
+  and event['details'].get('target_unit_id')=='swordsman'
+  and event['details'].get('target_damage_position') in {5,6}
+ ]
+ assert len(outer)==4
+ assert all(event['details']['resolution']=='sequential_d_kill_baseline' for event in outer)
+ assert all(set(event['details']['source_column_hits'].values())=={6} for event in outer)
+
+
+def test_swordsman_mkill_hypothesis_generalizes_by_damage_not_upgrade_fixture():
+ s={
+  'policy':'experimental','battlefield':'land-max','max_rounds':1,
+  'attacker':{'forge_level':5,'units':[
+   {'unit_id':'hoplite','quantity':350},
+   {'unit_id':'swordsman','quantity':240,'attack_upgrade':23,'armor_upgrade':25},
+  ]},
+  'defender':{'forge_level':5,'units':[
+   {'unit_id':'hoplite','quantity':350},
+   {'unit_id':'swordsman','quantity':240,'attack_upgrade':17,'armor_upgrade':17},
+  ]},
+ }
+ result=simulate(s)
+ assert 'EXP-SWORDSMAN-SYMMETRIC-2HIT-ROW-PM-MKILL-001' in {
+  item['id'] for item in result['assumptions']
+ }
+ modeled=[
+  event for event in result['events']
+  if event['type']=='damage'
+  and event['details'].get('resolution')=='swordsman_symmetric_two_hit_row_pm_mkill'
+ ]
+ assert modeled
+ assert all(set(event['details']['source_column_hits'].values())=={7} for event in modeled)
+ assert all('baseline_overkill_discarded' in event['details'] for event in modeled)
+
+
+def test_swordsman_full_flank_mkill_is_invariant_to_same_unit_wave_split():
+ def make(split):
+  swords=(
+   [{'unit_id':'swordsman','quantity':240,'attack_upgrade':24,'armor_upgrade':26}]
+   if not split else
+   [
+    {'unit_id':'swordsman','quantity':120,'wave_id':'s1','entry_batch_id':'b1',
+     'attack_upgrade':24,'armor_upgrade':26},
+    {'unit_id':'swordsman','quantity':120,'wave_id':'s2','entry_batch_id':'b2',
+     'attack_upgrade':24,'armor_upgrade':26},
+   ]
+  )
+  return {
+   'policy':'experimental','battlefield':'land-max','max_rounds':1,
+   'attacker':{'forge_level':5,'units':[
+    {'unit_id':'hoplite','quantity':350},*swords,
+   ]},
+   'defender':{'forge_level':5,'units':[
+    {'unit_id':'hoplite','quantity':350},
+    {'unit_id':'swordsman','quantity':240,'attack_upgrade':18,'armor_upgrade':18},
+   ]},
+  }
+
+ def signature(result):
+  state=next(row for row in result['rounds'] if row['round']==1)['defender']
+  return [
+   (slot['physical_position'],slot['units'],slot['casualties'],
+    slot['damage'],slot['hit_points_percent'])
+   for slot in sorted(
+    (slot for slot in state['slots'] if slot['line']=='flank'),
+    key=lambda slot:slot['physical_position'],
+   )
+  ]
+
+ single=simulate(make(False))
+ split=simulate(make(True))
+ assert signature(single)==signature(split)
+ assert single['casualties']['defender']['swordsman']==split['casualties']['defender']['swordsman']
+
+
 def test_flank_phase_can_kill_long_range_before_long_range_fires():
  s={'policy':'experimental','battlefield':'land-max','max_rounds':1,
     'attacker':{'units':[{'unit_id':'hoplite','quantity':350},
@@ -1729,9 +1881,10 @@ def test_mixed_source_am_merges_columns_in_row_major_order():
    'source_damage_positions':[3,3]},
  ]
  shots=_formation_shots(volleys)
- assert [(volleys[index]['source_unit'],row) for index,row in shots]==[
-  ('catapult',1),('catapult',1),('battering_ram',1),
-  ('catapult',2),('catapult',2),('battering_ram',2),
+ assert [(volleys[index]['source_unit'],row,source_position)
+         for index,row,source_position in shots]==[
+  ('catapult',1,1),('catapult',1,2),('battering_ram',1,3),
+  ('catapult',2,1),('catapult',2,2),('battering_ram',2,3),
  ]
 
 

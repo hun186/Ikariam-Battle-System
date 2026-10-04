@@ -11,6 +11,7 @@ from ikariam_battle.calibration import (
     evaluate_fixture,
     ranged_formation_observations,
     run_fixture,
+    swordsman_full_flank_observation,
 )
 from ikariam_battle.models import ScenarioError
 
@@ -230,3 +231,21 @@ def test_user_observed_ranged_calibration_case_b_keeps_remainder_off_field():
     assert (case["alive"], case["ammo_pool_shots"], case["observed_second_line_slots_full"]) == (838, 282, 7)
     assert case["observed_non_firing_remainder_location"] == "reserve_or_off_field"
     assert case["observed_automatic_front_fallback"] is False
+
+def test_user_observed_swordsman_full_flank_fixture_matches_calibrated_engine():
+    observed = swordsman_full_flank_observation()
+    result = run_fixture(observed)
+    assert observed.evidence_class == "USER_PROVIDED_BATTLE_OBSERVATION"
+    assert observed.fixture_id == "swordsman-full-flank-user-observation-2026-06-25"
+    assert result.reached_round == 1
+    assert result.blockers == ()
+    assert result.assessments
+    casualty_assessments = [
+        item for item in result.assessments if item.field == "casualties"
+    ]
+    assert casualty_assessments
+    assert all(item.status == MATCH for item in casualty_assessments)
+
+    mismatches = [item for item in result.assessments if item.status == MISMATCH]
+    assert not mismatches
+

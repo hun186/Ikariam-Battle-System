@@ -241,3 +241,13 @@ def ranged_formation_observations() -> dict[str, Any]:
         "ranged-formation-user-observations.json"
     )
     return json.loads(resource.read_text(encoding="utf-8"))
+
+
+def swordsman_full_flank_observation() -> BattleReportFixture:
+    """Load the current user-observed full-flank Swordsman calibration fixture."""
+    resource = files("ikariam_battle.data.calibration").joinpath(
+        "swordsman-full-flank-user-observation.json"
+    )
+    return BattleReportFixture.from_dict(
+        json.loads(resource.read_text(encoding="utf-8"))
+    )
