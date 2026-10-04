@@ -1688,11 +1688,11 @@ def test_user_observed_full_swordsman_flank_mkill_hypothesis_matches_round_one()
  assert defender_flank[-1]['hit_points_percent']==100
 
  ids={item['id'] for item in result['assumptions']}
- assert 'EXP-SWORDSMAN-FULL-FLANK-ROW-PIG-MKILL-001' in ids
+ assert 'EXP-SWORDSMAN-SYMMETRIC-2HIT-ROW-PM-MKILL-001' in ids
  modeled=[
   event for event in result['events']
   if event['type']=='damage'
-  and event['details'].get('resolution')=='swordsman_full_flank_row_pig_mkill'
+  and event['details'].get('resolution')=='swordsman_symmetric_two_hit_row_pm_mkill'
  ]
  assert len(modeled)==8
  assert {event['details']['target_damage_position'] for event in modeled}=={1,2,3,4}
@@ -1751,13 +1751,13 @@ def test_swordsman_mkill_hypothesis_generalizes_by_damage_not_upgrade_fixture():
   ]},
  }
  result=simulate(s)
- assert 'EXP-SWORDSMAN-FULL-FLANK-ROW-PIG-MKILL-001' in {
+ assert 'EXP-SWORDSMAN-SYMMETRIC-2HIT-ROW-PM-MKILL-001' in {
   item['id'] for item in result['assumptions']
  }
  modeled=[
   event for event in result['events']
   if event['type']=='damage'
-  and event['details'].get('resolution')=='swordsman_full_flank_row_pig_mkill'
+  and event['details'].get('resolution')=='swordsman_symmetric_two_hit_row_pm_mkill'
  ]
  assert modeled
  assert all(set(event['details']['source_column_hits'].values())=={7} for event in modeled)

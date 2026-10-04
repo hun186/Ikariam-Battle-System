@@ -1536,6 +1536,9 @@ def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitR
             "attack_upgrade": wave.unit.attack_upgrade,
             "row_numbers": row_numbers,
             "source_damage_positions": source_damage_positions,
+            "source_phase_start_slot_units": {
+                slot.damage_position: slot.units for slot in deployed
+            },
             "source_wave_state": wave,
             "partial_firing_counts": partial_firing_counts,
         })
@@ -1874,6 +1877,7 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             "source_column_hits": defaultdict(int),
             "_initial_units": target_slot.units + killed,
             "_target_slot": target_slot,
+            "_target_wave_state": enemy,
             "_queue_key": queue_key,
             "_persistent_damage": target_slot.damage,
         })
@@ -1905,6 +1909,17 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
         for context in contexts.values()
         )
     ):
+        source_phase_start_slot_units: dict[int, int] = defaultdict(int)
+        source_armor_upgrades: set[int] = set()
+        for context in contexts.values():
+            for position, units in context["volley"].get(
+                "source_phase_start_slot_units", {}
+            ).items():
+                source_phase_start_slot_units[position] += units
+            source_wave_state = context["volley"].get("source_wave_state")
+            if source_wave_state is not None:
+                source_armor_upgrades.add(source_wave_state.unit.armor_upgrade)
+
         formation_groups: dict[tuple[Any, ...], dict[str, Any]] = {}
         for volley_index in sorted(contexts):
             context = contexts[volley_index]
@@ -1921,6 +1936,7 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                     "source_column_hits": defaultdict(int),
                     "members": [],
                     "target_slot": group["_target_slot"],
+                    "target_wave_state": group["_target_wave_state"],
                     "queue_key": group["_queue_key"],
                 })
                 aggregate["damage"] += group["damage"]
@@ -1934,7 +1950,27 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             queue_key = aggregate["queue_key"]
             start_units, start_damage = phase_start_slots[queue_key]
             baseline_casualties = start_units - target_slot.units
+            baseline_persistent_damage = target_slot.damage
             target_unit = registry.get(target_slot.unit_id)
+
+            reciprocal_hit_damage = None
+            if len(source_armor_upgrades) == 1:
+                target_wave_state = aggregate["target_wave_state"]
+                reciprocal_weapon = select_active_weapon(target_unit, "flank")
+                reciprocal_eligibility, reciprocal_trace = unit_target_eligibility(
+                    target_unit,
+                    target_unit,
+                    target_wave_state.unit.attack_upgrade,
+                    next(iter(source_armor_upgrades)),
+                    target_army.forge_level,
+                    source_army.forge_level,
+                    workshop,
+                    forge,
+                    weapon=reciprocal_weapon,
+                )
+                if reciprocal_eligibility.eligible:
+                    reciprocal_hit_damage = reciprocal_trace.final_damage
+
             adjustment = swordsman_flank_kill_adjustment(
                 initial_units=start_units,
                 hit_points=target_unit.hit_points or 0,
@@ -1944,6 +1980,8 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                 baseline_persistent_damage=target_slot.damage,
                 baseline_overkill_discarded=aggregate["overkill_discarded"],
                 source_column_hits=aggregate["source_column_hits"],
+                source_slot_units=source_phase_start_slot_units,
+                reciprocal_hit_damage=reciprocal_hit_damage,
             )
             if adjustment is None or adjustment.mode == "d_kill_even_columns":
                 continue
@@ -1968,6 +2006,11 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             representative = aggregate["members"][0]
             representative["casualties"] += delta
             representative["_persistent_damage"] = adjustment.persistent_damage
+            representative["baseline_casualties"] = baseline_casualties
+            representative["baseline_persistent_damage"] = baseline_persistent_damage
+            representative["baseline_overkill_discarded"] = aggregate[
+                "overkill_discarded"
+            ]
             representative["baseline_formation_casualties"] = baseline_casualties
             representative["baseline_formation_persistent_damage"] = (
                 adjustment.phase_start_damage
@@ -1975,6 +2018,10 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             representative["formation_source_column_hits"] = defaultdict(
                 int, aggregate["source_column_hits"]
             )
+            representative["formation_source_slot_units"] = dict(
+                source_phase_start_slot_units
+            )
+            representative["reciprocal_hit_damage"] = reciprocal_hit_damage
             representative["recovered_overkill"] = adjustment.recovered_overkill
             representative["kill_selector"] = adjustment.mode
             representative["accuracy_selector_status"] = (
@@ -1985,10 +2032,14 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                 adjustment.retained_overkill_events
             )
             representative["mkill_recovered_overkill"] = adjustment.recovered_overkill
+            representative["mkill_hits_to_kill"] = adjustment.hits_to_kill
+            representative["mkill_reciprocal_hits_to_kill"] = (
+                adjustment.reciprocal_hits_to_kill
+            )
             representative["_resolution_override"] = (
                 "swordsman_flank_i_kill_exact_division"
                 if adjustment.mode == "i_kill_exact_division"
-                else "swordsman_full_flank_row_pig_mkill"
+                else "swordsman_symmetric_two_hit_row_pm_mkill"
             )
             representative["_assumption_override"] = (
                 [SWORDSMAN_IKILL_RULE_ID, EXPERIMENTAL_ACCURACY_MODEL_ID]
@@ -2072,7 +2123,8 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
                 key: (
                     dict(value)
                     if key in {"accuracy_decisions", "source_column_hits",
-                               "formation_source_column_hits"}
+                               "formation_source_column_hits",
+                               "formation_source_slot_units"}
                     else value
                 )
                 for key, value in group.items()

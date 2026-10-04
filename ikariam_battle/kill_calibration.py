@@ -1,11 +1,38 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import ceil
 from typing import Mapping
 
 
 IKILL_RULE_ID = "EXP-SWORDSMAN-FLANK-IKILL-EXACT-DIVISION-001"
-MKILL_RULE_ID = "EXP-SWORDSMAN-FULL-FLANK-ROW-PIG-MKILL-001"
+MKILL_RULE_ID = "EXP-SWORDSMAN-SYMMETRIC-2HIT-ROW-PM-MKILL-001"
+
+
+@dataclass(frozen=True)
+class DKillBackbone:
+    hits_to_kill: int
+    kills: int
+    tail_hits: int
+    overkill_per_kill: int
+
+
+def d_kill_backbone(hit_points: int, hit_damage: int, hit_count: int) -> DKillBackbone:
+    """Return the deterministic n-hit D-kill skeleton for one target slot.
+
+    The skeleton intentionally discards lethal overkill. It is useful as the
+    baseline against which P/IR/M redistribution hypotheses are measured.
+    """
+    if hit_points <= 0 or hit_damage <= 0 or hit_count < 0:
+        raise ValueError("hit points, hit damage and hit count must be positive/non-negative")
+    hits_to_kill = max(1, ceil(hit_points / hit_damage))
+    kills, tail_hits = divmod(hit_count, hits_to_kill)
+    return DKillBackbone(
+        hits_to_kill=hits_to_kill,
+        kills=kills,
+        tail_hits=tail_hits,
+        overkill_per_kill=max(0, hits_to_kill * hit_damage - hit_points),
+    )
 
 
 @dataclass(frozen=True)
@@ -22,6 +49,8 @@ class SwordsmanKillAdjustment:
     p_m_recount_per_odd_column: int
     phase_start_damage: int
     retained_overkill_events: int = 0
+    hits_to_kill: int = 0
+    reciprocal_hits_to_kill: int = 0
 
 
 def swordsman_flank_kill_adjustment(
@@ -34,35 +63,30 @@ def swordsman_flank_kill_adjustment(
     baseline_persistent_damage: int,
     baseline_overkill_discarded: int,
     source_column_hits: Mapping[int, int],
+    source_slot_units: Mapping[int, int] | None = None,
+    reciprocal_hit_damage: int | None = None,
 ) -> SwordsmanKillAdjustment | None:
-    """Column-aware Swordsman flank hypothesis.
+    """Bounded reduced-AM Swordsman flank hypotheses.
 
-    Evidence-backed selector pieces from AT Barbarossa/Xanto:
-    - when every reduced-AM Swordsman source column has an even non-zero count,
-      D-kill is observed;
-    - the historical full-formation 6x7 central case used I-kill when aggregate
-      damage divided target HP exactly;
-    - M-kill starts P-kill-like, reassigns only some damage, and often loses
-      theoretical damage.
+    The empirical paper shows that Swordsman deaths are not determined only by
+    a target slot's reduced matrix; whole-field formation state can affect the
+    selected kill path. Accordingly this function deliberately exposes only
+    narrow selectors rather than pretending to implement a general M-kill.
 
-    Current candidate for the modern full 6x40 central case:
-    - six source columns each contribute seven hits;
-    - generic sequential D-kill resolves first (21 deaths in the reviewed case);
-    - exactly one lethal-pair overkill per AM row is retained, while the other
-      overkills remain discarded;
-    - the retained M-pool is added to generic persistent damage and converted
-      to additional deaths + persistent damage.
+    Supported subsets:
+    - all-even source-column lengths: keep the generic sequential D-kill;
+    - six odd columns with exact aggregate divisibility: historical I-kill;
+    - full 6x40 source formation, six 7-hit columns, and a *symmetric two-hit*
+      duel in both directions: bounded row/P-M candidate calibrated by the
+      2026-06-25 user battle report.
 
-    There are seven AM rows for one central target slot, so seven overkill chunks
-    are retained.  This naturally reproduces the user observation:
-      258 damage -> 21 + floor(7*156/360) = 24 deaths, 12 damage;
-      183 damage -> 21 + floor(7*6/360) = 21 deaths, 42 damage.
-    Both residuals display as 99% life under the empirical report rule that life
-    percentage is rounded down.
+    The symmetric-two-hit guard is important. A newer 2026-10-02 observation
+    has a 2-hit direction near 259 damage and a reciprocal 3-hit direction near
+    172 damage, yet produces a materially different casualty/damage pattern.
+    Reusing the older seven-row M-pool there would be false generalization.
 
-    Accuracy is deliberately not turned into a multiplier.  The paper lists it
-    only as a possible higher-level selector for IR/D-kill-column behavior and
-    later AT Barbarossa posts still state that the Accuracy algorithm is unknown.
+    Accuracy is not used as a multiplier or probability. Its official role in
+    kill-path/redistribution selection remains unresolved.
     """
     if (
         initial_units <= 0
@@ -81,7 +105,11 @@ def swordsman_flank_kill_adjustment(
     total_hits = sum(hits_by_column)
     if total_hits <= 0 or incoming_damage % total_hits:
         return None
+
     hit_damage = incoming_damage // total_hits
+    if hit_damage <= 0:
+        return None
+    backbone = d_kill_backbone(hit_points, hit_damage, total_hits)
 
     if all(hits % 2 == 0 for hits in hits_by_column):
         return SwordsmanKillAdjustment(
@@ -91,15 +119,24 @@ def swordsman_flank_kill_adjustment(
             baseline_overkill_discarded,
             0,
             hit_damage,
-            sum(hits // 2 for hits in hits_by_column),
+            backbone.kills,
             0,
             0,
             0,
             prior_damage,
+            hits_to_kill=backbone.hits_to_kill,
         )
 
+    six_odd_columns = (
+        len(hits_by_column) == 6
+        and all(hits > 0 and hits % 2 == 1 for hits in hits_by_column)
+    )
     aggregate_damage = prior_damage + incoming_damage
-    if prior_damage == 0 and aggregate_damage % hit_points == 0:
+    if (
+        six_odd_columns
+        and prior_damage == 0
+        and aggregate_damage % hit_points == 0
+    ):
         casualties, persistent = divmod(aggregate_damage, hit_points)
         casualties = min(initial_units, casualties)
         if casualties == initial_units:
@@ -111,33 +148,41 @@ def swordsman_flank_kill_adjustment(
             0,
             0,
             hit_damage,
-            sum(hits // 2 for hits in hits_by_column),
-            sum(hits % 2 for hits in hits_by_column),
+            backbone.kills,
+            6,
             0,
             0,
             prior_damage,
+            hits_to_kill=backbone.hits_to_kill,
         )
 
-    # Current modern M-kill calibration is intentionally limited to the exact
-    # full 6x40 central reduced-AM shape. Other odd/mixed shapes stay on the
-    # generic D-kill baseline until more observations exist.
     if initial_units != 40:
+        return None
+    if source_slot_units is None:
+        return None
+    source_counts = tuple(
+        int(source_slot_units[key]) for key in sorted(source_slot_units)
+    )
+    if len(source_counts) != 6 or any(units != 40 for units in source_counts):
         return None
     if len(hits_by_column) != 6 or any(hits != 7 for hits in hits_by_column):
         return None
-    if not (0 < hit_damage < hit_points and 2 * hit_damage >= hit_points):
+    if backbone.hits_to_kill != 2:
+        return None
+    if reciprocal_hit_damage is None or reciprocal_hit_damage <= 0:
+        return None
+    reciprocal = d_kill_backbone(hit_points, reciprocal_hit_damage, total_hits)
+    if reciprocal.hits_to_kill != 2:
         return None
 
-    pair_overkill = max(0, 2 * hit_damage - hit_points)
-    retained_overkill_events = 7  # one retained lethal-pair overkill per AM row
-    recovered_overkill = retained_overkill_events * pair_overkill
+    retained_overkill_events = max(hits_by_column)
+    recovered_overkill = retained_overkill_events * backbone.overkill_per_kill
 
     pool = baseline_persistent_damage + recovered_overkill
     extra_kills, persistent_damage = divmod(pool, hit_points)
     casualties = min(initial_units, baseline_casualties + extra_kills)
     if casualties == initial_units:
         persistent_damage = 0
-
     if casualties < baseline_casualties:
         return None
 
@@ -145,16 +190,18 @@ def swordsman_flank_kill_adjustment(
         0, baseline_overkill_discarded - recovered_overkill
     )
     return SwordsmanKillAdjustment(
-        "m_kill_full_flank_row_pig",
+        "m_kill_symmetric_two_hit_row_pm",
         casualties,
         persistent_damage,
         discarded_overkill,
         recovered_overkill,
         hit_damage,
-        baseline_casualties,
+        backbone.kills,
         6,
         0,
-        pair_overkill,
+        backbone.overkill_per_kill,
         prior_damage,
         retained_overkill_events,
+        backbone.hits_to_kill,
+        reciprocal.hits_to_kill,
     )
