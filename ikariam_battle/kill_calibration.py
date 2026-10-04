@@ -1,158 +1,141 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Mapping
+
+from .models import Army, Slot, Wave
 
 
-IKILL_RULE_ID = "EXP-SWORDSMAN-FLANK-IKILL-EXACT-DIVISION-001"
-MKILL_RULE_ID = "EXP-SWORDSMAN-FLANK-ODD-COLUMN-PM-RECOUNT-001"
+RULE_ID = "EXP-SWORDSMAN-FULL-FLANK-MKILL-ROW-PIG-001"
 
 
 @dataclass(frozen=True)
-class SwordsmanKillAdjustment:
-    mode: str
-    casualties: int
-    persistent_damage: int
-    discarded_overkill: int
-    recovered_overkill: int
-    hit_damage: int
-    baseline_d_kills: int
-    odd_column_count: int
-    odd_tail_damage: int
-    p_m_recount_per_odd_column: int
-    phase_start_damage: int
+class SwordsmanSlotMKillPlan:
+    target_slot: Slot
+    target_wave: Wave
+    source_columns: int
+    hits_per_source_column: int
 
 
-def swordsman_flank_kill_adjustment(
-    *,
-    initial_units: int,
-    hit_points: int,
-    incoming_damage: int,
-    prior_damage: int,
-    baseline_casualties: int,
-    baseline_persistent_damage: int,
-    baseline_overkill_discarded: int,
-    source_column_hits: Mapping[int, int],
-) -> SwordsmanKillAdjustment | None:
-    """Column-aware Experimental hypothesis for Swordsman-vs-Swordsman flank.
+def _full_swordsman_flank_wave(waves: list[Wave]) -> Wave | None:
+    candidates = [
+        wave for wave in waves
+        if wave.unit.unit_id == "swordsman"
+        and len([slot for slot in wave.slots if slot.line == "flank" and slot.units]) == 6
+    ]
+    if len(candidates) != 1:
+        return None
+    wave = candidates[0]
+    slots = sorted(
+        (slot for slot in wave.slots if slot.line == "flank" and slot.units),
+        key=lambda slot: slot.physical_position,
+    )
+    if [slot.physical_position for slot in slots] != [1, 2, 3, 4, 5, 6]:
+        return None
+    if any(slot.units != 40 or slot.capacity != 40 for slot in slots):
+        return None
+    return wave
 
-    This is intentionally a hypothesis rather than an asserted game formula.
 
-    Evidence-backed parts:
-    - the reduced Attacking Matrix is column-structured;
-    - historical Swordsman tests show all-even non-zero counts per source
-      column follow D-kill;
-    - the full 40x6 formation has six 7-hit columns against the central four
-      target slots and six 6-hit columns against the two outer slots;
-    - exact aggregate division historically produced an I-kill case.
+def swordsman_full_flank_mkill_plan(
+    volleys: list[dict],
+    targets: list[Wave],
+    source_army: Army,
+    target_army: Army,
+) -> tuple[SwordsmanSlotMKillPlan, ...]:
+    """Identify the evidence-backed geometry where the row/P-kill hypothesis runs.
 
-    Candidate M-kill path for odd columns in the current two-hit regime:
-    1. pair hits inside each reduced column as D-kills;
-    2. keep one unpaired tail hit from each odd column in a slot pool;
-    3. allow one P/M-style recount per odd column, capped by the smaller of
-       (a) the lethal pair's overkill and
-       (b) the HP remaining after the first hit;
-    4. add phase-start persistent damage (the prior RR result) to the pool;
-    5. convert that pool into extra casualties and residual slot damage.
+    The 2020 empirical paper establishes two relevant observations rather than a
+    complete formula:
+    - Swordsman columns with an even number of non-zero entries can perform
+      ordinary D-kill.
+    - Odd-column Swordsman cases can switch to I/M/P-like behavior, and M-kill
+      starts like P-kill but loses some theoretical damage.
 
-    Accuracy is deliberately *not* converted into a made-up multiplier here.
-    The empirical paper specifically lists Accuracy as a possible selector for
-    IR / D-kill-column behavior but says the relationship was not solved.
+    For the current full 6x40 Swordsman-vs-Swordsman observation, the Attacking
+    Matrix gives 36 hits to the two outer physical slots (6 per source column)
+    and 42 hits to the four central slots (7 per source column).  The outer slots
+    exactly match D-kill, while the central slots do not.
+
+    This plan therefore selects only the four central 7-per-column slots.  The
+    actual casualty/persistent-damage result is derived later from the normal
+    engine's computed per-hit damage; Workshop values are not hard-coded.
     """
+    if source_army.forge_level != target_army.forge_level:
+        return ()
+    if len(volleys) != 1:
+        return ()
+    volley = volleys[0]
     if (
-        initial_units <= 0
-        or hit_points <= 0
-        or incoming_damage < 0
-        or prior_damage < 0
-        or not source_column_hits
+        volley.get("runtime_line") != "flank"
+        or volley.get("source_unit") != "swordsman"
     ):
-        return None
+        return ()
 
-    hits_by_column = tuple(
-        int(source_column_hits[key]) for key in sorted(source_column_hits)
-    )
-    if any(hits < 0 for hits in hits_by_column):
-        return None
-    total_hits = sum(hits_by_column)
-    if total_hits <= 0 or incoming_damage % total_hits:
-        return None
-    hit_damage = incoming_damage // total_hits
+    source_wave = volley.get("source_wave_state")
+    if not isinstance(source_wave, Wave):
+        return ()
+    source_flank = _full_swordsman_flank_wave([source_wave])
+    target_wave = _full_swordsman_flank_wave(targets)
+    if source_flank is None or target_wave is None:
+        return ()
+    if any(slot.damage for slot in target_wave.slots if slot.line == "flank"):
+        return ()
 
-    # Only model the observed two-hit Swordsman regime. One-shot and 3+-hit
-    # regimes need separate fixtures/selectors.
-    if not (0 < hit_damage < hit_points and 2 * hit_damage >= hit_points):
-        return None
+    source_columns = len([
+        slot for slot in source_flank.slots
+        if slot.line == "flank" and slot.units
+    ])
+    if source_columns != 6:
+        return ()
 
-    if all(hits % 2 == 0 for hits in hits_by_column):
-        return SwordsmanKillAdjustment(
-            "d_kill_even_columns",
-            baseline_casualties,
-            baseline_persistent_damage,
-            baseline_overkill_discarded,
-            0,
-            hit_damage,
-            sum(hits // 2 for hits in hits_by_column),
-            0,
-            0,
-            0,
-            prior_damage,
-        )
+    result: list[SwordsmanSlotMKillPlan] = []
+    for slot in sorted(
+        (item for item in target_wave.slots if item.line == "flank"),
+        key=lambda item: item.physical_position,
+    ):
+        # Full 6x40 AM: outer physical slots receive 36 hits = 6/column and
+        # remain D-kill; central slots receive 42 = 7/column.
+        if slot.physical_position in {1, 6}:
+            continue
+        result.append(SwordsmanSlotMKillPlan(
+            slot, target_wave, source_columns, 7
+        ))
+    return tuple(result)
 
-    aggregate_damage = prior_damage + incoming_damage
-    if prior_damage == 0 and aggregate_damage % hit_points == 0:
-        casualties, persistent = divmod(aggregate_damage, hit_points)
-        casualties = min(initial_units, casualties)
-        if casualties == initial_units:
-            persistent = 0
-        # I-kill is aggregate damage accounting, not D-overkill recovery.
-        return SwordsmanKillAdjustment(
-            "i_kill_exact_division",
-            casualties,
-            persistent,
-            0,
-            0,
-            hit_damage,
-            sum(hits // 2 for hits in hits_by_column),
-            sum(hits % 2 for hits in hits_by_column),
-            0,
-            0,
-            prior_damage,
-        )
 
-    baseline_d_kills = sum(hits // 2 for hits in hits_by_column)
-    odd_column_count = sum(hits % 2 for hits in hits_by_column)
-    odd_tail_damage = odd_column_count * hit_damage
+def row_pig_mkill_outcome(
+    *,
+    baseline_casualties: int,
+    hit_damage: int,
+    hit_points: int,
+    source_columns: int,
+    hits_per_source_column: int,
+) -> tuple[int, int, int]:
+    """Experimental M-kill candidate derived from the current 6x40 observation.
 
-    remaining_after_first = hit_points - hit_damage
-    pair_overkill = max(0, 2 * hit_damage - hit_points)
-    p_m_recount_per_odd_column = min(pair_overkill, remaining_after_first)
-    recovered_overkill = odd_column_count * p_m_recount_per_odd_column
+    Candidate chronology for one central target slot:
+    1. The normal two-hit D-kill baseline resolves first.
+    2. Each AM row contains six Swordsman attacks -> three D-kill pairs.
+    3. Exactly one pair per row behaves P-kill-like: its overkill is retained in
+       a shared M-pool; the other pair overkills are discarded.
+    4. The M-pool is then converted to additional deaths plus persistent damage.
 
-    pool = prior_damage + odd_tail_damage + recovered_overkill
-    extra_kills, persistent_damage = divmod(pool, hit_points)
-    casualties = min(initial_units, baseline_d_kills + extra_kills)
-    if casualties == initial_units:
-        persistent_damage = 0
+    With seven rows this retains seven overkill chunks.  For the reviewed battle:
+    - 258 damage -> 21 baseline deaths + (7*156=1092) -> +3 deaths, 12 damage.
+    - 183 damage -> 21 baseline deaths + (7*6=42) -> +0 deaths, 42 damage.
 
-    # Keep the hypothesis monotone relative to the already-applied generic
-    # sequential baseline. Restoring units killed by the generic resolver would
-    # require a separate phase-state rewind model.
-    if casualties < baseline_casualties:
-        return None
+    This is an explicit hypothesis, not a claimed Gameforge formula.  It is
+    deliberately limited to the two-hit regime and this full-flank geometry.
+    """
+    if source_columns != 6 or hits_per_source_column != 7:
+        raise ValueError("row/P-kill hypothesis requires the full 6x40 central AM shape")
+    if hit_points <= 0 or hit_damage <= 0:
+        raise ValueError("hit points and damage must be positive")
+    if not (hit_damage < hit_points <= 2 * hit_damage):
+        raise ValueError("row/P-kill hypothesis currently covers only two-hit D-kill")
 
-    column_pair_overkill = baseline_d_kills * pair_overkill
-    discarded_overkill = max(0, column_pair_overkill - recovered_overkill)
-
-    return SwordsmanKillAdjustment(
-        "m_kill_odd_column_p_m_recount",
-        casualties,
-        persistent_damage,
-        discarded_overkill,
-        recovered_overkill,
-        hit_damage,
-        baseline_d_kills,
-        odd_column_count,
-        odd_tail_damage,
-        p_m_recount_per_odd_column,
-        prior_damage,
-    )
+    overkill_per_pair = 2 * hit_damage - hit_points
+    retained_overkill_events = hits_per_source_column
+    m_pool = retained_overkill_events * overkill_per_pair
+    extra_casualties, persistent_damage = divmod(m_pool, hit_points)
+    return baseline_casualties + extra_casualties, persistent_damage, m_pool
