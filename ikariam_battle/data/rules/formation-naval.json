@@ -43,7 +43,7 @@
         "light_infantry"
       ],
       "deployment_order_authority": "battlefield_geometry.damage_priority",
-      "implementation_status": "OFFICIAL_HEAVY_FIRST_WEAK_TO_STRONG_LIGHT_FALLBACK;DEPLETED_LONG_RANGE_FALLBACK_UNRESOLVED",
+      "implementation_status": "OFFICIAL_HEAVY_THEN_LIGHT_THEN_EXHAUSTED_LONG_RANGE;WHOLE_WAVE_RUNTIME_FALLBACK_EXECUTABLE",
       "unit_selection_policy": "weakest_slot_group_primary_damage"
     },
     "second": {
@@ -90,7 +90,6 @@
   "unknowns": [
     "UNKNOWN-SECONDARY-WEAPON-TRIGGER",
     "UNKNOWN-TENDER-HEALING-ALLOCATION",
-    "UNKNOWN-NAVAL-KILL-REDISTRIBUTION-SELECTOR",
-    "UNKNOWN-NAVAL-DEPLETED-LONG-RANGE-FRONT-FALLBACK"
+    "UNKNOWN-NAVAL-KILL-REDISTRIBUTION-SELECTOR"
   ]
 }

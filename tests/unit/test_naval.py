@@ -1,6 +1,6 @@
 from ikariam_battle.battlefield import NAVAL_BATTLEFIELDS, battlefield_metadata, deploy
-from ikariam_battle.engine import simulate
-from ikariam_battle.models import Army
+from ikariam_battle.engine import _prepare_round_start, _snapshot_phase_fire, simulate
+from ikariam_battle.models import Army, ArmyUnit, Slot, Wave
 from ikariam_battle.profiles import TargetingProfile
 from ikariam_battle.units import UnitRegistry
 
@@ -124,3 +124,58 @@ def test_experimental_naval_max_executes_shared_am_damage_engine():
     assert result["military_score"]["attacker"]["economy_status"] in {
         "modeled", "unavailable_for_units"
     }
+
+
+def test_exhausted_naval_long_range_whole_wave_moves_to_front_like_land_fallback():
+    registry = UnitRegistry.load()
+    field = NAVAL_BATTLEFIELDS["naval-max"]
+    rules = FormationRules.load("formation-naval")
+    wave = Wave(
+        ArmyUnit("mortar_ship", 6, "mortar-wave"),
+        0,
+        [Slot("second-1", "second", 4, 1, "mortar_ship", "mortar-wave", 6, 6, 740)],
+        0,
+        0,
+        0,
+        30,
+    )
+    events=[]; applied={}
+    _prepare_round_start(
+        [wave], events, 2, "attacker", applied,
+        registry=registry, rules=rules, field=field,
+    )
+    assert {slot.line for slot in wave.slots if slot.units} == {"first"}
+    assert sum(slot.units for slot in wave.slots) == 6
+    assert wave.reserve == 0
+    assert wave.ammo_pool_shots == 0
+    fallback = next(e for e in events if e.type == "formation_fallback")
+    assert fallback.details["rule"] == "naval_exhausted_long_range_to_front"
+    assert fallback.details["primary_ammo_exhausted"] is True
+
+
+def test_exhausted_naval_long_range_front_uses_secondary_without_primary_ammo():
+    registry = UnitRegistry.load()
+    targeting = TargetingProfile.load("official-help-naval-targeting")
+    source = Wave(
+        ArmyUnit("mortar_ship", 6, "mortar-wave"),
+        0,
+        [Slot("first-1", "first", 4, 1, "mortar_ship", "mortar-wave", 6, 6)],
+        0,
+        0,
+        0,
+        30,
+    )
+    target = Wave(
+        ArmyUnit("steam_ram", 5, "steam-wave"),
+        0,
+        [Slot("first-1", "first", 4, 1, "steam_ram", "steam-wave", 5, 5)],
+    )
+    events=[]; applied={}
+    volleys = _snapshot_phase_fire(
+        [source], [target], registry, targeting, events, 2,
+        "attacker", "first", applied,
+    )
+    assert len(volleys) == 1
+    assert volleys[0]["weapon_id"] == registry.get("mortar_ship").weapons[1].id
+    assert source.ammo_pool_shots == 0
+    assert not any(e.type == "ammo_exhausted" for e in events)

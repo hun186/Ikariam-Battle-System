@@ -729,17 +729,19 @@ def _supported_same_unit_same_line_handoffs(
             wave.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
 
 
-def _supported_whole_wave_light_first_fallback(
+def _supported_whole_wave_first_fallback(
     waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field,
     events: list[Event], number: int, side: str,
 ) -> None:
-    """Move one whole native Light Infantry wave into open First slots.
+    """Move one whole supported fallback wave into open First slots.
 
-    The in-game formation rule gives First-line placement precedence over Flank.
-    This executable subset is deliberately narrow: the surviving wave must fit
-    completely into currently open First slots, so the wave never spans First
-    and Flank at the same time. Partial cross-line splitting remains guarded by
-    UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS.
+    Land Light Infantry and naval Light Battleships reuse the existing First
+    fallback path. Official Naval Battlefield Help additionally permits
+    Long-Range Battleships whose primary ammunition is exhausted to replace
+    Front. The executable subset stays deliberately narrow: a state wave must
+    fit completely into the open First slots, so one wave never spans native
+    and First formations at once. Partial cross-line splitting remains guarded
+    by UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS.
 
     Persistent damage stays wave-owned. It is parked on reserve_damage while
     slots are rebuilt, then the existing RR pass redistributes it over the new
@@ -762,17 +764,48 @@ def _supported_whole_wave_light_first_fallback(
         if slot.line == "first"
     }
 
-    candidates = sorted(waves, key=lambda wave: wave.unit.formation_order_key)
+    def supported_fallback(wave: Wave) -> bool:
+        unit = registry.get(wave.unit.unit_id)
+        light_fallback = (
+            unit.semantic_class == "light_infantry"
+            and unit.native_line != "first"
+            and "first" in eligible_runtime_lines(unit, rules, field)
+        )
+        exhausted_naval_long_range = (
+            field.domain == "naval"
+            and unit.semantic_class == "long_range"
+            and unit.native_line == "second"
+            and wave.ammo_pool_shots == 0
+        )
+        return (
+            unit.role == "combat"
+            and wave.alive
+            and (light_fallback or exhausted_naval_long_range)
+        )
+
+    def fallback_strength(wave: Wave) -> tuple[int, int, int, tuple]:
+        unit = registry.get(wave.unit.unit_id)
+        capacity = geometry.slot_space // unit.size
+        quantity = min(wave.alive, capacity)
+        fallback_weapon = select_active_weapon(unit, "first")
+        damage = fallback_weapon.damage
+        if damage is None:
+            raise ScenarioError(
+                f"fallback weapon damage missing for formation selection: {unit.id}"
+            )
+        return (
+            quantity * damage, damage, quantity, wave.unit.formation_order_key,
+        )
+
+    # Naval Front is weakest-first. Land keeps its historical canonical order.
+    candidates = [wave for wave in waves if supported_fallback(wave)]
+    if field.domain == "naval":
+        candidates.sort(key=fallback_strength)
+    else:
+        candidates.sort(key=lambda wave: wave.unit.formation_order_key)
+
     for wave in candidates:
         unit = registry.get(wave.unit.unit_id)
-        if (
-            unit.role != "combat"
-            or unit.semantic_class != "light_infantry"
-            or unit.native_line == "first"
-            or "first" not in eligible_runtime_lines(unit, rules, field)
-            or not wave.alive
-        ):
-            continue
 
         live_lines = {slot.line for slot in wave.slots if slot.units}
         # This exact fallback subset starts from an already deployed native
@@ -792,8 +825,8 @@ def _supported_whole_wave_light_first_fallback(
         required_slots = (total_units + capacity - 1) // capacity
         if required_slots > len(open_positions):
             # Supporting this case would split one state wave across First and
-            # Flank. Keep that separate evidence/RR boundary explicit. Do not
-            # let a later Light wave leapfrog this canonical earlier wave.
+            # its native formation. Keep the existing multi-line evidence/RR
+            # boundary explicit; do not let a later fallback wave leapfrog it.
             break
 
         source_lines = sorted({slot.line for slot in wave.slots if slot.units})
@@ -875,7 +908,7 @@ def _supported_whole_wave_light_first_fallback(
             remaining -= quantity
 
         if remaining:
-            raise ScenarioError("whole-wave Light Infantry fallback left unexpected reserve")
+            raise ScenarioError("whole-wave First fallback left unexpected reserve")
         wave.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
         _event(
             events, number, "deploy", "formation_fallback", side,
@@ -883,7 +916,15 @@ def _supported_whole_wave_light_first_fallback(
             entry_batch_id=wave.unit.batch_id,
             from_lines=source_lines or [unit.native_line], to_line="first",
             quantity=total_units, damage_positions=positions_used,
-            rule="first_before_flank_whole_wave_light_fallback",
+            rule=(
+                "naval_exhausted_long_range_to_front"
+                if unit.semantic_class == "long_range"
+                else "first_before_flank_whole_wave_light_fallback"
+            ),
+            primary_ammo_exhausted=(
+                unit.semantic_class == "long_range"
+                and wave.ammo_pool_shots == 0
+            ),
             whole_wave=True,
         )
 
@@ -899,7 +940,7 @@ def _has_supported_round_start_first_placement(
         projected, registry, rules, field, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
-    _supported_whole_wave_light_first_fallback(
+    _supported_whole_wave_first_fallback(
         projected, registry, rules, field, projection_events, 0, "projection")
     _rebuild_formation(projected, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
@@ -924,7 +965,7 @@ def _prepare_round_start(
             waves, registry, rules, field, events, number, side)
         _supported_same_unit_same_line_handoffs(
             waves, registry, rules, field, events, number, side)
-        _supported_whole_wave_light_first_fallback(
+        _supported_whole_wave_first_fallback(
             waves, registry, rules, field, events, number, side)
         # Whole-wave promotion can vacate native-line physical positions that
         # a later same-unit wave is allowed to inherit. First re-pack each
@@ -991,7 +1032,7 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
         projected, registry, rules, field, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
-    _supported_whole_wave_light_first_fallback(
+    _supported_whole_wave_first_fallback(
         projected, registry, rules, field, projection_events, 0, "projection")
     _rebuild_formation(projected, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
@@ -1581,7 +1622,11 @@ def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitR
             continue
         unit = registry.get(wave.unit.unit_id)
         weapon = select_active_weapon(unit, runtime_line)
-        if wave.ammo_pool_shots == 0:
+        uses_primary_ammo_pool = (
+            weapon.id == unit.primary_weapon.id
+            and unit.primary_weapon.ammunition is not None
+        )
+        if uses_primary_ammo_pool and wave.ammo_pool_shots == 0:
             _assume(applied, events, "EXP-AMMO-STOP-001", number, "fire")
             _event(events, number, "fire", "ammo_exhausted", side, unit_id=unit.id,
                    firing_phase=runtime_line, assumption_id="EXP-AMMO-STOP-001",
@@ -1603,7 +1648,11 @@ def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitR
         firing_counts = [slot.units for slot in deployed]
         total_firing = sum(firing_counts)
         partial_firing_counts = None
-        if wave.ammo_pool_shots is not None and wave.ammo_pool_shots < total_firing:
+        if (
+            uses_primary_ammo_pool
+            and wave.ammo_pool_shots is not None
+            and wave.ammo_pool_shots < total_firing
+        ):
             remaining = wave.ammo_pool_shots
             firing_counts = []
             for slot in deployed:
@@ -1615,7 +1664,7 @@ def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitR
         if not row_numbers:
             continue
         source_damage_positions = _shot_source_positions(deployed, firing_counts)
-        if wave.ammo_pool_shots is not None:
+        if uses_primary_ammo_pool and wave.ammo_pool_shots is not None:
             wave.ammo_pool_shots -= len(row_numbers)
         volleys.append({
             "side": side,
