@@ -81,14 +81,49 @@ LAND_BATTLEFIELDS: Mapping[str, Battlefield] = MappingProxyType({
 })
 LAND_MINI = LAND_BATTLEFIELDS["land-mini"]
 
+# 2026 Gameforge-hosted community tutorial, max naval battlefield:
+# 35 Steam Rams / 84 Fire Ships across 7 First slots -> 25 space each;
+# 36 Ram Ships across 6 Flank slots -> 18 space each;
+# 42 Mortar / 56 Catapult / 84 Ballista across 7 Second slots -> 24 space;
+# 25 Diving Boats / 15 Rocket Ships across 5 Third slots -> 15 space;
+# 6 Balloon Carriers / 30 Paddle Speedboats across 2 Air slots -> 15 space.
+# Damage-position labels reuse the empirical AM geometry; only the max naval
+# field is executable until smaller naval geometries are independently verified.
+_NAVAL_SPECS = {
+    "naval-max": ("Naval max / current community geometry", {
+        "first": (_PHYSICAL["first"], 25),
+        "second": (_PHYSICAL["second"], 24),
+        "third": (_PHYSICAL["third"], 15),
+        "flank": ((6, 4, 2, 1, 3, 5), 18),
+        "anti-balloon": (_PHYSICAL["anti-balloon"], 15),
+        "balloon": (_PHYSICAL["balloon"], 15),
+    }),
+}
+
+
+def _naval_battlefield(
+    field_id: str, lines: dict[str, tuple[tuple[int, ...], int]]
+) -> Battlefield:
+    geometry = {
+        name: LineGeometry(name, physical_order, slot_space)
+        for name, (physical_order, slot_space) in lines.items()
+    }
+    return Battlefield(
+        field_id,
+        "naval",
+        MappingProxyType(geometry),
+        "GAMEFORGE_FORUM_2026_MAX_NAVAL_GEOMETRY_WITH_EMPIRICAL_AM_POSITIONS",
+    )
+
+
+NAVAL_BATTLEFIELDS: Mapping[str, Battlefield] = MappingProxyType({
+    field_id: _naval_battlefield(field_id, lines)
+    for field_id, (_, lines) in _NAVAL_SPECS.items()
+})
+
 
 def battlefield_metadata() -> list[dict[str, object]]:
-    """Return canonical public metadata grouped by battle domain.
-
-    Battlefield id remains the executable source of truth for domain. The
-    reserved naval row lets the browser expose the Land/Naval layer without
-    pretending that naval geometry is already executable.
-    """
+    """Return canonical public metadata grouped by battle domain."""
     result = [
         {
             "id": field_id,
@@ -105,9 +140,25 @@ def battlefield_metadata() -> list[dict[str, object]]:
         }
         for field_id, (display_name, _) in _LAND_SPECS.items()
     ]
+    result.extend(
+        {
+            "id": field_id,
+            "display_name": display_name,
+            "domain": "naval",
+            "supported": True,
+            "lines": {
+                name: {
+                    "physical_order": list(line.physical_order),
+                    "slot_space": line.slot_space,
+                }
+                for name, line in NAVAL_BATTLEFIELDS[field_id].lines.items()
+            },
+        }
+        for field_id, (display_name, _) in _NAVAL_SPECS.items()
+    )
     result.append({
         "id": "naval-mini",
-        "display_name": "Naval battlefield / geometry pending",
+        "display_name": "Naval mini / geometry pending",
         "domain": "naval",
         "supported": False,
         "lines": {},
@@ -116,10 +167,11 @@ def battlefield_metadata() -> list[dict[str, object]]:
 
 
 def battlefield(name: str) -> Battlefield:
-    try:
+    if name in LAND_BATTLEFIELDS:
         return LAND_BATTLEFIELDS[name]
-    except KeyError:
-        raise ScenarioError(f"{name} is reserved but its geometry is unsupported") from None
+    if name in NAVAL_BATTLEFIELDS:
+        return NAVAL_BATTLEFIELDS[name]
+    raise ScenarioError(f"{name} is reserved but its geometry is unsupported")
 
 
 def deploy(army: Army, registry: UnitRegistry, field: Battlefield,

@@ -1,0 +1,81 @@
+{
+  "metadata": {
+    "profile": "formation-naval",
+    "version": 1,
+    "domain": "naval",
+    "implementation_status": "NAVAL_MAX_EXPERIMENTAL_EXECUTABLE",
+    "sources": [
+      {
+        "source_type": "GAMEFORGE_FORUM_CURRENT_GUIDE",
+        "title": "SISTEMA DE BATALHA DO IKARIAM [3]",
+        "source_date": "2026-03-18",
+        "verification": "WEB_VERIFIED_2026-10-05"
+      },
+      {
+        "source_type": "EMPIRICAL_MECHANICS_PAPER",
+        "title": "Ikariam Battle System",
+        "verification": "REPOSITORY_ARTIFACT"
+      }
+    ]
+  },
+  "lines": {
+    "first": {
+      "eligible_semantic_classes": [
+        "heavy_infantry",
+        "light_infantry"
+      ],
+      "class_precedence": [
+        "heavy_infantry",
+        "light_infantry"
+      ],
+      "fallback_semantic_classes": [
+        "light_infantry"
+      ],
+      "deployment_order_authority": "battlefield_geometry.damage_priority",
+      "implementation_status": "STEAM_FIRE_FIRST_RAM_FALLBACK"
+    },
+    "second": {
+      "eligible_native_lines": [
+        "second"
+      ],
+      "deployment_order_authority": "battlefield_geometry.damage_priority",
+      "implementation_status": "NATIVE_ONLY",
+      "unit_selection_policy": "strongest_slot_group_primary_damage"
+    },
+    "third": {
+      "eligible_native_lines": [
+        "third"
+      ],
+      "deployment_order_authority": "battlefield_geometry.damage_priority",
+      "implementation_status": "DIVING_BOAT_AND_ROCKET_NATIVE",
+      "unit_selection_policy": "strongest_slot_group_primary_damage"
+    },
+    "flank": {
+      "eligible_native_lines": [
+        "flank"
+      ],
+      "deployment_order_authority": "battlefield_geometry.damage_priority",
+      "implementation_status": "RAM_SHIP_NATIVE"
+    },
+    "balloon": {
+      "eligible_native_lines": [
+        "balloon"
+      ],
+      "deployment_order_authority": "battlefield_geometry.damage_priority",
+      "implementation_status": "BALLOON_CARRIER_NATIVE"
+    },
+    "anti-balloon": {
+      "eligible_native_lines": [
+        "anti-balloon"
+      ],
+      "deployment_order_authority": "battlefield_geometry.damage_priority",
+      "implementation_status": "PADDLE_SPEEDBOAT_NATIVE"
+    }
+  },
+  "unknowns": [
+    "UNKNOWN-NAVAL-TARGET-PRIORITIES",
+    "UNKNOWN-SECONDARY-WEAPON-TRIGGER",
+    "UNKNOWN-TENDER-HEALING-ALLOCATION",
+    "UNKNOWN-NAVAL-KILL-REDISTRIBUTION-SELECTOR"
+  ]
+}

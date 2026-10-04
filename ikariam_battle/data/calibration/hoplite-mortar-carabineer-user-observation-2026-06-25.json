@@ -1,0 +1,142 @@
+{
+  "evidence_class": "USER_PROVIDED_BATTLE_OBSERVATION",
+  "battle_report_date": "2026-06-25",
+  "subject": "Full Hoplite formation after Mortar, Sulphur Carabineer and First-line phases",
+  "forge_evidence": "Both sides had Forge active. Exact miracle level was not independently re-confirmed in the transcript; derived current-damage checks use the repository Forge Lv5 working scenario.",
+  "battlefield": "land-max",
+  "formation_reported_full": [
+    "mortar",
+    "sulphur_carabineer",
+    "hoplite"
+  ],
+  "attacker": {
+    "hoplite": {
+      "attack_upgrade": 24,
+      "armor_upgrade": 21,
+      "casualties_left_to_right": [
+        21,
+        23,
+        25,
+        25,
+        24,
+        23,
+        18
+      ],
+      "surviving_life_percent_left_to_right": [
+        99,
+        96,
+        96,
+        96,
+        98,
+        97,
+        99
+      ]
+    },
+    "sulphur_carabineer": {
+      "attack_upgrade": 16,
+      "armor_upgrade": 9
+    }
+  },
+  "defender": {
+    "hoplite": {
+      "attack_upgrade": 18,
+      "armor_upgrade": 18,
+      "casualties_left_to_right": [
+        22,
+        25,
+        26,
+        26,
+        25,
+        25,
+        19
+      ],
+      "surviving_life_percent_left_to_right": [
+        97,
+        99,
+        98,
+        98,
+        97,
+        99,
+        99
+      ]
+    },
+    "sulphur_carabineer": {
+      "attack_upgrade": 10,
+      "armor_upgrade": 10
+    }
+  },
+  "exact_phase_baseline": {
+    "mortar_source_slots": 5,
+    "mortars_per_slot": 6,
+    "total_mortars": 30,
+    "am_row_populations": [
+      5,
+      5,
+      5,
+      5,
+      5,
+      5
+    ],
+    "hits_by_target_damage_position": {
+      "1": 5,
+      "2": 5,
+      "3": 5,
+      "4": 5,
+      "5": 5,
+      "6": 5,
+      "7": 0
+    },
+    "hits_physical_left_to_right": [
+      5,
+      5,
+      5,
+      5,
+      5,
+      5,
+      0
+    ],
+    "kill_hypothesis": "ONE_SHOT_NO_SPILL"
+  },
+  "following_carabineer_am": {
+    "source_slots": 7,
+    "carabineers_per_slot": 12,
+    "total_carabineers": 84,
+    "am_row_populations": [
+      7,
+      7,
+      7,
+      7,
+      7,
+      7,
+      7,
+      7,
+      7,
+      7,
+      7,
+      7
+    ],
+    "hits_by_target_damage_position": {
+      "1": 14,
+      "2": 14,
+      "3": 14,
+      "4": 14,
+      "5": 14,
+      "6": 7,
+      "7": 7
+    },
+    "hits_physical_left_to_right": [
+      7,
+      14,
+      14,
+      14,
+      14,
+      14,
+      7
+    ],
+    "forge5_working_hit_damage": {
+      "attacker_carabineer16_to_defender_hoplite18": 629,
+      "defender_carabineer10_to_attacker_hoplite21": 579
+    }
+  },
+  "unresolved": "The final report also includes the later First-vs-First Hoplite phase; without an intermediate post-Carabineer snapshot, a unique Carabineer redistribution selector cannot be inferred from final losses alone."
+}

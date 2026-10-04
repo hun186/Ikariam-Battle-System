@@ -162,8 +162,12 @@ def _preflight(waves: list[Wave], registry: UnitRegistry, rules: FormationRules,
         if len({slot.line for slot in wave.slots}) > 1:
             blockers.append("UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS")
         unit = registry.get(wave.unit.unit_id)
-        if unit.support_effect == "healing": blockers.append("UNKNOWN-HEALING-ALLOCATION")
-        elif unit.support_effect == "morale": blockers.append("UNKNOWN-MORALE-SUPPORT")
+        if unit.id == "tender":
+            blockers.append("UNKNOWN-TENDER-HEALING-ALLOCATION")
+        elif unit.support_effect == "healing":
+            blockers.append("UNKNOWN-HEALING-ALLOCATION")
+        elif unit.support_effect == "morale":
+            blockers.append("UNKNOWN-MORALE-SUPPORT")
         else:
             for runtime_line in {slot.line for slot in wave.slots if slot.units}:
                 try:
@@ -2293,7 +2297,15 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         initial_wall_sections(scenario.wall_level, field)
         if wall_runtime_active else []
     )
-    formation_rules = FormationRules.load(scenario.profiles.formation)
+    formation_profile = (
+        "formation-naval" if field.domain == "naval"
+        else scenario.profiles.formation
+    )
+    targeting_profile = (
+        "experimental-community-naval-targeting"
+        if field.domain == "naval" else scenario.profiles.targeting
+    )
+    formation_rules = FormationRules.load(formation_profile)
     battle_end = BattleEndProfile.load(scenario.profiles.battle_end)
     # Validate every scheduled unit and package invariant now, including
     # callers that bypass dict parsing and pass a typed Scenario directly.
@@ -2301,10 +2313,10 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         _validate_army_package(army, registry, field)
     attacker = deploy(Army(tuple(item for item in scenario.attacker.units if item.arrival_round == 0),
                            scenario.attacker.forge_level, scenario.attacker.army_kind),
-                      registry, field, scenario.profiles.formation)
+                      registry, field, formation_profile)
     defender = deploy(Army(tuple(item for item in scenario.defender.units if item.arrival_round == 0),
                            scenario.defender.forge_level, scenario.defender.army_kind),
-                      registry, field, scenario.profiles.formation)
+                      registry, field, formation_profile)
     events: list[Event] = []
     for side, waves in (("attacker", attacker), ("defender", defender)):
         for wave in waves:
@@ -2317,6 +2329,10 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     initial = {"attacker": _snapshot(attacker, registry, battle_end),
                "defender": _snapshot(defender, registry, battle_end)}
     warnings = ["Legacy empirical mechanics are being applied to review-supplied current numeric profiles; calibration is required."]
+    if field.domain == "naval":
+        warnings.append(
+            "Experimental naval-max execution is enabled: max-field geometry and firing order are current-community grounded, while exact naval target priorities, Tender allocation, and kill/redistribution selectors still require calibration."
+        )
     if open_field_active:
         warnings.append(
             "Defender exceeds the configured land garrison limit: the battle starts on land-max with the Town Wall suppressed."
@@ -2332,6 +2348,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     attacker_blockers = _preflight(attacker, registry, formation_rules, field)
     defender_blockers = _preflight(defender, registry, formation_rules, field)
     blockers = sorted(set(attacker_blockers + defender_blockers))
+    if field.domain == "naval":
+        blockers.append("UNKNOWN-NAVAL-TARGET-PRIORITIES")
     if scenario.wall_level and not open_field_active and scenario.policy is Policy.STRICT:
         blockers.append(TOWN_WALL_RULE_ID)
     initial_states = {side: state["continuation_state"] for side, state in initial.items()}
@@ -2373,9 +2391,17 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         "UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT"} & set(blockers):
         return _unsupported(scenario, events, initial, blockers, warnings)
     applied: dict[str, dict[str, str]] = {}
+    if field.domain == "naval":
+        _assume(
+            applied, events,
+            "EXP-NAVAL-TARGETING-LAND-ROLE-ANALOGY-001",
+            0, "preflight",
+        )
     for side, side_blockers in (("attacker", attacker_blockers), ("defender", defender_blockers)):
         if "UNKNOWN-MORALE-SUPPORT" in side_blockers:
             _assume(applied, events, "EXP-MORALE-NONE-001", 0, "preflight", side)
+        if "UNKNOWN-TENDER-HEALING-ALLOCATION" in side_blockers:
+            _assume(applied, events, "EXP-TENDER-HEAL-NONE-001", 0, "preflight", side)
     if fallback_sides:
         _event(events, 0, "battle_end", "unsupported_mechanic", None,
                rule_id="UNKNOWN-FORMATION-FALLBACK", affected_sides=fallback_sides)
@@ -2424,7 +2450,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 "rounds":[{"round":0,**deepcopy(initial),"casualties":{"attacker":{},"defender":{}}}],
                 "events":[e.as_dict() for e in events],"assumptions":list(applied.values()),"warnings":warnings}
     workshop, forge = WorkshopProfile.load(scenario.profiles.workshop), ForgeProfile.load(scenario.profiles.forge)
-    targeting = TargetingProfile.load(scenario.profiles.targeting)
+    targeting = TargetingProfile.load(targeting_profile)
     support = SupportProfile.load(scenario.profiles.support)
     total = {"attacker": defaultdict(int), "defender": defaultdict(int)}
     rounds = [{"round":0, **deepcopy(initial), "casualties":{"attacker":{},"defender":{}}}]
@@ -3016,17 +3042,33 @@ def _attach_battle_statistics(
     for side in ("attacker", "defender"):
         casualties = result.get("casualties", {}).get(side, {})
         army = scenario.attacker if side == "attacker" else scenario.defender
+        missing_economy = sorted(
+            unit_id for unit_id, quantity in casualties.items()
+            if quantity and unit_id not in economy.units
+        )
         if army.army_kind == "barbarian":
             # Barbarian military score is a package-level rule, not part of the
             # player military-economy profile.
             basis_loss = 0
             score_loss = Decimal(0)
+            economy_status = "barbarian_package_zero"
+        elif missing_economy:
+            # Naval economy is not yet in military-economy-current. Keep combat
+            # executable without silently reporting a false zero score.
+            basis_loss = None
+            score_loss = None
+            economy_status = "unavailable_for_units"
         else:
             basis_loss = economy.resource_cost_basis_loss(casualties)
             score_loss = economy.score_loss(casualties)
+            economy_status = "modeled"
         losses[side] = {
             "resource_cost_basis_lost": basis_loss,
-            "general_score_lost": _decimal_json(score_loss),
+            "general_score_lost": (
+                None if score_loss is None else _decimal_json(score_loss)
+            ),
+            "economy_status": economy_status,
+            "missing_economy_units": missing_economy,
         }
 
     result["military_score"] = {

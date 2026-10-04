@@ -219,7 +219,10 @@ class Scenario:
         except ValueError as exc:
             raise ScenarioError("policy must be strict or experimental") from exc
         battlefield = data.get("battlefield", "land-mini")
-        if not isinstance(battlefield, str) or battlefield not in {"land-mini", "land-small", "land-medium", "land-large", "land-max", "naval-mini"}:
+        if not isinstance(battlefield, str) or battlefield not in {
+            "land-mini", "land-small", "land-medium", "land-large", "land-max",
+            "naval-mini", "naval-max",
+        }:
             raise ScenarioError("unsupported battlefield id")
         town_hall_raw = data.get("town_hall_level")
         town_hall_level = (
