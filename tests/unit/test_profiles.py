@@ -82,9 +82,8 @@ def test_workshop_forge_support_and_targeting_profiles():
  assert s.raw['timing_contract']['visible_by']=='before_next_round_combat'
  assert s.raw['timing_contract']['exact_order_vs_rr']=='UNKNOWN'
  assert s.raw['executable_subset']['status']=='IMPLEMENTED_ORDER_INVARIANT_FULL_CLEAR'
- assert s.raw['executable_subset']['insufficient_capacity']=={
-  'doctor':'EXP-HEAL-NONE-001','tender':'EXP-TENDER-HEAL-NONE-001'
- }
+ assert s.raw['executable_subset']['insufficient_capacity']=='EXP-HEAL-NONE-001'
+ assert s.raw['executable_subset']['tender_insufficient_capacity']=='EXP-TENDER-HEAL-NONE-001'
  t=TargetingProfile.load(); assert t.priorities['flank'][0]=='flank'
  assert t.priorities['third']==('first','flank')
  assert t.firing_order==('anti-balloon','balloon','third','flank','second','first')

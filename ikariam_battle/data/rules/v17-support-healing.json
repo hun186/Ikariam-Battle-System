@@ -51,10 +51,8 @@
   "executable_subset": {
     "status": "IMPLEMENTED_ORDER_INVARIANT_FULL_CLEAR",
     "rule": "If total Doctor capacity covers all eligible Human land persistent damage, or total Tender capacity covers all naval combat persistent damage, clear that eligible damage at the round boundary before RR. Full-clear is order-invariant.",
-    "insufficient_capacity": {
-      "doctor": "EXP-HEAL-NONE-001",
-      "tender": "EXP-TENDER-HEAL-NONE-001"
-    },
-    "incomplete_reason": "Allocation priority across partially healable eligible Doctor/Tender waves and exact Healing-vs-RR order are unresolved."
+    "insufficient_capacity": "EXP-HEAL-NONE-001",
+    "incomplete_reason": "Allocation priority across partially healable eligible Doctor/Tender waves and exact Healing-vs-RR order are unresolved.",
+    "tender_insufficient_capacity": "EXP-TENDER-HEAL-NONE-001"
   }
 }
