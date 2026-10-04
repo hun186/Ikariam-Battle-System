@@ -2143,6 +2143,51 @@ def test_snapshot_exposes_batch_reserve_damage_and_hp_percent():
  assert batch['reserve_hit_points_percent']==80
 
 
+def test_round_start_rr_spreads_persistent_damage_into_reserve_without_healing():
+ from ikariam_battle.engine import _prepare_round_start, _snapshot
+ from ikariam_battle.profiles import BattleEndProfile
+ registry=UnitRegistry.load(); battle_end=BattleEndProfile.load()
+ wave=Wave(
+  ArmyUnit('hoplite',40,'rr-reserve'),10,
+  [Slot('first-1','first',2,1,'hoplite','rr-reserve',30,30,400)],
+ )
+ events=[]; applied={}
+ _prepare_round_start([wave],events,2,'attacker',applied)
+ assert wave.slots[0].damage==300
+ assert wave.reserve_damage==100
+ state=_snapshot([wave],registry,battle_end)
+ batch=state['waves'][0]
+ assert batch['reserve_damage']==100
+ assert batch['reserve_hit_points_percent'] < 100
+ rr=next(event for event in events if event.type=='redistribution')
+ assert rr.details['total_wave_damage']==400
+ assert rr.details['reserve_damage']==100
+ assert rr.details['damage_conserved'] is True
+
+
+def test_full_clear_doctor_can_keep_reserve_hp_at_100_before_rr():
+ from ikariam_battle.engine import _prepare_round_start, _snapshot
+ from ikariam_battle.profiles import BattleEndProfile, SupportProfile
+ registry=UnitRegistry.load(); battle_end=BattleEndProfile.load()
+ doctor=Wave(ArmyUnit('doctor',15,'doctor'),0,[],0,None,15)
+ wave=Wave(
+  ArmyUnit('hoplite',40,'rr-reserve'),10,
+  [Slot('first-1','first',2,1,'hoplite','rr-reserve',30,30,400)],
+ )
+ events=[]; applied={}
+ _prepare_round_start(
+  [doctor,wave],events,2,'attacker',applied,
+  registry=registry,support=SupportProfile.load(),
+ )
+ assert wave.slots[0].damage==0
+ assert wave.reserve_damage==0
+ state=_snapshot([wave],registry,battle_end)
+ assert state['waves'][0]['reserve_hit_points_percent']==100
+ heal=next(event for event in events if event.type=='healing')
+ assert heal.details['healing']==400
+ assert not any(event.type=='redistribution' for event in events)
+
+
 def test_destroyed_slot_identity_is_round_local_not_a_persistent_tombstone():
  from ikariam_battle.engine import _snapshot
  from ikariam_battle.profiles import BattleEndProfile
