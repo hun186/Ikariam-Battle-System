@@ -48,3 +48,8 @@ Round navigation treats deployment as a separate `初始部署` control, not a n
 
 
 The setup workbench hides unit name/basic metadata by default behind the global `showUnitIdentity` control while keeping icons and controls visible; the separate stat preview may wrap HP/ATK/DEF and its Workshop/Forge note. Battlefield slot faces omit repeated unit names. Battlefield and Reserve detail use one body-level fixed floating tooltip, positioned from the trigger rectangle and clamped/flipped to the viewport so parent overflow cannot clip it.
+
+
+### RR-before-deployment-selection invariant
+
+Persistent damage is wave-owned. Every supported refill/repack/handoff/fallback preserves the complete surviving wave as the RR population before deployment selection. Ordinary placement parks aggregate damage until final RR; a true state split materializes the selected segment's proportional RR share using the same allocator. Same-unit waves from different state/batch identities retain separate ammo and damage pools unless an explicit handoff contract says otherwise.

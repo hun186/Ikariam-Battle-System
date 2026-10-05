@@ -260,3 +260,17 @@ This also explains the Carrier edge case: with about 500 Balloon Carriers but on
 For an exhausted Long-Range wave carrying persistent damage, partial First fallback now follows the user-confirmed ordering: **RR first, then select the subset that fills First**. RR is defined over the complete surviving wave, so every survivor has the same aggregate damage share before deployment selection. Therefore choosing (k) survivors out of (N) is aggregate-equivalent to assigning the promoted First segment `round_half_up(total_damage × k / N)` damage and leaving the remainder with Reserve. The implementation reuses `reserve_redistribution()`, including its existing half-up rounding and damage-position remainder order.
 
 Example: 84 zero-ammo Carabineers carry 700 persistent damage and only one First slot (12 Carabineers) is open. RR first gives the selected First subset 100 aggregate damage and the 72 Reserve survivors 600. Second remains empty. This removes the previous damaged-partial unsupported boundary without inventing a healthiest-first or most-damaged-first selection rule.
+
+
+## 2026-10-05 global RR-before-deployment-selection invariant
+
+RR is not a Long-Range special case. Persistent damage belongs to a complete concrete state wave (same unit/state batch), and every refill, repack, handoff, ammo-limited deployment, fallback, or Reserve selection preserves that population before deciding which survivors occupy slots.
+
+Conceptually the order is:
+
+1. collect the wave's surviving population and aggregate persistent damage;
+2. apply RR over that complete population;
+3. decide which survivors occupy each runtime slot and which remain Reserve;
+4. each selected slot/group carries the proportional RR share for its number of survivors.
+
+For ordinary same-wave placement the engine implements this equivalently by parking the aggregate damage on the wave, finishing all placement decisions, and then calling the normal RR pass. When one state wave must be split into two separately tracked states, the proportional share is materialized at the split boundary with the same `reserve_redistribution()` allocator. Damage is never attached to "the 12 selected individuals" before RR, and different entry-batch/wave states are not merged merely because they have the same unit type.

@@ -16,3 +16,20 @@ def test_rr_reserve_share_and_wave_calls_are_isolated():
 
 def test_rr_half_tie_is_explicit_half_up_not_python_ties_even():
     assert reserve_redistribution(1,2,[SlotShare(1,1)]) == ({1:1},0)
+
+
+
+def test_rr_before_selection_population_share_is_independent_of_old_slot_ownership():
+    deployed,reserve=reserve_redistribution(
+        700,84,[SlotShare(1,12)]
+    )
+    assert deployed=={1:100}
+    assert reserve==600
+
+
+def test_rr_selection_share_uses_all_survivors_as_denominator():
+    deployed,reserve=reserve_redistribution(
+        840,84,[SlotShare(1,3)]
+    )
+    assert deployed=={1:30}
+    assert reserve==810

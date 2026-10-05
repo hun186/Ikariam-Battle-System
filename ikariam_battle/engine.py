@@ -356,8 +356,83 @@ def _apply_supported_tender_healing(
     return eligible_damage
 
 
+def _wave_persistent_damage(wave: Wave) -> int:
+    """Return aggregate persistent damage owned by one concrete state wave."""
+    return wave.reserve_damage + sum(slot.damage for slot in wave.slots)
+
+
+def _park_wave_damage_for_redeployment(wave: Wave) -> int:
+    """Preserve one wave's RR population before changing its deployment.
+
+    Persistent damage belongs to the complete surviving state wave, not to the
+    slots that happen to be occupied before a refill/repack/fallback decision.
+    Park the aggregate damage on Reserve while placement changes; the ordinary
+    RR pass can then redistribute it over the final deployed subset plus Reserve.
+    """
+    total_damage = _wave_persistent_damage(wave)
+    wave.reserve_damage = total_damage
+    for slot in wave.slots:
+        slot.damage = 0
+    return total_damage
+
+
+def _assign_rr_share_to_split_slots(
+    source_wave: Wave,
+    split_slots: list[Slot],
+    *,
+    original_alive: int,
+    events: list[Event],
+    number: int,
+    side: str,
+    rule: str,
+    split_wave_id: str,
+) -> tuple[int, int]:
+    """Apply the RR-before-selection invariant when one wave becomes two states.
+
+    Ordinary refill/repack can park damage on one wave and let the final RR pass
+    allocate it. A true state split (for example, part of an exhausted ranged
+    wave promoted into First while the rest stays Reserve) needs that same RR
+    population preserved across two wave objects. The selected split receives
+    exactly the proportional RR share it would have had if RR were conceptually
+    performed over the original survivors before the selection.
+    """
+    total_damage = source_wave.reserve_damage
+    if not total_damage:
+        return 0, 0
+    shares = [
+        SlotShare(slot.damage_position, slot.units)
+        for slot in split_slots if slot.units
+    ]
+    allocated, reserve_damage = reserve_redistribution(
+        total_damage, original_alive, shares
+    )
+    for slot in split_slots:
+        slot.damage = allocated.get(slot.damage_position, 0)
+    source_wave.reserve_damage = reserve_damage
+    split_damage = sum(allocated.values())
+    _event(
+        events, number, "redistribute", "redistribution", side,
+        rule=rule,
+        wave_id=source_wave.unit.wave_id,
+        split_wave_id=split_wave_id,
+        total_wave_damage=total_damage,
+        split_damage=split_damage,
+        reserve_damage=reserve_damage,
+        damage_conserved=split_damage + reserve_damage == total_damage,
+    )
+    return split_damage, reserve_damage
+
+
 def _redistribute(waves: list[Wave], events: list[Event], number: int, side: str,
                   applied: dict[str, dict[str, str]]) -> None:
+    """Apply RR over each complete surviving wave after placement is known.
+
+    This is the ordinary implementation of the RR-before-selection invariant:
+    placement helpers first preserve aggregate wave damage, then RR assigns the
+    final deployed slots their proportional shares and leaves the remainder with
+    Reserve. Only helpers that split one state wave into two wave objects need to
+    materialize the proportional share before the split is finalized.
+    """
     _guard_single_line_waves(waves)
     for wave in waves:
         total = wave.reserve_damage + sum(slot.damage for slot in wave.slots)
@@ -462,9 +537,7 @@ def _supported_same_batch_heavy_first_handoffs(
             totals[key] = wave.reserve + sum(
                 slot.units for slot in wave.slots if slot.line == "first"
             )
-            damage_totals[key] = wave.reserve_damage + sum(
-                slot.damage for slot in wave.slots
-            )
+            damage_totals[key] = _wave_persistent_damage(wave)
 
         desired: dict[int, tuple[Wave, int, int]] = {}
         for wave in group:
@@ -484,14 +557,14 @@ def _supported_same_batch_heavy_first_handoffs(
                 remaining -= quantity
             wave.reserve = remaining
 
-        # Ownership changes below may remove a damaged slot from one wave and
-        # recreate it for another. Preserve per-wave damage before that mutation;
-        # _redistribute() immediately reapportions it after this function returns.
+        # Preserve each wave's full RR population before slot ownership changes.
+        # Final _redistribute() allocates the parked aggregate damage over that
+        # wave's selected deployed subset plus Reserve.
         for wave in group:
             key = (wave.unit.unit_id, wave.unit.wave_id)
-            wave.reserve_damage = damage_totals[key]
-            for slot in wave.slots:
-                slot.damage = 0
+            parked = _park_wave_damage_for_redeployment(wave)
+            if parked != damage_totals[key]:
+                raise ScenarioError("persistent damage changed while parking Heavy wave")
 
         for position in positions:
             previous_wave, previous_slot = owners[position]
@@ -644,9 +717,7 @@ def _supported_same_unit_same_line_handoffs(
                 slot.units for slot in wave.slots
                 if slot.line == runtime_line
             )
-            damage_totals[wave.unit.wave_id] = (
-                wave.reserve_damage + sum(slot.damage for slot in wave.slots)
-            )
+            damage_totals[wave.unit.wave_id] = _wave_persistent_damage(wave)
 
         desired: dict[int, tuple[Wave, int]] = {}
         for wave in group:
@@ -661,13 +732,13 @@ def _supported_same_unit_same_line_handoffs(
                 remaining -= quantity
             wave.reserve = remaining
 
-        # Ownership may move across waves; keep each wave's damage total intact
-        # and let RR redistribute it over that wave's final slots immediately
-        # after all supported compactions finish.
+        # Ownership may move across slots, but RR ownership stays with the
+        # concrete state wave. Park the full damage population first; final RR
+        # runs only after all supported placement decisions are complete.
         for wave in group:
-            wave.reserve_damage = damage_totals[wave.unit.wave_id]
-            for slot in wave.slots:
-                slot.damage = 0
+            parked = _park_wave_damage_for_redeployment(wave)
+            if parked != damage_totals[wave.unit.wave_id]:
+                raise ScenarioError("persistent damage changed while parking same-unit wave")
 
         for position in positions:
             previous_wave, previous_slot = owners[position]
@@ -759,7 +830,7 @@ def _cap_native_finite_ammo_deployment(
         if currently_deployed == deploy_limit and wave.reserve == desired_reserve:
             continue
 
-        total_damage = wave.reserve_damage + sum(slot.damage for slot in wave.slots)
+        total_damage = _park_wave_damage_for_redeployment(wave)
         remaining = deploy_limit
         for slot in native_slots:
             slot.units = min(slot.capacity, remaining)
@@ -892,7 +963,7 @@ def _supported_whole_wave_first_fallback(
         ]
         required_slots = (total_units + capacity - 1) // capacity
         source_lines = sorted({slot.line for slot in wave.slots if slot.units})
-        total_damage = wave.reserve_damage + sum(slot.damage for slot in wave.slots)
+        total_damage = _park_wave_damage_for_redeployment(wave)
 
         if required_slots > len(open_positions):
             partial_exhausted_long_range = (
@@ -911,9 +982,8 @@ def _supported_whole_wave_first_fallback(
             reserve_remaining = total_units - promote_quantity
             for slot in wave.slots:
                 slot.units = 0
-                slot.damage = 0
             wave.reserve = reserve_remaining
-            wave.reserve_damage = 0
+            wave.reserve_damage = total_damage
 
             promoted_id = f"{wave.unit.wave_id}::front-fallback-r{number}"
             if any(peer.unit.wave_id == promoted_id for peer in waves):
@@ -954,37 +1024,16 @@ def _supported_whole_wave_first_fallback(
                 raise ScenarioError("partial Long-Range fallback left promoted reserve")
             promoted.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
 
-            # RR semantics apply to the complete surviving wave before the
-            # deployment subset is selected. Because RR is proportional to the
-            # number of survivors, selecting any promote_quantity members after
-            # RR is aggregate-equivalent to assigning that fraction of total
-            # persistent damage to the promoted First segment and the remainder
-            # to Reserve. Reuse the existing half-up RR allocator so rounding and
-            # per-slot priority stay identical to ordinary RR.
-            if total_damage:
-                promoted_shares = [
-                    SlotShare(slot.damage_position, slot.units)
-                    for slot in promoted.slots if slot.units
-                ]
-                promoted_damage, reserve_damage = reserve_redistribution(
-                    total_damage, total_units, promoted_shares
-                )
-                for slot in promoted.slots:
-                    slot.damage = promoted_damage.get(slot.damage_position, 0)
-                wave.reserve_damage = reserve_damage
-                _event(
-                    events, number, "redistribute", "redistribution", side,
-                    rule="RR_BEFORE_PARTIAL_FALLBACK_SELECTION",
-                    unit_id=unit.id,
-                    wave_id=wave.unit.wave_id,
-                    promoted_wave_id=promoted_id,
-                    total_wave_damage=total_damage,
-                    promoted_damage=sum(promoted_damage.values()),
-                    reserve_damage=reserve_damage,
-                    damage_conserved=(
-                        sum(promoted_damage.values()) + reserve_damage == total_damage
-                    ),
-                )
+            _assign_rr_share_to_split_slots(
+                wave,
+                promoted.slots,
+                original_alive=total_units,
+                events=events,
+                number=number,
+                side=side,
+                rule="RR_BEFORE_DEPLOYMENT_SELECTION",
+                split_wave_id=promoted_id,
+            )
 
             waves.append(promoted)
             _event(

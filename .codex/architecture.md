@@ -12,3 +12,6 @@ HTTP battle transport is intentionally separate from the pure combat engine. `ik
 
 
 Browser simulation requests distinguish the last successfully committed battle from a pending replacement. The active `simulationGeneration` and its scenario/page cache remain intact while a newer summary request is pending; a separate monotonic request generation suppresses stale overlapping summaries. Only a successful latest summary atomically becomes the active generation and replaces the scenario/cache. If the pending request fails, report navigation is re-enabled for the prior completed battle instead of discarding it.
+
+
+RR is a formation-state invariant rather than a Long-Range rule. Slot placement code must not decide damage ownership from the pre-repack slots. It first preserves aggregate persistent damage on the concrete wave, performs supported placement, then lets RR allocate the final deployed/Reserve shares. If placement creates a second state-wave object, the split helper materializes the proportional RR share against the original surviving population before the new state is detached.

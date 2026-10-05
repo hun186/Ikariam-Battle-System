@@ -2951,8 +2951,8 @@ def test_damaged_partial_exhausted_land_long_range_rr_precedes_first_selection()
  assert ranged.reserve_damage==600
  assert any(
   event.type=='redistribution'
-  and event.details.get('rule')=='RR_BEFORE_PARTIAL_FALLBACK_SELECTION'
-  and event.details.get('promoted_damage')==100
+  and event.details.get('rule')=='RR_BEFORE_DEPLOYMENT_SELECTION'
+  and event.details.get('split_damage')==100
   and event.details.get('reserve_damage')==600
   for event in events
  )
@@ -3013,3 +3013,29 @@ def test_three_remaining_carrier_shots_repeat_when_deployed_carriers_die_before_
   and event.details.get('deployed_units')==3
   for event in events2
  )
+
+
+
+def test_ammo_limited_native_refill_uses_same_wave_rr_before_selection_invariant():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(
+  Army.from_dict({'units':[{'unit_id':'archer','quantity':84,'wave_id':'ranged'}]}),
+  registry,field,
+ )
+ ranged=next(w for w in waves if w.unit.wave_id=='ranged')
+ ranged.ammo_pool_shots=3
+ ranged.reserve=0
+ for slot in ranged.slots:
+  slot.damage=0
+ next(slot for slot in ranged.slots if slot.units).damage=840
+ events=[]; applied={}
+ boundary=_prepare_round_start(
+  waves,events,5,'attacker',applied,registry,rules,field
+ )
+ assert boundary is False
+ assert sum(slot.units for slot in ranged.slots if slot.line=='second')==3
+ assert ranged.reserve==81
+ # RR population is all 84 survivors: 840 * 3 / 84 = 30 deployed damage.
+ assert sum(slot.damage for slot in ranged.slots if slot.line=='second')==30
+ assert ranged.reserve_damage==810
+ assert sum(slot.damage for slot in ranged.slots)+ranged.reserve_damage==840
