@@ -839,6 +839,18 @@ def _cap_native_finite_ammo_deployment(
         desired_reserve = total_units - deploy_limit
         currently_deployed = sum(slot.units for slot in native_slots)
         if currently_deployed == deploy_limit and wave.reserve == desired_reserve:
+            if emit_events and deploy_limit < total_units:
+                _event(
+                    events, number, "deploy", "ammo_limited_deployment", side,
+                    unit_id=unit.id,
+                    wave_id=wave.unit.wave_id,
+                    native_line=unit.native_line,
+                    ammo_pool_shots=wave.ammo_pool_shots,
+                    native_capacity_units=native_capacity,
+                    deployed_units=deploy_limit,
+                    reserve_units=wave.reserve,
+                    rule="finite_ammo_native_deployment_cap",
+                )
             continue
 
         total_damage = _park_wave_damage_for_redeployment(wave)
@@ -1087,7 +1099,7 @@ def _supported_whole_wave_first_fallback(
             slot for slot in wave.slots if slot.line == unit.native_line
         ]
         later_native_peers = [
-            peer for peer in candidates
+            peer for peer in waves
             if peer is not wave
             and peer.unit.unit_id == wave.unit.unit_id
             and peer.unit.formation_order_key > wave.unit.formation_order_key
@@ -1097,6 +1109,7 @@ def _supported_whole_wave_first_fallback(
             )
             and len({slot.line for slot in peer.slots if slot.units}) <= 1
         ]
+        later_native_peers.sort(key=lambda peer: peer.unit.formation_order_key)
         for slot in list(wave.slots):
             wave.slots.remove(slot)
         if released_native_slots and later_native_peers:
