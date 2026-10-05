@@ -729,6 +729,58 @@ def _supported_same_unit_same_line_handoffs(
             wave.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
 
 
+def _cap_native_finite_ammo_deployment(
+    waves: list[Wave], registry: UnitRegistry, events: list[Event],
+    number: int, side: str, *, emit_events: bool = True,
+) -> None:
+    """Deploy no more native-line units than the remaining primary shots."""
+    _guard_single_line_waves(waves)
+    for wave in waves:
+        unit = registry.get(wave.unit.unit_id)
+        if (
+            unit.role != "combat"
+            or unit.primary_weapon.ammunition is None
+            or wave.ammo_pool_shots is None
+        ):
+            continue
+
+        native_slots = sorted(
+            (slot for slot in wave.slots if slot.line == unit.native_line),
+            key=lambda slot: slot.damage_position,
+        )
+        live_lines = {slot.line for slot in wave.slots if slot.units}
+        if not native_slots or (live_lines and live_lines != {unit.native_line}):
+            continue
+
+        total_units = wave.reserve + sum(slot.units for slot in native_slots)
+        deploy_limit = min(total_units, max(0, int(wave.ammo_pool_shots)))
+        desired_reserve = total_units - deploy_limit
+        currently_deployed = sum(slot.units for slot in native_slots)
+        if currently_deployed == deploy_limit and wave.reserve == desired_reserve:
+            continue
+
+        total_damage = wave.reserve_damage + sum(slot.damage for slot in wave.slots)
+        remaining = deploy_limit
+        for slot in native_slots:
+            slot.units = min(slot.capacity, remaining)
+            remaining -= slot.units
+            slot.damage = 0
+        wave.reserve = desired_reserve
+        wave.reserve_damage = total_damage
+
+        if emit_events:
+            _event(
+                events, number, "deploy", "ammo_limited_deployment", side,
+                unit_id=unit.id,
+                wave_id=wave.unit.wave_id,
+                native_line=unit.native_line,
+                ammo_pool_shots=wave.ammo_pool_shots,
+                deployed_units=deploy_limit,
+                reserve_units=wave.reserve,
+                rule="finite_ammo_native_deployment_cap",
+            )
+
+
 def _supported_whole_wave_first_fallback(
     waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field,
     events: list[Event], number: int, side: str,
@@ -739,10 +791,10 @@ def _supported_whole_wave_first_fallback(
     fallback path. Exhausted Long-Range units from Second may also replace First:
     land evidence comes from the battle-system paper's white/close-weapon
     fallback contract, while naval evidence comes from official Help. The
-    executable subset stays deliberately narrow: a state wave must fit
-    completely into the open First slots, so one wave never spans native and
-    First formations at once. Partial cross-line splitting remains guarded by
-    UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS.
+    Native finite-ammo deployment is capped before this pass. Therefore a
+    zero-ammo Long-Range wave no longer remains deployed in Second: it is
+    Reserve-only unless some survivors can fill First with the close weapon.
+    Survivors that do not fit First remain in Reserve.
 
     Persistent damage stays wave-owned. It is parked on reserve_damage while
     slots are rebuilt, then the existing RR pass redistributes it over the new
@@ -819,10 +871,15 @@ def _supported_whole_wave_first_fallback(
         unit = registry.get(wave.unit.unit_id)
 
         live_lines = {slot.line for slot in wave.slots if slot.units}
-        # This exact fallback subset starts from an already deployed native
-        # Light formation. A wholly reserve-only wave still belongs behind the
-        # cross-wave rebuild boundary and must not materialize in First here.
-        if live_lines != {unit.native_line}:
+        exhausted_long_range = (
+            unit.semantic_class == "long_range"
+            and unit.native_line == "second"
+            and wave.ammo_pool_shots == 0
+        )
+        if exhausted_long_range:
+            if live_lines:
+                continue
+        elif live_lines != {unit.native_line}:
             continue
 
         total_units = wave.reserve + sum(slot.units for slot in wave.slots)
@@ -838,38 +895,25 @@ def _supported_whole_wave_first_fallback(
         total_damage = wave.reserve_damage + sum(slot.damage for slot in wave.slots)
 
         if required_slots > len(open_positions):
-            # Land Long-Range evidence says empty First slots are filled even
-            # when the exhausted Second formation is larger than the vacancy.
-            # Split only the damage-free subset: this keeps each runtime wave
-            # single-line without inventing how persistent damage/RR should be
-            # partitioned across a newly split state wave.
-            partial_land_long_range = (
-                field.domain == "land"
-                and unit.semantic_class == "long_range"
+            partial_exhausted_long_range = (
+                unit.semantic_class == "long_range"
                 and wave.ammo_pool_shots == 0
                 and total_damage == 0
                 and bool(open_positions)
+                and field.domain in {"land", "naval"}
             )
-            if not partial_land_long_range:
-                # Damaged partial cross-line placement still needs evidence for
-                # damage ownership/RR across the split and remains guarded.
+            if not partial_exhausted_long_range:
                 break
 
-            promote_quantity = min(
-                total_units, len(open_positions) * capacity
-            )
+            promote_quantity = min(total_units, len(open_positions) * capacity)
             if promote_quantity <= 0 or promote_quantity >= total_units:
                 raise ScenarioError("invalid partial Long-Range fallback split")
 
-            # Re-pack the surviving native Second formation after removing the
-            # individuals promoted into First. No persistent damage exists in
-            # this exact supported subset.
-            native_remaining = total_units - promote_quantity
-            for slot in sorted(wave.slots, key=lambda item: item.damage_position):
-                slot.units = min(slot.capacity, native_remaining)
+            reserve_remaining = total_units - promote_quantity
+            for slot in wave.slots:
+                slot.units = 0
                 slot.damage = 0
-                native_remaining -= slot.units
-            wave.reserve = native_remaining
+            wave.reserve = reserve_remaining
             wave.reserve_damage = 0
 
             promoted_id = f"{wave.unit.wave_id}::front-fallback-r{number}"
@@ -884,9 +928,7 @@ def _supported_whole_wave_first_fallback(
                 wave.unit.entry_batch_id,
                 wave.unit.arrival_round,
             )
-            promoted = Wave(
-                promoted_unit, 0, [], 0, 0, 0, 0
-            )
+            promoted = Wave(promoted_unit, 0, [], 0, 0, 0, 0)
             remaining_promoted = promote_quantity
             positions_used: list[int] = []
             for position in open_positions:
@@ -920,10 +962,15 @@ def _supported_whole_wave_first_fallback(
                 entry_batch_id=wave.unit.batch_id,
                 from_lines=source_lines or [unit.native_line], to_line="first",
                 quantity=promote_quantity, damage_positions=positions_used,
-                rule="land_exhausted_long_range_partial_to_first",
+                rule=(
+                    "naval_exhausted_long_range_partial_to_front"
+                    if field.domain == "naval"
+                    else "land_exhausted_long_range_partial_to_first"
+                ),
                 primary_ammo_exhausted=True,
                 whole_wave=False,
-                native_remaining=total_units-promote_quantity,
+                reserve_remaining=reserve_remaining,
+                native_second_deployed=0,
                 damage_partition="exact_zero_persistent_damage_subset",
             )
             continue
@@ -1040,11 +1087,15 @@ def _has_supported_round_start_first_placement(
         projected, registry, rules, field, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
+    _cap_native_finite_ammo_deployment(
+        projected, registry, projection_events, 0, "projection", emit_events=False)
     _supported_whole_wave_first_fallback(
         projected, registry, rules, field, projection_events, 0, "projection")
     _rebuild_formation(projected, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
+    _cap_native_finite_ammo_deployment(
+        projected, registry, projection_events, 0, "projection", emit_events=False)
     return any(
         slot.line == "first" and slot.units
         for wave in projected
@@ -1065,6 +1116,8 @@ def _prepare_round_start(
             waves, registry, rules, field, events, number, side)
         _supported_same_unit_same_line_handoffs(
             waves, registry, rules, field, events, number, side)
+        _cap_native_finite_ammo_deployment(
+            waves, registry, events, number, side)
         _supported_whole_wave_first_fallback(
             waves, registry, rules, field, events, number, side)
         # Whole-wave promotion can vacate native-line physical positions that
@@ -1074,6 +1127,8 @@ def _prepare_round_start(
         _rebuild_formation(waves, events, number, side)
         _supported_same_unit_same_line_handoffs(
             waves, registry, rules, field, events, number, side)
+        _cap_native_finite_ammo_deployment(
+            waves, registry, events, number, side, emit_events=False)
     if registry is not None and support is not None:
         _apply_supported_doctor_healing(
             waves, registry, support, events, number, side, applied)
@@ -1132,11 +1187,15 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
         projected, registry, rules, field, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
+    _cap_native_finite_ammo_deployment(
+        projected, registry, projection_events, 0, "projection", emit_events=False)
     _supported_whole_wave_first_fallback(
         projected, registry, rules, field, projection_events, 0, "projection")
     _rebuild_formation(projected, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
+    _cap_native_finite_ammo_deployment(
+        projected, registry, projection_events, 0, "projection", emit_events=False)
 
     occupied: dict[str, set[int]] = defaultdict(set)
     for wave in projected:

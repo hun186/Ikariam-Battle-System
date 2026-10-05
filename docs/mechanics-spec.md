@@ -244,3 +244,12 @@ The executable subset now handles both the ordinary whole-wave move and the comm
 The current runtime Hoplite path is still generic AM addressing + Accuracy concentration + sequential D-kill; it does **not** use the Swordsman special M-kill selector. On the 2026-06-25 Mortar/Carabineer/Hoplite observation, the current model gives attacker/defender Hoplite deaths of 137/161 versus observed 159/168.
 
 A calibration-only probe generalized the structural Swordsman idea to the First-line Hoplite phase: for each target slot, recover one complete n-hit kill-group overkill amount per AM row/address occurrence instead of discarding all lethal overkill. With current Forge-5 working damage, 422 damage is a 3-hit kill with 146 overkill per complete group, while 372 is a 4-hit kill with 368 overkill. The probe predicts physical left-to-right casualties attacker `[19,23,25,25,25,23,14]` and defender `[21,25,27,27,27,25,16]`, totals 154/168. That reduces attacker slot absolute error from 22 to 7 and matches the defender total exactly, but remaining edge/slot error means this is evidence for a broader P/M-style selector, not yet a justified generic runtime rule.
+
+
+## 2026-10-05 finite-ammunition deployment / reserve cycling
+
+User battle observation establishes that remaining ammunition limits how many units of a finite-ammo wave are exposed in its native firing formation. At round start, native deployment is capped by surviving units, physical capacity, and the wave's remaining primary shots. Surplus survivors remain in Reserve.
+
+At zero shots, an ammunition-dependent native formation deploys zero units. For exhausted Long-Range, open First slots may still be filled using the secondary close weapon; survivors that do not fit First remain in Reserve and do not return to Second.
+
+This also explains the Carrier edge case: with about 500 Balloon Carriers but only 3 primary shots left, only 3 carriers deploy. Carrier Ship Evasion fires before Carrier Ship. If the enemy Evasion formation destroys those 3 before the Carrier phase, no Carrier shot is emitted, the ammo pool remains 3, and the next round another 3 carriers deploy from Reserve. The engine therefore decrements ammunition only when the wave actually emits shots in its own firing phase, not merely because units were deployed.

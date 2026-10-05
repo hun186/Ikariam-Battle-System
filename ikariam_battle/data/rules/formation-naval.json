@@ -26,8 +26,18 @@
         "source_type": "EMPIRICAL_MECHANICS_PAPER",
         "title": "Ikariam Battle System",
         "verification": "REPOSITORY_ARTIFACT"
+      },
+      {
+        "source_type": "USER_PROVIDED_BATTLE_OBSERVATION",
+        "title": "Carrier three-shot reserve cycling under earlier Evasion fire",
+        "verification": "USER_OBSERVED_2026-10-05"
       }
-    ]
+    ],
+    "ammunition_deployment_contract": {
+      "status": "IMPLEMENTED",
+      "rule": "Finite-ammo native formations deploy no more units than the wave's remaining primary shots. Ammo is spent only by actual firing, so pre-fire casualties can leave the pool unchanged for the next round.",
+      "example": "500 Balloon Carriers with 3 shots remaining deploy 3; if Evasion destroys them before Carrier fires, the pool remains 3 and another 3 can deploy next round."
+    }
   },
   "lines": {
     "first": {
