@@ -29,23 +29,315 @@
       "verification": "CHATGPT_WEB_VERIFIED",
       "retrieved": "2026-09-26",
       "note": "Spartan wood/sulphur values are nominal score-basis values, not resources actually paid to recruit the premium unit."
+    },
+    "official_help_resource_verification": {
+      "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+      "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+      "captured_date": "2026-10-05",
+      "coverage": "all 15 current player land units",
+      "formula_verified": "resource_cost_basis_total / 50 == general_score"
     }
   },
   "units": {
-    "spearman": {"resource_cost_basis_total": 30, "general_score": "0.6"},
-    "swordsman": {"resource_cost_basis_total": 60, "general_score": "1.2"},
-    "hoplite": {"resource_cost_basis_total": 70, "general_score": "1.4"},
-    "spartan": {"resource_cost_basis_total": 80, "general_score": "1.6"},
-    "steam_giant": {"resource_cost_basis_total": 310, "general_score": "6.2"},
-    "slinger": {"resource_cost_basis_total": 20, "general_score": "0.4"},
-    "archer": {"resource_cost_basis_total": 55, "general_score": "1.1"},
-    "sulphur_carabineer": {"resource_cost_basis_total": 200, "general_score": "4"},
-    "battering_ram": {"resource_cost_basis_total": 220, "general_score": "4.4"},
-    "catapult": {"resource_cost_basis_total": 560, "general_score": "11.2"},
-    "mortar": {"resource_cost_basis_total": 1550, "general_score": "31"},
-    "gyrocopter": {"resource_cost_basis_total": 125, "general_score": "2.5"},
-    "bombardier": {"resource_cost_basis_total": 290, "general_score": "5.8"},
-    "doctor": {"resource_cost_basis_total": 500, "general_score": "10"},
-    "cook": {"resource_cost_basis_total": 200, "general_score": "4"}
+    "spearman": {
+      "resource_cost_basis_total": 30,
+      "general_score": "0.6",
+      "resource_cost_basis": {
+        "wood": 30,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 0
+      },
+      "upkeep_gold": 1,
+      "population": 1,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-033913).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "swordsman": {
+      "resource_cost_basis_total": 60,
+      "general_score": "1.2",
+      "resource_cost_basis": {
+        "wood": 30,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 30
+      },
+      "upkeep_gold": 4,
+      "population": 1,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-033918).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "hoplite": {
+      "resource_cost_basis_total": 70,
+      "general_score": "1.4",
+      "resource_cost_basis": {
+        "wood": 40,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 30
+      },
+      "upkeep_gold": 3,
+      "population": 1,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-033931).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "spartan": {
+      "resource_cost_basis_total": 80,
+      "general_score": "1.6",
+      "resource_cost_basis": {
+        "wood": 40,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 40
+      },
+      "upkeep_gold": 0,
+      "population": 1,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-034116).png",
+        "note": "Help values are the nominal score basis for the premium unit."
+      }
+    },
+    "steam_giant": {
+      "resource_cost_basis_total": 310,
+      "general_score": "6.2",
+      "resource_cost_basis": {
+        "wood": 130,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 180
+      },
+      "upkeep_gold": 12,
+      "population": 2,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-033939).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "slinger": {
+      "resource_cost_basis_total": 20,
+      "general_score": "0.4",
+      "resource_cost_basis": {
+        "wood": 20,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 0
+      },
+      "upkeep_gold": 2,
+      "population": 1,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-033839-1).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "archer": {
+      "resource_cost_basis_total": 55,
+      "general_score": "1.1",
+      "resource_cost_basis": {
+        "wood": 30,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 25
+      },
+      "upkeep_gold": 4,
+      "population": 1,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-033839).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "sulphur_carabineer": {
+      "resource_cost_basis_total": 200,
+      "general_score": "4",
+      "resource_cost_basis": {
+        "wood": 50,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 150
+      },
+      "upkeep_gold": 3,
+      "population": 1,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-033907).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "battering_ram": {
+      "resource_cost_basis_total": 220,
+      "general_score": "4.4",
+      "resource_cost_basis": {
+        "wood": 220,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 0
+      },
+      "upkeep_gold": 15,
+      "population": 5,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-034018).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "catapult": {
+      "resource_cost_basis_total": 560,
+      "general_score": "11.2",
+      "resource_cost_basis": {
+        "wood": 260,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 300
+      },
+      "upkeep_gold": 25,
+      "population": 5,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-034031).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "mortar": {
+      "resource_cost_basis_total": 1550,
+      "general_score": "31",
+      "resource_cost_basis": {
+        "wood": 300,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 1250
+      },
+      "upkeep_gold": 30,
+      "population": 5,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-034044).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "gyrocopter": {
+      "resource_cost_basis_total": 125,
+      "general_score": "2.5",
+      "resource_cost_basis": {
+        "wood": 25,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 100
+      },
+      "upkeep_gold": 15,
+      "population": 3,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-033952).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "bombardier": {
+      "resource_cost_basis_total": 290,
+      "general_score": "5.8",
+      "resource_cost_basis": {
+        "wood": 40,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 250
+      },
+      "upkeep_gold": 45,
+      "population": 5,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-034006).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "doctor": {
+      "resource_cost_basis_total": 500,
+      "general_score": "10",
+      "resource_cost_basis": {
+        "wood": 50,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 450,
+        "sulfur": 0
+      },
+      "upkeep_gold": 20,
+      "population": 1,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-034055).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "cook": {
+      "resource_cost_basis_total": 200,
+      "general_score": "4",
+      "resource_cost_basis": {
+        "wood": 50,
+        "wine": 150,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 0
+      },
+      "upkeep_gold": 10,
+      "population": 1,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-034106).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    }
   }
 }

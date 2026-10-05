@@ -126,3 +126,16 @@ def test_military_score_loss_is_casualty_count_times_unmodified_score_basis():
  casualties={'hoplite':3,'swordsman':2,'mortar':1}
  assert e.resource_cost_basis_loss(casualties)==1880
  assert e.score_loss(casualties)==Decimal('37.6')
+
+
+
+def test_military_economy_public_exposes_resource_breakdown():
+ from ikariam_battle.economy import MilitaryEconomyProfile
+ public=MilitaryEconomyProfile.load().public()
+ assert public["mortar"]["resource_cost_basis"]=={
+  "wood":300,"wine":0,"marble":0,"crystal":0,"sulfur":1250
+ }
+ assert public["mortar"]["resource_cost_basis_total"]==1550
+ assert public["mortar"]["general_score"]=="31"
+ assert public["doctor"]["resource_cost_basis"]["crystal"]==450
+ assert public["cook"]["resource_cost_basis"]["wine"]==150
