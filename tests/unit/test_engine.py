@@ -2823,3 +2823,83 @@ def test_typed_scenario_rejects_invalid_army_kind(bad):
    attacker=attacker,defender=defender,policy=Policy.EXPERIMENTAL,
    battlefield='land-mini',max_rounds=1,
   ))
+
+
+
+def test_exhausted_land_long_range_whole_wave_fills_open_first_slots():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'hoplite','quantity':250,'wave_id':'front'},
+  {'unit_id':'sulphur_carabineer','quantity':24,'wave_id':'ranged'},
+ ]}),registry,field)
+ front=next(w for w in waves if w.unit.wave_id=='front')
+ ranged=next(w for w in waves if w.unit.wave_id=='ranged')
+ # Keep five First slots occupied, leaving two open. 24 Carabineers fit exactly
+ # as two First slots because land-max First slot space is 50 and unit size is 4.
+ front.reserve=0
+ for slot in front.slots:
+  slot.units=50 if slot.damage_position in {1,2,3,4,5} else 0
+  slot.damage=0
+ ranged.reserve=0
+ for slot in ranged.slots:
+  slot.damage=0
+ ranged.ammo_pool_shots=0
+ events=[]; applied={}
+ _prepare_round_start(waves,events,4,'defender',applied,registry,rules,field)
+ live=[slot for slot in ranged.slots if slot.units]
+ assert {slot.line for slot in live}=={'first'}
+ assert [slot.damage_position for slot in live]==[6,7]
+ assert [slot.units for slot in live]==[12,12]
+ assert select_active_weapon(registry.get('sulphur_carabineer'),'first').id=='secondary'
+ assert any(
+  event.type=='formation_fallback'
+  and event.details.get('rule')=='land_exhausted_long_range_to_first'
+  and event.details.get('primary_ammo_exhausted') is True
+  for event in events
+ )
+
+
+def test_land_long_range_with_ammunition_stays_second():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'hoplite','quantity':250,'wave_id':'front'},
+  {'unit_id':'archer','quantity':60,'wave_id':'ranged'},
+ ]}),registry,field)
+ front=next(w for w in waves if w.unit.wave_id=='front')
+ ranged=next(w for w in waves if w.unit.wave_id=='ranged')
+ front.reserve=0
+ for slot in front.slots:
+  slot.units=50 if slot.damage_position in {1,2,3,4,5} else 0
+ ranged.reserve=0
+ assert ranged.ammo_pool_shots and ranged.ammo_pool_shots>0
+ events=[]; applied={}
+ _prepare_round_start(waves,events,2,'defender',applied,registry,rules,field)
+ assert {slot.line for slot in ranged.slots if slot.units}=={'second'}
+ assert not any(
+  event.type=='formation_fallback'
+  and event.details.get('unit_id')=='archer'
+  for event in events
+ )
+
+
+def test_partial_exhausted_land_long_range_cross_line_split_remains_guarded():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'hoplite','quantity':300,'wave_id':'front'},
+  {'unit_id':'sulphur_carabineer','quantity':84,'wave_id':'ranged'},
+ ]}),registry,field)
+ front=next(w for w in waves if w.unit.wave_id=='front')
+ ranged=next(w for w in waves if w.unit.wave_id=='ranged')
+ front.reserve=0
+ for slot in front.slots:
+  slot.units=50 if slot.damage_position in {1,2,3,4,5,6} else 0
+ ranged.reserve=0
+ ranged.ammo_pool_shots=0
+ events=[]; applied={}
+ _prepare_round_start(waves,events,3,'defender',applied,registry,rules,field)
+ assert {slot.line for slot in ranged.slots if slot.units}=={'second'}
+ assert not any(
+  event.type=='formation_fallback'
+  and event.details.get('unit_id')=='sulphur_carabineer'
+  for event in events
+ )

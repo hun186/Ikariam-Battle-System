@@ -231,3 +231,16 @@ All nine current Barbarian land-unit Help pages were supplied as official in-gam
 The Help evidence corrected several previously derived values. Barbarian Clubman is HP 240, **Armor 20**, Damage 100, **Accuracy 85%**. Axe Thrower is a true two-weapon Long-Range unit: Flying Axe 200 @ 30% with Ammo 7, plus Axe Head 100 @ 60%. Barbarian Ram is Collision Ram 2100 @ **20%** plus Axe Head 200 @ 20%. Barbarian Catapult is Bomb 5400 @ **20%**, Ammo 5, plus Axe Head 200 @ 20%. Axe Swinger 360 @ 90%, Knifeman 200 @ 90%, War Walker 840 @ 80%, Barbarian Dirigible 960 @ 20% Ammo 2, and Barbarian Fighter 340 @ 80% Ammo 4 match the existing current-profile values.
 
 The Barbarian land registry now preserves multiple official weapons instead of flattening each unit to one derived weapon. The screenshots do not expose recruitment resource costs, so Barbarian land units remain non-player economy entities with zero General Score in simulator accounting. First/last appearance levels still come from the pre-existing Barbarian Village guide evidence and are kept separate from the official combat-stat provenance.
+
+
+## 2026-10-05 land exhausted Long-Range fallback
+
+Land Long-Range units whose primary ammunition pool reaches zero may fill open First-line slots after ordinary Heavy/Light Front placement. In the promoted First runtime line they use the registry secondary close weapon (for example Archer short sword or Sulphur Carabineer bayonet). This is intentionally distinct from the still-unresolved reactive counterattack trigger while a Long-Range unit remains deployed in Second.
+
+The executable subset is currently whole-wave only: if the surviving exhausted Long-Range wave fits completely in the available First slots, it is promoted at round start and keeps its wave-owned persistent damage for RR. If only part of the wave could move, the engine does not split one state wave across First and Second; that case remains guarded by `UNKNOWN-PARTIAL-LONG-RANGE-CROSS-LINE-FALLBACK` / the multi-line boundary.
+
+### 2026-06-25 Hoplite row/P-M calibration probe
+
+The current runtime Hoplite path is still generic AM addressing + Accuracy concentration + sequential D-kill; it does **not** use the Swordsman special M-kill selector. On the 2026-06-25 Mortar/Carabineer/Hoplite observation, the current model gives attacker/defender Hoplite deaths of 137/161 versus observed 159/168.
+
+A calibration-only probe generalized the structural Swordsman idea to the First-line Hoplite phase: for each target slot, recover one complete n-hit kill-group overkill amount per AM row/address occurrence instead of discarding all lethal overkill. With current Forge-5 working damage, 422 damage is a 3-hit kill with 146 overkill per complete group, while 372 is a 4-hit kill with 368 overkill. The probe predicts physical left-to-right casualties attacker `[19,23,25,25,25,23,14]` and defender `[21,25,27,27,27,25,16]`, totals 154/168. That reduces attacker slot absolute error from 22 to 7 and matches the defender total exactly, but remaining edge/slot error means this is evidence for a broader P/M-style selector, not yet a justified generic runtime rule.

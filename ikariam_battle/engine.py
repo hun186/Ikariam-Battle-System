@@ -736,12 +736,13 @@ def _supported_whole_wave_first_fallback(
     """Move one whole supported fallback wave into open First slots.
 
     Land Light Infantry and naval Light Battleships reuse the existing First
-    fallback path. Official Naval Battlefield Help additionally permits
-    Long-Range Battleships whose primary ammunition is exhausted to replace
-    Front. The executable subset stays deliberately narrow: a state wave must
-    fit completely into the open First slots, so one wave never spans native
-    and First formations at once. Partial cross-line splitting remains guarded
-    by UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS.
+    fallback path. Exhausted Long-Range units from Second may also replace First:
+    land evidence comes from the battle-system paper's white/close-weapon
+    fallback contract, while naval evidence comes from official Help. The
+    executable subset stays deliberately narrow: a state wave must fit
+    completely into the open First slots, so one wave never spans native and
+    First formations at once. Partial cross-line splitting remains guarded by
+    UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS.
 
     Persistent damage stays wave-owned. It is parked on reserve_damage while
     slots are rebuilt, then the existing RR pass redistributes it over the new
@@ -771,16 +772,17 @@ def _supported_whole_wave_first_fallback(
             and unit.native_line != "first"
             and "first" in eligible_runtime_lines(unit, rules, field)
         )
-        exhausted_naval_long_range = (
-            field.domain == "naval"
-            and unit.semantic_class == "long_range"
+        exhausted_long_range = (
+            unit.semantic_class == "long_range"
             and unit.native_line == "second"
             and wave.ammo_pool_shots == 0
+            and len(unit.weapons) == 2
+            and field.domain in {"land", "naval"}
         )
         return (
             unit.role == "combat"
             and wave.alive
-            and (light_fallback or exhausted_naval_long_range)
+            and (light_fallback or exhausted_long_range)
         )
 
     def fallback_strength(wave: Wave) -> tuple[int, int, int, tuple]:
@@ -797,9 +799,9 @@ def _supported_whole_wave_first_fallback(
             quantity * damage, damage, quantity, wave.unit.formation_order_key,
         )
 
-    # Naval Front preserves the official class precedence: Light Battleships
-    # before exhausted Long-Range Battleships; each class is weakest-first.
-    # Land keeps its historical canonical order.
+    # First-line fallback keeps Light ahead of exhausted Long-Range. Naval
+    # additionally uses its official weakest-first group ordering; land keeps
+    # canonical formation order within each fallback class.
     candidates = [wave for wave in waves if supported_fallback(wave)]
     if field.domain == "naval":
         def naval_fallback_rank(wave: Wave):
@@ -808,7 +810,10 @@ def _supported_whole_wave_first_fallback(
             return (class_rank, *fallback_strength(wave))
         candidates.sort(key=naval_fallback_rank)
     else:
-        candidates.sort(key=lambda wave: wave.unit.formation_order_key)
+        candidates.sort(key=lambda wave: (
+            0 if registry.get(wave.unit.unit_id).semantic_class == "light_infantry" else 1,
+            wave.unit.formation_order_key,
+        ))
 
     for wave in candidates:
         unit = registry.get(wave.unit.unit_id)
@@ -923,7 +928,11 @@ def _supported_whole_wave_first_fallback(
             from_lines=source_lines or [unit.native_line], to_line="first",
             quantity=total_units, damage_positions=positions_used,
             rule=(
-                "naval_exhausted_long_range_to_front"
+                (
+                    "naval_exhausted_long_range_to_front"
+                    if field.domain == "naval"
+                    else "land_exhausted_long_range_to_first"
+                )
                 if unit.semantic_class == "long_range"
                 else "first_before_flank_whole_wave_light_fallback"
             ),

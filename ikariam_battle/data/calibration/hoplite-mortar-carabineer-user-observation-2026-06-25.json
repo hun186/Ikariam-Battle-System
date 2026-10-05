@@ -138,5 +138,75 @@
       "defender_carabineer10_to_attacker_hoplite21": 579
     }
   },
-  "unresolved": "The final report also includes the later First-vs-First Hoplite phase; without an intermediate post-Carabineer snapshot, a unique Carabineer redistribution selector cannot be inferred from final losses alone."
+  "unresolved": "The final report also includes the later First-vs-First Hoplite phase; without an intermediate post-Carabineer snapshot, a unique Carabineer redistribution selector cannot be inferred from final losses alone.",
+  "current_engine_round1_baseline": {
+    "assumptions": [
+      "Mortar one-shot/no-spill",
+      "Carabineer generic sequential D-kill with Accuracy concentration",
+      "Hoplite generic sequential D-kill with Accuracy concentration",
+      "No Hoplite-specific P/M/IR/SR selector"
+    ],
+    "attacker_hoplite_casualties_left_to_right": [
+      17,
+      21,
+      22,
+      22,
+      22,
+      21,
+      12
+    ],
+    "defender_hoplite_casualties_left_to_right": [
+      20,
+      24,
+      26,
+      26,
+      26,
+      24,
+      15
+    ],
+    "attacker_total": 137,
+    "defender_total": 161
+  },
+  "generalized_row_pm_probe": {
+    "status": "CALIBRATION_ONLY_NOT_RUNTIME",
+    "scope": "Apply a Swordsman-inspired row-local recovery only to the later Hoplite-vs-Hoplite First-line phase; Mortar and Carabineer phases remain unchanged.",
+    "mechanism": "For each target slot, retain one n-hit lethal-group overkill amount per AM row/address occurrence instead of discarding all lethal overkill. This generalizes the structural row/P-M idea, not the Swordsman symmetric-2-hit selector.",
+    "first_line_hit_damage": {
+      "attacker_hoplite24_to_defender_hoplite18": 422,
+      "attacker_hits_to_kill": 3,
+      "attacker_overkill_per_complete_kill_group": 146,
+      "defender_hoplite18_to_attacker_hoplite21": 372,
+      "defender_hits_to_kill": 4,
+      "defender_overkill_per_complete_kill_group": 368
+    },
+    "predicted_attacker_hoplite_casualties_left_to_right": [
+      19,
+      23,
+      25,
+      25,
+      25,
+      23,
+      14
+    ],
+    "predicted_defender_hoplite_casualties_left_to_right": [
+      21,
+      25,
+      27,
+      27,
+      27,
+      25,
+      16
+    ],
+    "predicted_attacker_total": 154,
+    "predicted_defender_total": 168,
+    "observed_attacker_total": 159,
+    "observed_defender_total": 168,
+    "slot_absolute_error": {
+      "current_engine_attacker": 22,
+      "row_pm_probe_attacker": 7,
+      "current_engine_defender": 9,
+      "row_pm_probe_defender": 8
+    },
+    "conclusion": "The row-local n-hit overkill probe materially improves the attacker slot fit and exactly matches the defender total, but residual edge/slot errors remain. It is evidence for a broader P/M-style selector, not sufficient evidence to promote a generic runtime rule."
+  }
 }

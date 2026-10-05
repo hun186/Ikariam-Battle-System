@@ -29,6 +29,11 @@
         "source_type": "GAME_UPDATE_NOTE",
         "title": "Patch 0.3.5 strongest-group battlefield fill rule",
         "verification": "COMMUNITY_ARCHIVE_CORROBORATION"
+      },
+      {
+        "source_type": "EMPIRICAL_MECHANICS_PAPER",
+        "title": "Second-line exhausted Long-Range First-line fallback / close-weapon behavior",
+        "verification": "REPOSITORY_ARTIFACT_PLUS_USER_INTERPRETATION_2026-10-05"
       }
     ]
   },
@@ -55,7 +60,17 @@
         5,
         7
       ],
-      "implementation_status": "IMPLEMENTED_FOR_ALL_LAND_GEOMETRIES"
+      "implementation_status": "IMPLEMENTED_FOR_ALL_LAND_GEOMETRIES",
+      "exhausted_long_range_fallback": {
+        "source_native_line": "second",
+        "requires_primary_ammo_exhausted": true,
+        "fallback_weapon": "secondary_close_weapon",
+        "class_precedence_after": [
+          "heavy_infantry",
+          "light_infantry"
+        ],
+        "implementation_status": "WHOLE_WAVE_EXECUTABLE_PARTIAL_CROSS_LINE_GUARDED"
+      }
     },
     "second": {
       "eligible_native_lines": [
@@ -131,7 +146,7 @@
   },
   "unknowns": [
     "UNKNOWN-NON-STANDARD-RENUMBERING",
-    "UNKNOWN-FALLBACK-LONG-RANGE-WEAPON",
-    "UNKNOWN-SECONDARY-WEAPON-TRIGGER"
+    "UNKNOWN-SECONDARY-WEAPON-TRIGGER",
+    "UNKNOWN-PARTIAL-LONG-RANGE-CROSS-LINE-FALLBACK"
   ]
 }
