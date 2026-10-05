@@ -11,6 +11,7 @@ from ikariam_battle.formation import FormationRules
 from ikariam_battle.models import Army, ArmyUnit, Policy, Scenario, ScenarioError, Slot, Wave
 from ikariam_battle.profiles import ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 from ikariam_battle.units import UnitRegistry
+from ikariam_battle.weapon_selection import select_active_weapon
 
 
 def scenario(policy='experimental',rounds=5):
@@ -2936,11 +2937,15 @@ def test_damaged_partial_exhausted_land_long_range_split_remains_guarded():
  ranged.ammo_pool_shots=0
  next(slot for slot in ranged.slots if slot.units).damage=10
  events=[]; applied={}
- _prepare_round_start(waves,events,3,'defender',applied,registry,rules,field)
- assert {slot.line for slot in ranged.slots if slot.units}=={'second'}
- assert not any(
-  event.type=='formation_fallback'
+ boundary=_prepare_round_start(waves,events,3,'defender',applied,registry,rules,field)
+ assert boundary is True
+ assert sum(slot.units for slot in ranged.slots if slot.line=='second')==0
+ assert ranged.reserve==84
+ assert any(
+  event.type=='unsupported_mechanic'
+  and event.details.get('rule_id')=='UNKNOWN-DAMAGED-PARTIAL-LONG-RANGE-CROSS-LINE-FALLBACK'
   and event.details.get('unit_id')=='sulphur_carabineer'
+  and event.details.get('persistent_damage')==10
   for event in events
  )
 

@@ -784,7 +784,7 @@ def _cap_native_finite_ammo_deployment(
 def _supported_whole_wave_first_fallback(
     waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field,
     events: list[Event], number: int, side: str,
-) -> None:
+) -> bool:
     """Move one whole supported fallback wave into open First slots.
 
     Land Light Infantry and naval Light Battleships reuse the existing First
@@ -802,7 +802,7 @@ def _supported_whole_wave_first_fallback(
     """
     geometry = field.lines.get("first")
     if geometry is None:
-        return
+        return False
 
     occupied = {
         slot.damage_position
@@ -903,6 +903,25 @@ def _supported_whole_wave_first_fallback(
                 and field.domain in {"land", "naval"}
             )
             if not partial_exhausted_long_range:
+                damaged_partial_boundary = (
+                    unit.semantic_class == "long_range"
+                    and wave.ammo_pool_shots == 0
+                    and total_damage > 0
+                    and bool(open_positions)
+                    and field.domain in {"land", "naval"}
+                )
+                if damaged_partial_boundary:
+                    _event(
+                        events, number, "round_start", "unsupported_mechanic", side,
+                        rule_id="UNKNOWN-DAMAGED-PARTIAL-LONG-RANGE-CROSS-LINE-FALLBACK",
+                        unit_id=unit.id,
+                        wave_id=wave.unit.wave_id,
+                        surviving_units=total_units,
+                        open_first_positions=open_positions,
+                        first_capacity_per_slot=capacity,
+                        persistent_damage=total_damage,
+                    )
+                    return True
                 break
 
             promote_quantity = min(total_units, len(open_positions) * capacity)
@@ -1074,6 +1093,7 @@ def _supported_whole_wave_first_fallback(
             ),
             whole_wave=True,
         )
+    return False
 
 
 def _has_supported_round_start_first_placement(
@@ -1108,7 +1128,7 @@ def _prepare_round_start(
     applied: dict[str, dict[str, str]], registry: UnitRegistry | None = None,
     rules: FormationRules | None = None, field=None,
     support: SupportProfile | None = None,
-) -> None:
+) -> bool:
     """Re-pack, apply safe Doctor/Tender full-clear healing, then RR damage."""
     _rebuild_formation(waves, events, number, side)
     if registry is not None and rules is not None and field is not None:
@@ -1118,8 +1138,10 @@ def _prepare_round_start(
             waves, registry, rules, field, events, number, side)
         _cap_native_finite_ammo_deployment(
             waves, registry, events, number, side)
-        _supported_whole_wave_first_fallback(
+        fallback_boundary = _supported_whole_wave_first_fallback(
             waves, registry, rules, field, events, number, side)
+        if fallback_boundary:
+            return True
         # Whole-wave promotion can vacate native-line physical positions that
         # a later same-unit wave is allowed to inherit. First re-pack each
         # concrete wave across its inherited slots, then run the already
@@ -1138,6 +1160,7 @@ def _prepare_round_start(
     # healing subsets above are intentionally limited to full-clear cases, so
     # the unknown Healing/RR order cannot alter their result.
     _redistribute(waves, events, number, side, applied)
+    return False
 
 
 def _arrival_waves(army: Army, round_no: int, registry: UnitRegistry,
@@ -2795,12 +2818,24 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         for side, side_blockers in arrival_blockers.items():
             if "UNKNOWN-MORALE-SUPPORT" in side_blockers:
                 _assume(applied, events, "EXP-MORALE-NONE-001", number, "arrival", side)
-        _prepare_round_start(
+        attacker_fallback_boundary = _prepare_round_start(
             attacker, events, number, "attacker", applied,
             registry, formation_rules, field, support)
-        _prepare_round_start(
+        defender_fallback_boundary = _prepare_round_start(
             defender, events, number, "defender", applied,
             registry, formation_rules, field, support)
+        if attacker_fallback_boundary or defender_fallback_boundary:
+            completed = number
+            attacker_state = _snapshot(attacker, registry, battle_end)
+            defender_state = _snapshot(defender, registry, battle_end)
+            rounds.append({
+                "round": number,
+                "attacker": attacker_state,
+                "defender": defender_state,
+                "casualties": {"attacker": {}, "defender": {}},
+            })
+            cross_wave_boundary = True
+            break
         if wall_runtime_active and wall_sections:
             redistribution = wall_redistribution_plan(
                 wall_sections, scenario.wall_level
