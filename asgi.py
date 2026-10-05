@@ -90,7 +90,7 @@ async def _api_simulate(scope, receive, send) -> None:
         return
 
     if method == "GET":
-        from ikariam_battle import BarbarianRegistry, UnitRegistry
+        from ikariam_battle import BarbarianFleetRegistry, BarbarianRegistry, UnitRegistry
         from ikariam_battle.battlefield import battlefield_metadata
         from ikariam_battle.economy import MilitaryEconomyProfile
         from ikariam_battle.models import Profiles

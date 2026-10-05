@@ -69,6 +69,7 @@ class MilitaryEconomyProfile:
         return sum(
             self.resource_cost_basis_total(unit_id) * int(quantity)
             for unit_id, quantity in casualties.items()
+            if int(quantity) != 0
         )
 
     def score_loss(self, casualties: Mapping[str, int]) -> Decimal:

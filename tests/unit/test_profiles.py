@@ -139,3 +139,11 @@ def test_military_economy_public_exposes_resource_breakdown():
  assert public["mortar"]["general_score"]=="31"
  assert public["doctor"]["resource_cost_basis"]["crystal"]==450
  assert public["cook"]["resource_cost_basis"]["wine"]==150
+
+
+
+def test_military_economy_ignores_zero_quantity_unknown_units():
+ from ikariam_battle.economy import MilitaryEconomyProfile
+ economy=MilitaryEconomyProfile.load()
+ assert economy.resource_cost_basis_loss({"mortar":1,"naval_unknown":0})==1550
+ assert economy.score_loss({"mortar":1,"naval_unknown":0})==31
