@@ -4,7 +4,7 @@ import pytest
 from ikariam_battle import simulate
 from ikariam_battle.battlefield import LAND_BATTLEFIELDS, LAND_MINI, NAVAL_BATTLEFIELDS, deploy
 from ikariam_battle.engine import (
- _cross_wave_rebuild_requirements, _formation_shots, _ir_trigger, _plan_fire, _preflight,
+ _cross_wave_rebuild_requirements, _formation_shots, _healing_status, _ir_trigger, _plan_fire, _preflight,
  _prepare_round_start, _redistribute, _resolve_volleys, _sr_trigger, _target,
 )
 from ikariam_battle.formation import FormationRules
@@ -2911,6 +2911,8 @@ def test_zero_ammo_land_long_range_fills_first_only_and_keeps_excess_in_reserve(
  assert sum(slot.units for slot in front_wave.slots)==12
  assert [slot.damage_position for slot in front_wave.slots if slot.units]==[7]
  assert front_wave.ammo_pool_shots==0
+ assert front_wave.ammo_capacity_shots==ranged.ammo_capacity_shots
+ assert front_wave.ammo_capacity_shots and front_wave.ammo_capacity_shots>0
  assert any(
   event.type=='formation_fallback'
   and event.details.get('rule')=='land_exhausted_long_range_partial_to_first'
@@ -3074,3 +3076,51 @@ def test_same_geometry_garrison_exit_is_recorded_before_independent_cross_wave_b
  if cross_events:
   assert exit_events
   assert exit_events[0]['round'] <= cross_events[0]['round']
+
+
+
+def test_partial_fallback_generated_wave_id_may_match_another_unit_wave_id():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'hoplite','quantity':300,'wave_id':'front'},
+  {'unit_id':'archer','quantity':84,'wave_id':'ranged'},
+  {'unit_id':'mortar','quantity':5,'wave_id':'ranged::front-fallback-r3'},
+ ]}),registry,field)
+ front=next(w for w in waves if w.unit.wave_id=='front')
+ ranged=next(w for w in waves if w.unit.unit_id=='archer')
+ front.reserve=0
+ for slot in front.slots:
+  slot.units=50 if slot.damage_position in {1,2,3,4,5,6} else 0
+ ranged.reserve=0
+ ranged.ammo_pool_shots=0
+ events=[]; applied={}
+ boundary=_prepare_round_start(
+  waves,events,3,'attacker',applied,registry,rules,field
+ )
+ assert boundary is False
+ assert any(
+  w.unit.unit_id=='archer' and w.unit.wave_id=='ranged::front-fallback-r3'
+  for w in waves
+ )
+ assert any(
+  w.unit.unit_id=='mortar' and w.unit.wave_id=='ranged::front-fallback-r3'
+  for w in waves
+ )
+
+
+def test_tender_healing_event_does_not_pollute_doctor_status():
+ scenario_obj=Scenario.from_dict({
+  'policy':'experimental','battlefield':'naval-max','max_rounds':1,
+  'attacker':{'units':[{'unit_id':'steam_ram','quantity':1}]},
+  'defender':{'units':[{'unit_id':'steam_ram','quantity':1}]},
+ })
+ result={'events':[{
+  'type':'healing','side':'attacker',
+  'details':{'support_unit_id':'tender','healing':3500},
+ }]}
+ status=_healing_status(scenario_obj,result,SupportProfile.load())
+ attacker=status['sides']['attacker']
+ assert attacker['doctor_count']==0
+ assert attacker['status']=='not_present'
+ assert attacker['effect_applied'] is False
+ assert attacker['healing_amount']==0

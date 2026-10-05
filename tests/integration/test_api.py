@@ -60,6 +60,7 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
   ('land-medium','land','Land medium / Town Hall 10–16',True),
   ('land-large','land','Land large / Town Hall 17–24',True),
   ('land-max','land','Land max / Town Hall 25+',True),
+  ('naval-max','naval','Naval max / current community geometry',True),
   ('naval-mini','naval','Naval battlefield / geometry pending',False),
  ]
  medium=next(f for f in data['battlefields'] if f['id']=='land-medium')
@@ -837,3 +838,12 @@ def test_round_page_exposes_arrival_boundary_round_and_events():
  assert any(e['type']=='unsupported_mechanic' and e['round']==3
             and e['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD'
             for e in data['events'])
+
+
+
+def test_browser_uses_integer_barbarian_fleet_scaling_and_unavailable_score_label():
+ body=Path('index.html').read_text()
+ assert 'growthBasisPoints' in body
+ assert 'quantity:Math.ceil(Number(row.quantity)*(1+growth*(n-1)))' not in body
+ assert "military.general_score_lost==null?'不可用'" in body
+ assert "military.general_score_destroyed==null?'不可用'" in body

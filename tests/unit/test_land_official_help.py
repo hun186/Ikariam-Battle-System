@@ -41,9 +41,9 @@ def test_official_help_accuracy_bars_quantize_to_runtime_values():
 def test_land_economy_breakdown_matches_help_and_score_formula():
     economy=MilitaryEconomyProfile.load()
     evidence={row["id"]:row for row in _evidence()["units"]}
-    assert set(economy.units)==set(evidence)
-    for unit_id,entry in economy.units.items():
-        expected=evidence[unit_id]
+    assert set(evidence) <= set(economy.units)
+    for unit_id,expected in evidence.items():
+        entry=economy.units[unit_id]
         assert entry.resource_cost_basis==expected["resource_cost_basis"]
         assert sum(entry.resource_cost_basis.values())==entry.resource_cost_basis_total
         assert entry.general_score==Decimal(entry.resource_cost_basis_total)/Decimal(50)

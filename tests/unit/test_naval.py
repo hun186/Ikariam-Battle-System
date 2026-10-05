@@ -87,10 +87,10 @@ def test_naval_front_uses_official_weakest_heavy_first_selection():
     waves = deploy(army, registry, field, "formation-naval")
     fire = next(w for w in waves if w.unit.unit_id == "fire_ship")
     steam = next(w for w in waves if w.unit.unit_id == "steam_ram")
-    # Fire Ship has the weaker primary attack and therefore owns the first
-    # center-priority Front slots before Steam Ram under official Help.
-    assert fire.slots
-    assert min(slot.damage_position for slot in fire.slots) == 1
+    # Official weakest concrete slot-group scoring: 5 Steam Rams × 3320
+    # (16600) is weaker than 12 Fire Ships × 1640 (19680).
+    assert steam.slots
+    assert min(slot.damage_position for slot in steam.slots) == 1
     assert all(
         slot.damage_position not in {s.damage_position for s in fire.slots}
         for slot in steam.slots
@@ -117,6 +117,8 @@ def test_experimental_naval_max_executes_shared_am_damage_engine():
         "defender": {"units": [{"unit_id": "steam_ram", "quantity": 35}]},
     })
     assert result["rounds_completed"] == 1
+    assert result["profiles"]["formation"] == "formation-naval"
+    assert result["profiles"]["targeting"] == "official-help-naval-targeting"
     assert any(e["type"] == "attacking_matrix" for e in result["events"])
     assert any(e["type"] == "damage" for e in result["events"])
     assert "EXP-NAVAL-TARGETING-LAND-ROLE-ANALOGY-001" not in {

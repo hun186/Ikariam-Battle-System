@@ -513,12 +513,17 @@ function army(side){
 function barbarianFleetCompositionForStage(stage){
   const model=metadata?.barbarian_fleet_profile_metadata?.high_level_composition_model;
   if(!model||!Array.isArray(model.base_stage_1))throw Error('尚無可用的野蠻艦隊 50級階數模型。');
-  const n=Math.max(1,Math.trunc(Number(stage)||1)),growth=Number(model.ship_growth_per_stage||0);
-  return model.base_stage_1.map(row=>({
-    unit_id:row.unit_id,
-    sheet_label:row.sheet_label,
-    quantity:Math.ceil(Number(row.quantity)*(1+growth*(n-1))),
-  }));
+  const n=Math.max(1,Math.trunc(Number(stage)||1));
+  const growthBasisPoints=Math.round(Number(model.ship_growth_per_stage||0)*10000);
+  return model.base_stage_1.map(row=>{
+    const base=Math.max(0,Math.trunc(Number(row.quantity)||0));
+    const scaleBasisPoints=10000+growthBasisPoints*(n-1);
+    return {
+      unit_id:row.unit_id,
+      sheet_label:row.sheet_label,
+      quantity:Math.floor((base*scaleBasisPoints+9999)/10000),
+    };
+  });
 }
 function applyBarbarianFleetStageComposition(){
   if(currentDomain()!=='naval'||armyKind('defender')!=='barbarian')throw Error('請先選擇海戰與防守方 Barbarian。');
@@ -1089,9 +1094,11 @@ function summarySide(side,label){
   const tenderText=(tender.tender_count||0)?'Tender '+tender.tender_count+' · '+tenderStatusLabel:'Tender 0 · 未使用';
   const appliedHealing=Number(combat.engine_healing_applied||0);
   const grossHealing=combat.gross_healing==null?'部分未知 · 已套用 '+appliedHealing.toLocaleString():Number(combat.gross_healing||0).toLocaleString();
+  const scoreLost=military.general_score_lost==null?'不可用':'−'+military.general_score_lost;
+  const scoreDestroyed=military.general_score_destroyed==null?'不可用':String(military.general_score_destroyed);
   return '<section class="panel summary-side"><h3>'+label+'</h3><table class="summary-table"><thead><tr><th>兵種</th><th>初始</th><th>損失</th><th>剩餘</th></tr></thead><tbody>'+
     ids.map(id=>{const unit=unitById(id);return '<tr><td>'+esc(unit?.display_name||id)+'</td><td>'+(initial[id]||0)+'</td><td class="loss">−'+(loss[id]||0)+'</td><td>'+(final[id]||0)+'</td></tr>'}).join('')+
-    '</tbody></table><div class="side-stats"><div class="side-stat"><span>軍分損失</span><b>−'+(military.general_score_lost??0)+'</b></div><div class="side-stat"><span>造成軍分消減</span><b>'+(military.general_score_destroyed??0)+'</b></div><div class="side-stat"><span>Gross damage dealt</span><b>'+Number(combat.gross_damage_dealt||0).toLocaleString()+'</b></div><div class="side-stat"><span>Gross damage taken</span><b>'+Number(combat.gross_damage_taken||0).toLocaleString()+'</b></div><div class="side-stat"><span>Healing</span><b>'+grossHealing+'</b></div><div class="side-stat"><span>Doctor / 治療</span><b>'+esc(healingText)+'</b></div><div class="side-stat"><span>Tender / 修護</span><b>'+esc(tenderText)+'</b></div><div class="side-stat"><span>Cook / 士氣</span><b>'+esc(moraleText)+'</b></div></div></section>';
+    '</tbody></table><div class="side-stats"><div class="side-stat"><span>軍分損失</span><b>'+scoreLost+'</b></div><div class="side-stat"><span>造成軍分消減</span><b>'+scoreDestroyed+'</b></div><div class="side-stat"><span>Gross damage dealt</span><b>'+Number(combat.gross_damage_dealt||0).toLocaleString()+'</b></div><div class="side-stat"><span>Gross damage taken</span><b>'+Number(combat.gross_damage_taken||0).toLocaleString()+'</b></div><div class="side-stat"><span>Healing</span><b>'+grossHealing+'</b></div><div class="side-stat"><span>Doctor / 治療</span><b>'+esc(healingText)+'</b></div><div class="side-stat"><span>Tender / 修護</span><b>'+esc(tenderText)+'</b></div><div class="side-stat"><span>Cook / 士氣</span><b>'+esc(moraleText)+'</b></div></div></section>';
 }
 function renderSummary(){
   const aLoss=Object.values(lastResult.casualties.attacker||{}).reduce((a,b)=>a+b,0),dLoss=Object.values(lastResult.casualties.defender||{}).reduce((a,b)=>a+b,0);

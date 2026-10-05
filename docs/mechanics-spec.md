@@ -237,7 +237,7 @@ The Barbarian land registry now preserves multiple official weapons instead of f
 
 Land Long-Range units whose primary ammunition pool reaches zero may fill open First-line slots after ordinary Heavy/Light Front placement. In the promoted First runtime line they use the registry secondary close weapon (for example Archer short sword or Sulphur Carabineer bayonet). This is intentionally distinct from the still-unresolved reactive counterattack trigger while a Long-Range unit remains deployed in Second.
 
-The executable subset now handles both the ordinary whole-wave move and the common partial-fill case. If the whole exhausted Long-Range wave fits, it is promoted and keeps its wave-owned persistent damage for RR. If only part fits and the wave has zero persistent damage, the engine splits a dedicated First-line state segment, fills the available First slots, leaves the remaining exhausted units in Second, and uses the secondary close weapon in First. A partial split carrying persistent damage is still guarded at `UNKNOWN-DAMAGED-PARTIAL-LONG-RANGE-CROSS-LINE-FALLBACK`, because assigning pre-existing damage across the newly separated First/Second state would otherwise invent an RR/damage-ownership rule.
+The executable subset handles both whole-wave and partial First fill. At zero primary ammunition the native Second formation stays empty. If the whole exhausted Long-Range wave fits, it is promoted to First and uses the secondary close weapon. If only part fits, the promoted First segment receives its RR-before-deployment-selection damage share and all excess survivors remain Reserve; they do not return to Second. The original source wave keeps the remaining RR share.
 
 ### 2026-06-25 Hoplite row/P-M calibration probe
 

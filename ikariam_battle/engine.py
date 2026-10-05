@@ -144,10 +144,14 @@ def _snapshot(waves: list[Wave], registry: UnitRegistry, battle_end: BattleEndPr
             "slots": slots, "total": sum(units.values())}
 
 
-def _unsupported(scenario: Scenario, events: list[Event], initial: dict, blockers: list[str], warnings: list[str]) -> dict:
+def _unsupported(
+    scenario: Scenario, events: list[Event], initial: dict,
+    blockers: list[str], warnings: list[str],
+    profiles: dict[str, Any] | None = None,
+) -> dict:
     for rule in blockers:
         _event(events, 0, "preflight", "unsupported_mechanic", None, rule_id=rule)
-    return {"profiles": scenario.profiles.__dict__, "policy": scenario.policy.value, "status": "inconclusive",
+    return {"profiles": profiles or scenario.profiles.__dict__, "policy": scenario.policy.value, "status": "inconclusive",
             "outcome": "inconclusive", "rounds_completed": 0, "casualties": {"attacker": {}, "defender": {}},
             "initial_state": initial, "final_state": initial,
             "rounds": [{"round": 0, **deepcopy(initial), "casualties": {"attacker": {}, "defender": {}}}],
@@ -986,7 +990,10 @@ def _supported_whole_wave_first_fallback(
             wave.reserve_damage = total_damage
 
             promoted_id = f"{wave.unit.wave_id}::front-fallback-r{number}"
-            if any(peer.unit.wave_id == promoted_id for peer in waves):
+            if any(
+                peer.unit.unit_id == unit.id and peer.unit.wave_id == promoted_id
+                for peer in waves
+            ):
                 raise ScenarioError("duplicate partial Long-Range fallback wave id")
             promoted_unit = ArmyUnit(
                 unit.id,
@@ -997,7 +1004,9 @@ def _supported_whole_wave_first_fallback(
                 wave.unit.entry_batch_id,
                 wave.unit.arrival_round,
             )
-            promoted = Wave(promoted_unit, 0, [], 0, 0, 0, 0)
+            promoted = Wave(
+                promoted_unit, 0, [], 0, 0, 0, wave.ammo_capacity_shots
+            )
             remaining_promoted = promote_quantity
             positions_used: list[int] = []
             for position in open_positions:
@@ -2688,6 +2697,9 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         "official-help-naval-targeting"
         if field.domain == "naval" else scenario.profiles.targeting
     )
+    effective_profiles = dict(scenario.profiles.__dict__)
+    effective_profiles["formation"] = formation_profile
+    effective_profiles["targeting"] = targeting_profile
     formation_rules = FormationRules.load(formation_profile)
     battle_end = BattleEndProfile.load(scenario.profiles.battle_end)
     # Validate every scheduled unit and package invariant now, including
@@ -2714,7 +2726,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     warnings = ["Legacy empirical mechanics are being applied to review-supplied current numeric profiles; calibration is required."]
     if field.domain == "naval":
         warnings.append(
-            "Naval-max formation fill order, target priorities, firing order, and whole-wave exhausted Long-range -> Front fallback follow official in-game Help. Remaining naval calibration boundaries are partial multi-line fallback, Tender partial allocation, and kill/redistribution selectors."
+            "Naval-max formation fill order, target priorities, firing order, and exhausted Long-range -> Front fallback follow official in-game Help/current calibration. Remaining naval boundaries include smaller geometries, Tender partial allocation, reactive secondary-weapon triggers, and kill/redistribution selectors."
         )
     if open_field_active:
         warnings.append(
@@ -2766,11 +2778,16 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     if scenario.policy is Policy.STRICT:
         blockers += ["UNKNOWN-KILL-SELECTION", "UNKNOWN-ROUNDING-SELECTOR",
                      "UNKNOWN-ACCURACY", "UNKNOWN-IR-TRIGGER", "UNKNOWN-SR-TRIGGER"]
-        return _unsupported(scenario, events, initial, sorted(set(blockers)), warnings)
+        return _unsupported(
+            scenario, events, initial, sorted(set(blockers)), warnings,
+            effective_profiles,
+        )
     if {"UNKNOWN-MULTIPLE-TARGET-WAVES",
         "UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS",
         "UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT"} & set(blockers):
-        return _unsupported(scenario, events, initial, blockers, warnings)
+        return _unsupported(
+            scenario, events, initial, blockers, warnings, effective_profiles
+        )
     applied: dict[str, dict[str, str]] = {}
     for side, side_blockers in (("attacker", attacker_blockers), ("defender", defender_blockers)):
         if "UNKNOWN-MORALE-SUPPORT" in side_blockers:
@@ -2778,7 +2795,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     if fallback_sides:
         _event(events, 0, "battle_end", "unsupported_mechanic", None,
                rule_id="UNKNOWN-FORMATION-FALLBACK", affected_sides=fallback_sides)
-        return {"profiles":scenario.profiles.__dict__,"policy":scenario.policy.value,"status":"inconclusive",
+        return {"profiles":effective_profiles,"policy":scenario.policy.value,"status":"inconclusive",
                 "outcome":"inconclusive","rounds_completed":0,"casualties":{"attacker":{},"defender":{}},
                 "initial_state":initial,"final_state":initial,
                 "rounds":[{"round":0,**deepcopy(initial),"casualties":{"attacker":{},"defender":{}}}],
@@ -2787,7 +2804,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             and not both_initially_empty_but_pending):
         _event(events, 0, "battle_end", "unsupported_mechanic", None,
                rule_id="UNKNOWN-BOTH-SIDES-NO-MAIN-LINE-OUTCOME")
-        return {"profiles":scenario.profiles.__dict__,"policy":scenario.policy.value,"status":"inconclusive",
+        return {"profiles":effective_profiles,"policy":scenario.policy.value,"status":"inconclusive",
                 "outcome":"inconclusive","rounds_completed":0,"casualties":{"attacker":{},"defender":{}},
                 "initial_state":initial,"final_state":initial,
                 "rounds":[{"round":0,**deepcopy(initial),"casualties":{"attacker":{},"defender":{}}}],
@@ -2817,7 +2834,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         _event(events, 0, "battle_end", "battle_termination", None,
                reason="no_battle_sustaining_units", losing_side=losing,
                surviving_non_sustaining={side: _non_sustaining(state) for side, state in initial.items()})
-        return {"profiles":scenario.profiles.__dict__,"policy":scenario.policy.value,"status":"completed",
+        return {"profiles":effective_profiles,"policy":scenario.policy.value,"status":"completed",
                 "outcome":initial_outcome,"rounds_completed":0,"casualties":{"attacker":{},"defender":{}},
                 "initial_state":initial,"final_state":initial,
                 "rounds":[{"round":0,**deepcopy(initial),"casualties":{"attacker":{},"defender":{}}}],
@@ -3286,7 +3303,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 and not wall_flanks_locked(wall_sections)
             ),
         }
-    return {"profiles":scenario.profiles.__dict__,"policy":scenario.policy.value,"status":"completed" if outcome != "inconclusive" else "inconclusive",
+    return {"profiles":effective_profiles,"policy":scenario.policy.value,"status":"completed" if outcome != "inconclusive" else "inconclusive",
             "outcome":outcome,"rounds_completed":completed,"casualties":{k:dict(v) for k,v in total.items()},
             "initial_state":initial,"final_state":final,"rounds":rounds,"events":[e.as_dict() for e in events],
             "assumptions":list(applied.values()),"warnings":warnings,
@@ -3369,7 +3386,9 @@ def _healing_status(
         doctor_count = sum(unit.quantity for unit in army.units if unit.unit_id == "doctor")
         heal_events = [
             event for event in result.get("events", [])
-            if event.get("type") == "healing" and event.get("side") == side
+            if event.get("type") == "healing"
+            and event.get("side") == side
+            and event.get("details", {}).get("support_unit_id") == "doctor"
         ]
         applied_amount = sum(
             int(event.get("details", {}).get("healing", 0))
