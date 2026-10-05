@@ -22,7 +22,7 @@ from .kill_calibration import (
     MKILL_RULE_ID as SWORDSMAN_MKILL_RULE_ID,
     swordsman_flank_kill_adjustment,
 )
-from .models import Army, Policy, Scenario, ScenarioError, Slot, Wave
+from .models import Army, ArmyUnit, Policy, Scenario, ScenarioError, Slot, Wave
 from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 from .redistribution import SlotShare, reserve_redistribution
 from .target_eligibility import (
@@ -834,14 +834,99 @@ def _supported_whole_wave_first_fallback(
             if position not in occupied
         ]
         required_slots = (total_units + capacity - 1) // capacity
-        if required_slots > len(open_positions):
-            # Supporting this case would split one state wave across First and
-            # its native formation. Keep the existing multi-line evidence/RR
-            # boundary explicit; do not let a later fallback wave leapfrog it.
-            break
-
         source_lines = sorted({slot.line for slot in wave.slots if slot.units})
         total_damage = wave.reserve_damage + sum(slot.damage for slot in wave.slots)
+
+        if required_slots > len(open_positions):
+            # Land Long-Range evidence says empty First slots are filled even
+            # when the exhausted Second formation is larger than the vacancy.
+            # Split only the damage-free subset: this keeps each runtime wave
+            # single-line without inventing how persistent damage/RR should be
+            # partitioned across a newly split state wave.
+            partial_land_long_range = (
+                field.domain == "land"
+                and unit.semantic_class == "long_range"
+                and wave.ammo_pool_shots == 0
+                and total_damage == 0
+                and bool(open_positions)
+            )
+            if not partial_land_long_range:
+                # Damaged partial cross-line placement still needs evidence for
+                # damage ownership/RR across the split and remains guarded.
+                break
+
+            promote_quantity = min(
+                total_units, len(open_positions) * capacity
+            )
+            if promote_quantity <= 0 or promote_quantity >= total_units:
+                raise ScenarioError("invalid partial Long-Range fallback split")
+
+            # Re-pack the surviving native Second formation after removing the
+            # individuals promoted into First. No persistent damage exists in
+            # this exact supported subset.
+            native_remaining = total_units - promote_quantity
+            for slot in sorted(wave.slots, key=lambda item: item.damage_position):
+                slot.units = min(slot.capacity, native_remaining)
+                slot.damage = 0
+                native_remaining -= slot.units
+            wave.reserve = native_remaining
+            wave.reserve_damage = 0
+
+            promoted_id = f"{wave.unit.wave_id}::front-fallback-r{number}"
+            if any(peer.unit.wave_id == promoted_id for peer in waves):
+                raise ScenarioError("duplicate partial Long-Range fallback wave id")
+            promoted_unit = ArmyUnit(
+                unit.id,
+                promote_quantity,
+                promoted_id,
+                wave.unit.attack_upgrade,
+                wave.unit.armor_upgrade,
+                wave.unit.entry_batch_id,
+                wave.unit.arrival_round,
+            )
+            promoted = Wave(
+                promoted_unit, 0, [], 0, 0, 0, 0
+            )
+            remaining_promoted = promote_quantity
+            positions_used: list[int] = []
+            for position in open_positions:
+                if remaining_promoted <= 0:
+                    break
+                previous = first_owners.get(position)
+                if previous is not None:
+                    previous_wave, previous_slot = previous
+                    if previous_slot in previous_wave.slots and not previous_slot.units:
+                        previous_wave.reserve_damage += previous_slot.damage
+                        previous_slot.damage = 0
+                        previous_wave.slots.remove(previous_slot)
+                quantity = min(capacity, remaining_promoted)
+                promoted.slots.append(Slot(
+                    f"first-{position}", "first",
+                    geometry.physical_position(position), position,
+                    unit.id, promoted_id, quantity, capacity,
+                ))
+                occupied.add(position)
+                first_owners[position] = (promoted, promoted.slots[-1])
+                positions_used.append(position)
+                remaining_promoted -= quantity
+            if remaining_promoted:
+                raise ScenarioError("partial Long-Range fallback left promoted reserve")
+            promoted.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
+            waves.append(promoted)
+            _event(
+                events, number, "deploy", "formation_fallback", side,
+                unit_id=unit.id, wave_id=promoted_id,
+                source_wave_id=wave.unit.wave_id,
+                entry_batch_id=wave.unit.batch_id,
+                from_lines=source_lines or [unit.native_line], to_line="first",
+                quantity=promote_quantity, damage_positions=positions_used,
+                rule="land_exhausted_long_range_partial_to_first",
+                primary_ammo_exhausted=True,
+                whole_wave=False,
+                native_remaining=total_units-promote_quantity,
+                damage_partition="exact_zero_persistent_damage_subset",
+            )
+            continue
 
         # The completed previous-round snapshot already owns old slot casualty
         # history. Round-start fallback creates the next formation cleanly.

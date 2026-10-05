@@ -2882,7 +2882,49 @@ def test_land_long_range_with_ammunition_stays_second():
  )
 
 
-def test_partial_exhausted_land_long_range_cross_line_split_remains_guarded():
+def test_damage_free_partial_exhausted_land_long_range_fills_available_first_slot():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'hoplite','quantity':300,'wave_id':'front'},
+  {'unit_id':'sulphur_carabineer','quantity':84,'wave_id':'ranged'},
+ ]}),registry,field)
+ front=next(w for w in waves if w.unit.wave_id=='front')
+ ranged=next(w for w in waves if w.unit.wave_id=='ranged')
+ front.reserve=0
+ for slot in front.slots:
+  slot.units=50 if slot.damage_position in {1,2,3,4,5,6} else 0
+  slot.damage=0
+ ranged.reserve=0
+ for slot in ranged.slots:
+  slot.damage=0
+ ranged.reserve_damage=0
+ ranged.ammo_pool_shots=0
+ events=[]; applied={}
+ _prepare_round_start(waves,events,3,'defender',applied,registry,rules,field)
+ native=[slot for slot in ranged.slots if slot.units]
+ promoted=[
+  wave for wave in waves
+  if wave.unit.wave_id=='ranged::front-fallback-r3'
+ ]
+ assert len(promoted)==1
+ front_wave=promoted[0]
+ assert {slot.line for slot in native}=={'second'}
+ assert sum(slot.units for slot in native)==72
+ assert {slot.line for slot in front_wave.slots if slot.units}=={'first'}
+ assert sum(slot.units for slot in front_wave.slots)==12
+ assert [slot.damage_position for slot in front_wave.slots if slot.units]==[7]
+ assert front_wave.ammo_pool_shots==0
+ assert any(
+  event.type=='formation_fallback'
+  and event.details.get('rule')=='land_exhausted_long_range_partial_to_first'
+  and event.details.get('whole_wave') is False
+  and event.details.get('quantity')==12
+  and event.details.get('native_remaining')==72
+  for event in events
+ )
+
+
+def test_damaged_partial_exhausted_land_long_range_split_remains_guarded():
  registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
  waves=deploy(Army.from_dict({'units':[
   {'unit_id':'hoplite','quantity':300,'wave_id':'front'},
@@ -2895,6 +2937,7 @@ def test_partial_exhausted_land_long_range_cross_line_split_remains_guarded():
   slot.units=50 if slot.damage_position in {1,2,3,4,5,6} else 0
  ranged.reserve=0
  ranged.ammo_pool_shots=0
+ next(slot for slot in ranged.slots if slot.units).damage=10
  events=[]; applied={}
  _prepare_round_start(waves,events,3,'defender',applied,registry,rules,field)
  assert {slot.line for slot in ranged.slots if slot.units}=={'second'}

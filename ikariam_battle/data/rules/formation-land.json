@@ -69,7 +69,7 @@
           "heavy_infantry",
           "light_infantry"
         ],
-        "implementation_status": "WHOLE_WAVE_EXECUTABLE_PARTIAL_CROSS_LINE_GUARDED"
+        "implementation_status": "WHOLE_WAVE_EXECUTABLE_PLUS_DAMAGE_FREE_PARTIAL_SPLIT;DAMAGED_PARTIAL_GUARDED"
       }
     },
     "second": {
@@ -147,6 +147,6 @@
   "unknowns": [
     "UNKNOWN-NON-STANDARD-RENUMBERING",
     "UNKNOWN-SECONDARY-WEAPON-TRIGGER",
-    "UNKNOWN-PARTIAL-LONG-RANGE-CROSS-LINE-FALLBACK"
+    "UNKNOWN-DAMAGED-PARTIAL-LONG-RANGE-CROSS-LINE-FALLBACK"
   ]
 }

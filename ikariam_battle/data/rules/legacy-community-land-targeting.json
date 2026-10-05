@@ -15,13 +15,13 @@
     "weapon_selection": {
       "status": "PARTIAL_KNOWN",
       "exhausted_long_range_first_fallback": {
-        "status": "KNOWN_FOR_WHOLE_WAVE_EXECUTABLE_SUBSET",
-        "rule": "A Second-line Long-Range wave with zero primary ammunition may promote wholly into open First slots and then uses its secondary close weapon.",
+        "status": "KNOWN_FOR_WHOLE_WAVE_AND_DAMAGE_FREE_PARTIAL_SPLIT",
+        "rule": "A Second-line Long-Range wave with zero primary ammunition fills open First slots and uses its secondary close weapon. Whole-wave moves are supported with persistent damage; partial splits are executable when persistent damage is zero.",
         "source_type": "EMPIRICAL_MECHANICS_PAPER",
         "verification": "REPOSITORY_ARTIFACT_PLUS_USER_INTERPRETATION_2026-10-05"
       },
       "blockers": [
-        "UNKNOWN-PARTIAL-LONG-RANGE-CROSS-LINE-FALLBACK",
+        "UNKNOWN-DAMAGED-PARTIAL-LONG-RANGE-CROSS-LINE-FALLBACK",
         "UNKNOWN-SECONDARY-WEAPON-TRIGGER"
       ]
     },
