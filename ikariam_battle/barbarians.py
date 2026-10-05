@@ -105,3 +105,138 @@ class BarbarianRegistry:
 
     def public(self) -> list[dict[str, Any]]:
         return [unit.public() for unit in self.all()]
+
+
+
+@dataclass(frozen=True)
+class BarbarianFleetWeapon:
+    id: str
+    display_name: str
+    damage: int
+    accuracy: int
+    ammunition: int | None
+    trigger: str
+    provenance: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class BarbarianFleetUnit:
+    id: str
+    display_name: str
+    official_class: str
+    semantic_class: str
+    native_line: str
+    unit_class: str
+    equivalent_player_unit: str | None
+    hit_points: int
+    base_armor: int
+    speed: int
+    size: int
+    weapons: tuple[BarbarianFleetWeapon, ...]
+    provenance: dict[str, Any]
+
+    @property
+    def primary_weapon(self) -> BarbarianFleetWeapon:
+        return self.weapons[0]
+
+    def public(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "display_name": self.display_name,
+            "official_class": self.official_class,
+            "domain": "naval",
+            "army_kind": "barbarian",
+            "role": "combat",
+            "support_effect": None,
+            "battlefield_class": self.native_line,
+            "semantic_class": self.semantic_class,
+            "native_line": self.native_line,
+            "unit_class": self.unit_class,
+            "equivalent_player_unit": self.equivalent_player_unit,
+            "hit_points": self.hit_points,
+            "base_armor": self.base_armor,
+            "speed": self.speed,
+            "size": self.size,
+            "damage": self.primary_weapon.damage,
+            "accuracy": self.primary_weapon.accuracy,
+            "ammunition": self.primary_weapon.ammunition,
+            "weapons": [
+                {
+                    "id": weapon.id,
+                    "display_name": weapon.display_name,
+                    "damage": weapon.damage,
+                    "accuracy": weapon.accuracy,
+                    "ammunition": weapon.ammunition,
+                    "trigger": weapon.trigger,
+                }
+                for weapon in self.weapons
+            ],
+            "numerically_supported": True,
+            "counts_toward_garrison_limit": True,
+            "resource_cost_basis_total": 0,
+            "general_score": "0",
+            "selectable_by_player": False,
+            "selectable_in_simulator": True,
+            "simulation_ready": True,
+            "first_appearance_level": None,
+            "last_appearance_level": None,
+            "provenance": self.provenance,
+        }
+
+
+class BarbarianFleetRegistry:
+    def __init__(
+        self,
+        definitions: dict[str, BarbarianFleetUnit],
+        metadata: dict[str, Any],
+    ):
+        self._definitions = definitions
+        self.metadata = metadata
+
+    @classmethod
+    def load(
+        cls, profile: str = "barbarian-fleet-official-help"
+    ) -> "BarbarianFleetRegistry":
+        resource = files("ikariam_battle.data.barbarians").joinpath(
+            f"{profile}.json"
+        )
+        raw = json.loads(resource.read_text(encoding="utf-8"))
+        definitions: dict[str, BarbarianFleetUnit] = {}
+        for row in raw["units"]:
+            weapons = tuple(
+                BarbarianFleetWeapon(
+                    id=weapon["id"],
+                    display_name=weapon["display_name"],
+                    damage=weapon["damage"],
+                    accuracy=weapon["accuracy"],
+                    ammunition=weapon.get("ammunition"),
+                    trigger=weapon["trigger"],
+                    provenance=weapon.get("provenance", {}),
+                )
+                for weapon in row["weapons"]
+            )
+            definitions[row["id"]] = BarbarianFleetUnit(
+                id=row["id"],
+                display_name=row["display_name"],
+                official_class=row["official_class"],
+                semantic_class=row["semantic_class"],
+                native_line=row["native_line"],
+                unit_class=row["unit_class"],
+                equivalent_player_unit=row.get("equivalent_player_unit"),
+                hit_points=row["hp"],
+                base_armor=row["base_armor"],
+                speed=row["speed"],
+                size=row["size"],
+                weapons=weapons,
+                provenance=row["provenance"],
+            )
+        return cls(definitions, raw["metadata"])
+
+    def get(self, unit_id: str) -> BarbarianFleetUnit:
+        return self._definitions[unit_id]
+
+    def all(self) -> tuple[BarbarianFleetUnit, ...]:
+        return tuple(self._definitions[key] for key in sorted(self._definitions))
+
+    def public(self) -> list[dict[str, Any]]:
+        return [unit.public() for unit in self.all()]

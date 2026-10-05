@@ -92,8 +92,8 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
       </section>
     </div>
 
-    <div class="setup-note">預設仍維持最大陸戰戰場與 Player Lv5 熔爐、單純前線，避免一打開就塞滿大量兵力；需要多戰線驗證時可用上方「綜合陸戰」快速設定。Player 防守方可設定市政廳 Lv1–66 與城牆 Lv0–48；駐軍上限 = 250 + 50 × (市政廳 Lv + 城牆 Lv)。Barbarian 防守方可設定村落 Lv1–50；目前 2024 Gameforge 論壇實戰規則為 (村落 Lv + 城牆 Lv + 5) × 50。兩者依 v17.4 排除 Doctor / Cook（海軍則排除 Tender）；守軍數高於上限時先以最大陸戰戰場進行野戰、城牆不出場。當傷亡使守軍回到上限內時，模擬會偵測到應縮回原戰場／城牆重現的 transition；同為 land-max 的 state-only 回復可讓新鮮城牆於下一回合重新出場，跨 geometry 重建仍停在 UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION。Strict 的 active-wall 戰鬥停在 UNKNOWN-TOWN-WALL-COMBAT；Experimental 可執行具名假設下的 Artillery 破牆、破口 First 暴露、Flank lock 與可整除牆傷重分配。每列的 ±一格 由目前戰場的 slot space ÷ unit size 動態計算。Barbarian 套裝固定無 Workshop、無 Forge、無分批進場，軍分為 0；目前兵力數量仍由使用者手動輸入，不會依村落等級自動產生。</div>
-    <details class="barbarian-reference"><summary>野蠻人兵種資料與出現等級（9 種）</summary><div class="barbarian-note">Barbarian Village 陸軍兵種已可作為獨立 Army package 進入模擬；這裡保留來源、數值與首次出現等級參考。若設定 Village Lv，駐軍上限採 2024 Gameforge 論壇的現行社群實戰規則：(Village Lv + Wall Lv + 5) × 50；這不是 Gameforge 官方規格。較舊 guide 的 ≈250 + 75 × Wall 僅保留為歷史近似。完整守軍數量與城牆等級仍不會由 Village Lv 自動生成。</div><div id="barbarianCatalog" class="barbarian-grid"></div></details>
+    <div class="setup-note">預設仍維持最大陸戰戰場與 Player Lv5 熔爐、單純前線，避免一打開就塞滿大量兵力；需要多戰線驗證時可用上方「綜合陸戰」快速設定。Player 防守方可設定市政廳 Lv1–66 與城牆 Lv0–48；駐軍上限 = 250 + 50 × (市政廳 Lv + 城牆 Lv)。Barbarian 防守方可設定村落 Lv1–50；目前 2024 Gameforge 論壇實戰規則為 (村落 Lv + 城牆 Lv + 5) × 50。兩者依 v17.4 排除 Doctor / Cook（海軍則排除 Tender）；守軍數高於上限時先以最大陸戰戰場進行野戰、城牆不出場。當傷亡使守軍回到上限內時，模擬會偵測到應縮回原戰場／城牆重現的 transition；同為 land-max 的 state-only 回復可讓新鮮城牆於下一回合重新出場，跨 geometry 重建仍停在 UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION。Strict 的 active-wall 戰鬥停在 UNKNOWN-TOWN-WALL-COMBAT；Experimental 可執行具名假設下的 Artillery 破牆、破口 First 暴露、Flank lock 與可整除牆傷重分配。每列的 ±一格 由目前戰場的 slot space ÷ unit size 動態計算。Barbarian 套裝固定無 Workshop、無 Forge、無分批進場，軍分為 0；陸軍與艦隊目前兵力數量皆由使用者手動輸入。Naval Barbarian 不使用 Village／Town Hall／Wall 欄位。</div>
+    <details class="barbarian-reference"><summary>野蠻人陸軍與艦隊資料</summary><div class="barbarian-note">Barbarian Village 9 種陸軍與 Barbarian Fleet 10 種海軍都可作為獨立 Army package 進入模擬。艦隊單位數值直接來自 2026-10-05 使用者提供的官方 Help 截圖；Accuracy 由官方紅色條形比例量測並對齊 5% 網格。艦隊目前可手動輸入數量，尚未取得官方 Fleet level → 數量 composition 表，因此不會自動依等級生成。</div><div id="barbarianCatalog" class="barbarian-grid"></div></details>
     <div class="actions"><div class="action-row"><button id="simulate" class="primary" type="button">開始模擬</button><button id="downloadSetup" class="secondary" type="button">下載兵力設定 Debug JSON</button></div><div id="error" class="error" role="alert"></div></div>
   </section>
 
@@ -287,12 +287,21 @@ function unitIconHtml(unit,cssClass=''){
 function renderBarbarianCatalog(){
   const target=document.getElementById('barbarianCatalog'),catalog=[...(metadata?.barbarian_units||[])];
   if(!target)return;
-  catalog.sort((a,b)=>(a.first_appearance_level-b.first_appearance_level)||a.display_name.localeCompare(b.display_name));
+  catalog.sort((a,b)=>(a.domain||'').localeCompare(b.domain||'')||
+    ((a.first_appearance_level??999)-(b.first_appearance_level??999))||
+    a.display_name.localeCompare(b.display_name));
   target.innerHTML=catalog.map(unit=>{
-    const ammo=unit.ammunition==null?'∞/—':unit.ammunition;
-    const stats='HP '+unit.hit_points+' · Armor '+unit.base_armor+' · Dmg '+unit.damage+' · Acc '+unit.accuracy+'% · Ammo '+ammo+' · Size '+unit.size;
-    const levels='Lv'+unit.first_appearance_level+(unit.last_appearance_level?'–'+unit.last_appearance_level:'+');
-    return '<div class="barbarian-card"><div class="unit-icon" aria-hidden="true">'+unitIconHtml(unit,'barbarian-card-icon')+'</div><div><b>'+esc(unit.display_name)+'</b><small>'+esc(lineLabel(unit.native_line))+' · '+levels+'</small><small>'+stats+'</small><small>≈ '+esc(unit.equivalent_player_unit||'custom')+' · 可模擬 · 軍分 0</small></div></div>';
+    const domainLabel=unit.domain==='naval'?'Barbarian Fleet · Official Help':'Barbarian Village';
+    const levels=unit.first_appearance_level==null
+      ?domainLabel
+      :('Lv'+unit.first_appearance_level+(unit.last_appearance_level?'–'+unit.last_appearance_level:'+'));
+    const weaponText=(unit.weapons||[]).map(w=>{
+      const ammo=w.ammunition==null?'∞/—':w.ammunition;
+      return (w.display_name||w.id)+': '+w.damage+' @ '+w.accuracy+'% · Ammo '+ammo;
+    }).join('；');
+    const stats='HP '+unit.hit_points+' · Armor '+unit.base_armor+
+      (unit.speed==null?'':' · Speed '+unit.speed)+' · Size '+unit.size;
+    return '<div class="barbarian-card"><div class="unit-icon" aria-hidden="true">'+unitIconHtml(unit,'barbarian-card-icon')+'</div><div><b>'+esc(unit.display_name)+'</b><small>'+esc(lineLabel(unit.native_line))+' · '+esc(levels)+'</small><small>'+esc(stats)+'</small><small>'+esc(weaponText)+'</small><small>≈ '+esc(unit.equivalent_player_unit||'custom')+' · 可模擬 · 軍分 0</small></div></div>';
   }).join('');
 }
 
@@ -365,7 +374,12 @@ function updateArmyPackageAvailability(){
   for(const side of ['attacker','defender']){
     const select=document.getElementById(side==='attacker'?'aArmyKind':'dArmyKind');
     const barbarian=[...select.options].find(option=>option.value==='barbarian');
-    if(barbarian)barbarian.disabled=domain!=='land';
+    if(barbarian){
+      const hasBarbarianDomain=barbarianUnits.some(
+        unit=>unit.domain===domain&&unit.simulation_ready
+      );
+      barbarian.disabled=!hasBarbarianDomain;
+    }
     if(select.value==='barbarian'&&barbarian?.disabled)select.value='player';
     toggleArmyPackage(side,false);
   }
@@ -383,17 +397,19 @@ function toggleArmyPackage(side,rerender=true){
   if(side==='defender'){
     const townWrap=document.getElementById('defenderTownHallWrap');
     const barbarianWrap=document.getElementById('defenderBarbarianVillageWrap');
-    const isBarbarian=kind==='barbarian';
-    defenderTownHallLevel.disabled=isBarbarian;
-    defenderBarbarianVillageLevel.disabled=!isBarbarian;
-    townWrap.classList.toggle('hidden',isBarbarian);
-    barbarianWrap.classList.toggle('hidden',!isBarbarian);
+    const isLand=currentDomain()==='land',isBarbarian=kind==='barbarian';
+    defenderTownHallLevel.disabled=!isLand||isBarbarian;
+    defenderBarbarianVillageLevel.disabled=!isLand||!isBarbarian;
+    townWrap.classList.toggle('hidden',!isLand||isBarbarian);
+    barbarianWrap.classList.toggle('hidden',!isLand||!isBarbarian);
   }
   if(rerender){renderArmy(side);updateSlotButtons();updateAllUnitStats()}
 }
 function defaultQuantity(unit,side){
-  const defaultId=armyKind(side)==='barbarian'?'barbarian_clubman':'hoplite';
-  if(unit.id!==defaultId)return 0;
+  const defaultId=armyKind(side)==='barbarian'
+    ?(currentDomain()==='land'?'barbarian_clubman':null)
+    :'hoplite';
+  if(!defaultId||unit.id!==defaultId)return 0;
   const field=currentField(),line=field?.lines?.first;
   return line&&unit.size?line.physical_order.length*Math.floor(line.slot_space/unit.size):0;
 }
@@ -493,10 +509,11 @@ function setupConfigurationFromUi(){
   if(!metadata)throw Error('模擬器資料尚未載入完成。');
   const submittedBattlefield=battlefield.value,field=currentField();
   if(!field?.supported)throw Error('目前選擇的戰場尚未開放執行。');
+  const isLand=field.domain==='land';
   return {setup_version:1,policy:policy.value,battlefield:submittedBattlefield,max_rounds:+maxRounds.value,
-    wall_level:Math.max(0,Math.trunc(+defenderWallLevel.value||0)),
-    town_hall_level:armyKind('defender')==='player'?Math.max(1,Math.trunc(+defenderTownHallLevel.value||1)):null,
-    barbarian_village_level:armyKind('defender')==='barbarian'?Math.max(1,Math.trunc(+defenderBarbarianVillageLevel.value||1)):null,
+    wall_level:isLand?Math.max(0,Math.trunc(+defenderWallLevel.value||0)):0,
+    town_hall_level:isLand&&armyKind('defender')==='player'?Math.max(1,Math.trunc(+defenderTownHallLevel.value||1)):null,
+    barbarian_village_level:isLand&&armyKind('defender')==='barbarian'?Math.max(1,Math.trunc(+defenderBarbarianVillageLevel.value||1)):null,
     attacker:army('attacker'),defender:army('defender')};
 }
 function scenarioFromSetup(){

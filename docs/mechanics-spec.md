@@ -179,3 +179,23 @@ The first exact decomposition is intentionally narrow. A full max-field Mortar f
 ### Barbarian Fleet official-Help retrieval status
 
 The live game still contains **Help → Barbarians → Barbarian Fleet**; a 2026 Gameforge localization-feedback thread explicitly references that page, and Gameforge forum guidance directs players there for the fleet explanation. The public web index does not expose the page's complete fleet-composition/stat table, so the repository does not promote community-wiki fleet rows to official evidence. Public historical patch material confirms that Barbarian Fleet level and loot depend on the player's largest Barbarian Village and that the fleet is a private PvE encounter. A community mirror contains partial level/composition rows, but these remain research leads until the in-game Help table itself is captured or otherwise verified.
+
+
+## Barbarian Fleet — official Help unit catalog (2026-10-05)
+
+Ten Barbarian Fleet unit pages were supplied as screenshots from the official in-game Help. They are now a simulation-ready manual-quantity Barbarian naval package. The screenshots directly establish class, HP, armour, speed, size, weapon damage and ammunition. Accuracy is shown graphically; the red-bar fill lengths align exactly to a 5% grid and are recorded as visual official-Help measurements.
+
+| Unit | Class | HP | Armor | Speed | Size | Weapons |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| Deckwrecker | Light Battleship | 3080 | 240 | 40 | 3 | Hull 1500 @ 80% |
+| Sail Shredder | Long-Range Fighter | 3080 | 280 | 40 | 2 | Huge Stone 800 @ 50% ×7; Ram 1020 @ 70% |
+| Pyroboat | Heavy Battleship | 4380 | 220 | 40 | 2 | Flame Thrower 1640 @ 50% |
+| Boulder Catapult | Long-Range Fighter | 2960 | 200 | 40 | 3 | Circular Saw 900 @ 25% ×8; Ram 620 @ 70% |
+| Wedge Paddler | Heavy Battleship | 11520 | 400 | 40 | 4 | Reinforced Hull 3320 @ 95% |
+| Powder Pitcher | Long-Range Fighter | 3080 | 120 | 30 | 4 | Powder Keg 1500 @ 5% ×11; Hull 740 @ 50% |
+| Terror of the Deep | First Strike | 1600 | 120 | 40 | 3 | Underwater Bomb 2800 @ 80% ×6; Hull 2000 @ 75% |
+| Dragonfire | First Strike | 2200 | 180 | 30 | 4 | Rocket 7000 @ 20% ×3; Hull 600 @ 80% |
+| Dirigible Igniter | Carrier Ship Evasion | 400 | 60 | 60 | 1 | Flying Firecrackers 340 @ 95% ×5 |
+| Barbarian Nest | Carrier Ship | 2800 | 100 | 20 | 5 | Dirigible Attack 2000 @ 50% ×5 |
+
+For Long-Range and First-Strike units the finite-ammunition weapon is stored as the simulator primary weapon for the native formation, while the Help-listed Hull/Ram weapon is stored as the secondary/fallback weapon. This preserves the official formation semantics and allows exhausted Long-Range ships to reuse the verified Front fallback. The screenshots do not contain Fleet level-to-quantity compositions, so automatic fleet generation remains disabled until that official table is captured.

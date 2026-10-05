@@ -208,3 +208,31 @@ def test_naval_front_fallback_preserves_light_before_exhausted_long_range():
     ram_first=min(slot.damage_position for slot in ram.slots if slot.line=="first")
     mortar_first=min(slot.damage_position for slot in mortar.slots if slot.line=="first")
     assert ram_first < mortar_first
+
+
+
+def test_barbarian_fleet_can_execute_manual_naval_max_battle():
+    result = simulate({
+        "policy": "experimental",
+        "battlefield": "naval-max",
+        "max_rounds": 1,
+        "attacker": {
+            "army_kind": "barbarian",
+            "forge_level": 0,
+            "units": [
+                {"unit_id": "barbarian_wedge_paddler", "quantity": 28,
+                 "entry_batch_id": "barb-a", "wave_id": "barb-a::wedge"}
+            ],
+        },
+        "defender": {
+            "army_kind": "barbarian",
+            "forge_level": 0,
+            "units": [
+                {"unit_id": "barbarian_pyroboat", "quantity": 84,
+                 "entry_batch_id": "barb-d", "wave_id": "barb-d::pyro"}
+            ],
+        },
+    })
+    assert result["rounds_completed"] == 1
+    assert "barbarian_wedge_paddler" in result["initial_state"]["attacker"]["remaining"]
+    assert "barbarian_pyroboat" in result["initial_state"]["defender"]["remaining"]

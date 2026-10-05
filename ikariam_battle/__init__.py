@@ -2,6 +2,13 @@
 from .engine import simulate
 from .models import Scenario, ScenarioError
 from .units import UnitRegistry
-from .barbarians import BarbarianRegistry
+from .barbarians import BarbarianFleetRegistry, BarbarianRegistry
 
-__all__ = ["BarbarianRegistry", "Scenario", "ScenarioError", "UnitRegistry", "simulate"]
+__all__ = [
+    "BarbarianFleetRegistry",
+    "BarbarianRegistry",
+    "Scenario",
+    "ScenarioError",
+    "UnitRegistry",
+    "simulate",
+]

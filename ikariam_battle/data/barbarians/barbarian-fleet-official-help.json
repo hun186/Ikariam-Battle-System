@@ -1,0 +1,617 @@
+{
+  "metadata": {
+    "profile": "barbarian-fleet-official-help",
+    "scope": "Barbarian Fleet naval units from official in-game Help",
+    "captured_date": "2026-10-05",
+    "verification_status": "USER_SUPPLIED_OFFICIAL_HELP_SCREENSHOTS",
+    "simulation_status": "NAVAL_COMBAT_READY_MANUAL_QUANTITIES",
+    "selectable_by_player": false,
+    "selectable_in_simulator": true,
+    "composition_status": "LEVEL_TO_QUANTITY_TABLE_NOT_YET_CAPTURED",
+    "cautions": [
+      "These ten unit stat pages are official Help evidence for unit classes and numeric combat stats.",
+      "Accuracy values are derived from the official graphical accuracy bars; each observed fill aligns to a 5% grid.",
+      "The screenshots do not contain Barbarian Fleet level-to-quantity composition, so the simulator accepts manual quantities and does not auto-generate a fleet by level.",
+      "Barbarian Fleet units use no player Workshop or Forge upgrades and contribute zero General Score in simulator accounting."
+    ],
+    "sources": [
+      {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+        "id": "GF_HELP_DECKWRECKER",
+        "file_name": "image(20261005-030555).png",
+        "unit": "Deckwrecker"
+      },
+      {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+        "id": "GF_HELP_SAIL_SHREDDER",
+        "file_name": "image(20261005-030617).png",
+        "unit": "Sail Shredder"
+      },
+      {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+        "id": "GF_HELP_PYROBOAT",
+        "file_name": "image(20261005-030620).png",
+        "unit": "Pyroboat"
+      },
+      {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+        "id": "GF_HELP_BOULDER_CATAPULT",
+        "file_name": "image(20261005-030634).png",
+        "unit": "Boulder Catapult"
+      },
+      {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+        "id": "GF_HELP_WEDGE_PADDLER",
+        "file_name": "image(20261005-030646).png",
+        "unit": "Wedge Paddler"
+      },
+      {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+        "id": "GF_HELP_POWDER_PITCHER",
+        "file_name": "image(20261005-030704).png",
+        "unit": "Powder Pitcher"
+      },
+      {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+        "id": "GF_HELP_TERROR_DEEP",
+        "file_name": "image(20261005-030717).png",
+        "unit": "Terror of the Deep"
+      },
+      {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+        "id": "GF_HELP_DRAGONFIRE",
+        "file_name": "image(20261005-030735).png",
+        "unit": "Dragonfire"
+      },
+      {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+        "id": "GF_HELP_DIRIGIBLE_IGNITER",
+        "file_name": "image(20261005-030746).png",
+        "unit": "Dirigible Igniter"
+      },
+      {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+        "id": "GF_HELP_BARBARIAN_NEST",
+        "file_name": "image(20261005-030758).png",
+        "unit": "Barbarian Nest"
+      }
+    ]
+  },
+  "units": [
+    {
+      "id": "barbarian_deckwrecker",
+      "display_name": "Deckwrecker",
+      "official_class": "Light Battleship",
+      "semantic_class": "light_infantry",
+      "native_line": "flank",
+      "unit_class": "machine",
+      "equivalent_player_unit": "ram_ship",
+      "hp": 3080,
+      "base_armor": 240,
+      "speed": 40,
+      "size": 3,
+      "weapons": [
+        {
+          "id": "hull",
+          "display_name": "Hull",
+          "damage": 1500,
+          "accuracy": 80,
+          "ammunition": null,
+          "trigger": "primary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+            "fields": [
+              "damage",
+              "accuracy",
+              "ammunition"
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+        "source_id": "GF_HELP_DECKWRECKER"
+      }
+    },
+    {
+      "id": "barbarian_sail_shredder",
+      "display_name": "Sail Shredder",
+      "official_class": "Long-Range Fighter",
+      "semantic_class": "long_range",
+      "native_line": "second",
+      "unit_class": "machine",
+      "equivalent_player_unit": "ballista_ship",
+      "hp": 3080,
+      "base_armor": 280,
+      "speed": 40,
+      "size": 2,
+      "weapons": [
+        {
+          "id": "huge_stone",
+          "display_name": "Huge Stone",
+          "damage": 800,
+          "accuracy": 50,
+          "ammunition": 7,
+          "trigger": "primary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+            "fields": [
+              "damage",
+              "accuracy",
+              "ammunition"
+            ]
+          }
+        },
+        {
+          "id": "ram",
+          "display_name": "Ram",
+          "damage": 1020,
+          "accuracy": 70,
+          "ammunition": null,
+          "trigger": "secondary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+            "fields": [
+              "damage",
+              "accuracy",
+              "ammunition"
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+        "source_id": "GF_HELP_SAIL_SHREDDER"
+      }
+    },
+    {
+      "id": "barbarian_pyroboat",
+      "display_name": "Pyroboat",
+      "official_class": "Heavy Battleship",
+      "semantic_class": "heavy_infantry",
+      "native_line": "first",
+      "unit_class": "machine",
+      "equivalent_player_unit": "fire_ship",
+      "hp": 4380,
+      "base_armor": 220,
+      "speed": 40,
+      "size": 2,
+      "weapons": [
+        {
+          "id": "flame_thrower",
+          "display_name": "Flame Thrower",
+          "damage": 1640,
+          "accuracy": 50,
+          "ammunition": null,
+          "trigger": "primary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+            "fields": [
+              "damage",
+              "accuracy",
+              "ammunition"
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+        "source_id": "GF_HELP_PYROBOAT"
+      }
+    },
+    {
+      "id": "barbarian_boulder_catapult",
+      "display_name": "Boulder Catapult",
+      "official_class": "Long-Range Fighter",
+      "semantic_class": "long_range",
+      "native_line": "second",
+      "unit_class": "machine",
+      "equivalent_player_unit": "catapult_ship",
+      "hp": 2960,
+      "base_armor": 200,
+      "speed": 40,
+      "size": 3,
+      "weapons": [
+        {
+          "id": "circular_saw",
+          "display_name": "Circular Saw",
+          "damage": 900,
+          "accuracy": 25,
+          "ammunition": 8,
+          "trigger": "primary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+            "fields": [
+              "damage",
+              "accuracy",
+              "ammunition"
+            ]
+          }
+        },
+        {
+          "id": "ram",
+          "display_name": "Ram",
+          "damage": 620,
+          "accuracy": 70,
+          "ammunition": null,
+          "trigger": "secondary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+            "fields": [
+              "damage",
+              "accuracy",
+              "ammunition"
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+        "source_id": "GF_HELP_BOULDER_CATAPULT"
+      }
+    },
+    {
+      "id": "barbarian_wedge_paddler",
+      "display_name": "Wedge Paddler",
+      "official_class": "Heavy Battleship",
+      "semantic_class": "heavy_infantry",
+      "native_line": "first",
+      "unit_class": "machine",
+      "equivalent_player_unit": "steam_ram",
+      "hp": 11520,
+      "base_armor": 400,
+      "speed": 40,
+      "size": 4,
+      "weapons": [
+        {
+          "id": "reinforced_hull",
+          "display_name": "Reinforced Hull",
+          "damage": 3320,
+          "accuracy": 95,
+          "ammunition": null,
+          "trigger": "primary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+            "fields": [
+              "damage",
+              "accuracy",
+              "ammunition"
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+        "source_id": "GF_HELP_WEDGE_PADDLER"
+      }
+    },
+    {
+      "id": "barbarian_powder_pitcher",
+      "display_name": "Powder Pitcher",
+      "official_class": "Long-Range Fighter",
+      "semantic_class": "long_range",
+      "native_line": "second",
+      "unit_class": "machine",
+      "equivalent_player_unit": "mortar_ship",
+      "hp": 3080,
+      "base_armor": 120,
+      "speed": 30,
+      "size": 4,
+      "weapons": [
+        {
+          "id": "powder_keg",
+          "display_name": "Powder Keg",
+          "damage": 1500,
+          "accuracy": 5,
+          "ammunition": 11,
+          "trigger": "primary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+            "fields": [
+              "damage",
+              "accuracy",
+              "ammunition"
+            ]
+          }
+        },
+        {
+          "id": "hull",
+          "display_name": "Hull",
+          "damage": 740,
+          "accuracy": 50,
+          "ammunition": null,
+          "trigger": "secondary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+            "fields": [
+              "damage",
+              "accuracy",
+              "ammunition"
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+        "source_id": "GF_HELP_POWDER_PITCHER"
+      }
+    },
+    {
+      "id": "barbarian_terror_of_the_deep",
+      "display_name": "Terror of the Deep",
+      "official_class": "First Strike",
+      "semantic_class": "artillery",
+      "native_line": "third",
+      "unit_class": "machine",
+      "equivalent_player_unit": "diving_boat",
+      "hp": 1600,
+      "base_armor": 120,
+      "speed": 40,
+      "size": 3,
+      "weapons": [
+        {
+          "id": "underwater_bomb",
+          "display_name": "Underwater Bomb",
+          "damage": 2800,
+          "accuracy": 80,
+          "ammunition": 6,
+          "trigger": "primary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+            "fields": [
+              "damage",
+              "accuracy",
+              "ammunition"
+            ]
+          }
+        },
+        {
+          "id": "hull",
+          "display_name": "Hull",
+          "damage": 2000,
+          "accuracy": 75,
+          "ammunition": null,
+          "trigger": "secondary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+            "fields": [
+              "damage",
+              "accuracy",
+              "ammunition"
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+        "source_id": "GF_HELP_TERROR_DEEP"
+      }
+    },
+    {
+      "id": "barbarian_dragonfire",
+      "display_name": "Dragonfire",
+      "official_class": "First Strike",
+      "semantic_class": "artillery",
+      "native_line": "third",
+      "unit_class": "machine",
+      "equivalent_player_unit": "rocket_ship",
+      "hp": 2200,
+      "base_armor": 180,
+      "speed": 30,
+      "size": 4,
+      "weapons": [
+        {
+          "id": "rocket",
+          "display_name": "Rocket",
+          "damage": 7000,
+          "accuracy": 20,
+          "ammunition": 3,
+          "trigger": "primary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+            "fields": [
+              "damage",
+              "accuracy",
+              "ammunition"
+            ]
+          }
+        },
+        {
+          "id": "hull",
+          "display_name": "Hull",
+          "damage": 600,
+          "accuracy": 80,
+          "ammunition": null,
+          "trigger": "secondary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+            "fields": [
+              "damage",
+              "accuracy",
+              "ammunition"
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+        "source_id": "GF_HELP_DRAGONFIRE"
+      }
+    },
+    {
+      "id": "barbarian_dirigible_igniter",
+      "display_name": "Dirigible Igniter",
+      "official_class": "Carrier Ship Evasion",
+      "semantic_class": "air",
+      "native_line": "anti-balloon",
+      "unit_class": "machine",
+      "equivalent_player_unit": "paddle_speedboat",
+      "hp": 400,
+      "base_armor": 60,
+      "speed": 60,
+      "size": 1,
+      "weapons": [
+        {
+          "id": "flying_firecrackers",
+          "display_name": "Flying Firecrackers",
+          "damage": 340,
+          "accuracy": 95,
+          "ammunition": 5,
+          "trigger": "primary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+            "fields": [
+              "damage",
+              "accuracy",
+              "ammunition"
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+        "source_id": "GF_HELP_DIRIGIBLE_IGNITER"
+      }
+    },
+    {
+      "id": "barbarian_nest",
+      "display_name": "Barbarian Nest",
+      "official_class": "Carrier Ship",
+      "semantic_class": "air",
+      "native_line": "balloon",
+      "unit_class": "machine",
+      "equivalent_player_unit": "balloon_carrier",
+      "hp": 2800,
+      "base_armor": 100,
+      "speed": 20,
+      "size": 5,
+      "weapons": [
+        {
+          "id": "dirigible_attack",
+          "display_name": "Dirigible Attack",
+          "damage": 2000,
+          "accuracy": 50,
+          "ammunition": 5,
+          "trigger": "primary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+            "fields": [
+              "damage",
+              "accuracy",
+              "ammunition"
+            ]
+          }
+        }
+      ],
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "accuracy_method": "Measured official red Accuracy bar fill ratio and snapped to the exact 5% grid shown by the screenshots.",
+        "source_id": "GF_HELP_BARBARIAN_NEST"
+      }
+    }
+  ]
+}

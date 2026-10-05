@@ -97,6 +97,7 @@ async def _api_simulate(scope, receive, send) -> None:
         from ikariam_battle.profiles import ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
         registry = UnitRegistry.load()
         barbarians = BarbarianRegistry.load()
+        barbarian_fleet = BarbarianFleetRegistry.load()
         economy = MilitaryEconomyProfile.load()
         economy_units = economy.public()
         units = registry.public()
@@ -117,7 +118,10 @@ async def _api_simulate(scope, receive, send) -> None:
             "town_wall":wall_profile_metadata(),
             "garrison":garrison_profile_metadata(),
             "profile_metadata":registry.metadata,"economy_metadata":economy.metadata,"units":units,
-            "barbarian_profile_metadata":barbarians.metadata,"barbarian_units":barbarians.public(),
+            "barbarian_profile_metadata":barbarians.metadata,
+            "barbarian_fleet_profile_metadata":barbarian_fleet.metadata,
+            "barbarian_units":barbarians.public()+barbarian_fleet.public(),
+            "barbarian_fleet_units":barbarian_fleet.public(),
             "forge_levels":{str(k):{"damage_multiplier":str(v.damage_multiplier),"armor_bonus":v.armor_bonus}
                             for k,v in ForgeProfile.load().levels.items()},
             "workshop_increments":{"land":WorkshopProfile.load().land_increment,
