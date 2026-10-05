@@ -94,7 +94,9 @@ def test_workshop_forge_support_and_targeting_profiles():
  assert t.metadata['target_eligibility_contract']['status']=='KNOWN_FOR_EFFECTIVE_ATK_VS_DEF'
  assert 'strictly greater' in t.metadata['target_eligibility_contract']['rule']
  assert t.metadata['wall_targeting_contract']['status']=='STRICT_GUARDED_EXPERIMENTAL_EXECUTABLE'
- assert t.metadata['weapon_selection']['status']=='UNKNOWN'
+ assert t.metadata['weapon_selection']['status']=='PARTIAL_KNOWN'
+ assert t.metadata['weapon_selection']['exhausted_long_range_first_fallback']['status']=='KNOWN_FOR_WHOLE_WAVE_AND_PARTIAL_SPLIT_WITH_RR'
+ assert t.metadata['weapon_selection']['blockers']==['UNKNOWN-SECONDARY-WEAPON-TRIGGER']
  b=BattleEndProfile.load()
  assert b.main_line_classes=={'first'} and b.fallback_candidate_classes=={'flank','second'}
  assert b.continuation_state(1,7) is ContinuationState.SUSTAINING
