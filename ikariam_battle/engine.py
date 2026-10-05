@@ -3081,6 +3081,37 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         rounds.append({"round":number,"attacker":attacker_state,"defender":defender_state,
                        "casualties":{"attacker":dict(a_dead),"defender":dict(d_dead)}})
 
+        # Same-geometry open-field exit is a supported state-only change.
+        # Apply it before any independent cross-wave boundary can stop the
+        # round, so the garrison transition/wall re-entry is not lost merely
+        # because another formation also needs an unsupported rebuild.
+        if (
+            garrison_limit is not None
+            and open_field_active
+            and scenario.battlefield == "land-max"
+        ):
+            counted_defenders = counted_live_waves(defender, registry)
+            if counted_defenders <= garrison_limit:
+                wall_reappears = bool(scenario.wall_level)
+                open_field_active = False
+                if wall_reappears:
+                    wall_runtime_active = True
+                    wall_sections = initial_wall_sections(
+                        scenario.wall_level, field
+                    )
+                _event(
+                    events, number, "round_end", "garrison_state_change", "defender",
+                    direction="exit_open_field",
+                    counted_defenders=counted_defenders,
+                    garrison_limit=garrison_limit,
+                    battlefield="land-max",
+                    wall_reappears=wall_reappears,
+                    wall_state=(
+                        "fresh_intact_sections"
+                        if wall_reappears else "not_present"
+                    ),
+                )
+
         # Combat itself can create the first real vacancy that requires a
         # different reserve-only wave to enter. Recheck before any continuation
         # or termination decision so an unimplemented cross-wave replacement
@@ -3131,41 +3162,6 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 scenario.defender, number, registry, battle_end),
         }
 
-        # A same-geometry open-field exit is a state-only transition: no slot
-        # remap is required on land-max. Apply it before termination so a fresh
-        # active wall can sustain the defender even when the last First-line
-        # unit died in this same round. Geometry-changing exits remain guarded
-        # later and do not override an already terminal battle.
-        if (
-            garrison_limit is not None
-            and open_field_active
-            and scenario.battlefield == "land-max"
-        ):
-            counted_defenders = counted_live_waves(defender, registry)
-            if counted_defenders <= garrison_limit:
-                wall_reappears = bool(scenario.wall_level)
-                open_field_active = False
-                if wall_reappears:
-                    wall_runtime_active = True
-                    wall_sections = initial_wall_sections(
-                        scenario.wall_level, field
-                    )
-                    states["defender"] = ContinuationState.SUSTAINING.value
-                    effective_defender_state["continuation_state"] = (
-                        ContinuationState.SUSTAINING.value
-                    )
-                _event(
-                    events, number, "round_end", "garrison_state_change", "defender",
-                    direction="exit_open_field",
-                    counted_defenders=counted_defenders,
-                    garrison_limit=garrison_limit,
-                    battlefield="land-max",
-                    wall_reappears=wall_reappears,
-                    wall_state=(
-                        "fresh_intact_sections"
-                        if wall_reappears else "not_present"
-                    ),
-                )
         if all(state == ContinuationState.NOT_SUSTAINING.value for state in states.values()):
             if not engagement_started and any(pending_now.values()):
                 _event(events, number, "battle_start", "waiting_for_arrival", None,

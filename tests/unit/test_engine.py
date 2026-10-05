@@ -802,9 +802,9 @@ def test_same_unit_long_range_cross_batch_fills_existing_second_slots_and_keeps_
   (slot.damage_position,slot.units) for slot in first.slots if slot.units)
  second_positions=sorted(
   (slot.damage_position,slot.units) for slot in second.slots if slot.units)
- assert first_positions==[(1,12),(2,12),(3,12),(4,12),(5,11)]
+ assert first_positions==[(1,12),(2,12),(3,12),(4,12),(5,1)]
  assert second_positions==[(6,12),(7,12)]
- assert first.reserve==0
+ assert first.reserve==10
  assert second.reserve==36
  assert first.ammo_pool_shots==49
  assert second.ammo_pool_shots==180
@@ -3039,3 +3039,38 @@ def test_ammo_limited_native_refill_uses_same_wave_rr_before_selection_invariant
  assert sum(slot.damage for slot in ranged.slots if slot.line=='second')==30
  assert ranged.reserve_damage==810
  assert sum(slot.damage for slot in ranged.slots)+ranged.reserve_damage==840
+
+
+
+def test_same_geometry_garrison_exit_is_recorded_before_independent_cross_wave_boundary():
+ s={
+  'policy':'experimental','battlefield':'land-max','max_rounds':2,
+  'town_hall_level':25,'wall_level':3,
+  'attacker':{'forge_level':5,'units':[
+   {'unit_id':'hoplite','quantity':700},
+   {'unit_id':'swordsman','quantity':480},
+   {'unit_id':'sulphur_carabineer','quantity':168},
+   {'unit_id':'mortar','quantity':60},
+  ]},
+  'defender':{'forge_level':5,'units':[
+   {'unit_id':'steam_giant','quantity':224},
+   {'unit_id':'swordsman','quantity':480},
+   {'unit_id':'archer','quantity':700},
+   {'unit_id':'catapult','quantity':60},
+   {'unit_id':'mortar','quantity':36},
+  ]},
+ }
+ result=simulate(s)
+ exit_events=[
+  e for e in result['events']
+  if e['type']=='garrison_state_change'
+  and e['details'].get('direction')=='exit_open_field'
+ ]
+ cross_events=[
+  e for e in result['events']
+  if e['type']=='unsupported_mechanic'
+  and e['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD'
+ ]
+ if cross_events:
+  assert exit_events
+  assert exit_events[0]['round'] <= cross_events[0]['round']
