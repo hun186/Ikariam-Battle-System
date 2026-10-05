@@ -44,6 +44,9 @@ def test_barbarian_metadata_contract_is_documented():
  assert 'remain outside the player `units` collection' in contract
  assert 'army_kind = player|barbarian' in contract
  assert 'no mixing with player unit IDs on the same side' in contract
+ assert '`naval-max` allows the same package pairings' in contract
+ assert 'the smaller/reserved `naval-mini` geometry remains unsupported' in contract
+ assert 'naval battlefield geometry remain outside the executable contract' not in contract
 
 def test_get_metadata_drives_complete_land_ui_and_profiles():
  response=asyncio.run(request('GET','/api/simulate')); data=json.loads(response[1]['body'])
