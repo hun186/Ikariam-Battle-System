@@ -2473,7 +2473,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     warnings = ["Legacy empirical mechanics are being applied to review-supplied current numeric profiles; calibration is required."]
     if field.domain == "naval":
         warnings.append(
-            "Naval-max formation fill order, target priorities, and firing order follow official in-game Help. Remaining naval calibration boundaries are depleted long-range fallback to Front, Tender partial allocation, and kill/redistribution selectors."
+            "Naval-max formation fill order, target priorities, firing order, and whole-wave exhausted Long-range -> Front fallback follow official in-game Help. Remaining naval calibration boundaries are partial multi-line fallback, Tender partial allocation, and kill/redistribution selectors."
         )
     if open_field_active:
         warnings.append(

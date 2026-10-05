@@ -178,7 +178,7 @@ The first exact decomposition is intentionally narrow. A full max-field Mortar f
 
 ### Barbarian Fleet official-Help retrieval status
 
-The live game still contains **Help → Barbarians → Barbarian Fleet**; a 2026 Gameforge localization-feedback thread explicitly references that page, and Gameforge forum guidance directs players there for the fleet explanation. The public web index does not expose the page's complete fleet-composition/stat table, so the repository does not promote community-wiki fleet rows to official evidence. Public historical patch material confirms that Barbarian Fleet level and loot depend on the player's largest Barbarian Village and that the fleet is a private PvE encounter. A community mirror contains partial level/composition rows, but these remain research leads until the in-game Help table itself is captured or otherwise verified.
+The live game contains **Help → Barbarians → Barbarian Fleet**. On 2026-10-05 the user supplied official in-game Help screenshots for all ten Barbarian Fleet unit stat pages, so unit classes and combat stats are now first-party evidence and are encoded in `barbarian-fleet-official-help.json`. What is still missing is the separate **Fleet level → unit quantity composition** table. Community mirrors may be used only as research leads for that composition until the official Help level table is captured or otherwise verified.
 
 
 ## Barbarian Fleet — official Help unit catalog (2026-10-05)
