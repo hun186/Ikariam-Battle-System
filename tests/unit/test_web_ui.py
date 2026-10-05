@@ -34,4 +34,7 @@ def test_barbarian_fleet_stage_control_uses_linear_stage1_scaling():
     assert 'id="defenderBarbarianFleetStage"' in INDEX
     assert 'id="applyBarbarianFleetStage"' in INDEX
     assert 'function barbarianFleetCompositionForStage(stage)' in INDEX
-    assert "Math.ceil(Number(row.quantity)*(1+growth*(n-1)))" in INDEX
+    assert "growthBasisPoints" in INDEX
+    assert "scaleBasisPoints=10000+growthBasisPoints*(n-1)" in INDEX
+    assert "quantity:Math.floor((base*scaleBasisPoints+9999)/10000)" in INDEX
+    assert "Math.ceil(Number(row.quantity)*(1+growth*(n-1)))" not in INDEX
