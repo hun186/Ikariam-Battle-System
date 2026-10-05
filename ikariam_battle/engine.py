@@ -60,6 +60,7 @@ EXPERIMENTAL_POLICIES = {
     EXPERIMENTAL_ACCURACY_MODEL_ID: "Use weapon Accuracy as a deterministic within-slot concentration threshold: one-shot-capable hits never miss; otherwise spread to healthier survivors until the most-damaged survivor remaining-HP% is <= Accuracy, then focus it.",
     "EXP-BATTLE-END-ROUND-BOUNDARY-001": "Evaluate battle-sustaining forces at the initial and completed-round boundaries.",
     "EXP-HEAL-NONE-001": "When Doctor capacity cannot clear all eligible Human persistent damage at a round boundary, do not apply partial healing because allocation and exact Healing/RR ordering are unresolved.",
+    "EXP-TENDER-HEAL-NONE-001": "When Tender capacity cannot clear all eligible naval persistent damage at a round boundary, do not apply partial repair because allocation and exact Healing/RR ordering are unresolved.",
     "EXP-MORALE-NONE-001": "Cook morale is not applied because the current morale algorithm is unresolved.",
     "EXP-WALL-FOCUS-DAMAGE-PRIORITY-001": "When eligible Artillery attacks an active Town Wall, concentrate successful hits on the lowest surviving wall damage-position until that section breaches, then continue to the next section; breach count is evidence-backed but exact section-address order remains a calibration hypothesis.",
     "EXP-WALL-ARTILLERY-SUCCESSFUL-HIT-001": "Treat each penetration-eligible Artillery firing ticket directed at the Town Wall as a successful wall hit. This matches successful-hit breach arithmetic and observed multi-section breach counts; exact wall Accuracy interaction remains unresolved.",
@@ -259,6 +260,7 @@ def _apply_supported_doctor_healing(
 
     _event(
         events, number, "heal", "healing", side,
+        support_unit_id="doctor",
         doctor_count=doctor_count, capacity=capacity,
         eligible_damage_before=eligible_damage,
         healing=eligible_damage,
@@ -828,7 +830,12 @@ def _cap_native_finite_ammo_deployment(
             continue
 
         total_units = wave.reserve + sum(slot.units for slot in native_slots)
-        deploy_limit = min(total_units, max(0, int(wave.ammo_pool_shots)))
+        native_capacity = sum(slot.capacity for slot in native_slots)
+        deploy_limit = min(
+            total_units,
+            max(0, int(wave.ammo_pool_shots)),
+            native_capacity,
+        )
         desired_reserve = total_units - deploy_limit
         currently_deployed = sum(slot.units for slot in native_slots)
         if currently_deployed == deploy_limit and wave.reserve == desired_reserve:
