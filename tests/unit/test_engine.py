@@ -828,6 +828,40 @@ def test_same_unit_long_range_cross_batch_fills_existing_second_slots_and_keeps_
  assert _cross_wave_rebuild_requirements(waves,registry,rules,field)==[]
 
 
+def test_exhausted_earlier_long_range_releases_second_slots_to_later_ammo_wave():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'sulphur_carabineer','quantity':60,
+   'entry_batch_id':'attacker-batch-1'},
+  {'unit_id':'sulphur_carabineer','quantity':60,
+   'entry_batch_id':'attacker-batch-2'},
+ ]}),registry,field)
+ first=next(w for w in waves if w.unit.batch_id=='attacker-batch-1')
+ second=next(w for w in waves if w.unit.batch_id=='attacker-batch-2')
+ assert sorted(slot.damage_position for slot in first.slots if slot.units)==[1,2,3,4,5]
+ assert sorted(slot.damage_position for slot in second.slots if slot.units)==[6,7]
+ assert second.reserve==36
+ first.ammo_pool_shots=0
+ second.ammo_pool_shots=180
+
+ events=[]; applied={}
+ boundary=_prepare_round_start(
+  waves,events,6,'attacker',applied,registry,rules,field,
+ )
+ assert boundary is False
+ assert {slot.line for slot in first.slots if slot.units}=={'first'}
+ assert sum(slot.units for slot in first.slots if slot.line=='first')==60
+ assert sum(slot.units for slot in second.slots if slot.line=='second')==60
+ assert second.reserve==0
+ assert sorted(
+  slot.damage_position for slot in second.slots
+  if slot.line=='second' and slot.units
+ )==[1,2,3,4,5]
+ assert second.ammo_pool_shots==180
+ assert _cross_wave_rebuild_requirements(waves,registry,rules,field)==[]
+
+
 def test_initial_and_round_start_same_unit_precedence_do_not_swap_full_slots():
  registry=UnitRegistry.load(); rules=FormationRules.load()
  field=LAND_BATTLEFIELDS['land-max']
@@ -1581,12 +1615,13 @@ def test_doctor_healing_executes_full_clear_subset_and_reports_real_amount():
  assert 'EXP-HEAL-NONE-001' not in {a['id'] for a in result['assumptions']}
  assert result['combat_statistics']['attacker']['gross_healing']==side['healing_amount']
  assert result['combat_statistics']['attacker']['engine_healing_applied']==side['healing_amount']
- assert any(
-  e['type']=='healing' and e['side']=='attacker'
+ doctor_events=[
+  e for e in result['events']
+  if e['type']=='healing' and e['side']=='attacker'
   and e['details'].get('support_unit_id')=='doctor'
-  and e['details'].get('healing')==side['healing_amount']
-  for e in result['events']
- )
+ ]
+ assert doctor_events
+ assert sum(e['details'].get('healing',0) for e in doctor_events)==side['healing_amount']
  assert any(row['combat_statistics']['attacker']['healing']>0 for row in result['rounds'])
  assert result['rounds'][-1]['combat_statistics']['attacker']['cumulative_healing']==side['healing_amount']
 
