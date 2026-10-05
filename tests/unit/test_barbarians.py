@@ -1,3 +1,4 @@
+from decimal import Decimal
 import pytest
 from ikariam_battle.barbarians import BarbarianFleetRegistry, BarbarianRegistry
 from ikariam_battle.models import ScenarioError
@@ -151,3 +152,33 @@ def test_combat_registry_includes_barbarian_fleet_and_preserves_weapon_order():
     assert sail.weapons[1].damage == 1020
     assert sail.weapons[1].accuracy == 70
     assert sail.weapons[1].ammunition is None
+
+
+
+def test_level_50_plus_barbarian_fleet_composition_matches_user_spreadsheet():
+    registry = BarbarianFleetRegistry.load()
+    assert registry.composition_for_stage(1) == {
+        "barbarian_deckwrecker": 482,
+        "barbarian_powder_pitcher": 84,
+        "barbarian_dragonfire": 100,
+        "barbarian_wedge_paddler": 400,
+        "barbarian_nest": 60,
+        "barbarian_dirigible_igniter": 180,
+    }
+    assert registry.composition_for_stage(2) == {
+        "barbarian_deckwrecker": 555,
+        "barbarian_powder_pitcher": 97,
+        "barbarian_dragonfire": 115,
+        "barbarian_wedge_paddler": 460,
+        "barbarian_nest": 69,
+        "barbarian_dirigible_igniter": 207,
+    }
+    assert registry.composition_for_stage(50) == {
+        "barbarian_deckwrecker": 4025,
+        "barbarian_powder_pitcher": 702,
+        "barbarian_dragonfire": 835,
+        "barbarian_wedge_paddler": 3340,
+        "barbarian_nest": 501,
+        "barbarian_dirigible_igniter": 1503,
+    }
+    assert registry.reward_multiplier_for_stage(50) == Decimal("5.9")

@@ -199,3 +199,12 @@ Ten Barbarian Fleet unit pages were supplied as screenshots from the official in
 | Barbarian Nest | Carrier Ship | 2800 | 100 | 20 | 5 | Dirigible Attack 2000 @ 50% ×5 |
 
 For Long-Range and First-Strike units the finite-ammunition weapon is stored as the simulator primary weapon for the native formation, while the Help-listed Hull/Ram weapon is stored as the secondary/fallback weapon. This preserves the official formation semantics and allows exhausted Long-Range ships to reuse the verified Front fallback. The screenshots do not contain Fleet level-to-quantity compositions, so automatic fleet generation remains disabled until that official table is captured.
+
+
+## Official-style battlefield ammunition bars
+
+The round battlefield visualizes finite ammunition like the official battle report reference supplied on 2026-10-05: a blue vertical bar sits beside the green HP bar for every deployed finite-ammunition slot. The percentage belongs to the slot's owning wave / entry-batch ammunition pool, matching the engine contract in which all slots of one wave share `ammo_pool_shots / ammo_capacity_shots`. Infinite-ammunition units show no blue bar.
+
+## Barbarian Fleet level-50+ substage composition
+
+The user spreadsheet `野蠻人.xlsx`, sheet `6爐海戰`, records a level-50 stage-1 high-level fleet of 撞 482, 迫 84, 箭 100, 明 400, 航 60, 快 180, mapped to Deckwrecker, Powder Pitcher, Dragonfire, Wedge Paddler, Barbarian Nest, and Dirigible Igniter. Stage 2 is 555/97/115/460/69/207 and stage 50 is 4025/702/835/3340/501/1503, exactly matching `ceil(base_stage_1 × [1 + 0.15 × (stage − 1)])`. This is linear scaling from stage 1, not compounding 1.15 from the previous stage. Rewards use the analogous linear rule `1 + 0.10 × (stage − 1)`. The setup UI can fill the defender's six high-level fleet types from a 50-level substage input; combat itself still receives explicit unit quantities.

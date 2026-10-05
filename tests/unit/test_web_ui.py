@@ -19,3 +19,19 @@ def test_reserve_ui_explains_rr_snapshot_timing_and_wave_damage():
     assert "Wave persistent damage total" in INDEX
     assert "本回合新傷仍在 deployed slots" in INDEX
     assert "Doctor full-clear 生效" in INDEX
+
+
+
+def test_deployed_finite_ammo_slots_show_official_style_blue_munition_bar():
+    assert 'function ammoBar(percent)' in INDEX
+    assert 'class="ammo-rail"' in INDEX
+    assert 'class="ammo-fill"' in INDEX
+    assert "hpBar(hp,'HP')+ammoBar(ammo)" in INDEX
+    assert "slot.munition_percent" in INDEX
+
+
+def test_barbarian_fleet_stage_control_uses_linear_stage1_scaling():
+    assert 'id="defenderBarbarianFleetStage"' in INDEX
+    assert 'id="applyBarbarianFleetStage"' in INDEX
+    assert 'function barbarianFleetCompositionForStage(stage)' in INDEX
+    assert "Math.ceil(Number(row.quantity)*(1+growth*(n-1)))" in INDEX

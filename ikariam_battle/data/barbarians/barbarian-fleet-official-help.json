@@ -7,12 +7,12 @@
     "simulation_status": "NAVAL_COMBAT_READY_MANUAL_QUANTITIES",
     "selectable_by_player": false,
     "selectable_in_simulator": true,
-    "composition_status": "LEVEL_TO_QUANTITY_TABLE_NOT_YET_CAPTURED",
+    "composition_status": "LEVEL_50_PLUS_USER_SPREADSHEET_MODEL_READY;LOWER_LEVEL_FULL_TABLE_NOT_CAPTURED",
     "cautions": [
       "These ten unit stat pages are official Help evidence for unit classes and numeric combat stats.",
       "Accuracy values are derived from the official graphical accuracy bars; each observed fill aligns to a 5% grid.",
-      "The screenshots do not contain Barbarian Fleet level-to-quantity composition, so the simulator accepts manual quantities and does not auto-generate a fleet by level.",
-      "Barbarian Fleet units use no player Workshop or Forge upgrades and contribute zero General Score in simulator accounting."
+      "Barbarian Fleet units use no player Workshop or Forge upgrades and contribute zero General Score in simulator accounting.",
+      "Level 50+ substages use a user-spreadsheet empirical composition model: each unit type is ceil(stage-1 base × [1 + 15% × (stage−1)]); rewards scale linearly by +10% of the stage-1 reward per additional stage."
     ],
     "sources": [
       {
@@ -105,7 +105,57 @@
         "file_name": "image(20261005-030758).png",
         "unit": "Barbarian Nest"
       }
-    ]
+    ],
+    "high_level_composition_model": {
+      "evidence_class": "USER_SPREADSHEET_OBSERVATION",
+      "source_title": "野蠻人.xlsx",
+      "source_sheet": "6爐海戰",
+      "base_game_level": 50,
+      "stage_index_start": 1,
+      "ship_growth_per_stage": 0.15,
+      "ship_rounding": "ceil_total_per_unit_type",
+      "reward_growth_per_stage": 0.1,
+      "formula": "ceil(base_quantity * (1 + ship_growth_per_stage * (stage - 1)))",
+      "reward_formula": "base_reward * (1 + reward_growth_per_stage * (stage - 1))",
+      "base_stage_1": [
+        {
+          "unit_id": "barbarian_deckwrecker",
+          "sheet_label": "撞",
+          "quantity": 482,
+          "mapping": "Light Battleship / Ram Ship-equivalent"
+        },
+        {
+          "unit_id": "barbarian_powder_pitcher",
+          "sheet_label": "迫",
+          "quantity": 84,
+          "mapping": "Long-Range / Mortar Ship-equivalent"
+        },
+        {
+          "unit_id": "barbarian_dragonfire",
+          "sheet_label": "箭",
+          "quantity": 100,
+          "mapping": "First Strike / Rocket"
+        },
+        {
+          "unit_id": "barbarian_wedge_paddler",
+          "sheet_label": "明",
+          "quantity": 400,
+          "mapping": "Heavy Battleship / Steam Ram-equivalent"
+        },
+        {
+          "unit_id": "barbarian_nest",
+          "sheet_label": "航",
+          "quantity": 60,
+          "mapping": "Carrier Ship"
+        },
+        {
+          "unit_id": "barbarian_dirigible_igniter",
+          "sheet_label": "快",
+          "quantity": 180,
+          "mapping": "Carrier Ship Evasion"
+        }
+      ]
+    }
   },
   "units": [
     {

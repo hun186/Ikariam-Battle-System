@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal, ROUND_CEILING
 from importlib.resources import files
 import json
 from typing import Any
@@ -240,3 +241,30 @@ class BarbarianFleetRegistry:
 
     def public(self) -> list[dict[str, Any]]:
         return [unit.public() for unit in self.all()]
+
+    def composition_for_stage(self, stage: int) -> dict[str, int]:
+        """Return the empirical level-50+ fleet composition for one substage."""
+        if isinstance(stage, bool) or not isinstance(stage, int) or stage < 1:
+            raise ValueError("Barbarian Fleet stage must be an integer >= 1")
+        model = self.metadata.get("high_level_composition_model")
+        if not isinstance(model, dict):
+            raise ValueError("Barbarian Fleet high-level composition model unavailable")
+        growth = Decimal(str(model["ship_growth_per_stage"]))
+        scale = Decimal(1) + growth * Decimal(stage - 1)
+        result: dict[str, int] = {}
+        for row in model["base_stage_1"]:
+            base = Decimal(int(row["quantity"]))
+            result[str(row["unit_id"])] = int(
+                (base * scale).to_integral_value(rounding=ROUND_CEILING)
+            )
+        return result
+
+    def reward_multiplier_for_stage(self, stage: int) -> Decimal:
+        """Return the spreadsheet-observed linear reward multiplier."""
+        if isinstance(stage, bool) or not isinstance(stage, int) or stage < 1:
+            raise ValueError("Barbarian Fleet stage must be an integer >= 1")
+        model = self.metadata.get("high_level_composition_model")
+        if not isinstance(model, dict):
+            raise ValueError("Barbarian Fleet high-level composition model unavailable")
+        growth = Decimal(str(model["reward_growth_per_stage"]))
+        return Decimal(1) + growth * Decimal(stage - 1)
