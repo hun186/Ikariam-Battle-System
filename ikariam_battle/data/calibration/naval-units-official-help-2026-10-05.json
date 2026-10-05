@@ -1,0 +1,488 @@
+{
+  "metadata": {
+    "evidence_class": "USER_SUPPLIED_OFFICIAL_HELP_SCREENSHOTS",
+    "source": "Gameforge in-game Help",
+    "captured_date": "2026-10-05",
+    "domain": "naval",
+    "unit_count": 11,
+    "direct_text_fields": [
+      "class",
+      "hp",
+      "armor",
+      "speed",
+      "size",
+      "weapon_damage",
+      "ammunition",
+      "resource_costs",
+      "upkeep_gold",
+      "population"
+    ],
+    "accuracy_method": {
+      "source": "official red Accuracy bar",
+      "method": "red fill pixels / 168px interior track; quantize to nearest 5 percentage points",
+      "quantization_percent": 5,
+      "result": "10 units agree with existing runtime values; Rocket Ship secondary Hull corrected from 80 to 70"
+    },
+    "military_score_contract": {
+      "formula": "general_score = resource_cost_basis_total / 50",
+      "included_resources": [
+        "wood",
+        "wine",
+        "marble",
+        "crystal",
+        "sulfur"
+      ],
+      "excluded": [
+        "population",
+        "upkeep_gold"
+      ]
+    }
+  },
+  "units": [
+    {
+      "id": "ram_ship",
+      "help_name": "衝撞船",
+      "help_class": "Light Battleship, Machine",
+      "screenshot": "image(20261005-041758).png",
+      "hp": 3080,
+      "armor": 180,
+      "speed": 40,
+      "size": 3,
+      "weapons": [
+        {
+          "runtime_id": "primary",
+          "help_name": "彎角撞槌",
+          "damage": 1500,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 135,
+            "track_px": 168,
+            "quantized_percent": 80,
+            "measured_percent": 80.36
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 250,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 0
+      },
+      "upkeep_gold": 15,
+      "population": 3,
+      "resource_cost_basis_total": 250,
+      "general_score": "5"
+    },
+    {
+      "id": "ballista_ship",
+      "help_name": "強弩船",
+      "help_class": "Long-Range Fighter, Machine",
+      "screenshot": "image(20261005-041803).png",
+      "hp": 3080,
+      "armor": 280,
+      "speed": 40,
+      "size": 2,
+      "weapons": [
+        {
+          "runtime_id": "secondary",
+          "help_name": "強化船殼",
+          "damage": 1020,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 118,
+            "track_px": 168,
+            "quantized_percent": 70,
+            "measured_percent": 70.24
+          }
+        },
+        {
+          "runtime_id": "primary",
+          "help_name": "弓弩",
+          "damage": 560,
+          "ammo": 7,
+          "accuracy": {
+            "fill_px": 84,
+            "track_px": 168,
+            "quantized_percent": 50,
+            "measured_percent": 50
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 180,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 160
+      },
+      "upkeep_gold": 20,
+      "population": 6,
+      "resource_cost_basis_total": 340,
+      "general_score": "6.8"
+    },
+    {
+      "id": "fire_ship",
+      "help_name": "噴火船",
+      "help_class": "Heavy Battleship, Machine",
+      "screenshot": "image(20261005-041806).png",
+      "hp": 4380,
+      "armor": 160,
+      "speed": 40,
+      "size": 2,
+      "weapons": [
+        {
+          "runtime_id": "primary",
+          "help_name": "噴火器",
+          "damage": 1640,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 84,
+            "track_px": 168,
+            "quantized_percent": 50,
+            "measured_percent": 50
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 80,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 230
+      },
+      "upkeep_gold": 25,
+      "population": 4,
+      "resource_cost_basis_total": 310,
+      "general_score": "6.2"
+    },
+    {
+      "id": "catapult_ship",
+      "help_name": "投石船",
+      "help_class": "Long-Range Fighter, Machine",
+      "screenshot": "image(20261005-041830).png",
+      "hp": 2960,
+      "armor": 200,
+      "speed": 40,
+      "size": 3,
+      "weapons": [
+        {
+          "runtime_id": "secondary",
+          "help_name": "船殼",
+          "damage": 620,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 118,
+            "track_px": 168,
+            "quantized_percent": 70,
+            "measured_percent": 70.24
+          }
+        },
+        {
+          "runtime_id": "primary",
+          "help_name": "油鋸",
+          "damage": 900,
+          "ammo": 6,
+          "accuracy": {
+            "fill_px": 50,
+            "track_px": 168,
+            "quantized_percent": 30,
+            "measured_percent": 29.76
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 180,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 140
+      },
+      "upkeep_gold": 35,
+      "population": 5,
+      "resource_cost_basis_total": 320,
+      "general_score": "6.4"
+    },
+    {
+      "id": "mortar_ship",
+      "help_name": "迫擊炮船",
+      "help_class": "Long-Range Fighter, Machine",
+      "screenshot": "image(20261005-041829).png",
+      "hp": 3080,
+      "armor": 120,
+      "speed": 30,
+      "size": 4,
+      "weapons": [
+        {
+          "runtime_id": "secondary",
+          "help_name": "船殼",
+          "damage": 740,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 84,
+            "track_px": 168,
+            "quantized_percent": 50,
+            "measured_percent": 50
+          }
+        },
+        {
+          "runtime_id": "primary",
+          "help_name": "拋射炮",
+          "damage": 1380,
+          "ammo": 5,
+          "accuracy": {
+            "fill_px": 16,
+            "track_px": 168,
+            "quantized_percent": 10,
+            "measured_percent": 9.52
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 220,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 900
+      },
+      "upkeep_gold": 50,
+      "population": 5,
+      "resource_cost_basis_total": 1120,
+      "general_score": "22.4"
+    },
+    {
+      "id": "steam_ram",
+      "help_name": "蒸汽衝撞船",
+      "help_class": "Heavy Battleship, Machine",
+      "screenshot": "image(20261005-041845).png",
+      "hp": 11520,
+      "armor": 320,
+      "speed": 40,
+      "size": 5,
+      "weapons": [
+        {
+          "runtime_id": "primary",
+          "help_name": "厚實撞錘",
+          "damage": 3320,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 151,
+            "track_px": 168,
+            "quantized_percent": 90,
+            "measured_percent": 89.88
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 400,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 800
+      },
+      "upkeep_gold": 45,
+      "population": 2,
+      "resource_cost_basis_total": 1200,
+      "general_score": "24"
+    },
+    {
+      "id": "rocket_ship",
+      "help_name": "弩炮船",
+      "help_class": "Firepower Ship, Machine",
+      "screenshot": "image(20261005-041911).png",
+      "hp": 1300,
+      "armor": 120,
+      "speed": 30,
+      "size": 4,
+      "weapons": [
+        {
+          "runtime_id": "secondary",
+          "help_name": "船殼",
+          "damage": 400,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 118,
+            "track_px": 168,
+            "quantized_percent": 70,
+            "measured_percent": 70.24
+          }
+        },
+        {
+          "runtime_id": "primary",
+          "help_name": "弩炮",
+          "damage": 7600,
+          "ammo": 2,
+          "accuracy": {
+            "fill_px": 33,
+            "track_px": 168,
+            "quantized_percent": 20,
+            "measured_percent": 19.64
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 200,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 1200
+      },
+      "upkeep_gold": 55,
+      "population": 2,
+      "resource_cost_basis_total": 1400,
+      "general_score": "28"
+    },
+    {
+      "id": "diving_boat",
+      "help_name": "潛艦",
+      "help_class": "Firepower Ship, Machine",
+      "screenshot": "image(20261005-041923).png",
+      "hp": 2200,
+      "armor": 120,
+      "speed": 40,
+      "size": 3,
+      "weapons": [
+        {
+          "runtime_id": "secondary",
+          "help_name": "強化船殼",
+          "damage": 1800,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 135,
+            "track_px": 168,
+            "quantized_percent": 80,
+            "measured_percent": 80.36
+          }
+        },
+        {
+          "runtime_id": "primary",
+          "help_name": "浮游炸彈",
+          "damage": 2460,
+          "ammo": 4,
+          "accuracy": {
+            "fill_px": 135,
+            "track_px": 168,
+            "quantized_percent": 80,
+            "measured_percent": 80.36
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 160,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 750,
+        "sulfur": 100
+      },
+      "upkeep_gold": 50,
+      "population": 3,
+      "resource_cost_basis_total": 1010,
+      "general_score": "20.2"
+    },
+    {
+      "id": "paddle_speedboat",
+      "help_name": "輪槳快艇",
+      "help_class": "Air Combat Ship, Machine",
+      "screenshot": "image(20261005-041933).png",
+      "hp": 400,
+      "armor": 0,
+      "speed": 60,
+      "size": 1,
+      "weapons": [
+        {
+          "runtime_id": "primary",
+          "help_name": "弓弩",
+          "damage": 240,
+          "ammo": 5,
+          "accuracy": {
+            "fill_px": 151,
+            "track_px": 168,
+            "quantized_percent": 90,
+            "measured_percent": 89.88
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 40,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 280
+      },
+      "upkeep_gold": 5,
+      "population": 1,
+      "resource_cost_basis_total": 320,
+      "general_score": "6.4"
+    },
+    {
+      "id": "balloon_carrier",
+      "help_name": "航空母艦",
+      "help_class": "Carrier Ship, Machine",
+      "screenshot": "image(20261005-041945).png",
+      "hp": 2800,
+      "armor": 0,
+      "speed": 20,
+      "size": 5,
+      "weapons": [
+        {
+          "runtime_id": "primary",
+          "help_name": "氣球空襲",
+          "damage": 2000,
+          "ammo": 5,
+          "accuracy": {
+            "fill_px": 84,
+            "track_px": 168,
+            "quantized_percent": 50,
+            "measured_percent": 50
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 700,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 700
+      },
+      "upkeep_gold": 100,
+      "population": 8,
+      "resource_cost_basis_total": 1400,
+      "general_score": "28"
+    },
+    {
+      "id": "tender",
+      "help_name": "修護船",
+      "help_class": "Support, Machine",
+      "screenshot": "image(20261005-041958).png",
+      "hp": 2800,
+      "armor": 0,
+      "speed": 30,
+      "size": 6,
+      "weapons": [
+        {
+          "runtime_id": "primary",
+          "help_name": "緊壓重錘",
+          "damage": 300,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 84,
+            "track_px": 168,
+            "quantized_percent": 50,
+            "measured_percent": 50
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 300,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 250,
+        "sulfur": 250
+      },
+      "upkeep_gold": 100,
+      "population": 7,
+      "resource_cost_basis_total": 800,
+      "general_score": "16"
+    }
+  ]
+}

@@ -3831,7 +3831,7 @@
         {
           "id": "secondary",
           "damage": 400,
-          "accuracy": 80,
+          "accuracy": 70,
           "ammunition": null,
           "trigger": "UNKNOWN_AFTER_PRIMARY",
           "provenance": {
@@ -3854,13 +3854,17 @@
               ]
             },
             "accuracy": {
-              "confidence": "COMMUNITY_REFERENCE_CURRENT",
+              "confidence": "OFFICIAL_HELP",
               "sources": [
                 {
-                  "source_type": "COMMUNITY_REFERENCE_CURRENT",
-                  "verification": "REVIEWER_WEB_VERIFIED",
-                  "source_title": "Ikariam Battle Simulator Wiki — Infinite Horizons current units",
-                  "retrieved": "2026-09-24"
+                  "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+                  "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+                  "captured_date": "2026-10-05",
+                  "screenshot": "image(20261005-041911).png",
+                  "method": "OFFICIAL_BAR_QUANTIZED_5_PERCENT",
+                  "fill_px": 118,
+                  "track_px": 168,
+                  "quantized_percent": 70
                 }
               ]
             },

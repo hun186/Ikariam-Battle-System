@@ -3246,8 +3246,8 @@ def _attach_battle_statistics(
             score_loss = Decimal(0)
             economy_status = "barbarian_package_zero"
         elif missing_economy:
-            # Naval economy is not yet in military-economy-current. Keep combat
-            # executable without silently reporting a false zero score.
+            # Keep combat executable for any future/custom unit whose economy
+            # profile is not yet modeled, without silently reporting false zero.
             basis_loss = None
             score_loss = None
             economy_status = "unavailable_for_units"

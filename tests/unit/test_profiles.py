@@ -147,3 +147,17 @@ def test_military_economy_ignores_zero_quantity_unknown_units():
  economy=MilitaryEconomyProfile.load()
  assert economy.resource_cost_basis_loss({"mortar":1,"naval_unknown":0})==1550
  assert economy.score_loss({"mortar":1,"naval_unknown":0})==31
+
+
+
+def test_military_economy_now_covers_current_player_naval_units():
+ from ikariam_battle.economy import MilitaryEconomyProfile
+ economy=MilitaryEconomyProfile.load()
+ expected={
+  "ram_ship":"5","ballista_ship":"6.8","fire_ship":"6.2",
+  "catapult_ship":"6.4","mortar_ship":"22.4","steam_ram":"24",
+  "rocket_ship":"28","diving_boat":"20.2","paddle_speedboat":"6.4",
+  "balloon_carrier":"28","tender":"16"
+ }
+ for unit_id,score in expected.items():
+  assert economy.public()[unit_id]["general_score"]==score
