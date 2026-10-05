@@ -898,30 +898,10 @@ def _supported_whole_wave_first_fallback(
             partial_exhausted_long_range = (
                 unit.semantic_class == "long_range"
                 and wave.ammo_pool_shots == 0
-                and total_damage == 0
                 and bool(open_positions)
                 and field.domain in {"land", "naval"}
             )
             if not partial_exhausted_long_range:
-                damaged_partial_boundary = (
-                    unit.semantic_class == "long_range"
-                    and wave.ammo_pool_shots == 0
-                    and total_damage > 0
-                    and bool(open_positions)
-                    and field.domain in {"land", "naval"}
-                )
-                if damaged_partial_boundary:
-                    _event(
-                        events, number, "round_start", "unsupported_mechanic", side,
-                        rule_id="UNKNOWN-DAMAGED-PARTIAL-LONG-RANGE-CROSS-LINE-FALLBACK",
-                        unit_id=unit.id,
-                        wave_id=wave.unit.wave_id,
-                        surviving_units=total_units,
-                        open_first_positions=open_positions,
-                        first_capacity_per_slot=capacity,
-                        persistent_damage=total_damage,
-                    )
-                    return True
                 break
 
             promote_quantity = min(total_units, len(open_positions) * capacity)
@@ -973,6 +953,39 @@ def _supported_whole_wave_first_fallback(
             if remaining_promoted:
                 raise ScenarioError("partial Long-Range fallback left promoted reserve")
             promoted.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
+
+            # RR semantics apply to the complete surviving wave before the
+            # deployment subset is selected. Because RR is proportional to the
+            # number of survivors, selecting any promote_quantity members after
+            # RR is aggregate-equivalent to assigning that fraction of total
+            # persistent damage to the promoted First segment and the remainder
+            # to Reserve. Reuse the existing half-up RR allocator so rounding and
+            # per-slot priority stay identical to ordinary RR.
+            if total_damage:
+                promoted_shares = [
+                    SlotShare(slot.damage_position, slot.units)
+                    for slot in promoted.slots if slot.units
+                ]
+                promoted_damage, reserve_damage = reserve_redistribution(
+                    total_damage, total_units, promoted_shares
+                )
+                for slot in promoted.slots:
+                    slot.damage = promoted_damage.get(slot.damage_position, 0)
+                wave.reserve_damage = reserve_damage
+                _event(
+                    events, number, "redistribute", "redistribution", side,
+                    rule="RR_BEFORE_PARTIAL_FALLBACK_SELECTION",
+                    unit_id=unit.id,
+                    wave_id=wave.unit.wave_id,
+                    promoted_wave_id=promoted_id,
+                    total_wave_damage=total_damage,
+                    promoted_damage=sum(promoted_damage.values()),
+                    reserve_damage=reserve_damage,
+                    damage_conserved=(
+                        sum(promoted_damage.values()) + reserve_damage == total_damage
+                    ),
+                )
+
             waves.append(promoted)
             _event(
                 events, number, "deploy", "formation_fallback", side,
@@ -990,7 +1003,10 @@ def _supported_whole_wave_first_fallback(
                 whole_wave=False,
                 reserve_remaining=reserve_remaining,
                 native_second_deployed=0,
-                damage_partition="exact_zero_persistent_damage_subset",
+                damage_partition=(
+                    "rr_before_selection_proportional"
+                    if total_damage else "zero_persistent_damage"
+                ),
             )
             continue
 

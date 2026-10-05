@@ -253,3 +253,10 @@ User battle observation establishes that remaining ammunition limits how many un
 At zero shots, an ammunition-dependent native formation deploys zero units. For exhausted Long-Range, open First slots may still be filled using the secondary close weapon; survivors that do not fit First remain in Reserve and do not return to Second.
 
 This also explains the Carrier edge case: with about 500 Balloon Carriers but only 3 primary shots left, only 3 carriers deploy. Carrier Ship Evasion fires before Carrier Ship. If the enemy Evasion formation destroys those 3 before the Carrier phase, no Carrier shot is emitted, the ammo pool remains 3, and the next round another 3 carriers deploy from Reserve. The engine therefore decrements ammunition only when the wave actually emits shots in its own firing phase, not merely because units were deployed.
+
+
+## 2026-10-05 RR-before-selection for damaged exhausted Long-Range fallback
+
+For an exhausted Long-Range wave carrying persistent damage, partial First fallback now follows the user-confirmed ordering: **RR first, then select the subset that fills First**. RR is defined over the complete surviving wave, so every survivor has the same aggregate damage share before deployment selection. Therefore choosing (k) survivors out of (N) is aggregate-equivalent to assigning the promoted First segment `round_half_up(total_damage × k / N)` damage and leaving the remainder with Reserve. The implementation reuses `reserve_redistribution()`, including its existing half-up rounding and damage-position remainder order.
+
+Example: 84 zero-ammo Carabineers carry 700 persistent damage and only one First slot (12 Carabineers) is open. RR first gives the selected First subset 100 aggregate damage and the 72 Reserve survivors 600. Second remains empty. This removes the previous damaged-partial unsupported boundary without inventing a healthiest-first or most-damaged-first selection rule.

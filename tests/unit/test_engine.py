@@ -2922,7 +2922,7 @@ def test_zero_ammo_land_long_range_fills_first_only_and_keeps_excess_in_reserve(
  )
 
 
-def test_damaged_partial_exhausted_land_long_range_split_remains_guarded():
+def test_damaged_partial_exhausted_land_long_range_rr_precedes_first_selection():
  registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
  waves=deploy(Army.from_dict({'units':[
   {'unit_id':'hoplite','quantity':300,'wave_id':'front'},
@@ -2935,17 +2935,30 @@ def test_damaged_partial_exhausted_land_long_range_split_remains_guarded():
   slot.units=50 if slot.damage_position in {1,2,3,4,5,6} else 0
  ranged.reserve=0
  ranged.ammo_pool_shots=0
- next(slot for slot in ranged.slots if slot.units).damage=10
+ next(slot for slot in ranged.slots if slot.units).damage=700
  events=[]; applied={}
  boundary=_prepare_round_start(waves,events,3,'defender',applied,registry,rules,field)
- assert boundary is True
+ assert boundary is False
  assert sum(slot.units for slot in ranged.slots if slot.line=='second')==0
- assert ranged.reserve==84
+ assert ranged.reserve==72
+ promoted=[wave for wave in waves if wave.unit.wave_id=='ranged::front-fallback-r3']
+ assert len(promoted)==1
+ front_wave=promoted[0]
+ assert sum(slot.units for slot in front_wave.slots if slot.line=='first')==12
+ # RR over the original 84 survivors allocates half-up(700*12/84)=100
+ # to the promoted First subset and keeps 600 with the 72 Reserve survivors.
+ assert sum(slot.damage for slot in front_wave.slots)==100
+ assert ranged.reserve_damage==600
  assert any(
-  event.type=='unsupported_mechanic'
-  and event.details.get('rule_id')=='UNKNOWN-DAMAGED-PARTIAL-LONG-RANGE-CROSS-LINE-FALLBACK'
-  and event.details.get('unit_id')=='sulphur_carabineer'
-  and event.details.get('persistent_damage')==10
+  event.type=='redistribution'
+  and event.details.get('rule')=='RR_BEFORE_PARTIAL_FALLBACK_SELECTION'
+  and event.details.get('promoted_damage')==100
+  and event.details.get('reserve_damage')==600
+  for event in events
+ )
+ assert any(
+  event.type=='formation_fallback'
+  and event.details.get('damage_partition')=='rr_before_selection_proportional'
   for event in events
  )
 

@@ -39,6 +39,12 @@
         "source_type": "USER_PROVIDED_BATTLE_OBSERVATION",
         "title": "Finite-ammo native deployment / zero-ammo Long-Range Reserve behavior",
         "verification": "USER_OBSERVED_2026-10-05"
+      },
+      {
+        "source_type": "USER_REASONED_MECHANICS_INTERPRETATION",
+        "title": "RR before exhausted Long-Range partial First selection",
+        "verification": "USER_CONFIRMED_2026-10-05",
+        "rule": "Redistribute persistent damage across the whole surviving wave first, then select the First-line subset; aggregate implementation uses the same proportional RR allocator."
       }
     ]
   },
@@ -74,7 +80,7 @@
           "heavy_infantry",
           "light_infantry"
         ],
-        "implementation_status": "WHOLE_WAVE_AND_DAMAGE_FREE_PARTIAL_FIRST_FILL;EXCESS_STAYS_RESERVE;DAMAGED_PARTIAL_GUARDED"
+        "implementation_status": "WHOLE_WAVE_AND_PARTIAL_FIRST_FILL;RR_BEFORE_SELECTION;EXCESS_STAYS_RESERVE"
       }
     },
     "second": {
@@ -156,7 +162,6 @@
   },
   "unknowns": [
     "UNKNOWN-NON-STANDARD-RENUMBERING",
-    "UNKNOWN-SECONDARY-WEAPON-TRIGGER",
-    "UNKNOWN-DAMAGED-PARTIAL-LONG-RANGE-CROSS-LINE-FALLBACK"
+    "UNKNOWN-SECONDARY-WEAPON-TRIGGER"
   ]
 }
