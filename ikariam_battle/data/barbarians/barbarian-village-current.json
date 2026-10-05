@@ -2,11 +2,11 @@
   "metadata": {
     "profile": "barbarian-village-current",
     "scope": "new Barbarian Village land units",
-    "verified_context_date": "2026-09-26",
+    "verified_context_date": "2026-10-05",
     "simulation_status": "LAND_COMBAT_READY",
     "selectable_by_player": false,
-    "current_stat_method": "Base HP, armour and damage use the Infinite Horizons x20 military-unit scaling where the pre-v13 Barbarian guide/equivalent player-unit evidence is available. Accuracy, ammunition and size are not multiplied.",
-    "confidence": "DERIVED_WITH_CURRENT_LIVE_CORROBORATION",
+    "current_stat_method": "Current combat stats come directly from user-supplied official in-game Help screenshots. Appearance levels remain sourced from the existing Barbarian Village guide evidence.",
+    "confidence": "OFFICIAL_HELP_COMBAT_STATS_WITH_GUIDE_APPEARANCE_LEVELS",
     "cautions": [
       "This Barbarian package remains separate from the player army package and cannot be mixed with player units on one side.",
       "Barbarian armies use no Workshop upgrades, no Forge level, no delayed/multiple entry batches, and contribute zero General Score in simulator accounting.",
@@ -50,6 +50,13 @@
         "type": "COMMUNITY_IMAGE_INDEX",
         "url": "https://ikariam.fandom.com/wiki/Category:License:Images_Copyrighted_by_Gameforge",
         "notes": "Lists the nine Barbarian button icon filenames under Gameforge-copyrighted images."
+      },
+      {
+        "id": "GF_HELP_BARBARIAN_LAND_2026_10_05",
+        "type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOTS",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "notes": "All nine current Barbarian land unit stat pages; direct HP/armour/speed/size/damage/ammo plus graphical Accuracy bars."
       }
     ],
     "selectable_in_simulator": true
@@ -64,21 +71,47 @@
       "last_appearance_level": 22,
       "equivalent_player_unit": "spearman",
       "hp": 240,
-      "base_armor": 0,
+      "base_armor": 20,
       "damage": 100,
-      "accuracy": 70,
+      "accuracy": 85,
       "ammunition": null,
       "size": 1,
       "provenance": {
-        "confidence": "DERIVED_X20_WITH_DOCUMENTED_EXCEPTIONS",
-        "notes": "Legacy guide describes Clubman as Spearman except HP 12 vs 13 and damage 5 vs 4; HP/damage scaled x20. Armour/accuracy/size inherit the documented Spearman numerical equivalence. Tactical class is Heavy Infantry / First line per the in-game Help correction; numerical equivalence does not imply Light Infantry classification.",
-        "sources": [
+        "confidence": "OFFICIAL_HELP_COMBAT_STATS",
+        "notes": "Combat stats verified from official in-game Help screenshot; first/last appearance levels retain earlier guide provenance.",
+        "official_help": {
+          "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+          "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+          "captured_date": "2026-10-05",
+          "screenshot": "image(20261005-042200-1).png"
+        },
+        "appearance_level_sources": [
           "GF_BARBAR_VILLAGE_GUIDE",
-          "COMMUNITY_BARB_GUIDE",
-          "GF_IH2_CHANGELOG",
-          "GF_IH2_X20"
+          "COMMUNITY_BARB_GUIDE"
         ]
-      }
+      },
+      "official_class": "Heavy Infantry, Human",
+      "unit_class": "human",
+      "speed": 60,
+      "weapons": [
+        {
+          "id": "primary",
+          "display_name": "Club",
+          "damage": 100,
+          "accuracy": 85,
+          "ammunition": null,
+          "trigger": "primary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "screenshot": "image(20261005-042200-1).png",
+            "accuracy_method": "OFFICIAL_BAR_QUANTIZED_5_PERCENT",
+            "fill_px": 143,
+            "track_px": 168
+          }
+        }
+      ]
     },
     {
       "id": "barbarian_axe_swinger",
@@ -95,14 +128,41 @@
       "ammunition": null,
       "size": 1,
       "provenance": {
-        "confidence": "EQUIVALENCE_DERIVED_CURRENT",
-        "notes": "Gameforge guide places it on the front line and says it is equivalent to Hoplites; current values follow the current Hoplite baseline.",
-        "sources": [
+        "confidence": "OFFICIAL_HELP_COMBAT_STATS",
+        "notes": "Combat stats verified from official in-game Help screenshot; first/last appearance levels retain earlier guide provenance.",
+        "official_help": {
+          "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+          "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+          "captured_date": "2026-10-05",
+          "screenshot": "image(20261005-042200).png"
+        },
+        "appearance_level_sources": [
           "GF_BARBAR_VILLAGE_GUIDE",
-          "GF_IH2_CHANGELOG",
-          "GF_IH2_X20"
+          "COMMUNITY_BARB_GUIDE"
         ]
-      }
+      },
+      "official_class": "Heavy Infantry, Human",
+      "unit_class": "human",
+      "speed": 60,
+      "weapons": [
+        {
+          "id": "primary",
+          "display_name": "Axe Head",
+          "damage": 360,
+          "accuracy": 90,
+          "ammunition": null,
+          "trigger": "primary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "screenshot": "image(20261005-042200).png",
+            "accuracy_method": "OFFICIAL_BAR_QUANTIZED_5_PERCENT",
+            "fill_px": 151,
+            "track_px": 168
+          }
+        }
+      ]
     },
     {
       "id": "barbarian_knifeman",
@@ -119,15 +179,41 @@
       "ammunition": null,
       "size": 1,
       "provenance": {
-        "confidence": "CURRENT_HP_OBSERVED_OTHER_STATS_EQUIVALENCE_DERIVED",
-        "notes": "Gameforge guide says it defends flanks and is equivalent to Swordsmen; 2026 battle analysis directly reports HP 360.",
-        "sources": [
+        "confidence": "OFFICIAL_HELP_COMBAT_STATS",
+        "notes": "Combat stats verified from official in-game Help screenshot; first/last appearance levels retain earlier guide provenance.",
+        "official_help": {
+          "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+          "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+          "captured_date": "2026-10-05",
+          "screenshot": "image(20261005-042214).png"
+        },
+        "appearance_level_sources": [
           "GF_BARBAR_VILLAGE_GUIDE",
-          "GF_KNIFEMAN_2026",
-          "GF_IH2_CHANGELOG",
-          "GF_IH2_X20"
+          "COMMUNITY_BARB_GUIDE"
         ]
-      }
+      },
+      "official_class": "Light Infantry, Human",
+      "unit_class": "human",
+      "speed": 60,
+      "weapons": [
+        {
+          "id": "primary",
+          "display_name": "Dagger",
+          "damage": 200,
+          "accuracy": 90,
+          "ammunition": null,
+          "trigger": "primary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "screenshot": "image(20261005-042214).png",
+            "accuracy_method": "OFFICIAL_BAR_QUANTIZED_5_PERCENT",
+            "fill_px": 151,
+            "track_px": 168
+          }
+        }
+      ]
     },
     {
       "id": "barbarian_axe_thrower",
@@ -139,20 +225,63 @@
       "equivalent_player_unit": "archer",
       "hp": 320,
       "base_armor": 0,
-      "damage": 100,
-      "accuracy": 40,
+      "damage": 200,
+      "accuracy": 30,
       "ammunition": 7,
       "size": 1,
       "provenance": {
-        "confidence": "EQUIVALENCE_DERIVED_WITH_AMMO_EXCEPTION",
-        "notes": "Community guide describes Axe Thrower as Archer except ammunition 7 instead of 3. Gameforge level narrative introduces the second-line unit at level 40; a unit-summary line says level 30, so appearance is flagged as conflicted.",
-        "sources": [
+        "confidence": "OFFICIAL_HELP_COMBAT_STATS",
+        "notes": "Combat stats verified from official in-game Help screenshot; first/last appearance levels retain earlier guide provenance.",
+        "official_help": {
+          "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+          "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+          "captured_date": "2026-10-05",
+          "screenshot": "image(20261005-042227).png"
+        },
+        "appearance_level_sources": [
           "GF_BARBAR_VILLAGE_GUIDE",
-          "COMMUNITY_BARB_GUIDE",
-          "GF_IH2_CHANGELOG",
-          "GF_IH2_X20"
+          "COMMUNITY_BARB_GUIDE"
         ]
-      }
+      },
+      "official_class": "Long-Range, Human",
+      "unit_class": "human",
+      "speed": 60,
+      "weapons": [
+        {
+          "id": "primary",
+          "display_name": "Flying Axe",
+          "damage": 200,
+          "accuracy": 30,
+          "ammunition": 7,
+          "trigger": "primary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "screenshot": "image(20261005-042227).png",
+            "accuracy_method": "OFFICIAL_BAR_QUANTIZED_5_PERCENT",
+            "fill_px": 50,
+            "track_px": 168
+          }
+        },
+        {
+          "id": "secondary",
+          "display_name": "Axe Head",
+          "damage": 100,
+          "accuracy": 60,
+          "ammunition": null,
+          "trigger": "secondary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "screenshot": "image(20261005-042227).png",
+            "accuracy_method": "OFFICIAL_BAR_QUANTIZED_5_PERCENT",
+            "fill_px": 101,
+            "track_px": 168
+          }
+        }
+      ]
     },
     {
       "id": "barbarian_war_walker",
@@ -169,14 +298,41 @@
       "ammunition": null,
       "size": 3,
       "provenance": {
-        "confidence": "EQUIVALENCE_DERIVED_CURRENT",
-        "notes": "Gameforge guide places it on the front line at level 50 and says it is equivalent to Steam Giants.",
-        "sources": [
+        "confidence": "OFFICIAL_HELP_COMBAT_STATS",
+        "notes": "Combat stats verified from official in-game Help screenshot; first/last appearance levels retain earlier guide provenance.",
+        "official_help": {
+          "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+          "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+          "captured_date": "2026-10-05",
+          "screenshot": "image(20261005-042236).png"
+        },
+        "appearance_level_sources": [
           "GF_BARBAR_VILLAGE_GUIDE",
-          "GF_IH2_CHANGELOG",
-          "GF_IH2_X20"
+          "COMMUNITY_BARB_GUIDE"
         ]
-      }
+      },
+      "official_class": "Heavy Infantry, Machine",
+      "unit_class": "machine",
+      "speed": 40,
+      "weapons": [
+        {
+          "id": "primary",
+          "display_name": "Giant Sword",
+          "damage": 840,
+          "accuracy": 80,
+          "ammunition": null,
+          "trigger": "primary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "screenshot": "image(20261005-042236).png",
+            "accuracy_method": "OFFICIAL_BAR_QUANTIZED_5_PERCENT",
+            "fill_px": 135,
+            "track_px": 168
+          }
+        }
+      ]
     },
     {
       "id": "barbarian_ram",
@@ -189,19 +345,62 @@
       "hp": 1400,
       "base_armor": 20,
       "damage": 2100,
-      "accuracy": 10,
+      "accuracy": 20,
       "ammunition": null,
       "size": 5,
       "provenance": {
-        "confidence": "DIRECT_LEGACY_CORE_X20_PLUS_EQUIVALENCE",
-        "notes": "Legacy guide directly gives HP 70, damage 105 and accuracy 10%; HP/damage scaled x20. Armour and size inherit Battering Ram equivalence; ammunition remains unlimited/null as in the player Ram profile.",
-        "sources": [
+        "confidence": "OFFICIAL_HELP_COMBAT_STATS",
+        "notes": "Combat stats verified from official in-game Help screenshot; first/last appearance levels retain earlier guide provenance.",
+        "official_help": {
+          "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+          "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+          "captured_date": "2026-10-05",
+          "screenshot": "image(20261005-042259).png"
+        },
+        "appearance_level_sources": [
           "GF_BARBAR_VILLAGE_GUIDE",
-          "COMMUNITY_BARB_GUIDE",
-          "GF_IH2_CHANGELOG",
-          "GF_IH2_X20"
+          "COMMUNITY_BARB_GUIDE"
         ]
-      }
+      },
+      "official_class": "Artillery, Machine",
+      "unit_class": "machine",
+      "speed": 40,
+      "weapons": [
+        {
+          "id": "primary",
+          "display_name": "Collision Ram",
+          "damage": 2100,
+          "accuracy": 20,
+          "ammunition": null,
+          "trigger": "primary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "screenshot": "image(20261005-042259).png",
+            "accuracy_method": "OFFICIAL_BAR_QUANTIZED_5_PERCENT",
+            "fill_px": 33,
+            "track_px": 168
+          }
+        },
+        {
+          "id": "secondary",
+          "display_name": "Axe Head",
+          "damage": 200,
+          "accuracy": 20,
+          "ammunition": null,
+          "trigger": "secondary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "screenshot": "image(20261005-042259).png",
+            "accuracy_method": "OFFICIAL_BAR_QUANTIZED_5_PERCENT",
+            "fill_px": 33,
+            "track_px": 168
+          }
+        }
+      ]
     },
     {
       "id": "barbarian_catapult",
@@ -214,19 +413,62 @@
       "hp": 640,
       "base_armor": 0,
       "damage": 5400,
-      "accuracy": 10,
+      "accuracy": 20,
       "ammunition": 5,
       "size": 5,
       "provenance": {
-        "confidence": "EQUIVALENCE_DERIVED_WITH_AMMO_EXCEPTION",
-        "notes": "Gameforge guide identifies artillery role; community guide describes it as Mortar except ammunition 5 instead of 3.",
-        "sources": [
+        "confidence": "OFFICIAL_HELP_COMBAT_STATS",
+        "notes": "Combat stats verified from official in-game Help screenshot; first/last appearance levels retain earlier guide provenance.",
+        "official_help": {
+          "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+          "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+          "captured_date": "2026-10-05",
+          "screenshot": "image(20261005-043505).png"
+        },
+        "appearance_level_sources": [
           "GF_BARBAR_VILLAGE_GUIDE",
-          "COMMUNITY_BARB_GUIDE",
-          "GF_IH2_CHANGELOG",
-          "GF_IH2_X20"
+          "COMMUNITY_BARB_GUIDE"
         ]
-      }
+      },
+      "official_class": "Artillery, Machine",
+      "unit_class": "machine",
+      "speed": 40,
+      "weapons": [
+        {
+          "id": "primary",
+          "display_name": "Bomb",
+          "damage": 5400,
+          "accuracy": 20,
+          "ammunition": 5,
+          "trigger": "primary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "screenshot": "image(20261005-043505).png",
+            "accuracy_method": "OFFICIAL_BAR_QUANTIZED_5_PERCENT",
+            "fill_px": 33,
+            "track_px": 168
+          }
+        },
+        {
+          "id": "secondary",
+          "display_name": "Axe Head",
+          "damage": 200,
+          "accuracy": 20,
+          "ammunition": null,
+          "trigger": "secondary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "screenshot": "image(20261005-043505).png",
+            "accuracy_method": "OFFICIAL_BAR_QUANTIZED_5_PERCENT",
+            "fill_px": 33,
+            "track_px": 168
+          }
+        }
+      ]
     },
     {
       "id": "barbarian_dirigible",
@@ -243,15 +485,41 @@
       "ammunition": 2,
       "size": 2,
       "provenance": {
-        "confidence": "EQUIVALENCE_DERIVED_CURRENT",
-        "notes": "Gameforge guide identifies it as a bomber equivalent to Balloon-Bombardiers at level 50.",
-        "sources": [
+        "confidence": "OFFICIAL_HELP_COMBAT_STATS",
+        "notes": "Combat stats verified from official in-game Help screenshot; first/last appearance levels retain earlier guide provenance.",
+        "official_help": {
+          "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+          "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+          "captured_date": "2026-10-05",
+          "screenshot": "image(20261005-043511).png"
+        },
+        "appearance_level_sources": [
           "GF_BARBAR_VILLAGE_GUIDE",
-          "COMMUNITY_BARB_GUIDE",
-          "GF_IH2_CHANGELOG",
-          "GF_IH2_X20"
+          "COMMUNITY_BARB_GUIDE"
         ]
-      }
+      },
+      "official_class": "Bombardment, Machine",
+      "unit_class": "machine",
+      "speed": 20,
+      "weapons": [
+        {
+          "id": "primary",
+          "display_name": "Fire Bucket",
+          "damage": 960,
+          "accuracy": 20,
+          "ammunition": 2,
+          "trigger": "primary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "screenshot": "image(20261005-043511).png",
+            "accuracy_method": "OFFICIAL_BAR_QUANTIZED_5_PERCENT",
+            "fill_px": 33,
+            "track_px": 168
+          }
+        }
+      ]
     },
     {
       "id": "barbarian_fighter",
@@ -268,15 +536,41 @@
       "ammunition": 4,
       "size": 1,
       "provenance": {
-        "confidence": "EQUIVALENCE_DERIVED_CURRENT",
-        "notes": "Gameforge guide identifies it as the air-defense/fighter unit equivalent to Gyrocopters at level 50.",
-        "sources": [
+        "confidence": "OFFICIAL_HELP_COMBAT_STATS",
+        "notes": "Combat stats verified from official in-game Help screenshot; first/last appearance levels retain earlier guide provenance.",
+        "official_help": {
+          "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+          "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+          "captured_date": "2026-10-05",
+          "screenshot": "image(20261005-043520).png"
+        },
+        "appearance_level_sources": [
           "GF_BARBAR_VILLAGE_GUIDE",
-          "COMMUNITY_BARB_GUIDE",
-          "GF_IH2_CHANGELOG",
-          "GF_IH2_X20"
+          "COMMUNITY_BARB_GUIDE"
         ]
-      }
+      },
+      "official_class": "Air Combat, Machine",
+      "unit_class": "machine",
+      "speed": 80,
+      "weapons": [
+        {
+          "id": "primary",
+          "display_name": "Blowpipe",
+          "damage": 340,
+          "accuracy": 80,
+          "ammunition": 4,
+          "trigger": "primary",
+          "provenance": {
+            "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+            "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+            "captured_date": "2026-10-05",
+            "screenshot": "image(20261005-043520).png",
+            "accuracy_method": "OFFICIAL_BAR_QUANTIZED_5_PERCENT",
+            "fill_px": 135,
+            "track_px": 168
+          }
+        }
+      ]
     }
   ]
 }

@@ -8,11 +8,25 @@ from typing import Any
 
 
 @dataclass(frozen=True)
+class BarbarianWeapon:
+    id: str
+    display_name: str
+    damage: int
+    accuracy: int
+    ammunition: int | None
+    trigger: str
+    provenance: dict[str, Any]
+
+
+@dataclass(frozen=True)
 class BarbarianUnit:
     id: str
     display_name: str
     semantic_class: str
     native_line: str
+    official_class: str | None
+    unit_class: str | None
+    speed: int | None
     first_appearance_level: int
     last_appearance_level: int | None
     equivalent_player_unit: str | None
@@ -22,7 +36,12 @@ class BarbarianUnit:
     accuracy: int | None
     ammunition: int | None
     size: int | None
+    weapons: tuple[BarbarianWeapon, ...]
     provenance: dict[str, Any]
+
+    @property
+    def primary_weapon(self) -> BarbarianWeapon:
+        return self.weapons[0]
 
     def public(self) -> dict[str, Any]:
         numerically_supported = (
@@ -41,7 +60,9 @@ class BarbarianUnit:
             "battlefield_class": self.native_line,
             "semantic_class": self.semantic_class,
             "native_line": self.native_line,
-            "unit_class": None,
+            "unit_class": self.unit_class,
+            "official_class": self.official_class,
+            "speed": self.speed,
             "first_appearance_level": self.first_appearance_level,
             "last_appearance_level": self.last_appearance_level,
             "equivalent_player_unit": self.equivalent_player_unit,
@@ -51,13 +72,17 @@ class BarbarianUnit:
             "accuracy": self.accuracy,
             "ammunition": self.ammunition,
             "size": self.size,
-            "weapons": [{
-                "id": "primary",
-                "damage": self.damage,
-                "ammunition": self.ammunition,
-                "trigger": "primary",
-                "accuracy": self.accuracy,
-            }],
+            "weapons": [
+                {
+                    "id": weapon.id,
+                    "display_name": weapon.display_name,
+                    "damage": weapon.damage,
+                    "ammunition": weapon.ammunition,
+                    "trigger": weapon.trigger,
+                    "accuracy": weapon.accuracy,
+                }
+                for weapon in self.weapons
+            ],
             "numerically_supported": numerically_supported,
             "counts_toward_garrison_limit": True,
             "resource_cost_basis_total": 0,
@@ -80,20 +105,51 @@ class BarbarianRegistry:
         raw = json.loads(resource.read_text(encoding="utf-8"))
         definitions = {}
         for row in raw["units"]:
+            weapon_rows = row.get("weapons")
+            if weapon_rows:
+                weapons = tuple(
+                    BarbarianWeapon(
+                        id=weapon["id"],
+                        display_name=weapon.get("display_name", weapon["id"]),
+                        damage=int(weapon["damage"]),
+                        accuracy=int(weapon["accuracy"]),
+                        ammunition=weapon.get("ammunition"),
+                        trigger=weapon.get("trigger", "primary"),
+                        provenance=weapon.get("provenance", {}),
+                    )
+                    for weapon in weapon_rows
+                )
+            else:
+                weapons = (
+                    BarbarianWeapon(
+                        id="primary",
+                        display_name="primary",
+                        damage=int(row["damage"]),
+                        accuracy=int(row["accuracy"]),
+                        ammunition=row.get("ammunition"),
+                        trigger="primary",
+                        provenance=row.get("provenance", {}),
+                    ),
+                )
+            primary = weapons[0]
             definitions[row["id"]] = BarbarianUnit(
                 id=row["id"],
                 display_name=row["display_name"],
                 semantic_class=row["semantic_class"],
                 native_line=row["native_line"],
+                official_class=row.get("official_class"),
+                unit_class=row.get("unit_class"),
+                speed=row.get("speed"),
                 first_appearance_level=row["first_appearance_level"],
                 last_appearance_level=row.get("last_appearance_level"),
                 equivalent_player_unit=row.get("equivalent_player_unit"),
                 hit_points=row.get("hp"),
                 base_armor=row.get("base_armor"),
-                damage=row.get("damage"),
-                accuracy=row.get("accuracy"),
-                ammunition=row.get("ammunition"),
+                damage=primary.damage,
+                accuracy=primary.accuracy,
+                ammunition=primary.ammunition,
                 size=row.get("size"),
+                weapons=weapons,
                 provenance=row["provenance"],
             )
         return cls(definitions, raw["metadata"])

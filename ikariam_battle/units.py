@@ -81,16 +81,23 @@ class UnitRegistry:
                     battlefield_class=barbarian.native_line,
                     semantic_class=barbarian.semantic_class,
                     native_line=barbarian.native_line,
-                    unit_class=equivalent.unit_class if equivalent else None,
+                    unit_class=barbarian.unit_class or (
+                        equivalent.unit_class if equivalent else None
+                    ),
                     hit_points=barbarian.hit_points,
                     base_armor=barbarian.base_armor,
-                    accuracy=barbarian.accuracy,
+                    accuracy=barbarian.primary_weapon.accuracy,
                     size=barbarian.size,
-                    weapons=(
+                    weapons=tuple(
                         Weapon(
-                            "primary", barbarian.damage, barbarian.ammunition,
-                            "primary", barbarian.accuracy, barbarian.provenance,
-                        ),
+                            weapon.id,
+                            weapon.damage,
+                            weapon.ammunition,
+                            weapon.trigger,
+                            weapon.accuracy,
+                            weapon.provenance,
+                        )
+                        for weapon in barbarian.weapons
                     ),
                     counts_toward_garrison_limit=True,
                     provenance=barbarian.provenance,

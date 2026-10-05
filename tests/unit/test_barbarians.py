@@ -49,29 +49,31 @@ def test_barbarian_lines_and_first_appearance_levels():
     assert registry.get("barbarian_clubman").last_appearance_level == 22
 
 
-def test_barbarian_current_catalog_stats_and_explicit_derivation():
+def test_barbarian_current_catalog_stats_are_official_help_verified():
     registry = BarbarianRegistry.load()
     expected = {
-        "barbarian_clubman": (240, 0, 100, 70, None, 1),
-        "barbarian_axe_swinger": (1120, 20, 360, 90, None, 1),
-        "barbarian_knifeman": (360, 0, 200, 90, None, 1),
-        "barbarian_axe_thrower": (320, 0, 100, 40, 7, 1),
-        "barbarian_war_walker": (3680, 60, 840, 80, None, 3),
-        "barbarian_ram": (1400, 20, 2100, 10, None, 5),
-        "barbarian_catapult": (640, 0, 5400, 10, 5, 5),
-        "barbarian_dirigible": (800, 0, 960, 20, 2, 2),
-        "barbarian_fighter": (580, 0, 340, 80, 4, 1),
+        "barbarian_clubman": (240, 20, 60, 1, [(100,85,None)]),
+        "barbarian_axe_swinger": (1120, 20, 60, 1, [(360,90,None)]),
+        "barbarian_knifeman": (360, 0, 60, 1, [(200,90,None)]),
+        "barbarian_axe_thrower": (320, 0, 60, 1, [(200,30,7),(100,60,None)]),
+        "barbarian_war_walker": (3680, 60, 40, 3, [(840,80,None)]),
+        "barbarian_ram": (1400, 20, 40, 5, [(2100,20,None),(200,20,None)]),
+        "barbarian_catapult": (640, 0, 40, 5, [(5400,20,5),(200,20,None)]),
+        "barbarian_dirigible": (800, 0, 20, 2, [(960,20,2)]),
+        "barbarian_fighter": (580, 0, 80, 1, [(340,80,4)]),
     }
     actual = {
         unit.id: (
-            unit.hit_points, unit.base_armor, unit.damage, unit.accuracy,
-            unit.ammunition, unit.size,
+            unit.hit_points, unit.base_armor, unit.speed, unit.size,
+            [(w.damage,w.accuracy,w.ammunition) for w in unit.weapons],
         )
         for unit in registry.all()
     }
     assert actual == expected
-    assert "CURRENT_HP_OBSERVED" in registry.get("barbarian_knifeman").provenance["confidence"]
-    assert "DIRECT_LEGACY_CORE_X20" in registry.get("barbarian_ram").provenance["confidence"]
+    assert all(
+        unit.provenance["confidence"] == "OFFICIAL_HELP_COMBAT_STATS"
+        for unit in registry.all()
+    )
 
 
 def test_combat_registry_can_opt_in_barbarian_definitions():
@@ -85,8 +87,15 @@ def test_combat_registry_can_opt_in_barbarian_definitions():
     assert clubman.role == "combat"
     assert clubman.semantic_class == "heavy_infantry"
     assert clubman.native_line == "first"
+    assert clubman.base_armor == 20
     assert clubman.primary_weapon.damage == 100
-    assert clubman.primary_weapon.accuracy == 70
+    assert clubman.primary_weapon.accuracy == 85
+    axe_thrower = combined.get("barbarian_axe_thrower")
+    assert [(w.damage,w.accuracy,w.ammunition) for w in axe_thrower.weapons] == [
+        (200,30,7),(100,60,None)
+    ]
+    ram = combined.get("barbarian_ram")
+    assert [(w.damage,w.accuracy) for w in ram.weapons] == [(2100,20),(200,20)]
 
 
 
@@ -108,7 +117,7 @@ def test_official_help_barbarian_fleet_catalog_is_complete_and_ready():
     registry = BarbarianFleetRegistry.load()
     assert {unit.id for unit in registry.all()} == FLEET_IDS
     assert registry.metadata["simulation_status"] == "NAVAL_COMBAT_READY_MANUAL_QUANTITIES"
-    assert registry.metadata["composition_status"] == "LEVEL_TO_QUANTITY_TABLE_NOT_YET_CAPTURED"
+    assert registry.metadata["composition_status"] == "LEVEL_50_PLUS_USER_SPREADSHEET_MODEL_READY;LOWER_LEVEL_FULL_TABLE_NOT_CAPTURED"
     public = registry.public()
     assert all(row["domain"] == "naval" for row in public)
     assert all(row["army_kind"] == "barbarian" for row in public)
@@ -182,3 +191,19 @@ def test_level_50_plus_barbarian_fleet_composition_matches_user_spreadsheet():
         "barbarian_dirigible_igniter": 1503,
     }
     assert registry.reward_multiplier_for_stage(50) == Decimal("5.9")
+
+
+
+def test_barbarian_official_help_accuracy_bars_quantize_to_5_percent_grid():
+    import json
+    from importlib.resources import files
+    evidence=json.loads(
+        files("ikariam_battle.data.calibration")
+        .joinpath("barbarian-land-official-help-2026-10-05.json")
+        .read_text(encoding="utf-8")
+    )
+    assert len(evidence["units"])==9
+    for row in evidence["units"]:
+        for weapon in row["weapons"]:
+            measured=100*weapon["fill_px"]/weapon["track_px"]
+            assert round(measured/5)*5==weapon["accuracy"]
