@@ -808,6 +808,13 @@ def test_same_unit_long_range_cross_batch_fills_existing_second_slots_and_keeps_
  assert second.reserve==36
  assert first.ammo_pool_shots==49
  assert second.ammo_pool_shots==180
+ assert any(
+  event.type=='ammo_limited_deployment'
+  and event.details.get('wave_id')==second.unit.wave_id
+  and event.details.get('deployed_units')==24
+  and event.details.get('reserve_units')==36
+  for event in events
+ )
  assert first.reserve_damage+sum(slot.damage for slot in first.slots)==before_damage[first.unit.wave_id]
  assert second.reserve_damage+sum(slot.damage for slot in second.slots)==before_damage[second.unit.wave_id]
  assert any(
@@ -1574,6 +1581,12 @@ def test_doctor_healing_executes_full_clear_subset_and_reports_real_amount():
  assert 'EXP-HEAL-NONE-001' not in {a['id'] for a in result['assumptions']}
  assert result['combat_statistics']['attacker']['gross_healing']==side['healing_amount']
  assert result['combat_statistics']['attacker']['engine_healing_applied']==side['healing_amount']
+ assert any(
+  e['type']=='healing' and e['side']=='attacker'
+  and e['details'].get('support_unit_id')=='doctor'
+  and e['details'].get('healing')==side['healing_amount']
+  for e in result['events']
+ )
  assert any(row['combat_statistics']['attacker']['healing']>0 for row in result['rounds'])
  assert result['rounds'][-1]['combat_statistics']['attacker']['cumulative_healing']==side['healing_amount']
 
@@ -1686,6 +1699,7 @@ def test_tender_insufficient_capacity_does_not_invent_partial_allocation():
  )
  assert ram.slots[0].damage==4500
  assert 'EXP-TENDER-HEAL-NONE-001' in applied
+ assert applied['EXP-TENDER-HEAL-NONE-001']['description'].startswith('When Tender capacity cannot clear')
  unresolved=next(
   event for event in events
   if event.type=='healing_allocation_unresolved'
