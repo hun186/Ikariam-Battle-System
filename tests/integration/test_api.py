@@ -67,7 +67,7 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
   ('land-large','land','Land large / Town Hall 17–24',True),
   ('land-max','land','Land max / Town Hall 25+',True),
   ('naval-max','naval','Naval max / current community geometry',True),
-  ('naval-mini','naval','Naval battlefield / geometry pending',False),
+  ('naval-mini','naval','Naval mini / geometry pending',False),
  ]
  medium=next(f for f in data['battlefields'] if f['id']=='land-medium')
  assert {line:len(spec['physical_order']) for line,spec in medium['lines'].items()}=={
