@@ -722,8 +722,8 @@ def test_setup_presets_share_the_canonical_setup_serializer_and_public_entrypoin
  assert "battleDomain.value=field.domain;refreshBattlefieldOptions(field.id)" in body
  assert "setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100" in body
  assert '自訂套裝只保存在此瀏覽器' in body
- assert "'UNKNOWN-FORMATION-FALLBACK':'主戰線需要 fallback。" in body
- assert '整個 Light Infantry wave 可完整轉入 First 的情況已支援' in body
+ assert "'UNKNOWN-FORMATION-FALLBACK':'主戰線需要尚未支援的 fallback。" in body
+ assert '整個 Light Infantry wave 可完整轉入 First；Long-range 彈藥歸零後的 whole-wave 與 partial First fill 也已支援' in body
  assert body==Path('public/index.html').read_text()
 
 
