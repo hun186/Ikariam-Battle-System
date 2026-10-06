@@ -4,7 +4,7 @@ import pytest
 from ikariam_battle import simulate
 from ikariam_battle.battlefield import LAND_BATTLEFIELDS, LAND_MINI, NAVAL_BATTLEFIELDS, deploy
 from ikariam_battle.engine import (
- _cross_wave_rebuild_requirements, _formation_shots, _healing_status, _ir_trigger, _plan_fire, _preflight,
+ _arrival_waves, _cross_wave_rebuild_requirements, _formation_shots, _healing_status, _ir_trigger, _plan_fire, _preflight,
  _prepare_round_start, _redistribute, _resolve_volleys, _sr_trigger, _target,
 )
 from ikariam_battle.formation import FormationRules
@@ -3194,6 +3194,45 @@ def test_partial_fallback_disambiguates_generated_id_from_same_unit_user_wave():
   and event.details.get('wave_id')==generated[0].unit.wave_id
   for event in events
  )
+
+
+def test_partial_fallback_reserves_id_against_delayed_same_unit_arrival():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'hoplite','quantity':300,'wave_id':'front'},
+ ]}),registry,field)
+ waves.append(Wave(
+  ArmyUnit('sulphur_carabineer',57,'src',entry_batch_id='batch-a'),
+  57,[],0,0,0,171,
+ ))
+ scheduled=Army.from_dict({'units':[
+  {
+   'unit_id':'sulphur_carabineer','quantity':16,
+   'wave_id':'src::front-fallback-r4','entry_batch_id':'batch-b',
+   'arrival_round':5,
+  },
+ ]})
+ reserved={(item.unit_id,item.wave_id) for item in scheduled.units}
+ events=[]; applied={}
+ boundary=_prepare_round_start(
+  waves,events,4,'attacker',applied,registry,rules,field,
+  reserved_wave_ids=reserved,
+ )
+ assert boundary is False
+ generated=next(
+  w for w in waves
+  if w.unit.unit_id=='sulphur_carabineer'
+  and w.unit.wave_id.startswith('src::front-fallback-r4::')
+ )
+ assert generated.unit.wave_id=='src::front-fallback-r4::2'
+ arrivals=_arrival_waves(scheduled,5,registry,events,'attacker')
+ waves.extend(arrivals)
+ identities=[
+  (w.unit.unit_id,w.unit.wave_id)
+  for w in waves
+  if w.unit.unit_id=='sulphur_carabineer'
+ ]
+ assert len(identities)==len(set(identities))
 
 
 def test_tender_healing_event_does_not_pollute_doctor_status():
