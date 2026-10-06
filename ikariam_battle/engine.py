@@ -878,6 +878,7 @@ def _cap_native_finite_ammo_deployment(
 def _supported_whole_wave_first_fallback(
     waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field,
     events: list[Event], number: int, side: str,
+    reserved_wave_ids: set[tuple[str, str]] | None = None,
 ) -> bool:
     """Move one whole supported fallback wave into open First slots.
 
@@ -1015,6 +1016,11 @@ def _supported_whole_wave_first_fallback(
                 for peer in waves
                 if peer.unit.unit_id == unit.id
             }
+            existing_wave_ids.update(
+                wave_id
+                for unit_id, wave_id in (reserved_wave_ids or set())
+                if unit_id == unit.id
+            )
             suffix = 2
             while promoted_id in existing_wave_ids:
                 promoted_id = f"{base_promoted_id}::{suffix}"
@@ -1227,6 +1233,7 @@ def _prepare_round_start(
     applied: dict[str, dict[str, str]], registry: UnitRegistry | None = None,
     rules: FormationRules | None = None, field=None,
     support: SupportProfile | None = None,
+    reserved_wave_ids: set[tuple[str, str]] | None = None,
 ) -> bool:
     """Re-pack, apply safe Doctor/Tender full-clear healing, then RR damage."""
     _rebuild_formation(waves, events, number, side)
@@ -1238,7 +1245,8 @@ def _prepare_round_start(
         _cap_native_finite_ammo_deployment(
             waves, registry, events, number, side)
         fallback_boundary = _supported_whole_wave_first_fallback(
-            waves, registry, rules, field, events, number, side)
+            waves, registry, rules, field, events, number, side,
+            reserved_wave_ids=reserved_wave_ids)
         if fallback_boundary:
             return True
         # Whole-wave promotion can vacate native-line physical positions that
@@ -2877,6 +2885,14 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     wall_combat_boundary = False
     engagement_started = all(
         state == ContinuationState.SUSTAINING.value for state in initial_states.values())
+    scheduled_wave_ids = {
+        "attacker": {
+            (item.unit_id, item.wave_id) for item in scenario.attacker.units
+        },
+        "defender": {
+            (item.unit_id, item.wave_id) for item in scenario.defender.units
+        },
+    }
     for number in range(1, scenario.max_rounds + 1):
         attacker_arrivals = _arrival_waves(scenario.attacker, number, registry, events, "attacker")
         defender_arrivals = _arrival_waves(scenario.defender, number, registry, events, "defender")
@@ -2927,10 +2943,12 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 _assume(applied, events, "EXP-MORALE-NONE-001", number, "arrival", side)
         attacker_fallback_boundary = _prepare_round_start(
             attacker, events, number, "attacker", applied,
-            registry, formation_rules, field, support)
+            registry, formation_rules, field, support,
+            scheduled_wave_ids["attacker"])
         defender_fallback_boundary = _prepare_round_start(
             defender, events, number, "defender", applied,
-            registry, formation_rules, field, support)
+            registry, formation_rules, field, support,
+            scheduled_wave_ids["defender"])
         if attacker_fallback_boundary or defender_fallback_boundary:
             completed = number
             attacker_state = _snapshot(attacker, registry, battle_end)
