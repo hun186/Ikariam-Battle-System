@@ -40,7 +40,7 @@ def test_key_values_and_weapon_accuracy():
  assert (r.get('hoplite').hit_points,r.get('hoplite').primary_weapon.damage,r.get('hoplite').size)==(1120,360,1)
  car=r.get('sulphur_carabineer'); assert (car.hit_points,car.primary_weapon.damage,car.primary_weapon.accuracy,car.primary_weapon.ammunition,car.size)==(240,580,70,3,4)
  rocket=r.get('rocket_ship'); assert (rocket.hit_points,rocket.primary_weapon.damage,rocket.primary_weapon.accuracy,rocket.size)==(1300,7600,20,4)
- assert (rocket.weapons[1].damage,rocket.weapons[1].accuracy)==(400,80)
+ assert (rocket.weapons[1].damage,rocket.weapons[1].accuracy)==(400,70)
 
 
 def test_current_provenance_and_v175_status():
@@ -76,11 +76,14 @@ def test_workshop_forge_support_and_targeting_profiles():
  s=SupportProfile.load(); assert s.derived_capacity==4000 and s.raw['multiplier_provenance']['source_type']=='OFFICIAL_CHANGELOG'
  assert s.raw['eligibility']['land_doctor']=='human'
  assert s.raw['eligibility']['machine_excluded'] is True
+ assert s.raw['eligibility']['naval_tender']=='all_naval_combat'
+ assert s.raw['eligibility']['tender_capacity']==4000
  assert s.raw['timing_contract']['effect_frequency']=='per_round'
  assert s.raw['timing_contract']['visible_by']=='before_next_round_combat'
  assert s.raw['timing_contract']['exact_order_vs_rr']=='UNKNOWN'
  assert s.raw['executable_subset']['status']=='IMPLEMENTED_ORDER_INVARIANT_FULL_CLEAR'
  assert s.raw['executable_subset']['insufficient_capacity']=='EXP-HEAL-NONE-001'
+ assert s.raw['executable_subset']['tender_insufficient_capacity']=='EXP-TENDER-HEAL-NONE-001'
  t=TargetingProfile.load(); assert t.priorities['flank'][0]=='flank'
  assert t.priorities['third']==('first','flank')
  assert t.firing_order==('anti-balloon','balloon','third','flank','second','first')
@@ -91,7 +94,9 @@ def test_workshop_forge_support_and_targeting_profiles():
  assert t.metadata['target_eligibility_contract']['status']=='KNOWN_FOR_EFFECTIVE_ATK_VS_DEF'
  assert 'strictly greater' in t.metadata['target_eligibility_contract']['rule']
  assert t.metadata['wall_targeting_contract']['status']=='STRICT_GUARDED_EXPERIMENTAL_EXECUTABLE'
- assert t.metadata['weapon_selection']['status']=='UNKNOWN'
+ assert t.metadata['weapon_selection']['status']=='PARTIAL_KNOWN'
+ assert t.metadata['weapon_selection']['exhausted_long_range_first_fallback']['status']=='KNOWN_FOR_WHOLE_WAVE_AND_PARTIAL_SPLIT_WITH_RR'
+ assert t.metadata['weapon_selection']['blockers']==['UNKNOWN-SECONDARY-WEAPON-TRIGGER']
  b=BattleEndProfile.load()
  assert b.main_line_classes=={'first'} and b.fallback_candidate_classes=={'flank','second'}
  assert b.continuation_state(1,7) is ContinuationState.SUSTAINING
@@ -111,7 +116,7 @@ def test_land_military_economy_profile_derives_generals_from_resource_basis():
   'steam_giant':('6.2',310),'slinger':('0.4',20),'archer':('1.1',55),'sulphur_carabineer':('4',200),
   'battering_ram':('4.4',220),'catapult':('11.2',560),'mortar':('31',1550),'gyrocopter':('2.5',125),
   'bombardier':('5.8',290),'doctor':('10',500),'cook':('4',200)}
- assert set(e.units)==set(LAND)
+ assert set(LAND) <= set(e.units)
  for unit_id,(score,basis) in expected.items():
   assert e.score(unit_id)==Decimal(score)
   assert e.resource_cost_basis_total(unit_id)==basis
@@ -123,3 +128,38 @@ def test_military_score_loss_is_casualty_count_times_unmodified_score_basis():
  casualties={'hoplite':3,'swordsman':2,'mortar':1}
  assert e.resource_cost_basis_loss(casualties)==1880
  assert e.score_loss(casualties)==Decimal('37.6')
+
+
+
+def test_military_economy_public_exposes_resource_breakdown():
+ from ikariam_battle.economy import MilitaryEconomyProfile
+ public=MilitaryEconomyProfile.load().public()
+ assert public["mortar"]["resource_cost_basis"]=={
+  "wood":300,"wine":0,"marble":0,"crystal":0,"sulfur":1250
+ }
+ assert public["mortar"]["resource_cost_basis_total"]==1550
+ assert public["mortar"]["general_score"]=="31"
+ assert public["doctor"]["resource_cost_basis"]["crystal"]==450
+ assert public["cook"]["resource_cost_basis"]["wine"]==150
+
+
+
+def test_military_economy_ignores_zero_quantity_unknown_units():
+ from ikariam_battle.economy import MilitaryEconomyProfile
+ economy=MilitaryEconomyProfile.load()
+ assert economy.resource_cost_basis_loss({"mortar":1,"naval_unknown":0})==1550
+ assert economy.score_loss({"mortar":1,"naval_unknown":0})==31
+
+
+
+def test_military_economy_now_covers_current_player_naval_units():
+ from ikariam_battle.economy import MilitaryEconomyProfile
+ economy=MilitaryEconomyProfile.load()
+ expected={
+  "ram_ship":"5","ballista_ship":"6.8","fire_ship":"6.2",
+  "catapult_ship":"6.4","mortar_ship":"22.4","steam_ram":"24",
+  "rocket_ship":"28","diving_boat":"20.2","paddle_speedboat":"6.4",
+  "balloon_carrier":"28","tender":"16"
+ }
+ for unit_id,score in expected.items():
+  assert economy.public()[unit_id]["general_score"]==score

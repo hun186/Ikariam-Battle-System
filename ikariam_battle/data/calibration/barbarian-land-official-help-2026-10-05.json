@@ -1,0 +1,263 @@
+{
+  "metadata": {
+    "evidence_class": "USER_SUPPLIED_OFFICIAL_HELP_SCREENSHOTS",
+    "source": "Gameforge in-game Help",
+    "captured_date": "2026-10-05",
+    "domain": "barbarian_land",
+    "unit_count": 9,
+    "direct_text_fields": [
+      "class",
+      "hp",
+      "armor",
+      "speed",
+      "size",
+      "weapon_damage",
+      "ammunition"
+    ],
+    "accuracy_method": {
+      "source": "official red Accuracy bar",
+      "method": "measure red fill pixels against 168px interior track; quantize to nearest 5 percentage points",
+      "quantization_percent": 5
+    },
+    "economy_note": "These Help pages do not show recruitment resource costs; Barbarian land units therefore remain zero-General-Score/non-player economy entities."
+  },
+  "units": [
+    {
+      "id": "barbarian_axe_swinger",
+      "help_name": "異教徒-舞斧者",
+      "screenshot": "image(20261005-042200).png",
+      "official_class": "Heavy Infantry, Human",
+      "unit_class": "human",
+      "hp": 1120,
+      "armor": 20,
+      "speed": 60,
+      "size": 1,
+      "weapons": [
+        {
+          "id": "primary",
+          "display_name": "Axe Head",
+          "damage": 360,
+          "accuracy": 90,
+          "ammunition": null,
+          "fill_px": 151,
+          "track_px": 168,
+          "measured_percent": 89.88
+        }
+      ]
+    },
+    {
+      "id": "barbarian_clubman",
+      "help_name": "異教徒棍手",
+      "screenshot": "image(20261005-042200-1).png",
+      "official_class": "Heavy Infantry, Human",
+      "unit_class": "human",
+      "hp": 240,
+      "armor": 20,
+      "speed": 60,
+      "size": 1,
+      "weapons": [
+        {
+          "id": "primary",
+          "display_name": "Club",
+          "damage": 100,
+          "accuracy": 85,
+          "ammunition": null,
+          "fill_px": 143,
+          "track_px": 168,
+          "measured_percent": 85.12
+        }
+      ]
+    },
+    {
+      "id": "barbarian_knifeman",
+      "help_name": "異教徒刀斧手",
+      "screenshot": "image(20261005-042214).png",
+      "official_class": "Light Infantry, Human",
+      "unit_class": "human",
+      "hp": 360,
+      "armor": 0,
+      "speed": 60,
+      "size": 1,
+      "weapons": [
+        {
+          "id": "primary",
+          "display_name": "Dagger",
+          "damage": 200,
+          "accuracy": 90,
+          "ammunition": null,
+          "fill_px": 151,
+          "track_px": 168,
+          "measured_percent": 89.88
+        }
+      ]
+    },
+    {
+      "id": "barbarian_axe_thrower",
+      "help_name": "異族擲斧手",
+      "screenshot": "image(20261005-042227).png",
+      "official_class": "Long-Range, Human",
+      "unit_class": "human",
+      "hp": 320,
+      "armor": 0,
+      "speed": 60,
+      "size": 1,
+      "weapons": [
+        {
+          "id": "primary",
+          "display_name": "Flying Axe",
+          "damage": 200,
+          "accuracy": 30,
+          "ammunition": 7,
+          "fill_px": 50,
+          "track_px": 168,
+          "measured_percent": 29.76
+        },
+        {
+          "id": "secondary",
+          "display_name": "Axe Head",
+          "damage": 100,
+          "accuracy": 60,
+          "ammunition": null,
+          "fill_px": 101,
+          "track_px": 168,
+          "measured_percent": 60.12
+        }
+      ]
+    },
+    {
+      "id": "barbarian_war_walker",
+      "help_name": "異教徒隨戟者",
+      "screenshot": "image(20261005-042236).png",
+      "official_class": "Heavy Infantry, Machine",
+      "unit_class": "machine",
+      "hp": 3680,
+      "armor": 60,
+      "speed": 40,
+      "size": 3,
+      "weapons": [
+        {
+          "id": "primary",
+          "display_name": "Giant Sword",
+          "damage": 840,
+          "accuracy": 80,
+          "ammunition": null,
+          "fill_px": 135,
+          "track_px": 168,
+          "measured_percent": 80.36
+        }
+      ]
+    },
+    {
+      "id": "barbarian_ram",
+      "help_name": "異教徒撞槌",
+      "screenshot": "image(20261005-042259).png",
+      "official_class": "Artillery, Machine",
+      "unit_class": "machine",
+      "hp": 1400,
+      "armor": 20,
+      "speed": 40,
+      "size": 5,
+      "weapons": [
+        {
+          "id": "primary",
+          "display_name": "Collision Ram",
+          "damage": 2100,
+          "accuracy": 20,
+          "ammunition": null,
+          "fill_px": 33,
+          "track_px": 168,
+          "measured_percent": 19.64
+        },
+        {
+          "id": "secondary",
+          "display_name": "Axe Head",
+          "damage": 200,
+          "accuracy": 20,
+          "ammunition": null,
+          "fill_px": 33,
+          "track_px": 168,
+          "measured_percent": 19.64
+        }
+      ]
+    },
+    {
+      "id": "barbarian_catapult",
+      "help_name": "異教徒投石車",
+      "screenshot": "image(20261005-043505).png",
+      "official_class": "Artillery, Machine",
+      "unit_class": "machine",
+      "hp": 640,
+      "armor": 0,
+      "speed": 40,
+      "size": 5,
+      "weapons": [
+        {
+          "id": "primary",
+          "display_name": "Bomb",
+          "damage": 5400,
+          "accuracy": 20,
+          "ammunition": 5,
+          "fill_px": 33,
+          "track_px": 168,
+          "measured_percent": 19.64
+        },
+        {
+          "id": "secondary",
+          "display_name": "Axe Head",
+          "damage": 200,
+          "accuracy": 20,
+          "ammunition": null,
+          "fill_px": 33,
+          "track_px": 168,
+          "measured_percent": 19.64
+        }
+      ]
+    },
+    {
+      "id": "barbarian_dirigible",
+      "help_name": "異族飛艇",
+      "screenshot": "image(20261005-043511).png",
+      "official_class": "Bombardment, Machine",
+      "unit_class": "machine",
+      "hp": 800,
+      "armor": 0,
+      "speed": 20,
+      "size": 2,
+      "weapons": [
+        {
+          "id": "primary",
+          "display_name": "Fire Bucket",
+          "damage": 960,
+          "accuracy": 20,
+          "ammunition": 2,
+          "fill_px": 33,
+          "track_px": 168,
+          "measured_percent": 19.64
+        }
+      ]
+    },
+    {
+      "id": "barbarian_fighter",
+      "help_name": "異族戰士",
+      "screenshot": "image(20261005-043520).png",
+      "official_class": "Air Combat, Machine",
+      "unit_class": "machine",
+      "hp": 580,
+      "armor": 0,
+      "speed": 80,
+      "size": 1,
+      "weapons": [
+        {
+          "id": "primary",
+          "display_name": "Blowpipe",
+          "damage": 340,
+          "accuracy": 80,
+          "ammunition": 4,
+          "fill_px": 135,
+          "track_px": 168,
+          "measured_percent": 80.36
+        }
+      ]
+    }
+  ]
+}

@@ -22,7 +22,7 @@ from .kill_calibration import (
     MKILL_RULE_ID as SWORDSMAN_MKILL_RULE_ID,
     swordsman_flank_kill_adjustment,
 )
-from .models import Army, Policy, Scenario, ScenarioError, Slot, Wave
+from .models import Army, ArmyUnit, Policy, Scenario, ScenarioError, Slot, Wave
 from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 from .redistribution import SlotShare, reserve_redistribution
 from .target_eligibility import (
@@ -55,11 +55,12 @@ EXPERIMENTAL_POLICIES = {
     SWORDSMAN_MKILL_RULE_ID: "For the current full 6x40 Swordsman-vs-Swordsman central flank shape (six 7-hit reduced-AM columns) in the two-hit regime, start from the generic sequential D-kill result and retain one lethal-pair overkill per AM row into an M-pool; convert that pool to additional casualties plus persistent damage. Outer six-hit columns remain D-kill. Accuracy remains an unresolved higher-level selector candidate rather than a fabricated multiplier.",
     "EXP-ROUND-FLOOR-001": "Floor non-integer net damage; the general selector is unknown.",
     "EXP-RR-ROUND-HALF-UP-001": "Round the total deployed RR share half-up, then assign remainder by damage priority.",
-    "EXP-AMMO-STOP-001": "After primary ammunition is exhausted, do not silently switch to an unverified secondary weapon.",
+    "EXP-AMMO-STOP-001": "After primary ammunition is exhausted, do not silently switch to an unverified secondary weapon while the unit remains in its native firing formation. Official naval exhausted Long-Range -> Front fallback is handled separately.",
     "EXP-AMMO-PARTIAL-ORDER-001": "Allocate a partial ammunition pool by source-slot damage priority.",
     EXPERIMENTAL_ACCURACY_MODEL_ID: "Use weapon Accuracy as a deterministic within-slot concentration threshold: one-shot-capable hits never miss; otherwise spread to healthier survivors until the most-damaged survivor remaining-HP% is <= Accuracy, then focus it.",
     "EXP-BATTLE-END-ROUND-BOUNDARY-001": "Evaluate battle-sustaining forces at the initial and completed-round boundaries.",
     "EXP-HEAL-NONE-001": "When Doctor capacity cannot clear all eligible Human persistent damage at a round boundary, do not apply partial healing because allocation and exact Healing/RR ordering are unresolved.",
+    "EXP-TENDER-HEAL-NONE-001": "When Tender capacity cannot clear all eligible naval persistent damage at a round boundary, do not apply partial repair because allocation and exact Healing/RR ordering are unresolved.",
     "EXP-MORALE-NONE-001": "Cook morale is not applied because the current morale algorithm is unresolved.",
     "EXP-WALL-FOCUS-DAMAGE-PRIORITY-001": "When eligible Artillery attacks an active Town Wall, concentrate successful hits on the lowest surviving wall damage-position until that section breaches, then continue to the next section; breach count is evidence-backed but exact section-address order remains a calibration hypothesis.",
     "EXP-WALL-ARTILLERY-SUCCESSFUL-HIT-001": "Treat each penetration-eligible Artillery firing ticket directed at the Town Wall as a successful wall hit. This matches successful-hit breach arithmetic and observed multi-section breach counts; exact wall Accuracy interaction remains unresolved.",
@@ -144,10 +145,14 @@ def _snapshot(waves: list[Wave], registry: UnitRegistry, battle_end: BattleEndPr
             "slots": slots, "total": sum(units.values())}
 
 
-def _unsupported(scenario: Scenario, events: list[Event], initial: dict, blockers: list[str], warnings: list[str]) -> dict:
+def _unsupported(
+    scenario: Scenario, events: list[Event], initial: dict,
+    blockers: list[str], warnings: list[str],
+    profiles: dict[str, Any] | None = None,
+) -> dict:
     for rule in blockers:
         _event(events, 0, "preflight", "unsupported_mechanic", None, rule_id=rule)
-    return {"profiles": scenario.profiles.__dict__, "policy": scenario.policy.value, "status": "inconclusive",
+    return {"profiles": profiles or scenario.profiles.__dict__, "policy": scenario.policy.value, "status": "inconclusive",
             "outcome": "inconclusive", "rounds_completed": 0, "casualties": {"attacker": {}, "defender": {}},
             "initial_state": initial, "final_state": initial,
             "rounds": [{"round": 0, **deepcopy(initial), "casualties": {"attacker": {}, "defender": {}}}],
@@ -162,8 +167,12 @@ def _preflight(waves: list[Wave], registry: UnitRegistry, rules: FormationRules,
         if len({slot.line for slot in wave.slots}) > 1:
             blockers.append("UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS")
         unit = registry.get(wave.unit.unit_id)
-        if unit.support_effect == "healing": blockers.append("UNKNOWN-HEALING-ALLOCATION")
-        elif unit.support_effect == "morale": blockers.append("UNKNOWN-MORALE-SUPPORT")
+        if unit.id == "tender":
+            blockers.append("UNKNOWN-TENDER-HEALING-ALLOCATION")
+        elif unit.support_effect == "healing":
+            blockers.append("UNKNOWN-HEALING-ALLOCATION")
+        elif unit.support_effect == "morale":
+            blockers.append("UNKNOWN-MORALE-SUPPORT")
         else:
             for runtime_line in {slot.line for slot in wave.slots if slot.units}:
                 try:
@@ -251,6 +260,7 @@ def _apply_supported_doctor_healing(
 
     _event(
         events, number, "heal", "healing", side,
+        support_unit_id="doctor",
         doctor_count=doctor_count, capacity=capacity,
         eligible_damage_before=eligible_damage,
         healing=eligible_damage,
@@ -267,8 +277,168 @@ def _apply_supported_doctor_healing(
     return eligible_damage
 
 
+def _apply_supported_tender_healing(
+    waves: list[Wave], registry: UnitRegistry, support: SupportProfile,
+    events: list[Event], number: int, side: str,
+    applied: dict[str, dict[str, str]],
+) -> int:
+    """Apply the order-invariant full-clear subset of Tender repair.
+
+    Current Tender capacity is 4000 per Tender per round. Exact allocation when
+    capacity is insufficient and exact Healing/RR order remain unresolved, so
+    only the full-clear case is executable.
+    """
+    tender_count = sum(
+        wave.support_units
+        for wave in waves
+        if wave.unit.unit_id == "tender" and wave.support_units > 0
+    )
+    if not tender_count:
+        return 0
+
+    damaged: list[tuple[Wave, int]] = []
+    for wave in waves:
+        if not wave.alive:
+            continue
+        unit = registry.get(wave.unit.unit_id)
+        if unit.role != "combat" or unit.domain != "naval":
+            continue
+        total_damage = wave.reserve_damage + sum(slot.damage for slot in wave.slots)
+        if total_damage > 0:
+            damaged.append((wave, total_damage))
+
+    eligible_damage = sum(total for _, total in damaged)
+    if not eligible_damage:
+        return 0
+
+    capacity = tender_count * support.derived_capacity
+    if capacity < eligible_damage:
+        _assume(
+            applied, events, "EXP-TENDER-HEAL-NONE-001",
+            number, "heal", side,
+        )
+        _event(
+            events, number, "heal", "healing_allocation_unresolved", side,
+            support_unit_id="tender",
+            tender_count=tender_count,
+            capacity=capacity,
+            eligible_damage=eligible_damage,
+            unresolved_damage=eligible_damage,
+            rule_id="UNKNOWN-TENDER-HEALING-ALLOCATION",
+            action="no_partial_healing_applied",
+        )
+        return 0
+
+    by_wave: list[dict[str, Any]] = []
+    by_unit: dict[str, int] = defaultdict(int)
+    for wave, total_damage in damaged:
+        by_wave.append({
+            "unit_id": wave.unit.unit_id,
+            "wave_id": wave.unit.wave_id,
+            "healing": total_damage,
+        })
+        by_unit[wave.unit.unit_id] += total_damage
+        wave.reserve_damage = 0
+        for slot in wave.slots:
+            slot.damage = 0
+
+    _event(
+        events, number, "heal", "healing", side,
+        support_unit_id="tender",
+        tender_count=tender_count,
+        capacity=capacity,
+        eligible_damage_before=eligible_damage,
+        healing=eligible_damage,
+        unused_capacity=capacity - eligible_damage,
+        affected_waves=sorted(
+            by_wave, key=lambda item: (item["unit_id"], item["wave_id"])
+        ),
+        affected_units=dict(sorted(by_unit.items())),
+        eligibility="all_naval_combat",
+        timing="round_boundary_before_next_combat",
+        exact_subset="capacity_covers_all_eligible_persistent_damage",
+        healing_rr_order="order_invariant_for_full_clear",
+    )
+    return eligible_damage
+
+
+def _wave_persistent_damage(wave: Wave) -> int:
+    """Return aggregate persistent damage owned by one concrete state wave."""
+    return wave.reserve_damage + sum(slot.damage for slot in wave.slots)
+
+
+def _park_wave_damage_for_redeployment(wave: Wave) -> int:
+    """Preserve one wave's RR population before changing its deployment.
+
+    Persistent damage belongs to the complete surviving state wave, not to the
+    slots that happen to be occupied before a refill/repack/fallback decision.
+    Park the aggregate damage on Reserve while placement changes; the ordinary
+    RR pass can then redistribute it over the final deployed subset plus Reserve.
+    """
+    total_damage = _wave_persistent_damage(wave)
+    wave.reserve_damage = total_damage
+    for slot in wave.slots:
+        slot.damage = 0
+    return total_damage
+
+
+def _assign_rr_share_to_split_slots(
+    source_wave: Wave,
+    split_slots: list[Slot],
+    *,
+    original_alive: int,
+    events: list[Event],
+    number: int,
+    side: str,
+    rule: str,
+    split_wave_id: str,
+) -> tuple[int, int]:
+    """Apply the RR-before-selection invariant when one wave becomes two states.
+
+    Ordinary refill/repack can park damage on one wave and let the final RR pass
+    allocate it. A true state split (for example, part of an exhausted ranged
+    wave promoted into First while the rest stays Reserve) needs that same RR
+    population preserved across two wave objects. The selected split receives
+    exactly the proportional RR share it would have had if RR were conceptually
+    performed over the original survivors before the selection.
+    """
+    total_damage = source_wave.reserve_damage
+    if not total_damage:
+        return 0, 0
+    shares = [
+        SlotShare(slot.damage_position, slot.units)
+        for slot in split_slots if slot.units
+    ]
+    allocated, reserve_damage = reserve_redistribution(
+        total_damage, original_alive, shares
+    )
+    for slot in split_slots:
+        slot.damage = allocated.get(slot.damage_position, 0)
+    source_wave.reserve_damage = reserve_damage
+    split_damage = sum(allocated.values())
+    _event(
+        events, number, "redistribute", "redistribution", side,
+        rule=rule,
+        wave_id=source_wave.unit.wave_id,
+        split_wave_id=split_wave_id,
+        total_wave_damage=total_damage,
+        split_damage=split_damage,
+        reserve_damage=reserve_damage,
+        damage_conserved=split_damage + reserve_damage == total_damage,
+    )
+    return split_damage, reserve_damage
+
+
 def _redistribute(waves: list[Wave], events: list[Event], number: int, side: str,
                   applied: dict[str, dict[str, str]]) -> None:
+    """Apply RR over each complete surviving wave after placement is known.
+
+    This is the ordinary implementation of the RR-before-selection invariant:
+    placement helpers first preserve aggregate wave damage, then RR assigns the
+    final deployed slots their proportional shares and leaves the remainder with
+    Reserve. Only helpers that split one state wave into two wave objects need to
+    materialize the proportional share before the split is finalized.
+    """
     _guard_single_line_waves(waves)
     for wave in waves:
         total = wave.reserve_damage + sum(slot.damage for slot in wave.slots)
@@ -373,9 +543,7 @@ def _supported_same_batch_heavy_first_handoffs(
             totals[key] = wave.reserve + sum(
                 slot.units for slot in wave.slots if slot.line == "first"
             )
-            damage_totals[key] = wave.reserve_damage + sum(
-                slot.damage for slot in wave.slots
-            )
+            damage_totals[key] = _wave_persistent_damage(wave)
 
         desired: dict[int, tuple[Wave, int, int]] = {}
         for wave in group:
@@ -395,14 +563,14 @@ def _supported_same_batch_heavy_first_handoffs(
                 remaining -= quantity
             wave.reserve = remaining
 
-        # Ownership changes below may remove a damaged slot from one wave and
-        # recreate it for another. Preserve per-wave damage before that mutation;
-        # _redistribute() immediately reapportions it after this function returns.
+        # Preserve each wave's full RR population before slot ownership changes.
+        # Final _redistribute() allocates the parked aggregate damage over that
+        # wave's selected deployed subset plus Reserve.
         for wave in group:
             key = (wave.unit.unit_id, wave.unit.wave_id)
-            wave.reserve_damage = damage_totals[key]
-            for slot in wave.slots:
-                slot.damage = 0
+            parked = _park_wave_damage_for_redeployment(wave)
+            if parked != damage_totals[key]:
+                raise ScenarioError("persistent damage changed while parking Heavy wave")
 
         for position in positions:
             previous_wave, previous_slot = owners[position]
@@ -555,9 +723,7 @@ def _supported_same_unit_same_line_handoffs(
                 slot.units for slot in wave.slots
                 if slot.line == runtime_line
             )
-            damage_totals[wave.unit.wave_id] = (
-                wave.reserve_damage + sum(slot.damage for slot in wave.slots)
-            )
+            damage_totals[wave.unit.wave_id] = _wave_persistent_damage(wave)
 
         desired: dict[int, tuple[Wave, int]] = {}
         for wave in group:
@@ -572,13 +738,13 @@ def _supported_same_unit_same_line_handoffs(
                 remaining -= quantity
             wave.reserve = remaining
 
-        # Ownership may move across waves; keep each wave's damage total intact
-        # and let RR redistribute it over that wave's final slots immediately
-        # after all supported compactions finish.
+        # Ownership may move across slots, but RR ownership stays with the
+        # concrete state wave. Park the full damage population first; final RR
+        # runs only after all supported placement decisions are complete.
         for wave in group:
-            wave.reserve_damage = damage_totals[wave.unit.wave_id]
-            for slot in wave.slots:
-                slot.damage = 0
+            parked = _park_wave_damage_for_redeployment(wave)
+            if parked != damage_totals[wave.unit.wave_id]:
+                raise ScenarioError("persistent damage changed while parking same-unit wave")
 
         for position in positions:
             previous_wave, previous_slot = owners[position]
@@ -640,17 +806,90 @@ def _supported_same_unit_same_line_handoffs(
             wave.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
 
 
-def _supported_whole_wave_light_first_fallback(
+def _cap_native_finite_ammo_deployment(
+    waves: list[Wave], registry: UnitRegistry, events: list[Event],
+    number: int, side: str, *, emit_events: bool = True,
+) -> None:
+    """Deploy no more native-line units than the remaining primary shots."""
+    _guard_single_line_waves(waves)
+    for wave in waves:
+        unit = registry.get(wave.unit.unit_id)
+        if (
+            unit.role != "combat"
+            or unit.primary_weapon.ammunition is None
+            or wave.ammo_pool_shots is None
+        ):
+            continue
+
+        native_slots = sorted(
+            (slot for slot in wave.slots if slot.line == unit.native_line),
+            key=lambda slot: slot.damage_position,
+        )
+        live_lines = {slot.line for slot in wave.slots if slot.units}
+        if not native_slots or (live_lines and live_lines != {unit.native_line}):
+            continue
+
+        total_units = wave.reserve + sum(slot.units for slot in native_slots)
+        native_capacity = sum(slot.capacity for slot in native_slots)
+        deploy_limit = min(
+            total_units,
+            max(0, int(wave.ammo_pool_shots)),
+            native_capacity,
+        )
+        desired_reserve = total_units - deploy_limit
+        currently_deployed = sum(slot.units for slot in native_slots)
+        if currently_deployed == deploy_limit and wave.reserve == desired_reserve:
+            if emit_events and deploy_limit < total_units:
+                _event(
+                    events, number, "deploy", "ammo_limited_deployment", side,
+                    unit_id=unit.id,
+                    wave_id=wave.unit.wave_id,
+                    native_line=unit.native_line,
+                    ammo_pool_shots=wave.ammo_pool_shots,
+                    native_capacity_units=native_capacity,
+                    deployed_units=deploy_limit,
+                    reserve_units=wave.reserve,
+                    rule="finite_ammo_native_deployment_cap",
+                )
+            continue
+
+        total_damage = _park_wave_damage_for_redeployment(wave)
+        remaining = deploy_limit
+        for slot in native_slots:
+            slot.units = min(slot.capacity, remaining)
+            remaining -= slot.units
+            slot.damage = 0
+        wave.reserve = desired_reserve
+        wave.reserve_damage = total_damage
+
+        if emit_events:
+            _event(
+                events, number, "deploy", "ammo_limited_deployment", side,
+                unit_id=unit.id,
+                wave_id=wave.unit.wave_id,
+                native_line=unit.native_line,
+                ammo_pool_shots=wave.ammo_pool_shots,
+                deployed_units=deploy_limit,
+                reserve_units=wave.reserve,
+                rule="finite_ammo_native_deployment_cap",
+            )
+
+
+def _supported_whole_wave_first_fallback(
     waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field,
     events: list[Event], number: int, side: str,
-) -> None:
-    """Move one whole native Light Infantry wave into open First slots.
+    reserved_wave_ids: set[tuple[str, str]] | None = None,
+) -> bool:
+    """Move one whole supported fallback wave into open First slots.
 
-    The in-game formation rule gives First-line placement precedence over Flank.
-    This executable subset is deliberately narrow: the surviving wave must fit
-    completely into currently open First slots, so the wave never spans First
-    and Flank at the same time. Partial cross-line splitting remains guarded by
-    UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS.
+    Land Light Infantry and naval Light Battleships reuse the existing First
+    fallback path. Exhausted Long-Range units from Second may also replace First:
+    land evidence comes from the battle-system paper's white/close-weapon
+    fallback contract, while naval evidence comes from official Help. The
+    Native finite-ammo deployment is capped before this pass. Therefore a
+    zero-ammo Long-Range wave no longer remains deployed in Second: it is
+    Reserve-only unless some survivors can fill First with the close weapon.
+    Survivors that do not fit First remain in Reserve.
 
     Persistent damage stays wave-owned. It is parked on reserve_damage while
     slots are rebuilt, then the existing RR pass redistributes it over the new
@@ -658,7 +897,7 @@ def _supported_whole_wave_light_first_fallback(
     """
     geometry = field.lines.get("first")
     if geometry is None:
-        return
+        return False
 
     occupied = {
         slot.damage_position
@@ -673,23 +912,69 @@ def _supported_whole_wave_light_first_fallback(
         if slot.line == "first"
     }
 
-    candidates = sorted(waves, key=lambda wave: wave.unit.formation_order_key)
+    def supported_fallback(wave: Wave) -> bool:
+        unit = registry.get(wave.unit.unit_id)
+        light_fallback = (
+            unit.semantic_class == "light_infantry"
+            and unit.native_line != "first"
+            and "first" in eligible_runtime_lines(unit, rules, field)
+        )
+        exhausted_long_range = (
+            unit.semantic_class == "long_range"
+            and unit.native_line == "second"
+            and wave.ammo_pool_shots == 0
+            and len(unit.weapons) == 2
+            and field.domain in {"land", "naval"}
+        )
+        return (
+            unit.role == "combat"
+            and wave.alive
+            and (light_fallback or exhausted_long_range)
+        )
+
+    def fallback_strength(wave: Wave) -> tuple[int, int, int, tuple]:
+        unit = registry.get(wave.unit.unit_id)
+        capacity = geometry.slot_space // unit.size
+        quantity = min(wave.alive, capacity)
+        fallback_weapon = select_active_weapon(unit, "first")
+        damage = fallback_weapon.damage
+        if damage is None:
+            raise ScenarioError(
+                f"fallback weapon damage missing for formation selection: {unit.id}"
+            )
+        return (
+            quantity * damage, damage, quantity, wave.unit.formation_order_key,
+        )
+
+    # First-line fallback keeps Light ahead of exhausted Long-Range. Naval
+    # additionally uses its official weakest-first group ordering; land keeps
+    # canonical formation order within each fallback class.
+    candidates = [wave for wave in waves if supported_fallback(wave)]
+    if field.domain == "naval":
+        def naval_fallback_rank(wave: Wave):
+            unit = registry.get(wave.unit.unit_id)
+            class_rank = 0 if unit.semantic_class == "light_infantry" else 1
+            return (class_rank, *fallback_strength(wave))
+        candidates.sort(key=naval_fallback_rank)
+    else:
+        candidates.sort(key=lambda wave: (
+            0 if registry.get(wave.unit.unit_id).semantic_class == "light_infantry" else 1,
+            wave.unit.formation_order_key,
+        ))
+
     for wave in candidates:
         unit = registry.get(wave.unit.unit_id)
-        if (
-            unit.role != "combat"
-            or unit.semantic_class != "light_infantry"
-            or unit.native_line == "first"
-            or "first" not in eligible_runtime_lines(unit, rules, field)
-            or not wave.alive
-        ):
-            continue
 
         live_lines = {slot.line for slot in wave.slots if slot.units}
-        # This exact fallback subset starts from an already deployed native
-        # Light formation. A wholly reserve-only wave still belongs behind the
-        # cross-wave rebuild boundary and must not materialize in First here.
-        if live_lines != {unit.native_line}:
+        exhausted_long_range = (
+            unit.semantic_class == "long_range"
+            and unit.native_line == "second"
+            and wave.ammo_pool_shots == 0
+        )
+        if exhausted_long_range:
+            if live_lines:
+                continue
+        elif live_lines != {unit.native_line}:
             continue
 
         total_units = wave.reserve + sum(slot.units for slot in wave.slots)
@@ -701,14 +986,117 @@ def _supported_whole_wave_light_first_fallback(
             if position not in occupied
         ]
         required_slots = (total_units + capacity - 1) // capacity
-        if required_slots > len(open_positions):
-            # Supporting this case would split one state wave across First and
-            # Flank. Keep that separate evidence/RR boundary explicit. Do not
-            # let a later Light wave leapfrog this canonical earlier wave.
-            break
-
         source_lines = sorted({slot.line for slot in wave.slots if slot.units})
-        total_damage = wave.reserve_damage + sum(slot.damage for slot in wave.slots)
+        total_damage = _park_wave_damage_for_redeployment(wave)
+
+        if required_slots > len(open_positions):
+            partial_exhausted_long_range = (
+                unit.semantic_class == "long_range"
+                and wave.ammo_pool_shots == 0
+                and bool(open_positions)
+                and field.domain in {"land", "naval"}
+            )
+            if not partial_exhausted_long_range:
+                break
+
+            promote_quantity = min(total_units, len(open_positions) * capacity)
+            if promote_quantity <= 0 or promote_quantity >= total_units:
+                raise ScenarioError("invalid partial Long-Range fallback split")
+
+            reserve_remaining = total_units - promote_quantity
+            for slot in wave.slots:
+                slot.units = 0
+            wave.reserve = reserve_remaining
+            wave.reserve_damage = total_damage
+
+            base_promoted_id = f"{wave.unit.wave_id}::front-fallback-r{number}"
+            promoted_id = base_promoted_id
+            existing_wave_ids = {
+                peer.unit.wave_id
+                for peer in waves
+                if peer.unit.unit_id == unit.id
+            }
+            existing_wave_ids.update(
+                wave_id
+                for unit_id, wave_id in (reserved_wave_ids or set())
+                if unit_id == unit.id
+            )
+            suffix = 2
+            while promoted_id in existing_wave_ids:
+                promoted_id = f"{base_promoted_id}::{suffix}"
+                suffix += 1
+            promoted_unit = ArmyUnit(
+                unit.id,
+                promote_quantity,
+                promoted_id,
+                wave.unit.attack_upgrade,
+                wave.unit.armor_upgrade,
+                wave.unit.entry_batch_id,
+                wave.unit.arrival_round,
+            )
+            promoted = Wave(
+                promoted_unit, 0, [], 0, 0, 0, wave.ammo_capacity_shots
+            )
+            remaining_promoted = promote_quantity
+            positions_used: list[int] = []
+            for position in open_positions:
+                if remaining_promoted <= 0:
+                    break
+                previous = first_owners.get(position)
+                if previous is not None:
+                    previous_wave, previous_slot = previous
+                    if previous_slot in previous_wave.slots and not previous_slot.units:
+                        previous_wave.reserve_damage += previous_slot.damage
+                        previous_slot.damage = 0
+                        previous_wave.slots.remove(previous_slot)
+                quantity = min(capacity, remaining_promoted)
+                promoted.slots.append(Slot(
+                    f"first-{position}", "first",
+                    geometry.physical_position(position), position,
+                    unit.id, promoted_id, quantity, capacity,
+                ))
+                occupied.add(position)
+                first_owners[position] = (promoted, promoted.slots[-1])
+                positions_used.append(position)
+                remaining_promoted -= quantity
+            if remaining_promoted:
+                raise ScenarioError("partial Long-Range fallback left promoted reserve")
+            promoted.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
+
+            _assign_rr_share_to_split_slots(
+                wave,
+                promoted.slots,
+                original_alive=total_units,
+                events=events,
+                number=number,
+                side=side,
+                rule="RR_BEFORE_DEPLOYMENT_SELECTION",
+                split_wave_id=promoted_id,
+            )
+
+            waves.append(promoted)
+            _event(
+                events, number, "deploy", "formation_fallback", side,
+                unit_id=unit.id, wave_id=promoted_id,
+                source_wave_id=wave.unit.wave_id,
+                entry_batch_id=wave.unit.batch_id,
+                from_lines=source_lines or [unit.native_line], to_line="first",
+                quantity=promote_quantity, damage_positions=positions_used,
+                rule=(
+                    "naval_exhausted_long_range_partial_to_front"
+                    if field.domain == "naval"
+                    else "land_exhausted_long_range_partial_to_first"
+                ),
+                primary_ammo_exhausted=True,
+                whole_wave=False,
+                reserve_remaining=reserve_remaining,
+                native_second_deployed=0,
+                damage_partition=(
+                    "rr_before_selection_proportional"
+                    if total_damage else "zero_persistent_damage"
+                ),
+            )
+            continue
 
         # The completed previous-round snapshot already owns old slot casualty
         # history. Round-start fallback creates the next formation cleanly.
@@ -722,7 +1110,7 @@ def _supported_whole_wave_light_first_fallback(
             slot for slot in wave.slots if slot.line == unit.native_line
         ]
         later_native_peers = [
-            peer for peer in candidates
+            peer for peer in waves
             if peer is not wave
             and peer.unit.unit_id == wave.unit.unit_id
             and peer.unit.formation_order_key > wave.unit.formation_order_key
@@ -732,6 +1120,7 @@ def _supported_whole_wave_light_first_fallback(
             )
             and len({slot.line for slot in peer.slots if slot.units}) <= 1
         ]
+        later_native_peers.sort(key=lambda peer: peer.unit.formation_order_key)
         for slot in list(wave.slots):
             wave.slots.remove(slot)
         if released_native_slots and later_native_peers:
@@ -786,7 +1175,7 @@ def _supported_whole_wave_light_first_fallback(
             remaining -= quantity
 
         if remaining:
-            raise ScenarioError("whole-wave Light Infantry fallback left unexpected reserve")
+            raise ScenarioError("whole-wave First fallback left unexpected reserve")
         wave.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
         _event(
             events, number, "deploy", "formation_fallback", side,
@@ -794,9 +1183,22 @@ def _supported_whole_wave_light_first_fallback(
             entry_batch_id=wave.unit.batch_id,
             from_lines=source_lines or [unit.native_line], to_line="first",
             quantity=total_units, damage_positions=positions_used,
-            rule="first_before_flank_whole_wave_light_fallback",
+            rule=(
+                (
+                    "naval_exhausted_long_range_to_front"
+                    if field.domain == "naval"
+                    else "land_exhausted_long_range_to_first"
+                )
+                if unit.semantic_class == "long_range"
+                else "first_before_flank_whole_wave_light_fallback"
+            ),
+            primary_ammo_exhausted=(
+                unit.semantic_class == "long_range"
+                and wave.ammo_pool_shots == 0
+            ),
             whole_wave=True,
         )
+    return False
 
 
 def _has_supported_round_start_first_placement(
@@ -810,11 +1212,15 @@ def _has_supported_round_start_first_placement(
         projected, registry, rules, field, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
-    _supported_whole_wave_light_first_fallback(
+    _cap_native_finite_ammo_deployment(
+        projected, registry, projection_events, 0, "projection", emit_events=False)
+    _supported_whole_wave_first_fallback(
         projected, registry, rules, field, projection_events, 0, "projection")
     _rebuild_formation(projected, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
+    _cap_native_finite_ammo_deployment(
+        projected, registry, projection_events, 0, "projection", emit_events=False)
     return any(
         slot.line == "first" and slot.units
         for wave in projected
@@ -827,16 +1233,22 @@ def _prepare_round_start(
     applied: dict[str, dict[str, str]], registry: UnitRegistry | None = None,
     rules: FormationRules | None = None, field=None,
     support: SupportProfile | None = None,
-) -> None:
-    """Re-pack, apply safe Doctor healing when exact, then RR persistent damage."""
+    reserved_wave_ids: set[tuple[str, str]] | None = None,
+) -> bool:
+    """Re-pack, apply safe Doctor/Tender full-clear healing, then RR damage."""
     _rebuild_formation(waves, events, number, side)
     if registry is not None and rules is not None and field is not None:
         _supported_same_batch_heavy_first_handoffs(
             waves, registry, rules, field, events, number, side)
         _supported_same_unit_same_line_handoffs(
             waves, registry, rules, field, events, number, side)
-        _supported_whole_wave_light_first_fallback(
-            waves, registry, rules, field, events, number, side)
+        _cap_native_finite_ammo_deployment(
+            waves, registry, events, number, side)
+        fallback_boundary = _supported_whole_wave_first_fallback(
+            waves, registry, rules, field, events, number, side,
+            reserved_wave_ids=reserved_wave_ids)
+        if fallback_boundary:
+            return True
         # Whole-wave promotion can vacate native-line physical positions that
         # a later same-unit wave is allowed to inherit. First re-pack each
         # concrete wave across its inherited slots, then run the already
@@ -844,13 +1256,18 @@ def _prepare_round_start(
         _rebuild_formation(waves, events, number, side)
         _supported_same_unit_same_line_handoffs(
             waves, registry, rules, field, events, number, side)
+        _cap_native_finite_ammo_deployment(
+            waves, registry, events, number, side, emit_events=False)
     if registry is not None and support is not None:
         _apply_supported_doctor_healing(
             waves, registry, support, events, number, side, applied)
+        _apply_supported_tender_healing(
+            waves, registry, support, events, number, side, applied)
     # RR must see the final deployment after every supported compaction. The
-    # healing subset above is intentionally limited to full-clear cases, so the
-    # unknown Healing/RR order cannot alter its result.
+    # healing subsets above are intentionally limited to full-clear cases, so
+    # the unknown Healing/RR order cannot alter their result.
     _redistribute(waves, events, number, side, applied)
+    return False
 
 
 def _arrival_waves(army: Army, round_no: int, registry: UnitRegistry,
@@ -900,11 +1317,15 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
         projected, registry, rules, field, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
-    _supported_whole_wave_light_first_fallback(
+    _cap_native_finite_ammo_deployment(
+        projected, registry, projection_events, 0, "projection", emit_events=False)
+    _supported_whole_wave_first_fallback(
         projected, registry, rules, field, projection_events, 0, "projection")
     _rebuild_formation(projected, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
+    _cap_native_finite_ammo_deployment(
+        projected, registry, projection_events, 0, "projection", emit_events=False)
 
     occupied: dict[str, set[int]] = defaultdict(set)
     for wave in projected:
@@ -1490,7 +1911,11 @@ def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitR
             continue
         unit = registry.get(wave.unit.unit_id)
         weapon = select_active_weapon(unit, runtime_line)
-        if wave.ammo_pool_shots == 0:
+        uses_primary_ammo_pool = (
+            weapon.id == unit.primary_weapon.id
+            and unit.primary_weapon.ammunition is not None
+        )
+        if uses_primary_ammo_pool and wave.ammo_pool_shots == 0:
             _assume(applied, events, "EXP-AMMO-STOP-001", number, "fire")
             _event(events, number, "fire", "ammo_exhausted", side, unit_id=unit.id,
                    firing_phase=runtime_line, assumption_id="EXP-AMMO-STOP-001",
@@ -1512,7 +1937,11 @@ def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitR
         firing_counts = [slot.units for slot in deployed]
         total_firing = sum(firing_counts)
         partial_firing_counts = None
-        if wave.ammo_pool_shots is not None and wave.ammo_pool_shots < total_firing:
+        if (
+            uses_primary_ammo_pool
+            and wave.ammo_pool_shots is not None
+            and wave.ammo_pool_shots < total_firing
+        ):
             remaining = wave.ammo_pool_shots
             firing_counts = []
             for slot in deployed:
@@ -1524,7 +1953,7 @@ def _snapshot_phase_fire(source: list[Wave], target: list[Wave], registry: UnitR
         if not row_numbers:
             continue
         source_damage_positions = _shot_source_positions(deployed, firing_counts)
-        if wave.ammo_pool_shots is not None:
+        if uses_primary_ammo_pool and wave.ammo_pool_shots is not None:
             wave.ammo_pool_shots -= len(row_numbers)
         volleys.append({
             "side": side,
@@ -2293,7 +2722,18 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         initial_wall_sections(scenario.wall_level, field)
         if wall_runtime_active else []
     )
-    formation_rules = FormationRules.load(scenario.profiles.formation)
+    formation_profile = (
+        "formation-naval" if field.domain == "naval"
+        else scenario.profiles.formation
+    )
+    targeting_profile = (
+        "official-help-naval-targeting"
+        if field.domain == "naval" else scenario.profiles.targeting
+    )
+    effective_profiles = dict(scenario.profiles.__dict__)
+    effective_profiles["formation"] = formation_profile
+    effective_profiles["targeting"] = targeting_profile
+    formation_rules = FormationRules.load(formation_profile)
     battle_end = BattleEndProfile.load(scenario.profiles.battle_end)
     # Validate every scheduled unit and package invariant now, including
     # callers that bypass dict parsing and pass a typed Scenario directly.
@@ -2301,10 +2741,10 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         _validate_army_package(army, registry, field)
     attacker = deploy(Army(tuple(item for item in scenario.attacker.units if item.arrival_round == 0),
                            scenario.attacker.forge_level, scenario.attacker.army_kind),
-                      registry, field, scenario.profiles.formation)
+                      registry, field, formation_profile)
     defender = deploy(Army(tuple(item for item in scenario.defender.units if item.arrival_round == 0),
                            scenario.defender.forge_level, scenario.defender.army_kind),
-                      registry, field, scenario.profiles.formation)
+                      registry, field, formation_profile)
     events: list[Event] = []
     for side, waves in (("attacker", attacker), ("defender", defender)):
         for wave in waves:
@@ -2317,6 +2757,10 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     initial = {"attacker": _snapshot(attacker, registry, battle_end),
                "defender": _snapshot(defender, registry, battle_end)}
     warnings = ["Legacy empirical mechanics are being applied to review-supplied current numeric profiles; calibration is required."]
+    if field.domain == "naval":
+        warnings.append(
+            "Naval-max formation fill order, target priorities, firing order, and exhausted Long-range -> Front fallback follow official in-game Help/current calibration. Remaining naval boundaries include smaller geometries, Tender partial allocation, reactive secondary-weapon triggers, and kill/redistribution selectors."
+        )
     if open_field_active:
         warnings.append(
             "Defender exceeds the configured land garrison limit: the battle starts on land-max with the Town Wall suppressed."
@@ -2367,11 +2811,16 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     if scenario.policy is Policy.STRICT:
         blockers += ["UNKNOWN-KILL-SELECTION", "UNKNOWN-ROUNDING-SELECTOR",
                      "UNKNOWN-ACCURACY", "UNKNOWN-IR-TRIGGER", "UNKNOWN-SR-TRIGGER"]
-        return _unsupported(scenario, events, initial, sorted(set(blockers)), warnings)
+        return _unsupported(
+            scenario, events, initial, sorted(set(blockers)), warnings,
+            effective_profiles,
+        )
     if {"UNKNOWN-MULTIPLE-TARGET-WAVES",
         "UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS",
         "UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT"} & set(blockers):
-        return _unsupported(scenario, events, initial, blockers, warnings)
+        return _unsupported(
+            scenario, events, initial, blockers, warnings, effective_profiles
+        )
     applied: dict[str, dict[str, str]] = {}
     for side, side_blockers in (("attacker", attacker_blockers), ("defender", defender_blockers)):
         if "UNKNOWN-MORALE-SUPPORT" in side_blockers:
@@ -2379,7 +2828,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     if fallback_sides:
         _event(events, 0, "battle_end", "unsupported_mechanic", None,
                rule_id="UNKNOWN-FORMATION-FALLBACK", affected_sides=fallback_sides)
-        return {"profiles":scenario.profiles.__dict__,"policy":scenario.policy.value,"status":"inconclusive",
+        return {"profiles":effective_profiles,"policy":scenario.policy.value,"status":"inconclusive",
                 "outcome":"inconclusive","rounds_completed":0,"casualties":{"attacker":{},"defender":{}},
                 "initial_state":initial,"final_state":initial,
                 "rounds":[{"round":0,**deepcopy(initial),"casualties":{"attacker":{},"defender":{}}}],
@@ -2388,7 +2837,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             and not both_initially_empty_but_pending):
         _event(events, 0, "battle_end", "unsupported_mechanic", None,
                rule_id="UNKNOWN-BOTH-SIDES-NO-MAIN-LINE-OUTCOME")
-        return {"profiles":scenario.profiles.__dict__,"policy":scenario.policy.value,"status":"inconclusive",
+        return {"profiles":effective_profiles,"policy":scenario.policy.value,"status":"inconclusive",
                 "outcome":"inconclusive","rounds_completed":0,"casualties":{"attacker":{},"defender":{}},
                 "initial_state":initial,"final_state":initial,
                 "rounds":[{"round":0,**deepcopy(initial),"casualties":{"attacker":{},"defender":{}}}],
@@ -2418,13 +2867,13 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         _event(events, 0, "battle_end", "battle_termination", None,
                reason="no_battle_sustaining_units", losing_side=losing,
                surviving_non_sustaining={side: _non_sustaining(state) for side, state in initial.items()})
-        return {"profiles":scenario.profiles.__dict__,"policy":scenario.policy.value,"status":"completed",
+        return {"profiles":effective_profiles,"policy":scenario.policy.value,"status":"completed",
                 "outcome":initial_outcome,"rounds_completed":0,"casualties":{"attacker":{},"defender":{}},
                 "initial_state":initial,"final_state":initial,
                 "rounds":[{"round":0,**deepcopy(initial),"casualties":{"attacker":{},"defender":{}}}],
                 "events":[e.as_dict() for e in events],"assumptions":list(applied.values()),"warnings":warnings}
     workshop, forge = WorkshopProfile.load(scenario.profiles.workshop), ForgeProfile.load(scenario.profiles.forge)
-    targeting = TargetingProfile.load(scenario.profiles.targeting)
+    targeting = TargetingProfile.load(targeting_profile)
     support = SupportProfile.load(scenario.profiles.support)
     total = {"attacker": defaultdict(int), "defender": defaultdict(int)}
     rounds = [{"round":0, **deepcopy(initial), "casualties":{"attacker":{},"defender":{}}}]
@@ -2436,6 +2885,14 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     wall_combat_boundary = False
     engagement_started = all(
         state == ContinuationState.SUSTAINING.value for state in initial_states.values())
+    scheduled_wave_ids = {
+        "attacker": {
+            (item.unit_id, item.wave_id) for item in scenario.attacker.units
+        },
+        "defender": {
+            (item.unit_id, item.wave_id) for item in scenario.defender.units
+        },
+    }
     for number in range(1, scenario.max_rounds + 1):
         attacker_arrivals = _arrival_waves(scenario.attacker, number, registry, events, "attacker")
         defender_arrivals = _arrival_waves(scenario.defender, number, registry, events, "defender")
@@ -2484,12 +2941,26 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         for side, side_blockers in arrival_blockers.items():
             if "UNKNOWN-MORALE-SUPPORT" in side_blockers:
                 _assume(applied, events, "EXP-MORALE-NONE-001", number, "arrival", side)
-        _prepare_round_start(
+        attacker_fallback_boundary = _prepare_round_start(
             attacker, events, number, "attacker", applied,
-            registry, formation_rules, field, support)
-        _prepare_round_start(
+            registry, formation_rules, field, support,
+            scheduled_wave_ids["attacker"])
+        defender_fallback_boundary = _prepare_round_start(
             defender, events, number, "defender", applied,
-            registry, formation_rules, field, support)
+            registry, formation_rules, field, support,
+            scheduled_wave_ids["defender"])
+        if attacker_fallback_boundary or defender_fallback_boundary:
+            completed = number
+            attacker_state = _snapshot(attacker, registry, battle_end)
+            defender_state = _snapshot(defender, registry, battle_end)
+            rounds.append({
+                "round": number,
+                "attacker": attacker_state,
+                "defender": defender_state,
+                "casualties": {"attacker": {}, "defender": {}},
+            })
+            cross_wave_boundary = True
+            break
         if wall_runtime_active and wall_sections:
             redistribution = wall_redistribution_plan(
                 wall_sections, scenario.wall_level
@@ -2670,6 +3141,37 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         rounds.append({"round":number,"attacker":attacker_state,"defender":defender_state,
                        "casualties":{"attacker":dict(a_dead),"defender":dict(d_dead)}})
 
+        # Same-geometry open-field exit is a supported state-only change.
+        # Apply it before any independent cross-wave boundary can stop the
+        # round, so the garrison transition/wall re-entry is not lost merely
+        # because another formation also needs an unsupported rebuild.
+        if (
+            garrison_limit is not None
+            and open_field_active
+            and scenario.battlefield == "land-max"
+        ):
+            counted_defenders = counted_live_waves(defender, registry)
+            if counted_defenders <= garrison_limit:
+                wall_reappears = bool(scenario.wall_level)
+                open_field_active = False
+                if wall_reappears:
+                    wall_runtime_active = True
+                    wall_sections = initial_wall_sections(
+                        scenario.wall_level, field
+                    )
+                _event(
+                    events, number, "round_end", "garrison_state_change", "defender",
+                    direction="exit_open_field",
+                    counted_defenders=counted_defenders,
+                    garrison_limit=garrison_limit,
+                    battlefield="land-max",
+                    wall_reappears=wall_reappears,
+                    wall_state=(
+                        "fresh_intact_sections"
+                        if wall_reappears else "not_present"
+                    ),
+                )
+
         # Combat itself can create the first real vacancy that requires a
         # different reserve-only wave to enter. Recheck before any continuation
         # or termination decision so an unimplemented cross-wave replacement
@@ -2720,41 +3222,6 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 scenario.defender, number, registry, battle_end),
         }
 
-        # A same-geometry open-field exit is a state-only transition: no slot
-        # remap is required on land-max. Apply it before termination so a fresh
-        # active wall can sustain the defender even when the last First-line
-        # unit died in this same round. Geometry-changing exits remain guarded
-        # later and do not override an already terminal battle.
-        if (
-            garrison_limit is not None
-            and open_field_active
-            and scenario.battlefield == "land-max"
-        ):
-            counted_defenders = counted_live_waves(defender, registry)
-            if counted_defenders <= garrison_limit:
-                wall_reappears = bool(scenario.wall_level)
-                open_field_active = False
-                if wall_reappears:
-                    wall_runtime_active = True
-                    wall_sections = initial_wall_sections(
-                        scenario.wall_level, field
-                    )
-                    states["defender"] = ContinuationState.SUSTAINING.value
-                    effective_defender_state["continuation_state"] = (
-                        ContinuationState.SUSTAINING.value
-                    )
-                _event(
-                    events, number, "round_end", "garrison_state_change", "defender",
-                    direction="exit_open_field",
-                    counted_defenders=counted_defenders,
-                    garrison_limit=garrison_limit,
-                    battlefield="land-max",
-                    wall_reappears=wall_reappears,
-                    wall_state=(
-                        "fresh_intact_sections"
-                        if wall_reappears else "not_present"
-                    ),
-                )
         if all(state == ContinuationState.NOT_SUSTAINING.value for state in states.values()):
             if not engagement_started and any(pending_now.values()):
                 _event(events, number, "battle_start", "waiting_for_arrival", None,
@@ -2879,7 +3346,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 and not wall_flanks_locked(wall_sections)
             ),
         }
-    return {"profiles":scenario.profiles.__dict__,"policy":scenario.policy.value,"status":"completed" if outcome != "inconclusive" else "inconclusive",
+    return {"profiles":effective_profiles,"policy":scenario.policy.value,"status":"completed" if outcome != "inconclusive" else "inconclusive",
             "outcome":outcome,"rounds_completed":completed,"casualties":{k:dict(v) for k,v in total.items()},
             "initial_state":initial,"final_state":final,"rounds":rounds,"events":[e.as_dict() for e in events],
             "assumptions":list(applied.values()),"warnings":warnings,
@@ -2962,7 +3429,9 @@ def _healing_status(
         doctor_count = sum(unit.quantity for unit in army.units if unit.unit_id == "doctor")
         heal_events = [
             event for event in result.get("events", [])
-            if event.get("type") == "healing" and event.get("side") == side
+            if event.get("type") == "healing"
+            and event.get("side") == side
+            and event.get("details", {}).get("support_unit_id") == "doctor"
         ]
         applied_amount = sum(
             int(event.get("details", {}).get("healing", 0))
@@ -3007,6 +3476,67 @@ def _healing_status(
         "sides": sides,
     }
 
+
+def _tender_status(
+    scenario: Scenario,
+    result: dict[str, Any],
+    support: SupportProfile,
+) -> dict[str, Any]:
+    assumption_id = "EXP-TENDER-HEAL-NONE-001"
+    strict_rule_id = "UNKNOWN-TENDER-HEALING-ALLOCATION"
+    sides: dict[str, dict[str, Any]] = {}
+    for side, army in (("attacker", scenario.attacker), ("defender", scenario.defender)):
+        tender_count = sum(unit.quantity for unit in army.units if unit.unit_id == "tender")
+        heal_events = [
+            event for event in result.get("events", [])
+            if event.get("type") == "healing"
+            and event.get("side") == side
+            and event.get("details", {}).get("support_unit_id") == "tender"
+        ]
+        applied_amount = sum(
+            int(event.get("details", {}).get("healing", 0))
+            for event in heal_events
+        )
+        reach_round = _support_assumption_round(result, assumption_id, side)
+        strict_reached = _strict_support_boundary_reached(
+            scenario, result, side, "tender", strict_rule_id)
+        if not tender_count:
+            status = "not_present"
+            amount: int | None = 0
+        elif strict_reached:
+            status = "unsupported_boundary"
+            amount = None
+        elif reach_round is not None:
+            status = "partial_allocation_unresolved"
+            amount = None
+        elif heal_events:
+            status = "applied_exact_subset"
+            amount = applied_amount
+        else:
+            status = "not_reached"
+            amount = 0
+        sides[side] = {
+            "tender_count": tender_count,
+            "status": status,
+            "effect_applied": bool(applied_amount),
+            "healing_amount": amount,
+            "engine_healing_applied": applied_amount,
+        }
+    return {
+        "modeled": False,
+        "partial_model": True,
+        "model_status": "EXACT_FULL_CLEAR_SUBSET_ONLY",
+        "strict_rule_id": strict_rule_id,
+        "experimental_assumption_id": assumption_id,
+        "capacity_per_tender": support.derived_capacity,
+        "capacity_is_allocation_formula": False,
+        "timing_contract": "per_round_before_next_round_combat",
+        "healing_rr_order": "UNKNOWN_EXCEPT_FULL_CLEAR_IS_ORDER_INVARIANT",
+        "executable_subset": "capacity_covers_all_naval_persistent_damage",
+        "sides": sides,
+    }
+
+
 def _attach_battle_statistics(
     result: dict[str, Any],
     economy: MilitaryEconomyProfile,
@@ -3016,17 +3546,33 @@ def _attach_battle_statistics(
     for side in ("attacker", "defender"):
         casualties = result.get("casualties", {}).get(side, {})
         army = scenario.attacker if side == "attacker" else scenario.defender
+        missing_economy = sorted(
+            unit_id for unit_id, quantity in casualties.items()
+            if quantity and unit_id not in economy.units
+        )
         if army.army_kind == "barbarian":
             # Barbarian military score is a package-level rule, not part of the
             # player military-economy profile.
             basis_loss = 0
             score_loss = Decimal(0)
+            economy_status = "barbarian_package_zero"
+        elif missing_economy:
+            # Keep combat executable for any future/custom unit whose economy
+            # profile is not yet modeled, without silently reporting false zero.
+            basis_loss = None
+            score_loss = None
+            economy_status = "unavailable_for_units"
         else:
             basis_loss = economy.resource_cost_basis_loss(casualties)
             score_loss = economy.score_loss(casualties)
+            economy_status = "modeled"
         losses[side] = {
             "resource_cost_basis_lost": basis_loss,
-            "general_score_lost": _decimal_json(score_loss),
+            "general_score_lost": (
+                None if score_loss is None else _decimal_json(score_loss)
+            ),
+            "economy_status": economy_status,
+            "missing_economy_units": missing_economy,
         }
 
     result["military_score"] = {
@@ -3042,8 +3588,13 @@ def _attach_battle_statistics(
 
     support = SupportProfile.load(scenario.profiles.support)
     healing_status = _healing_status(scenario, result, support)
+    tender_status = _tender_status(scenario, result, support)
     healing_reach_round = {
         side: _support_assumption_round(result, "EXP-HEAL-NONE-001", side)
+        for side in ("attacker", "defender")
+    }
+    tender_reach_round = {
+        side: _support_assumption_round(result, "EXP-TENDER-HEAL-NONE-001", side)
         for side in ("attacker", "defender")
     }
     gross_dealt = {"attacker": 0, "defender": 0}
@@ -3095,9 +3646,18 @@ def _attach_battle_statistics(
             cumulative[side]["damage_taken"] += stats[side]["damage_taken"]
             cumulative[side]["healing"] += stats[side]["healing"]
             support_round = healing_reach_round[side]
-            healing_unknown = support_round is not None and number >= support_round
-            if scenario.policy == Policy.STRICT and _strict_support_boundary_reached(
-                    scenario, result, side, "doctor", "UNKNOWN-HEALING-ALLOCATION"):
+            tender_round = tender_reach_round[side]
+            healing_unknown = (
+                (support_round is not None and number >= support_round)
+                or (tender_round is not None and number >= tender_round)
+            )
+            if scenario.policy == Policy.STRICT and (
+                _strict_support_boundary_reached(
+                    scenario, result, side, "doctor", "UNKNOWN-HEALING-ALLOCATION")
+                or _strict_support_boundary_reached(
+                    scenario, result, side, "tender",
+                    "UNKNOWN-TENDER-HEALING-ALLOCATION")
+            ):
                 healing_unknown = True
             row_combat[side] = {
                 "damage_dealt": stats[side]["damage_dealt"],
@@ -3115,14 +3675,19 @@ def _attach_battle_statistics(
             "gross_damage_taken": gross_taken[side],
             "gross_healing": None if (
                 healing_reach_round[side] is not None
+                or tender_reach_round[side] is not None
                 or _strict_support_boundary_reached(
                     scenario, result, side, "doctor", "UNKNOWN-HEALING-ALLOCATION")
+                or _strict_support_boundary_reached(
+                    scenario, result, side, "tender",
+                    "UNKNOWN-TENDER-HEALING-ALLOCATION")
             ) else gross_healing_applied[side],
             "engine_healing_applied": gross_healing_applied[side],
         }
         for side in ("attacker", "defender")
     }
     result["healing_status"] = healing_status
+    result["tender_status"] = tender_status
     result["morale_status"] = _morale_status(scenario, result)
 
     garrison = land_garrison_status(

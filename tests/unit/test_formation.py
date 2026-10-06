@@ -204,7 +204,8 @@ def test_formation_profile_records_standard_order_and_remaining_combat_boundarie
  assert rules.lines['second']['unit_selection_policy']=='strongest_slot_group_primary_damage'
  assert rules.lines['third']['unit_selection_policy']=='strongest_slot_group_primary_damage'
  assert 'UNKNOWN-MIXED-UNIT-AM-ROWS' not in rules.unknowns
- assert {'UNKNOWN-FALLBACK-LONG-RANGE-WEAPON','UNKNOWN-SECONDARY-WEAPON-TRIGGER'} <= set(rules.unknowns)
+ assert 'UNKNOWN-FALLBACK-LONG-RANGE-WEAPON' not in rules.unknowns
+ assert 'UNKNOWN-SECONDARY-WEAPON-TRIGGER' in rules.unknowns
 
 
 def modified_rules(mutator):

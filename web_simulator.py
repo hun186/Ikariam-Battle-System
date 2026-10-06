@@ -4,7 +4,7 @@ from http.server import BaseHTTPRequestHandler
 import json
 from urllib.parse import urlparse
 
-from ikariam_battle import BarbarianRegistry, ScenarioError, UnitRegistry, simulate
+from ikariam_battle import BarbarianFleetRegistry, BarbarianRegistry, ScenarioError, UnitRegistry, simulate
 from ikariam_battle.battlefield import battlefield_metadata
 from ikariam_battle.economy import MilitaryEconomyProfile
 from ikariam_battle.garrison import garrison_profile_metadata
@@ -111,6 +111,7 @@ class handler(BaseHTTPRequestHandler):
         if urlparse(self.path).path.rstrip("/") in API_SIMULATE_PATHS:
             registry = UnitRegistry.load()
             barbarians = BarbarianRegistry.load()
+            barbarian_fleet = BarbarianFleetRegistry.load()
             economy = MilitaryEconomyProfile.load()
             economy_units = economy.public()
             units = registry.public()
@@ -132,7 +133,10 @@ class handler(BaseHTTPRequestHandler):
                 "town_wall": wall_profile_metadata(),
                 "garrison": garrison_profile_metadata(),
                 "profile_metadata": registry.metadata, "economy_metadata": economy.metadata, "units": units,
-                "barbarian_profile_metadata": barbarians.metadata, "barbarian_units": barbarians.public(),
+                "barbarian_profile_metadata": barbarians.metadata,
+                "barbarian_fleet_profile_metadata": barbarian_fleet.metadata,
+                "barbarian_units": barbarians.public() + barbarian_fleet.public(),
+                "barbarian_fleet_units": barbarian_fleet.public(),
                 "forge_levels": {str(k): {"damage_multiplier":str(v.damage_multiplier),"armor_bonus":v.armor_bonus}
                                  for k,v in ForgeProfile.load().levels.items()},
                 "workshop_increments": {"land": WorkshopProfile.load().land_increment,

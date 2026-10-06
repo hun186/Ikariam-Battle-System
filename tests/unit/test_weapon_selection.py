@@ -14,7 +14,14 @@ def test_native_multi_weapon_combat_keeps_primary_weapon():
     assert select_active_weapon(archer, "second") is archer.primary_weapon
 
 
-def test_non_native_multi_weapon_selection_remains_unsupported():
+def test_exhausted_land_long_range_first_uses_secondary_close_weapon():
     archer = UnitRegistry.load().get("archer")
+    selected = select_active_weapon(archer, "first")
+    assert selected is archer.weapons[1]
+    assert selected.id == "secondary"
+
+
+def test_unrelated_non_native_multi_weapon_selection_remains_unsupported():
+    mortar = UnitRegistry.load().get("mortar")
     with pytest.raises(UnsupportedWeaponSelection):
-        select_active_weapon(archer, "first")
+        select_active_weapon(mortar, "first")

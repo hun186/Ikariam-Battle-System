@@ -68,7 +68,7 @@ class UnitRegistry:
                              w.get("accuracy"), w.get("provenance", {})) for w in row.get("weapons", [])),
                 row.get("counts_toward_garrison_limit", True), row["provenance"])
         if include_barbarians:
-            from .barbarians import BarbarianRegistry
+            from .barbarians import BarbarianFleetRegistry, BarbarianRegistry
             barbarian_registry = BarbarianRegistry.load()
             for barbarian in barbarian_registry.all():
                 equivalent = definitions.get(barbarian.equivalent_player_unit or "")
@@ -81,16 +81,54 @@ class UnitRegistry:
                     battlefield_class=barbarian.native_line,
                     semantic_class=barbarian.semantic_class,
                     native_line=barbarian.native_line,
-                    unit_class=equivalent.unit_class if equivalent else None,
+                    unit_class=barbarian.unit_class or (
+                        equivalent.unit_class if equivalent else None
+                    ),
                     hit_points=barbarian.hit_points,
                     base_armor=barbarian.base_armor,
-                    accuracy=barbarian.accuracy,
+                    accuracy=barbarian.primary_weapon.accuracy,
                     size=barbarian.size,
-                    weapons=(
+                    weapons=tuple(
                         Weapon(
-                            "primary", barbarian.damage, barbarian.ammunition,
-                            "primary", barbarian.accuracy, barbarian.provenance,
-                        ),
+                            weapon.id,
+                            weapon.damage,
+                            weapon.ammunition,
+                            weapon.trigger,
+                            weapon.accuracy,
+                            weapon.provenance,
+                        )
+                        for weapon in barbarian.weapons
+                    ),
+                    counts_toward_garrison_limit=True,
+                    provenance=barbarian.provenance,
+                    army_kind="barbarian",
+                )
+            fleet_registry = BarbarianFleetRegistry.load()
+            for barbarian in fleet_registry.all():
+                definitions[barbarian.id] = UnitDefinition(
+                    id=barbarian.id,
+                    display_name=barbarian.display_name,
+                    domain="naval",
+                    role="combat",
+                    support_effect=None,
+                    battlefield_class=barbarian.native_line,
+                    semantic_class=barbarian.semantic_class,
+                    native_line=barbarian.native_line,
+                    unit_class=barbarian.unit_class,
+                    hit_points=barbarian.hit_points,
+                    base_armor=barbarian.base_armor,
+                    accuracy=barbarian.primary_weapon.accuracy,
+                    size=barbarian.size,
+                    weapons=tuple(
+                        Weapon(
+                            weapon.id,
+                            weapon.damage,
+                            weapon.ammunition,
+                            weapon.trigger,
+                            weapon.accuracy,
+                            weapon.provenance,
+                        )
+                        for weapon in barbarian.weapons
                     ),
                     counts_toward_garrison_limit=True,
                     provenance=barbarian.provenance,

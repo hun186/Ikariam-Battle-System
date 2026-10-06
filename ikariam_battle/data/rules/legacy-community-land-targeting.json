@@ -13,9 +13,14 @@
       "verification": "USER_SUPPLIED_AUTHORITY"
     },
     "weapon_selection": {
-      "status": "UNKNOWN",
+      "status": "PARTIAL_KNOWN",
+      "exhausted_long_range_first_fallback": {
+        "status": "KNOWN_FOR_WHOLE_WAVE_AND_PARTIAL_SPLIT_WITH_RR",
+        "rule": "A zero-ammo Second-line Long-Range wave does not refill Second. Open First slots are filled with the secondary close weapon; persistent damage is redistributed across the surviving wave first, then the promoted First subset receives its proportional RR share and excess survivors remain Reserve.",
+        "source_type": "EMPIRICAL_MECHANICS_PAPER",
+        "verification": "REPOSITORY_ARTIFACT_PLUS_USER_INTERPRETATION_2026-10-05"
+      },
       "blockers": [
-        "UNKNOWN-FALLBACK-LONG-RANGE-WEAPON",
         "UNKNOWN-SECONDARY-WEAPON-TRIGGER"
       ]
     },

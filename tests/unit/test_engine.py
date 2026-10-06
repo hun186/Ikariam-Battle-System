@@ -2,15 +2,16 @@ from collections import defaultdict
 from copy import deepcopy
 import pytest
 from ikariam_battle import simulate
-from ikariam_battle.battlefield import LAND_BATTLEFIELDS, LAND_MINI, deploy
+from ikariam_battle.battlefield import LAND_BATTLEFIELDS, LAND_MINI, NAVAL_BATTLEFIELDS, deploy
 from ikariam_battle.engine import (
- _cross_wave_rebuild_requirements, _formation_shots, _ir_trigger, _plan_fire, _preflight,
+ _arrival_waves, _cross_wave_rebuild_requirements, _formation_shots, _healing_status, _ir_trigger, _plan_fire, _preflight,
  _prepare_round_start, _redistribute, _resolve_volleys, _sr_trigger, _target,
 )
 from ikariam_battle.formation import FormationRules
 from ikariam_battle.models import Army, ArmyUnit, Policy, Scenario, ScenarioError, Slot, Wave
 from ikariam_battle.profiles import ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 from ikariam_battle.units import UnitRegistry
+from ikariam_battle.weapon_selection import select_active_weapon
 
 
 def scenario(policy='experimental',rounds=5):
@@ -801,12 +802,19 @@ def test_same_unit_long_range_cross_batch_fills_existing_second_slots_and_keeps_
   (slot.damage_position,slot.units) for slot in first.slots if slot.units)
  second_positions=sorted(
   (slot.damage_position,slot.units) for slot in second.slots if slot.units)
- assert first_positions==[(1,12),(2,12),(3,12),(4,12),(5,11)]
+ assert first_positions==[(1,12),(2,12),(3,12),(4,12),(5,1)]
  assert second_positions==[(6,12),(7,12)]
- assert first.reserve==0
+ assert first.reserve==10
  assert second.reserve==36
  assert first.ammo_pool_shots==49
  assert second.ammo_pool_shots==180
+ assert any(
+  event.type=='ammo_limited_deployment'
+  and event.details.get('wave_id')==second.unit.wave_id
+  and event.details.get('deployed_units')==24
+  and event.details.get('reserve_units')==36
+  for event in events
+ )
  assert first.reserve_damage+sum(slot.damage for slot in first.slots)==before_damage[first.unit.wave_id]
  assert second.reserve_damage+sum(slot.damage for slot in second.slots)==before_damage[second.unit.wave_id]
  assert any(
@@ -817,6 +825,40 @@ def test_same_unit_long_range_cross_batch_fills_existing_second_slots_and_keeps_
   and event.details.get('to_wave_id')==second.unit.wave_id
   for event in events
  )
+ assert _cross_wave_rebuild_requirements(waves,registry,rules,field)==[]
+
+
+def test_exhausted_earlier_long_range_releases_second_slots_to_later_ammo_wave():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'sulphur_carabineer','quantity':60,
+   'entry_batch_id':'attacker-batch-1'},
+  {'unit_id':'sulphur_carabineer','quantity':60,
+   'entry_batch_id':'attacker-batch-2'},
+ ]}),registry,field)
+ first=next(w for w in waves if w.unit.batch_id=='attacker-batch-1')
+ second=next(w for w in waves if w.unit.batch_id=='attacker-batch-2')
+ assert sorted(slot.damage_position for slot in first.slots if slot.units)==[1,2,3,4,5]
+ assert sorted(slot.damage_position for slot in second.slots if slot.units)==[6,7]
+ assert second.reserve==36
+ first.ammo_pool_shots=0
+ second.ammo_pool_shots=180
+
+ events=[]; applied={}
+ boundary=_prepare_round_start(
+  waves,events,6,'attacker',applied,registry,rules,field,
+ )
+ assert boundary is False
+ assert {slot.line for slot in first.slots if slot.units}=={'first'}
+ assert sum(slot.units for slot in first.slots if slot.line=='first')==60
+ assert sum(slot.units for slot in second.slots if slot.line=='second')==60
+ assert second.reserve==0
+ assert sorted(
+  slot.damage_position for slot in second.slots
+  if slot.line=='second' and slot.units
+ )==[1,2,3,4,5]
+ assert second.ammo_pool_shots==180
  assert _cross_wave_rebuild_requirements(waves,registry,rules,field)==[]
 
 
@@ -1573,6 +1615,13 @@ def test_doctor_healing_executes_full_clear_subset_and_reports_real_amount():
  assert 'EXP-HEAL-NONE-001' not in {a['id'] for a in result['assumptions']}
  assert result['combat_statistics']['attacker']['gross_healing']==side['healing_amount']
  assert result['combat_statistics']['attacker']['engine_healing_applied']==side['healing_amount']
+ doctor_events=[
+  e for e in result['events']
+  if e['type']=='healing' and e['side']=='attacker'
+  and e['details'].get('support_unit_id')=='doctor'
+ ]
+ assert doctor_events
+ assert sum(e['details'].get('healing',0) for e in doctor_events)==side['healing_amount']
  assert any(row['combat_statistics']['attacker']['healing']>0 for row in result['rounds'])
  assert result['rounds'][-1]['combat_statistics']['attacker']['cumulative_healing']==side['healing_amount']
 
@@ -1643,6 +1692,56 @@ def test_doctor_partial_healing_stays_named_assumption_when_capacity_is_insuffic
  assert unresolved.details['eligible_damage']==5000
  assert unresolved.details['action']=='no_partial_healing_applied'
  assert not any(event.type=='healing' for event in events)
+
+
+
+
+def test_tender_full_clear_uses_current_4000_capacity_for_naval_damage():
+ registry=UnitRegistry.load(); support=SupportProfile.load()
+ tender=Wave(ArmyUnit('tender',1,'tender'),0,[],0,None,1)
+ ram=Wave(
+  ArmyUnit('ram_ship',10,'ram'),0,
+  [Slot('flank-1','flank',2,1,'ram_ship','ram',10,10,3500)],
+ )
+ events=[]; applied={}
+ _prepare_round_start(
+  [tender,ram],events,2,'attacker',applied,
+  registry=registry,support=support,
+ )
+ assert ram.slots[0].damage==0
+ heal=next(
+  event for event in events
+  if event.type=='healing' and event.details.get('support_unit_id')=='tender'
+ )
+ assert heal.details['tender_count']==1
+ assert heal.details['capacity']==4000
+ assert heal.details['healing']==3500
+ assert heal.details['eligibility']=='all_naval_combat'
+ assert 'EXP-TENDER-HEAL-NONE-001' not in applied
+
+
+def test_tender_insufficient_capacity_does_not_invent_partial_allocation():
+ registry=UnitRegistry.load(); support=SupportProfile.load()
+ tender=Wave(ArmyUnit('tender',1,'tender'),0,[],0,None,1)
+ ram=Wave(
+  ArmyUnit('ram_ship',10,'ram'),0,
+  [Slot('flank-1','flank',2,1,'ram_ship','ram',10,10,4500)],
+ )
+ events=[]; applied={}
+ _prepare_round_start(
+  [tender,ram],events,2,'attacker',applied,
+  registry=registry,support=support,
+ )
+ assert ram.slots[0].damage==4500
+ assert 'EXP-TENDER-HEAL-NONE-001' in applied
+ assert applied['EXP-TENDER-HEAL-NONE-001']['description'].startswith('When Tender capacity cannot clear')
+ unresolved=next(
+  event for event in events
+  if event.type=='healing_allocation_unresolved'
+  and event.details.get('support_unit_id')=='tender'
+ )
+ assert unresolved.details['capacity']==4000
+ assert unresolved.details['eligible_damage']==4500
 
 
 def test_art_of_warfare_firing_order_profile_and_artillery_targets_are_exact():
@@ -2774,3 +2873,381 @@ def test_typed_scenario_rejects_invalid_army_kind(bad):
    attacker=attacker,defender=defender,policy=Policy.EXPERIMENTAL,
    battlefield='land-mini',max_rounds=1,
   ))
+
+
+
+def test_exhausted_land_long_range_whole_wave_fills_open_first_slots():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'hoplite','quantity':250,'wave_id':'front'},
+  {'unit_id':'sulphur_carabineer','quantity':24,'wave_id':'ranged'},
+ ]}),registry,field)
+ front=next(w for w in waves if w.unit.wave_id=='front')
+ ranged=next(w for w in waves if w.unit.wave_id=='ranged')
+ # Keep five First slots occupied, leaving two open. 24 Carabineers fit exactly
+ # as two First slots because land-max First slot space is 50 and unit size is 4.
+ front.reserve=0
+ for slot in front.slots:
+  slot.units=50 if slot.damage_position in {1,2,3,4,5} else 0
+  slot.damage=0
+ ranged.reserve=0
+ for slot in ranged.slots:
+  slot.damage=0
+ ranged.ammo_pool_shots=0
+ events=[]; applied={}
+ _prepare_round_start(waves,events,4,'defender',applied,registry,rules,field)
+ live=[slot for slot in ranged.slots if slot.units]
+ assert {slot.line for slot in live}=={'first'}
+ assert [slot.damage_position for slot in live]==[6,7]
+ assert [slot.units for slot in live]==[12,12]
+ assert select_active_weapon(registry.get('sulphur_carabineer'),'first').id=='secondary'
+ assert any(
+  event.type=='formation_fallback'
+  and event.details.get('rule')=='land_exhausted_long_range_to_first'
+  and event.details.get('primary_ammo_exhausted') is True
+  for event in events
+ )
+
+
+def test_land_long_range_with_ammunition_stays_second():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'hoplite','quantity':250,'wave_id':'front'},
+  {'unit_id':'archer','quantity':60,'wave_id':'ranged'},
+ ]}),registry,field)
+ front=next(w for w in waves if w.unit.wave_id=='front')
+ ranged=next(w for w in waves if w.unit.wave_id=='ranged')
+ front.reserve=0
+ for slot in front.slots:
+  slot.units=50 if slot.damage_position in {1,2,3,4,5} else 0
+ ranged.reserve=0
+ assert ranged.ammo_pool_shots and ranged.ammo_pool_shots>0
+ events=[]; applied={}
+ _prepare_round_start(waves,events,2,'defender',applied,registry,rules,field)
+ assert {slot.line for slot in ranged.slots if slot.units}=={'second'}
+ assert not any(
+  event.type=='formation_fallback'
+  and event.details.get('unit_id')=='archer'
+  for event in events
+ )
+
+
+def test_zero_ammo_land_long_range_fills_first_only_and_keeps_excess_in_reserve():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'hoplite','quantity':300,'wave_id':'front'},
+  {'unit_id':'sulphur_carabineer','quantity':84,'wave_id':'ranged'},
+ ]}),registry,field)
+ front=next(w for w in waves if w.unit.wave_id=='front')
+ ranged=next(w for w in waves if w.unit.wave_id=='ranged')
+ front.reserve=0
+ for slot in front.slots:
+  slot.units=50 if slot.damage_position in {1,2,3,4,5,6} else 0
+  slot.damage=0
+ ranged.reserve=0
+ for slot in ranged.slots:
+  slot.damage=0
+ ranged.reserve_damage=0
+ ranged.ammo_pool_shots=0
+ events=[]; applied={}
+ _prepare_round_start(waves,events,3,'defender',applied,registry,rules,field)
+ assert sum(slot.units for slot in ranged.slots if slot.line=='second')==0
+ assert ranged.reserve==72
+ promoted=[wave for wave in waves if wave.unit.wave_id=='ranged::front-fallback-r3']
+ assert len(promoted)==1
+ front_wave=promoted[0]
+ assert {slot.line for slot in front_wave.slots if slot.units}=={'first'}
+ assert sum(slot.units for slot in front_wave.slots)==12
+ assert [slot.damage_position for slot in front_wave.slots if slot.units]==[7]
+ assert front_wave.ammo_pool_shots==0
+ assert front_wave.ammo_capacity_shots==ranged.ammo_capacity_shots
+ assert front_wave.ammo_capacity_shots and front_wave.ammo_capacity_shots>0
+ assert any(
+  event.type=='formation_fallback'
+  and event.details.get('rule')=='land_exhausted_long_range_partial_to_first'
+  and event.details.get('whole_wave') is False
+  and event.details.get('quantity')==12
+  and event.details.get('reserve_remaining')==72
+  and event.details.get('native_second_deployed')==0
+  for event in events
+ )
+
+
+def test_damaged_partial_exhausted_land_long_range_rr_precedes_first_selection():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'hoplite','quantity':300,'wave_id':'front'},
+  {'unit_id':'sulphur_carabineer','quantity':84,'wave_id':'ranged'},
+ ]}),registry,field)
+ front=next(w for w in waves if w.unit.wave_id=='front')
+ ranged=next(w for w in waves if w.unit.wave_id=='ranged')
+ front.reserve=0
+ for slot in front.slots:
+  slot.units=50 if slot.damage_position in {1,2,3,4,5,6} else 0
+ ranged.reserve=0
+ ranged.ammo_pool_shots=0
+ next(slot for slot in ranged.slots if slot.units).damage=700
+ events=[]; applied={}
+ boundary=_prepare_round_start(waves,events,3,'defender',applied,registry,rules,field)
+ assert boundary is False
+ assert sum(slot.units for slot in ranged.slots if slot.line=='second')==0
+ assert ranged.reserve==72
+ promoted=[wave for wave in waves if wave.unit.wave_id=='ranged::front-fallback-r3']
+ assert len(promoted)==1
+ front_wave=promoted[0]
+ assert sum(slot.units for slot in front_wave.slots if slot.line=='first')==12
+ # RR over the original 84 survivors allocates half-up(700*12/84)=100
+ # to the promoted First subset and keeps 600 with the 72 Reserve survivors.
+ assert sum(slot.damage for slot in front_wave.slots)==100
+ assert ranged.reserve_damage==600
+ assert any(
+  event.type=='redistribution'
+  and event.details.get('rule')=='RR_BEFORE_DEPLOYMENT_SELECTION'
+  and event.details.get('split_damage')==100
+  and event.details.get('reserve_damage')==600
+  for event in events
+ )
+ assert any(
+  event.type=='formation_fallback'
+  and event.details.get('damage_partition')=='rr_before_selection_proportional'
+  for event in events
+ )
+
+
+
+def test_zero_ammo_land_long_range_with_full_front_stays_entirely_in_reserve():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'hoplite','quantity':350,'wave_id':'front'},
+  {'unit_id':'archer','quantity':84,'wave_id':'ranged'},
+ ]}),registry,field)
+ ranged=next(w for w in waves if w.unit.wave_id=='ranged')
+ ranged.ammo_pool_shots=0
+ events=[]; applied={}
+ _prepare_round_start(waves,events,4,'defender',applied,registry,rules,field)
+ assert sum(slot.units for slot in ranged.slots if slot.line=='second')==0
+ assert ranged.reserve==84
+
+
+def test_three_remaining_carrier_shots_repeat_when_deployed_carriers_die_before_fire():
+ registry=UnitRegistry.load()
+ rules=FormationRules.load('formation-naval')
+ field=NAVAL_BATTLEFIELDS['naval-max']
+ waves=deploy(
+  Army.from_dict({'units':[{'unit_id':'balloon_carrier','quantity':500,'wave_id':'carrier'}]}),
+  registry,field,'formation-naval'
+ )
+ carrier=next(w for w in waves if w.unit.wave_id=='carrier')
+ carrier.ammo_pool_shots=3
+ events=[]; applied={}
+ _prepare_round_start(waves,events,6,'attacker',applied,registry,rules,field)
+ assert sum(slot.units for slot in carrier.slots if slot.line=='balloon')==3
+ assert carrier.reserve==497
+ assert carrier.ammo_pool_shots==3
+
+ for slot in carrier.slots:
+  if slot.line=='balloon':
+   slot.units=0
+   slot.damage=0
+ assert carrier.alive==497
+ assert carrier.ammo_pool_shots==3
+
+ events2=[]; applied2={}
+ _prepare_round_start(waves,events2,7,'attacker',applied2,registry,rules,field)
+ assert sum(slot.units for slot in carrier.slots if slot.line=='balloon')==3
+ assert carrier.reserve==494
+ assert carrier.ammo_pool_shots==3
+ assert any(
+  event.type=='ammo_limited_deployment'
+  and event.details.get('unit_id')=='balloon_carrier'
+  and event.details.get('ammo_pool_shots')==3
+  and event.details.get('deployed_units')==3
+  for event in events2
+ )
+
+
+
+def test_ammo_limited_native_refill_uses_same_wave_rr_before_selection_invariant():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(
+  Army.from_dict({'units':[{'unit_id':'archer','quantity':84,'wave_id':'ranged'}]}),
+  registry,field,
+ )
+ ranged=next(w for w in waves if w.unit.wave_id=='ranged')
+ ranged.ammo_pool_shots=3
+ ranged.reserve=0
+ for slot in ranged.slots:
+  slot.damage=0
+ next(slot for slot in ranged.slots if slot.units).damage=840
+ events=[]; applied={}
+ boundary=_prepare_round_start(
+  waves,events,5,'attacker',applied,registry,rules,field
+ )
+ assert boundary is False
+ assert sum(slot.units for slot in ranged.slots if slot.line=='second')==3
+ assert ranged.reserve==81
+ # RR population is all 84 survivors: 840 * 3 / 84 = 30 deployed damage.
+ assert sum(slot.damage for slot in ranged.slots if slot.line=='second')==30
+ assert ranged.reserve_damage==810
+ assert sum(slot.damage for slot in ranged.slots)+ranged.reserve_damage==840
+
+
+
+def test_same_geometry_garrison_exit_is_recorded_before_independent_cross_wave_boundary():
+ s={
+  'policy':'experimental','battlefield':'land-max','max_rounds':2,
+  'town_hall_level':25,'wall_level':3,
+  'attacker':{'forge_level':5,'units':[
+   {'unit_id':'hoplite','quantity':700},
+   {'unit_id':'swordsman','quantity':480},
+   {'unit_id':'sulphur_carabineer','quantity':168},
+   {'unit_id':'mortar','quantity':60},
+  ]},
+  'defender':{'forge_level':5,'units':[
+   {'unit_id':'steam_giant','quantity':224},
+   {'unit_id':'swordsman','quantity':480},
+   {'unit_id':'archer','quantity':700},
+   {'unit_id':'catapult','quantity':60},
+   {'unit_id':'mortar','quantity':36},
+  ]},
+ }
+ result=simulate(s)
+ exit_events=[
+  e for e in result['events']
+  if e['type']=='garrison_state_change'
+  and e['details'].get('direction')=='exit_open_field'
+ ]
+ cross_events=[
+  e for e in result['events']
+  if e['type']=='unsupported_mechanic'
+  and e['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD'
+ ]
+ if cross_events:
+  assert exit_events
+  assert exit_events[0]['round'] <= cross_events[0]['round']
+
+
+
+def test_partial_fallback_generated_wave_id_may_match_another_unit_wave_id():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'hoplite','quantity':300,'wave_id':'front'},
+  {'unit_id':'archer','quantity':84,'wave_id':'ranged'},
+  {'unit_id':'mortar','quantity':5,'wave_id':'ranged::front-fallback-r3'},
+ ]}),registry,field)
+ front=next(w for w in waves if w.unit.wave_id=='front')
+ ranged=next(w for w in waves if w.unit.unit_id=='archer')
+ front.reserve=0
+ for slot in front.slots:
+  slot.units=50 if slot.damage_position in {1,2,3,4,5,6} else 0
+ ranged.reserve=0
+ ranged.ammo_pool_shots=0
+ events=[]; applied={}
+ boundary=_prepare_round_start(
+  waves,events,3,'attacker',applied,registry,rules,field
+ )
+ assert boundary is False
+ assert any(
+  w.unit.unit_id=='archer' and w.unit.wave_id=='ranged::front-fallback-r3'
+  for w in waves
+ )
+ assert any(
+  w.unit.unit_id=='mortar' and w.unit.wave_id=='ranged::front-fallback-r3'
+  for w in waves
+ )
+
+
+def test_partial_fallback_disambiguates_generated_id_from_same_unit_user_wave():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'hoplite','quantity':300,'wave_id':'front'},
+ ]}),registry,field)
+ waves.extend([
+  Wave(
+   ArmyUnit('sulphur_carabineer',57,'src',entry_batch_id='batch-a'),
+   57,[],0,0,0,171,
+  ),
+  Wave(
+   ArmyUnit(
+    'sulphur_carabineer',16,'src::front-fallback-r4',
+    entry_batch_id='batch-b',
+   ),
+   16,[],0,48,0,48,
+  ),
+ ])
+ events=[]; applied={}
+ boundary=_prepare_round_start(
+  waves,events,4,'attacker',applied,registry,rules,field
+ )
+ assert boundary is False
+ generated=[
+  w for w in waves
+  if w.unit.unit_id=='sulphur_carabineer'
+  and w.unit.wave_id.startswith('src::front-fallback-r4')
+  and w.unit.wave_id!='src::front-fallback-r4'
+ ]
+ assert len(generated)==1
+ assert generated[0].unit.wave_id=='src::front-fallback-r4::2'
+ assert any(
+  event.type=='formation_fallback'
+  and event.details.get('source_wave_id')=='src'
+  and event.details.get('wave_id')==generated[0].unit.wave_id
+  for event in events
+ )
+
+
+def test_partial_fallback_reserves_id_against_delayed_same_unit_arrival():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'hoplite','quantity':300,'wave_id':'front'},
+ ]}),registry,field)
+ waves.append(Wave(
+  ArmyUnit('sulphur_carabineer',57,'src',entry_batch_id='batch-a'),
+  57,[],0,0,0,171,
+ ))
+ scheduled=Army.from_dict({'units':[
+  {
+   'unit_id':'sulphur_carabineer','quantity':16,
+   'wave_id':'src::front-fallback-r4','entry_batch_id':'batch-b',
+   'arrival_round':5,
+  },
+ ]})
+ reserved={(item.unit_id,item.wave_id) for item in scheduled.units}
+ events=[]; applied={}
+ boundary=_prepare_round_start(
+  waves,events,4,'attacker',applied,registry,rules,field,
+  reserved_wave_ids=reserved,
+ )
+ assert boundary is False
+ generated=next(
+  w for w in waves
+  if w.unit.unit_id=='sulphur_carabineer'
+  and w.unit.wave_id.startswith('src::front-fallback-r4::')
+ )
+ assert generated.unit.wave_id=='src::front-fallback-r4::2'
+ arrivals=_arrival_waves(scheduled,5,registry,events,'attacker')
+ waves.extend(arrivals)
+ identities=[
+  (w.unit.unit_id,w.unit.wave_id)
+  for w in waves
+  if w.unit.unit_id=='sulphur_carabineer'
+ ]
+ assert len(identities)==len(set(identities))
+
+
+def test_tender_healing_event_does_not_pollute_doctor_status():
+ scenario_obj=Scenario.from_dict({
+  'policy':'experimental','battlefield':'naval-max','max_rounds':1,
+  'attacker':{'units':[{'unit_id':'steam_ram','quantity':1}]},
+  'defender':{'units':[{'unit_id':'steam_ram','quantity':1}]},
+ })
+ result={'events':[{
+  'type':'healing','side':'attacker',
+  'details':{'support_unit_id':'tender','healing':3500},
+ }]}
+ status=_healing_status(scenario_obj,result,SupportProfile.load())
+ attacker=status['sides']['attacker']
+ assert attacker['doctor_count']==0
+ assert attacker['status']=='not_present'
+ assert attacker['effect_applied'] is False
+ assert attacker['healing_amount']==0

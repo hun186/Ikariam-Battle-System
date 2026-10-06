@@ -40,10 +40,16 @@ def test_browser_wall_copy_matches_strict_experimental_policy_split():
 def test_barbarian_metadata_contract_is_documented():
  contract=Path('.codex/contracts.md').read_text()
  assert 'barbarian_profile_metadata' in contract and 'barbarian_units' in contract
+ assert 'barbarian_fleet_profile_metadata' in contract and 'barbarian_fleet_units' in contract
+ assert 'Village rows expose `domain = "land"`' in contract
+ assert 'Fleet rows expose `domain = "naval"`' in contract
  assert 'selectable_by_player = false' in contract and 'simulation_ready = true' in contract
  assert 'remain outside the player `units` collection' in contract
  assert 'army_kind = player|barbarian' in contract
  assert 'no mixing with player unit IDs on the same side' in contract
+ assert '`naval-max` allows the same package pairings' in contract
+ assert 'the smaller/reserved `naval-mini` geometry remains unsupported' in contract
+ assert 'naval battlefield geometry remain outside the executable contract' not in contract
 
 def test_get_metadata_drives_complete_land_ui_and_profiles():
  response=asyncio.run(request('GET','/api/simulate')); data=json.loads(response[1]['body'])
@@ -60,7 +66,8 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
   ('land-medium','land','Land medium / Town Hall 10–16',True),
   ('land-large','land','Land large / Town Hall 17–24',True),
   ('land-max','land','Land max / Town Hall 25+',True),
-  ('naval-mini','naval','Naval battlefield / geometry pending',False),
+  ('naval-max','naval','Naval max / current community geometry',True),
+  ('naval-mini','naval','Naval mini / geometry pending',False),
  ]
  medium=next(f for f in data['battlefields'] if f['id']=='land-medium')
  assert {line:len(spec['physical_order']) for line,spec in medium['lines'].items()}=={
@@ -72,8 +79,10 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert maximum['lines']['first']['slot_space']==50
  assert len([u for u in data['units'] if u['domain']=='land' and u['numerically_supported']])==15
  assert len(data['units'])==26
- assert len(data['barbarian_units'])==9
+ assert len(data['barbarian_units'])==19
+ assert len(data['barbarian_fleet_units'])==10
  assert data['barbarian_profile_metadata']['simulation_status']=='LAND_COMBAT_READY'
+ assert data['barbarian_fleet_profile_metadata']['simulation_status']=='NAVAL_COMBAT_READY_MANUAL_QUANTITIES'
  assert data['report_transport']=={'default_mode':'summary','default_round_page_size':10,'max_round_page_size':20}
  assert data['town_wall']['max_level']==48
  assert data['town_wall']['input_supported'] is True
@@ -95,8 +104,12 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
  assert data['garrison']['barbarian_formula']=='(barbarian_village_level + wall_level + 5) * 50'
  assert data['garrison']['barbarian_formula_status']=='GAMEFORGE_FORUM_2024_COMMUNITY_REPORT'
  assert data['garrison']['max_barbarian_village_level']==50
+ village_units=[u for u in data['barbarian_units'] if u['domain']=='land']
+ fleet_units=[u for u in data['barbarian_units'] if u['domain']=='naval']
+ assert len(village_units)==9 and len(fleet_units)==10
+ assert fleet_units==data['barbarian_fleet_units']
  assert all(
-  u['domain']=='land' and u['army_kind']=='barbarian'
+  u['army_kind']=='barbarian'
   and not u['selectable_by_player'] and u['selectable_in_simulator'] and u['simulation_ready']
   and u['general_score']=='0'
   for u in data['barbarian_units'])
@@ -313,7 +326,7 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert '戰鬥機制狀態 / Mechanics Status' in body
  assert 'Air defence → Air → Artillery → Flanks → Long-range → Main battle line' in body
  assert 'P-kill' in body and 'IR / SR' in body and 'RR · Reserve Redistribution' in body
- assert 'Steam Giant、Ram、Catapult、Mortar、Gyrocopter、Bombardier' in body
+ assert 'Doctor 只治療 Human，Machine 不可治療' in body
  assert 'id="maxRounds" type="number" min="1" max="1000" value="100"' in body
  assert '預設 100 回合；1000 回合是可手動提高的安全上限' in body
  assert 'Cook 士氣目前尚未完整建模' in body
@@ -376,7 +389,7 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert "含 Workshop + Forge Lv" in body
  assert 'function reserveGroups(state)' in body and 'reserve_hit_points_percent' in body
  assert 'batches.length>1' in body and 'batch-badge' in body
- assert "Persistent reserve damage" in body
+ assert "Reserve persistent damage" in body
  assert "Math.floor(field.lines[line].slot_space/unit.size)" in body
  assert "unit.semantic_class==='light_infantry'&&field.lines.first" in body
  assert "minus.textContent=step?'−'+step" in body and "plus.textContent=step?'＋'+step" in body
@@ -530,7 +543,8 @@ def test_local_unit_icon_assets_and_shared_ui_mapping():
    assert local in body
    assert Path(local.lstrip('/')).is_file()
    assert Path('public'+local).is_file()
- assert '野蠻人兵種資料與出現等級（9 種）' in body
+ assert '<summary>野蠻人陸軍與艦隊資料</summary>' in body
+ assert 'Barbarian Village 9 種陸軍與 Barbarian Fleet 10 種海軍' in body
  assert 'function renderBarbarianCatalog()' in body
  assert body==Path('public/index.html').read_text()
 
@@ -708,8 +722,8 @@ def test_setup_presets_share_the_canonical_setup_serializer_and_public_entrypoin
  assert "battleDomain.value=field.domain;refreshBattlefieldOptions(field.id)" in body
  assert "setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100" in body
  assert '自訂套裝只保存在此瀏覽器' in body
- assert "'UNKNOWN-FORMATION-FALLBACK':'主戰線需要 fallback。" in body
- assert '整個 Light Infantry wave 可完整轉入 First 的情況已支援' in body
+ assert "'UNKNOWN-FORMATION-FALLBACK':'主戰線需要尚未支援的 fallback。" in body
+ assert '整個 Light Infantry wave 可完整轉入 First；Long-range 彈藥歸零後的 whole-wave 與 partial First fill 也已支援' in body
  assert body==Path('public/index.html').read_text()
 
 
@@ -721,9 +735,9 @@ def test_land_setup_exposes_defender_wall_and_preserves_it_in_presets_and_scenar
  assert 'function populateTownHallLevel(){' in body
  assert 'function populateBarbarianVillageLevel(){' in body
  assert 'function populateWallLevels(){' in body
- assert "wall_level:Math.max(0,Math.trunc(+defenderWallLevel.value||0))" in body
- assert "town_hall_level:armyKind('defender')==='player'?" in body
- assert "barbarian_village_level:armyKind('defender')==='barbarian'?" in body
+ assert "wall_level:isLand?Math.max(0,Math.trunc(+defenderWallLevel.value||0)):0" in body
+ assert "town_hall_level:isLand&&armyKind('defender')==='player'?" in body
+ assert "barbarian_village_level:isLand&&armyKind('defender')==='barbarian'?" in body
  assert "const wallLevel=Math.max(0,Math.min(wallMax,Math.trunc(Number(config.wall_level)||0)))" in body
  assert "defenderWallLevel.value=String(wallLevel)" in body
  assert "wall_level:0,town_hall_level:25,barbarian_village_level:null" in body
@@ -837,3 +851,12 @@ def test_round_page_exposes_arrival_boundary_round_and_events():
  assert any(e['type']=='unsupported_mechanic' and e['round']==3
             and e['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD'
             for e in data['events'])
+
+
+
+def test_browser_uses_integer_barbarian_fleet_scaling_and_unavailable_score_label():
+ body=Path('index.html').read_text()
+ assert 'growthBasisPoints' in body
+ assert 'quantity:Math.ceil(Number(row.quantity)*(1+growth*(n-1)))' not in body
+ assert "military.general_score_lost==null?'不可用'" in body
+ assert "military.general_score_destroyed==null?'不可用'" in body
