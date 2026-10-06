@@ -1008,12 +1008,17 @@ def _supported_whole_wave_first_fallback(
             wave.reserve = reserve_remaining
             wave.reserve_damage = total_damage
 
-            promoted_id = f"{wave.unit.wave_id}::front-fallback-r{number}"
-            if any(
-                peer.unit.unit_id == unit.id and peer.unit.wave_id == promoted_id
+            base_promoted_id = f"{wave.unit.wave_id}::front-fallback-r{number}"
+            promoted_id = base_promoted_id
+            existing_wave_ids = {
+                peer.unit.wave_id
                 for peer in waves
-            ):
-                raise ScenarioError("duplicate partial Long-Range fallback wave id")
+                if peer.unit.unit_id == unit.id
+            }
+            suffix = 2
+            while promoted_id in existing_wave_ids:
+                promoted_id = f"{base_promoted_id}::{suffix}"
+                suffix += 1
             promoted_unit = ArmyUnit(
                 unit.id,
                 promote_quantity,
