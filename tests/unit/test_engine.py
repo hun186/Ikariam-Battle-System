@@ -3157,6 +3157,45 @@ def test_partial_fallback_generated_wave_id_may_match_another_unit_wave_id():
  )
 
 
+def test_partial_fallback_disambiguates_generated_id_from_same_unit_user_wave():
+ registry=UnitRegistry.load(); rules=FormationRules.load(); field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'hoplite','quantity':300,'wave_id':'front'},
+ ]}),registry,field)
+ waves.extend([
+  Wave(
+   ArmyUnit('sulphur_carabineer',57,'src',entry_batch_id='batch-a'),
+   57,[],0,0,0,171,
+  ),
+  Wave(
+   ArmyUnit(
+    'sulphur_carabineer',16,'src::front-fallback-r4',
+    entry_batch_id='batch-b',
+   ),
+   16,[],0,48,0,48,
+  ),
+ ])
+ events=[]; applied={}
+ boundary=_prepare_round_start(
+  waves,events,4,'attacker',applied,registry,rules,field
+ )
+ assert boundary is False
+ generated=[
+  w for w in waves
+  if w.unit.unit_id=='sulphur_carabineer'
+  and w.unit.wave_id.startswith('src::front-fallback-r4')
+  and w.unit.wave_id!='src::front-fallback-r4'
+ ]
+ assert len(generated)==1
+ assert generated[0].unit.wave_id=='src::front-fallback-r4::2'
+ assert any(
+  event.type=='formation_fallback'
+  and event.details.get('source_wave_id')=='src'
+  and event.details.get('wave_id')==generated[0].unit.wave_id
+  for event in events
+ )
+
+
 def test_tender_healing_event_does_not_pollute_doctor_status():
  scenario_obj=Scenario.from_dict({
   'policy':'experimental','battlefield':'naval-max','max_rounds':1,
