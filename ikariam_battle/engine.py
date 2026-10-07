@@ -515,9 +515,9 @@ def _supported_same_batch_heavy_first_handoffs(
             groups[wave.unit.batch_id].append(wave)
 
     for batch_id, group in groups.items():
-        # A single-wave batch can still expose an empty Third position that a
-        # same-unit wave from a later entry batch is already allowed to inherit.
-        # Different-unit ranked replacement still remains batch-local below.
+        if len(group) < 2:
+            continue
+
         owners: dict[int, tuple[Wave, Slot]] = {}
         for wave in group:
             for slot in wave.slots:
@@ -869,9 +869,9 @@ def _supported_same_batch_ranked_third_handoffs(
         return available
 
     for batch_id, group in groups.items():
-        if len(group) < 2:
-            continue
-
+        # A single-wave batch can still expose an empty Third position that a
+        # same-unit wave from a later entry batch is already allowed to inherit.
+        # Different-unit ranked replacement remains batch-local below.
         owners: dict[int, tuple[Wave, Slot]] = {}
         for wave in group:
             for slot in wave.slots:
