@@ -646,9 +646,13 @@ def _supported_same_unit_same_line_handoffs(
     mixes waves. Ammo, persistent damage, Workshop state, and wave identity stay
     attached to the concrete wave.
 
-    Reserve-only waves join only their native runtime line. This deliberately
-    does not infer Light-Infantry fallback, cross-line placement, a different
-    unit type taking ownership, or creation of new physical slots.
+    Reserve-only waves join only their native runtime line. Callers may exclude
+    a runtime line when a more specific rule owns its ordering. Land Third is
+    excluded by round-start callers so finite-ammo capping happens before the
+    dedicated Third handoff decides same-unit versus same-batch replacement.
+    This deliberately does not infer Light-Infantry fallback, cross-line
+    placement, a different unit type taking ownership, or creation of new
+    physical slots.
     """
     _guard_single_line_waves(waves)
     skipped_lines = skip_runtime_lines or set()
@@ -1404,7 +1408,8 @@ def _has_supported_round_start_first_placement(
     _supported_same_batch_heavy_first_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
-        projected, registry, rules, field, projection_events, 0, "projection")
+        projected, registry, rules, field, projection_events, 0, "projection",
+        skip_runtime_lines={"third"})
     _cap_native_finite_ammo_deployment(
         projected, registry, projection_events, 0, "projection", emit_events=False)
     _supported_same_batch_ranked_third_handoffs(
@@ -1437,7 +1442,8 @@ def _prepare_round_start(
         _supported_same_batch_heavy_first_handoffs(
             waves, registry, rules, field, events, number, side)
         _supported_same_unit_same_line_handoffs(
-            waves, registry, rules, field, events, number, side)
+            waves, registry, rules, field, events, number, side,
+            skip_runtime_lines={"third"})
         _cap_native_finite_ammo_deployment(
             waves, registry, events, number, side)
         _supported_same_batch_ranked_third_handoffs(
@@ -1451,8 +1457,9 @@ def _prepare_round_start(
         # a later same-unit wave is allowed to inherit. First re-pack each
         # concrete wave across its inherited slots, then run the already
         # supported same-unit/same-line cross-wave compaction. Third is excluded
-        # here because its finite-ammo cap and handoff were finalized above;
-        # replaying Third would temporarily restore an exhausted earlier wave.
+        # from both generic passes: its ordering is owned by the finite-ammo cap
+        # plus dedicated Third handoff, so an exhausted earlier wave can never
+        # reclaim those slots before or after that decision.
         _rebuild_formation(waves, events, number, side)
         _supported_same_unit_same_line_handoffs(
             waves, registry, rules, field, events, number, side,
@@ -1520,7 +1527,8 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
     _supported_same_batch_heavy_first_handoffs(
         projected, registry, rules, field, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
-        projected, registry, rules, field, projection_events, 0, "projection")
+        projected, registry, rules, field, projection_events, 0, "projection",
+        skip_runtime_lines={"third"})
     _cap_native_finite_ammo_deployment(
         projected, registry, projection_events, 0, "projection", emit_events=False)
     _supported_same_batch_ranked_third_handoffs(
