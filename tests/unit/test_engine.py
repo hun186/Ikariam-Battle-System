@@ -2730,6 +2730,59 @@ def test_same_unit_cross_batch_mortar_handoff_precedes_same_batch_ram():
  )
 
 
+def test_successive_third_exhaustion_keeps_current_batch_ownership_for_ram_handoff():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'mortar','quantity':30,'entry_batch_id':'a0','wave_id':'mortar-a'},
+  {'unit_id':'mortar','quantity':30,'entry_batch_id':'b0','wave_id':'mortar-b'},
+  {'unit_id':'battering_ram','quantity':30,'entry_batch_id':'b0','wave_id':'ram-b'},
+ ]}),registry,field)
+ mortar_a=next(w for w in waves if w.unit.wave_id=='mortar-a')
+ mortar_b=next(w for w in waves if w.unit.wave_id=='mortar-b')
+ ram_b=next(w for w in waves if w.unit.wave_id=='ram-b')
+ assert ram_b.slots==[] and ram_b.reserve==30
+ assert mortar_b.slots==[] and mortar_b.reserve==30
+
+ mortar_a.ammo_pool_shots=0
+ first_events=[]; applied={}
+ boundary=_prepare_round_start(
+  waves,first_events,4,'attacker',applied,registry,rules,field,
+ )
+ assert boundary is False
+ assert mortar_b.reserve==0
+ assert sorted((slot.damage_position,slot.units) for slot in mortar_b.slots)==[
+  (1,6),(2,6),(3,6),(4,6),(5,6)]
+ assert ram_b.slots==[] and ram_b.reserve==30
+
+ mortar_b.ammo_pool_shots=0
+ second_events=[]
+ boundary=_prepare_round_start(
+  waves,second_events,5,'attacker',applied,registry,rules,field,
+ )
+ assert boundary is False
+ assert mortar_a.reserve==30 and not any(slot.units for slot in mortar_a.slots)
+ assert mortar_b.reserve==30 and not any(slot.units for slot in mortar_b.slots)
+ assert ram_b.reserve==0
+ assert sorted((slot.damage_position,slot.units) for slot in ram_b.slots)==[
+  (1,6),(2,6),(3,6),(4,6),(5,6)]
+ assert _cross_wave_rebuild_requirements(waves,registry,rules,field)==[]
+
+ ram_handoffs=[
+  event for event in second_events
+  if event.type=='slot_handoff'
+  and event.details.get('reason')=='same_batch_ranked_third_replacement'
+  and event.details.get('from_wave_id')=='mortar-b'
+  and event.details.get('to_wave_id')=='ram-b'
+ ]
+ assert len(ram_handoffs)==5
+ assert not any(
+  event.type=='slot_handoff'
+  and event.details.get('to_wave_id')=='mortar-a'
+  for event in second_events
+ )
+
+
 def test_exhausted_mortar_does_not_pull_third_line_ram_from_another_entry_batch():
  registry=UnitRegistry.load(); rules=FormationRules.load()
  field=LAND_BATTLEFIELDS['land-max']
