@@ -806,6 +806,154 @@ def _supported_same_unit_same_line_handoffs(
             wave.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
 
 
+def _supported_same_batch_ranked_third_handoffs(
+    waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field,
+    events: list[Event], number: int, side: str,
+) -> None:
+    """Fill already-existing empty land Artillery slots from the same entry batch.
+
+    Initial Third-line placement already uses the formation profile's ranked
+    concrete-group policy. During later rounds a finite-ammo Artillery wave can
+    release those physical slots after its primary ammunition reaches zero.
+    This narrow handoff lets another Third-line combat wave from the *same*
+    entry batch inherit only those already-existing empty positions, using the
+    same strongest/weakest concrete-group ranking as initial formation.
+
+    It does not replace occupied slots, create new physical positions, cross
+    entry batches, or move units across runtime lines. Wave-owned ammo,
+    persistent damage, Workshop state, and identity remain separate.
+    """
+    if getattr(field, "domain", None) != "land":
+        return
+    geometry = field.lines.get("third")
+    if geometry is None:
+        return
+
+    policy = rules.lines.get("third", {}).get("unit_selection_policy", "formation_order")
+    if policy not in {
+        "strongest_slot_group_primary_damage",
+        "weakest_slot_group_primary_damage",
+    }:
+        return
+    strongest = policy.startswith("strongest")
+
+    groups: dict[str, list[Wave]] = defaultdict(list)
+    for wave in waves:
+        unit = registry.get(wave.unit.unit_id)
+        if (
+            unit.role == "combat"
+            and unit.native_line == "third"
+            and "third" in eligible_runtime_lines(unit, rules, field)
+        ):
+            groups[wave.unit.batch_id].append(wave)
+
+    def deployable_reserve(wave: Wave) -> int:
+        unit = registry.get(wave.unit.unit_id)
+        available = max(0, wave.reserve)
+        if unit.primary_weapon.ammunition is not None and wave.ammo_pool_shots is not None:
+            already_deployed = sum(
+                slot.units for slot in wave.slots if slot.line == "third"
+            )
+            available = min(
+                available,
+                max(0, int(wave.ammo_pool_shots) - already_deployed),
+            )
+        return available
+
+    for batch_id, group in groups.items():
+        if len(group) < 2:
+            continue
+
+        owners: dict[int, tuple[Wave, Slot]] = {}
+        for wave in group:
+            for slot in wave.slots:
+                if slot.line != "third":
+                    continue
+                if slot.damage_position in owners:
+                    raise ScenarioError(
+                        f"duplicate Third-line ownership at damage position "
+                        f"{slot.damage_position} in entry batch {batch_id}"
+                    )
+                owners[slot.damage_position] = (wave, slot)
+        if not owners:
+            continue
+
+        open_positions = [
+            position for position in geometry.damage_priority
+            if position in owners and not owners[position][1].units
+        ]
+        for position in open_positions:
+            candidates = [wave for wave in group if deployable_reserve(wave) > 0]
+            if not candidates:
+                break
+
+            def rank(wave: Wave):
+                unit = registry.get(wave.unit.unit_id)
+                capacity = geometry.slot_space // unit.size
+                quantity = min(deployable_reserve(wave), capacity)
+                damage = unit.primary_weapon.damage
+                if damage is None:
+                    raise ScenarioError(
+                        f"primary weapon damage missing for formation selection: {unit.id}"
+                    )
+                score = (quantity * damage, damage, quantity)
+                signed = tuple(-value for value in score) if strongest else score
+                return (*signed, wave.unit.formation_order_key)
+
+            target_wave = min(candidates, key=rank)
+            target_unit = registry.get(target_wave.unit.unit_id)
+            capacity = geometry.slot_space // target_unit.size
+            quantity = min(deployable_reserve(target_wave), capacity)
+            if quantity <= 0:
+                continue
+
+            previous_wave, previous_slot = owners[position]
+            if previous_slot.damage:
+                previous_wave.reserve_damage += previous_slot.damage
+                previous_slot.damage = 0
+
+            if previous_wave is target_wave:
+                previous_slot.units = quantity
+                previous_slot.capacity = capacity
+                target_wave.reserve -= quantity
+                _event(
+                    events, number, "deploy", "slot_repacked", side,
+                    slot_id=previous_slot.slot_id,
+                    damage_position=position,
+                    previous_units=0,
+                    units=quantity,
+                    reason="same_batch_ranked_third_replacement",
+                )
+                continue
+
+            previous_unit = registry.get(previous_wave.unit.unit_id)
+            previous_wave.slots.remove(previous_slot)
+            slot = Slot(
+                f"third-{position}", "third",
+                geometry.physical_position(position), position,
+                target_unit.id, target_wave.unit.wave_id, quantity, capacity,
+            )
+            target_wave.slots.append(slot)
+            target_wave.reserve -= quantity
+            owners[position] = (target_wave, slot)
+            _event(
+                events, number, "deploy", "slot_handoff", side,
+                line="third", damage_position=position,
+                physical_position=slot.physical_position,
+                from_unit_id=previous_unit.id,
+                from_wave_id=previous_wave.unit.wave_id,
+                to_unit_id=target_unit.id,
+                to_wave_id=target_wave.unit.wave_id,
+                entry_batch_id=batch_id,
+                quantity=quantity, capacity=capacity,
+                reason="same_batch_ranked_third_replacement",
+                compaction=True,
+            )
+
+        for wave in group:
+            wave.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
+
+
 def _cap_native_finite_ammo_deployment(
     waves: list[Wave], registry: UnitRegistry, events: list[Event],
     number: int, side: str, *, emit_events: bool = True,
@@ -1214,6 +1362,8 @@ def _has_supported_round_start_first_placement(
         projected, registry, rules, field, projection_events, 0, "projection")
     _cap_native_finite_ammo_deployment(
         projected, registry, projection_events, 0, "projection", emit_events=False)
+    _supported_same_batch_ranked_third_handoffs(
+        projected, registry, rules, field, projection_events, 0, "projection")
     _supported_whole_wave_first_fallback(
         projected, registry, rules, field, projection_events, 0, "projection")
     _rebuild_formation(projected, projection_events, 0, "projection")
@@ -1244,6 +1394,8 @@ def _prepare_round_start(
             waves, registry, rules, field, events, number, side)
         _cap_native_finite_ammo_deployment(
             waves, registry, events, number, side)
+        _supported_same_batch_ranked_third_handoffs(
+            waves, registry, rules, field, events, number, side)
         fallback_boundary = _supported_whole_wave_first_fallback(
             waves, registry, rules, field, events, number, side,
             reserved_wave_ids=reserved_wave_ids)
@@ -1258,6 +1410,8 @@ def _prepare_round_start(
             waves, registry, rules, field, events, number, side)
         _cap_native_finite_ammo_deployment(
             waves, registry, events, number, side, emit_events=False)
+        _supported_same_batch_ranked_third_handoffs(
+            waves, registry, rules, field, events, number, side)
     if registry is not None and support is not None:
         _apply_supported_doctor_healing(
             waves, registry, support, events, number, side, applied)
@@ -1319,6 +1473,8 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
         projected, registry, rules, field, projection_events, 0, "projection")
     _cap_native_finite_ammo_deployment(
         projected, registry, projection_events, 0, "projection", emit_events=False)
+    _supported_same_batch_ranked_third_handoffs(
+        projected, registry, rules, field, projection_events, 0, "projection")
     _supported_whole_wave_first_fallback(
         projected, registry, rules, field, projection_events, 0, "projection")
     _rebuild_formation(projected, projection_events, 0, "projection")
@@ -1326,6 +1482,8 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
         projected, registry, rules, field, projection_events, 0, "projection")
     _cap_native_finite_ammo_deployment(
         projected, registry, projection_events, 0, "projection", emit_events=False)
+    _supported_same_batch_ranked_third_handoffs(
+        projected, registry, rules, field, projection_events, 0, "projection")
 
     occupied: dict[str, set[int]] = defaultdict(set)
     for wave in projected:
