@@ -2642,6 +2642,52 @@ def test_same_batch_exhausted_mortar_hands_existing_third_slots_to_battering_ram
  assert all(event.details.get('to_unit_id')=='battering_ram' for event in handoffs)
 
 
+def test_same_unit_cross_batch_mortar_handoff_precedes_same_batch_ram():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'mortar','quantity':30,'entry_batch_id':'a0','wave_id':'mortar-a'},
+  {'unit_id':'battering_ram','quantity':30,'entry_batch_id':'a0','wave_id':'ram-a'},
+  {'unit_id':'mortar','quantity':30,'entry_batch_id':'b0','wave_id':'mortar-b'},
+ ]}),registry,field)
+ mortar_a=next(w for w in waves if w.unit.wave_id=='mortar-a')
+ ram_a=next(w for w in waves if w.unit.wave_id=='ram-a')
+ mortar_b=next(w for w in waves if w.unit.wave_id=='mortar-b')
+ assert sorted((slot.damage_position,slot.units) for slot in mortar_a.slots)==[
+  (1,6),(2,6),(3,6),(4,6),(5,6)]
+ assert ram_a.slots==[] and ram_a.reserve==30
+ assert mortar_b.slots==[] and mortar_b.reserve==30
+ mortar_a.ammo_pool_shots=0
+
+ events=[]; applied={}
+ boundary=_prepare_round_start(
+  waves,events,4,'attacker',applied,registry,rules,field,
+ )
+ assert boundary is False
+ assert not any(slot.units for slot in mortar_a.slots)
+ assert mortar_a.reserve==30
+ assert ram_a.slots==[] and ram_a.reserve==30
+ assert mortar_b.reserve==0
+ assert sorted((slot.damage_position,slot.units) for slot in mortar_b.slots)==[
+  (1,6),(2,6),(3,6),(4,6),(5,6)]
+ handoffs=[
+  event for event in events
+  if event.type=='slot_handoff'
+  and event.details.get('reason')=='same_unit_same_line_wave_replacement'
+  and event.details.get('from_wave_id')=='mortar-a'
+  and event.details.get('to_wave_id')=='mortar-b'
+ ]
+ assert len(handoffs)==5
+ assert all(event.details.get('from_entry_batch_id')=='a0' for event in handoffs)
+ assert all(event.details.get('entry_batch_id')=='b0' for event in handoffs)
+ assert not any(
+  event.type=='slot_handoff'
+  and event.details.get('to_unit_id')=='battering_ram'
+  and event.details.get('reason')=='same_batch_ranked_third_replacement'
+  for event in events
+ )
+
+
 def test_exhausted_mortar_does_not_pull_third_line_ram_from_another_entry_batch():
  registry=UnitRegistry.load(); rules=FormationRules.load()
  field=LAND_BATTLEFIELDS['land-max']
