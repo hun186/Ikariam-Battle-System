@@ -955,7 +955,10 @@ def _supported_same_batch_ranked_third_handoffs(
                     if deployable_reserve(wave) > 0
                 ]
                 if not candidates:
-                    break
+                    # One vacancy may be unfillable while a later vacancy has a
+                    # different owner with an otherwise-supported successor.
+                    # Evaluate each existing physical position independently.
+                    continue
                 target_wave = min(candidates, key=rank)
                 handoff_reason = "same_batch_ranked_third_replacement"
 
