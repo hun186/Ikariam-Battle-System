@@ -819,9 +819,17 @@ def _supported_same_batch_ranked_third_handoffs(
     entry batch inherit only those already-existing empty positions, using the
     same strongest/weakest concrete-group ranking as initial formation.
 
-    It does not replace occupied slots, create new physical positions, cross
-    entry batches, or move units across runtime lines. Wave-owned ammo,
-    persistent damage, Workshop state, and identity remain separate.
+    The established same-unit/same-line cross-batch replacement rule has higher
+    precedence: after finite-ammo capping exposes an empty position, a deployable
+    later wave of the *same unit* gets that inherited position before a different
+    same-batch Artillery unit is ranked for it. This preserves the already
+    supported same-unit handoff instead of silently hiding it behind the newer
+    same-batch mixed-Artillery path.
+
+    It does not replace occupied slots, create new physical positions, infer a
+    different-unit cross-batch placement, or move units across runtime lines.
+    Wave-owned ammo, persistent damage, Workshop state, and identity remain
+    separate.
     """
     if getattr(field, "domain", None) != "land":
         return
@@ -883,9 +891,23 @@ def _supported_same_batch_ranked_third_handoffs(
             if position in owners and not owners[position][1].units
         ]
         for position in open_positions:
-            candidates = [wave for wave in group if deployable_reserve(wave) > 0]
-            if not candidates:
-                break
+            previous_wave, previous_slot = owners[position]
+            previous_unit = registry.get(previous_wave.unit.unit_id)
+
+            # Preserve the older supported same-unit/same-line cross-batch rule
+            # before considering a different same-batch Artillery type. The
+            # finite-ammo cap has already run, so exhausted waves contribute no
+            # deployable Reserve here.
+            same_unit_candidates = [
+                wave for wave in waves
+                if wave is not previous_wave
+                and wave.unit.unit_id == previous_wave.unit.unit_id
+                and registry.get(wave.unit.unit_id).native_line == "third"
+                and deployable_reserve(wave) > 0
+            ]
+            same_unit_candidates.sort(
+                key=lambda wave: wave.unit.formation_order_key
+            )
 
             def rank(wave: Wave):
                 unit = registry.get(wave.unit.unit_id)
@@ -900,14 +922,25 @@ def _supported_same_batch_ranked_third_handoffs(
                 signed = tuple(-value for value in score) if strongest else score
                 return (*signed, wave.unit.formation_order_key)
 
-            target_wave = min(candidates, key=rank)
+            if same_unit_candidates:
+                target_wave = same_unit_candidates[0]
+                handoff_reason = "same_unit_same_line_wave_replacement"
+            else:
+                candidates = [
+                    wave for wave in group
+                    if deployable_reserve(wave) > 0
+                ]
+                if not candidates:
+                    break
+                target_wave = min(candidates, key=rank)
+                handoff_reason = "same_batch_ranked_third_replacement"
+
             target_unit = registry.get(target_wave.unit.unit_id)
             capacity = geometry.slot_space // target_unit.size
             quantity = min(deployable_reserve(target_wave), capacity)
             if quantity <= 0:
                 continue
 
-            previous_wave, previous_slot = owners[position]
             if previous_slot.damage:
                 previous_wave.reserve_damage += previous_slot.damage
                 previous_slot.damage = 0
@@ -922,11 +955,10 @@ def _supported_same_batch_ranked_third_handoffs(
                     damage_position=position,
                     previous_units=0,
                     units=quantity,
-                    reason="same_batch_ranked_third_replacement",
+                    reason=handoff_reason,
                 )
                 continue
 
-            previous_unit = registry.get(previous_wave.unit.unit_id)
             previous_wave.slots.remove(previous_slot)
             slot = Slot(
                 f"third-{position}", "third",
@@ -934,21 +966,28 @@ def _supported_same_batch_ranked_third_handoffs(
                 target_unit.id, target_wave.unit.wave_id, quantity, capacity,
             )
             target_wave.slots.append(slot)
+            target_wave.slots.sort(
+                key=lambda slot: (slot.line, slot.damage_position)
+            )
             target_wave.reserve -= quantity
             owners[position] = (target_wave, slot)
-            _event(
-                events, number, "deploy", "slot_handoff", side,
-                line="third", damage_position=position,
-                physical_position=slot.physical_position,
-                from_unit_id=previous_unit.id,
-                from_wave_id=previous_wave.unit.wave_id,
-                to_unit_id=target_unit.id,
-                to_wave_id=target_wave.unit.wave_id,
-                entry_batch_id=batch_id,
-                quantity=quantity, capacity=capacity,
-                reason="same_batch_ranked_third_replacement",
-                compaction=True,
-            )
+            details = {
+                "line": "third",
+                "damage_position": position,
+                "physical_position": slot.physical_position,
+                "from_unit_id": previous_unit.id,
+                "from_wave_id": previous_wave.unit.wave_id,
+                "to_unit_id": target_unit.id,
+                "to_wave_id": target_wave.unit.wave_id,
+                "entry_batch_id": target_wave.unit.batch_id,
+                "quantity": quantity,
+                "capacity": capacity,
+                "reason": handoff_reason,
+                "compaction": True,
+            }
+            if handoff_reason == "same_unit_same_line_wave_replacement":
+                details["from_entry_batch_id"] = previous_wave.unit.batch_id
+            _event(events, number, "deploy", "slot_handoff", side, **details)
 
         for wave in group:
             wave.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
