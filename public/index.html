@@ -914,7 +914,7 @@ function reserveBox(state,name,geometry){
   const reserve=reserveGroups(state),support=Object.entries(state.deployed_support||{}).filter(([,n])=>n);
   const flankReserve=reserve.some(group=>unitById(group.unit_id)?.native_line==='flank');
   const note=flankReserve&&!geometry.flank?'<div class="reserve-note">此戰場沒有 Flank slot；未能補入前線的側翼兵會留在 Reserve。</div>':'';
-  const rrHelp=reserve.length?'<button type="button" class="reserve-info" aria-label="Reserve HP 與 RR 說明" data-tooltip="'+tooltipAttribute('<b>Reserve HP / RR</b><br>Reserve HP 是目前 snapshot 中經上一個回合邊界 RR 分到 Reserve 的 persistent damage；本回合新傷仍在 deployed slots，下一回合開始才經 Healing／RR 重分配。若 Doctor full-clear 生效，Reserve 持續 100% 是預期結果。')+'">i</button>':'';
+  const rrHelp=reserve.length?'<button type="button" class="reserve-info" aria-label="Reserve HP 與 RR 說明" aria-describedby="floatingTooltip" data-tooltip="'+tooltipAttribute('<b>Reserve HP / RR</b><br>Reserve HP 是目前 snapshot 中經上一個回合邊界 RR 分到 Reserve 的 persistent damage；本回合新傷仍在 deployed slots，下一回合開始才經 Healing／RR 重分配。若 Doctor full-clear 生效，Reserve 持續 100% 是預期結果。')+'">i</button>':'';
   return '<aside class="reserve-box"><div class="reserve-heading"><h3>'+name+' Reserve</h3>'+rrHelp+'</div>'+
     (reserve.length?'<div class="reserve-grid">'+reserve.map(reserveCard).join('')+'</div>':'<div class="reserve-empty">No reserve</div>')+note+
     '<h3 style="margin-top:12px">Support</h3>'+
