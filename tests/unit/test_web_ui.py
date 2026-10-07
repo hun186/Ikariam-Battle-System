@@ -14,11 +14,21 @@ def test_round_view_places_battle_board_directly_after_navigation_before_notices
     assert section.index('id="roundSafetyNotices"') < section.index('id="researchData"')
 
 
-def test_reserve_ui_explains_rr_snapshot_timing_and_wave_damage():
+def test_reserve_ui_explains_rr_snapshot_timing_and_wave_damage_without_expanding_board():
     assert "RR Reserve HP" in INDEX
     assert "Wave persistent damage total" in INDEX
     assert "本回合新傷仍在 deployed slots" in INDEX
     assert "Doctor full-clear 生效" in INDEX
+    assert 'class="reserve-info"' in INDEX
+    assert 'class="reserve-heading"' in INDEX
+    assert 'aria-label="Reserve HP 與 RR 說明"' in INDEX
+    assert "const rrNote=reserve.length?" not in INDEX
+
+
+def test_battlefield_air_units_match_game_left_right_layout():
+    assert "const left=sideLine(state,'balloon',geometry,'left');" in INDEX
+    assert "const right=sideLine(state,'anti-balloon',geometry,'right');" in INDEX
+    assert "const left=sideLine(state,'anti-balloon',geometry,'left');" not in INDEX
 
 
 
