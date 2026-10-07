@@ -2665,13 +2665,16 @@ def test_exhausted_mortar_hands_third_slots_to_later_mortar_without_same_batch_p
  assert sorted((slot.damage_position,slot.units) for slot in mortar_b.slots)==[
   (1,6),(2,6),(3,6),(4,6),(5,6)]
  assert _cross_wave_rebuild_requirements(waves,registry,rules,field)==[]
- assert len([
+ mortar_handoffs=[
   event for event in events
   if event.type=='slot_handoff'
   and event.details.get('reason')=='same_unit_same_line_wave_replacement'
-  and event.details.get('from_wave_id')=='mortar-a'
-  and event.details.get('to_wave_id')=='mortar-b'
- ])==5
+  and event.details.get('from_unit_id')=='mortar'
+  and event.details.get('to_unit_id')=='mortar'
+ ]
+ assert len(mortar_handoffs)==5
+ assert all(event.details.get('from_wave_id')=='mortar-a' for event in mortar_handoffs)
+ assert all(event.details.get('to_wave_id')=='mortar-b' for event in mortar_handoffs)
 
 
 def test_same_unit_cross_batch_mortar_handoff_precedes_same_batch_ram():
@@ -2712,6 +2715,13 @@ def test_same_unit_cross_batch_mortar_handoff_precedes_same_batch_ram():
  assert len(handoffs)==5
  assert all(event.details.get('from_entry_batch_id')=='a0' for event in handoffs)
  assert all(event.details.get('entry_batch_id')=='b0' for event in handoffs)
+ assert len([
+  event for event in events
+  if event.type=='slot_handoff'
+  and event.details.get('reason')=='same_unit_same_line_wave_replacement'
+  and event.details.get('from_unit_id')=='mortar'
+  and event.details.get('to_unit_id')=='mortar'
+ ])==5
  assert not any(
   event.type=='slot_handoff'
   and event.details.get('to_unit_id')=='battering_ram'
