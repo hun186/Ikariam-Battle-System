@@ -2642,6 +2642,26 @@ def test_same_batch_exhausted_mortar_hands_existing_third_slots_to_battering_ram
  assert all(event.details.get('to_unit_id')=='battering_ram' for event in handoffs)
 
 
+def test_exhausted_mortar_does_not_pull_third_line_ram_from_another_entry_batch():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'mortar','quantity':30,'entry_batch_id':'a0'},
+  {'unit_id':'battering_ram','quantity':30,'entry_batch_id':'a1'},
+ ]}),registry,field)
+ mortar=next(w for w in waves if w.unit.unit_id=='mortar')
+ ram=next(w for w in waves if w.unit.unit_id=='battering_ram')
+ assert ram.slots==[] and ram.reserve==30
+ mortar.ammo_pool_shots=0
+ requirements=_cross_wave_rebuild_requirements(waves,registry,rules,field)
+ assert any(
+  requirement['unit_id']=='battering_ram'
+  and requirement['entry_batch_id']=='a1'
+  and requirement['runtime_line']=='third'
+  for requirement in requirements
+ )
+
+
 def test_exhausted_mortar_to_ram_replacement_continues_past_round_three():
  s={'policy':'experimental','battlefield':'land-max','max_rounds':4,
     'attacker':{'units':[
