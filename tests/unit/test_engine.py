@@ -2642,6 +2642,38 @@ def test_same_batch_exhausted_mortar_hands_existing_third_slots_to_battering_ram
  assert all(event.details.get('to_unit_id')=='battering_ram' for event in handoffs)
 
 
+def test_exhausted_mortar_hands_third_slots_to_later_mortar_without_same_batch_peer():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'mortar','quantity':30,'entry_batch_id':'a0','wave_id':'mortar-a'},
+  {'unit_id':'mortar','quantity':30,'entry_batch_id':'b0','wave_id':'mortar-b'},
+ ]}),registry,field)
+ mortar_a=next(w for w in waves if w.unit.wave_id=='mortar-a')
+ mortar_b=next(w for w in waves if w.unit.wave_id=='mortar-b')
+ assert mortar_b.slots==[] and mortar_b.reserve==30
+ mortar_a.ammo_pool_shots=0
+
+ events=[]; applied={}
+ boundary=_prepare_round_start(
+  waves,events,4,'attacker',applied,registry,rules,field,
+ )
+ assert boundary is False
+ assert not any(slot.units for slot in mortar_a.slots)
+ assert mortar_a.reserve==30
+ assert mortar_b.reserve==0
+ assert sorted((slot.damage_position,slot.units) for slot in mortar_b.slots)==[
+  (1,6),(2,6),(3,6),(4,6),(5,6)]
+ assert _cross_wave_rebuild_requirements(waves,registry,rules,field)==[]
+ assert len([
+  event for event in events
+  if event.type=='slot_handoff'
+  and event.details.get('reason')=='same_unit_same_line_wave_replacement'
+  and event.details.get('from_wave_id')=='mortar-a'
+  and event.details.get('to_wave_id')=='mortar-b'
+ ])==5
+
+
 def test_same_unit_cross_batch_mortar_handoff_precedes_same_batch_ram():
  registry=UnitRegistry.load(); rules=FormationRules.load()
  field=LAND_BATTLEFIELDS['land-max']
