@@ -1530,9 +1530,11 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
 
     The projection reuses the same round-start formation code as execution on a
     deep copy. This prevents the safety guard from drifting behind supported
-    same-wave refill, same-batch mixed-Heavy compaction, same-unit same-line
-    replacement across entry batches, or same-batch ranked Third-line
-    replacement into already-existing empty Artillery positions.
+    same-wave refill, same-batch mixed-Heavy compaction, ammo-aware same-unit
+    same-line replacement across entry batches, or same-batch ranked Third-line
+    replacement into already-existing empty Artillery positions. Zero-shot
+    finite-ammo reserves are not native-line rebuild requirements, while
+    supported non-native Long-Range fallback remains visible.
     """
     projected = deepcopy(waves)
     projection_events: list[Event] = []
@@ -1572,6 +1574,17 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
         if unit.role != "combat":
             continue
         for runtime_line in eligible_runtime_lines(unit, rules, field):
+            # Native-line finite-ammo placement uses the same deployability
+            # contract as round-start compaction. A zero-shot reserve is not an
+            # outstanding native-line rebuild requirement. Non-native fallback
+            # remains eligible (for example exhausted Long-Range -> First).
+            if (
+                runtime_line == unit.native_line
+                and unit.primary_weapon.ammunition is not None
+                and wave.ammo_pool_shots is not None
+                and wave.ammo_pool_shots <= 0
+            ):
+                continue
             geometry = field.lines.get(runtime_line)
             if geometry is None:
                 continue
