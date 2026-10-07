@@ -1450,7 +1450,9 @@ def _prepare_round_start(
         # Whole-wave promotion can vacate native-line physical positions that
         # a later same-unit wave is allowed to inherit. First re-pack each
         # concrete wave across its inherited slots, then run the already
-        # supported same-unit/same-line cross-wave compaction.
+        # supported same-unit/same-line cross-wave compaction. Third is excluded
+        # here because its finite-ammo cap and handoff were finalized above;
+        # replaying Third would temporarily restore an exhausted earlier wave.
         _rebuild_formation(waves, events, number, side)
         _supported_same_unit_same_line_handoffs(
             waves, registry, rules, field, events, number, side,
