@@ -1,4 +1,4 @@
-import asyncio,json
+import asyncio,hashlib,json
 from pathlib import Path
 from asgi import application
 from ikariam_battle.models import Profiles
@@ -552,6 +552,25 @@ def test_local_unit_icon_assets_and_shared_ui_mapping():
  assert 'Barbarian Village 9 種陸軍與 Barbarian Fleet 10 種海軍' in body
  assert 'function renderBarbarianCatalog()' in body
  assert body==Path('public/index.html').read_text()
+
+
+
+def test_barbarian_fleet_icon_provenance_hashes_match_committed_assets():
+ provenance=Path('docs/barbarian-fleet-icon-provenance.md').read_text(encoding='utf-8')
+ rows=[line for line in provenance.splitlines() if line.startswith('| ') and '/barbarian-fleet/' in line]
+ assert len(rows)==10
+ for row in rows:
+  cells=[cell.strip() for cell in row.strip('|').split('|')]
+  local_path=cells[2].strip('`')
+  expected_sha256=cells[3].strip('`')
+  asset=Path(local_path)
+  public_asset=Path('public')/asset
+  assert asset.is_file()
+  assert public_asset.is_file()
+  root_bytes=asset.read_bytes()
+  public_bytes=public_asset.read_bytes()
+  assert root_bytes==public_bytes
+  assert hashlib.sha256(root_bytes).hexdigest()==expected_sha256
 
 
 def test_http_summary_default_and_bounded_round_pages():
