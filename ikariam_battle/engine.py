@@ -636,6 +636,7 @@ def _supported_same_batch_heavy_first_handoffs(
 def _supported_same_unit_same_line_handoffs(
     waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field,
     events: list[Event], number: int, side: str,
+    *, skip_runtime_lines: set[str] | None = None,
 ) -> None:
     """Compact same-unit waves across their already-owned runtime-line slots.
 
@@ -650,6 +651,7 @@ def _supported_same_unit_same_line_handoffs(
     unit type taking ownership, or creation of new physical slots.
     """
     _guard_single_line_waves(waves)
+    skipped_lines = skip_runtime_lines or set()
 
     groups: dict[tuple[str, str], list[Wave]] = defaultdict(list)
     seen: set[tuple[str, str, str]] = set()
@@ -663,6 +665,8 @@ def _supported_same_unit_same_line_handoffs(
         if len(lines) != 1:
             continue
         runtime_line = next(iter(lines))
+        if runtime_line in skipped_lines:
+            continue
         key = (wave.unit.unit_id, runtime_line)
         groups[key].append(wave)
         seen.add((wave.unit.unit_id, wave.unit.wave_id, runtime_line))
@@ -674,6 +678,8 @@ def _supported_same_unit_same_line_handoffs(
             continue
         unit = registry.get(wave.unit.unit_id)
         runtime_line = unit.native_line
+        if runtime_line in skipped_lines:
+            continue
         key = (unit.id, runtime_line)
         identity = (unit.id, wave.unit.wave_id, runtime_line)
         if (
@@ -1407,7 +1413,8 @@ def _has_supported_round_start_first_placement(
         projected, registry, rules, field, projection_events, 0, "projection")
     _rebuild_formation(projected, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
-        projected, registry, rules, field, projection_events, 0, "projection")
+        projected, registry, rules, field, projection_events, 0, "projection",
+        skip_runtime_lines={"third"})
     _cap_native_finite_ammo_deployment(
         projected, registry, projection_events, 0, "projection", emit_events=False)
     return any(
@@ -1446,7 +1453,8 @@ def _prepare_round_start(
         # supported same-unit/same-line cross-wave compaction.
         _rebuild_formation(waves, events, number, side)
         _supported_same_unit_same_line_handoffs(
-            waves, registry, rules, field, events, number, side)
+            waves, registry, rules, field, events, number, side,
+            skip_runtime_lines={"third"})
         _cap_native_finite_ammo_deployment(
             waves, registry, events, number, side, emit_events=False)
         _supported_same_batch_ranked_third_handoffs(
@@ -1519,7 +1527,8 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
         projected, registry, rules, field, projection_events, 0, "projection")
     _rebuild_formation(projected, projection_events, 0, "projection")
     _supported_same_unit_same_line_handoffs(
-        projected, registry, rules, field, projection_events, 0, "projection")
+        projected, registry, rules, field, projection_events, 0, "projection",
+        skip_runtime_lines={"third"})
     _cap_native_finite_ammo_deployment(
         projected, registry, projection_events, 0, "projection", emit_events=False)
     _supported_same_batch_ranked_third_handoffs(
