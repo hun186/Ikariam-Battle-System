@@ -571,6 +571,22 @@ def test_barbarian_fleet_icon_provenance_hashes_match_committed_assets():
   public_bytes=public_asset.read_bytes()
   assert root_bytes==public_bytes
   assert hashlib.sha256(root_bytes).hexdigest()==expected_sha256
+  assert root_bytes[:4]==b'RIFF'
+  assert root_bytes[8:12]==b'WEBP'
+  assert int.from_bytes(root_bytes[4:8],'little')+8==len(root_bytes)
+  pos=12
+  saw_image_chunk=False
+  while pos<len(root_bytes):
+   assert pos+8<=len(root_bytes)
+   fourcc=root_bytes[pos:pos+4]
+   size=int.from_bytes(root_bytes[pos+4:pos+8],'little')
+   end=pos+8+size
+   assert end<=len(root_bytes)
+   if fourcc in {b'VP8 ',b'VP8L'}:
+    saw_image_chunk=True
+   pos=end+(size&1)
+  assert pos==len(root_bytes)
+  assert saw_image_chunk
 
 
 def test_http_summary_default_and_bounded_round_pages():
