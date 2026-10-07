@@ -531,6 +531,11 @@ def test_local_unit_icon_assets_and_shared_ui_mapping():
    'barbarian_clubman','barbarian_axe_swinger','barbarian_knifeman','barbarian_axe_thrower',
    'barbarian_war_walker','barbarian_ram','barbarian_catapult','barbarian_dirigible','barbarian_fighter'
   },
+  'barbarian-fleet':{
+   'barbarian_deckwrecker','barbarian_sail_shredder','barbarian_pyroboat','barbarian_boulder_catapult',
+   'barbarian_wedge_paddler','barbarian_powder_pitcher','barbarian_terror_of_the_deep',
+   'barbarian_dragonfire','barbarian_dirigible_igniter','barbarian_nest'
+  },
  }
  assert "https://ika-sim.com/units/" not in body
  assert "function unitIconHtml(unit,cssClass='')" in body
@@ -538,7 +543,7 @@ def test_local_unit_icon_assets_and_shared_ui_mapping():
  assert 'onerror="this.hidden=true;this.nextElementSibling.hidden=false"' in body
  for domain,unit_ids in expected.items():
   for unit in unit_ids:
-   ext='webp' if domain=='barbarian' else 'png'
+   ext='webp' if domain in {'barbarian','barbarian-fleet'} else 'png'
    local=f'/assets/unit-icons/{domain}/{unit}.{ext}'
    assert local in body
    assert Path(local.lstrip('/')).is_file()
