@@ -940,13 +940,29 @@ def test_rebuild_requirements_ignore_zero_ammo_native_reserve_but_keep_long_rang
  requirements=_cross_wave_rebuild_requirements(
   ranged,registry,rules,field,
  )
+ # The projection itself executes the supported exhausted-Long-Range fallback,
+ # so there should be no unresolved rebuild requirement left at all: not Second,
+ # because native-line ammo is exhausted, and not First, because fallback is
+ # already supported and consumed by the projection.
+ assert requirements==[]
+
+ ranged_events=[]; ranged_applied={}
+ boundary=_prepare_round_start(
+  ranged,ranged_events,4,'attacker',ranged_applied,registry,rules,field,
+ )
+ assert boundary is False
+ assert ranged_wave.reserve==0
+ assert sum(
+  slot.units for slot in ranged_wave.slots if slot.line=='first'
+ )==60
  assert not any(
-  requirement['runtime_line']=='second'
-  for requirement in requirements
+  slot.units for slot in ranged_wave.slots if slot.line=='second'
  )
  assert any(
-  requirement['runtime_line']=='first'
-  for requirement in requirements
+  event.type=='formation_fallback'
+  and event.details.get('wave_id')=='ranged-a'
+  and event.details.get('runtime_line')=='first'
+  for event in ranged_events
  )
 
 
