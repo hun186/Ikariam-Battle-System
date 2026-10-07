@@ -39,6 +39,11 @@ def test_battlefield_air_units_match_game_left_right_layout():
 
 
 
+def test_setup_unit_icon_keeps_fixed_size_when_identity_details_are_shown():
+    assert ".unit-icon{width:46px;height:46px;min-width:46px;flex:0 0 46px" in INDEX
+    assert ".show-unit-identity .unit-ident-copy{display:block}" in INDEX
+
+
 def test_deployed_finite_ammo_slots_show_official_style_blue_munition_bar():
     assert 'function ammoBar(percent)' in INDEX
     assert 'class="ammo-rail"' in INDEX
