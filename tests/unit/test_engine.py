@@ -862,6 +862,51 @@ def test_exhausted_earlier_long_range_releases_second_slots_to_later_ammo_wave()
  assert _cross_wave_rebuild_requirements(waves,registry,rules,field)==[]
 
 
+def test_exhausted_earlier_air_wave_cannot_reclaim_native_slots_from_later_ammo_wave():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'gyrocopter','quantity':60,
+   'entry_batch_id':'air-a','wave_id':'gyro-a'},
+  {'unit_id':'gyrocopter','quantity':60,
+   'entry_batch_id':'air-b','wave_id':'gyro-b'},
+ ]}),registry,field)
+ first=next(w for w in waves if w.unit.wave_id=='gyro-a')
+ second=next(w for w in waves if w.unit.wave_id=='gyro-b')
+ assert sorted((slot.damage_position,slot.units) for slot in first.slots)==[
+  (1,30),(2,30)]
+ assert second.slots==[] and second.reserve==60
+ first.ammo_pool_shots=0
+ second.ammo_pool_shots=240
+
+ events=[]; applied={}
+ boundary=_prepare_round_start(
+  waves,events,4,'attacker',applied,registry,rules,field,
+ )
+ assert boundary is False
+ assert first.reserve==60
+ assert not any(slot.units for slot in first.slots)
+ assert second.reserve==0
+ assert sorted((slot.damage_position,slot.units) for slot in second.slots)==[
+  (1,30),(2,30)]
+ handoffs=[
+  event for event in events
+  if event.type=='slot_handoff'
+  and event.details.get('reason')=='same_unit_same_line_wave_replacement'
+  and event.details.get('line')=='anti-balloon'
+ ]
+ assert len(handoffs)==2
+ assert all(event.details.get('from_wave_id')=='gyro-a' for event in handoffs)
+ assert all(event.details.get('to_wave_id')=='gyro-b' for event in handoffs)
+ assert not any(
+  event.type=='slot_handoff'
+  and event.details.get('from_wave_id')=='gyro-b'
+  and event.details.get('to_wave_id')=='gyro-a'
+  for event in events
+ )
+ assert _cross_wave_rebuild_requirements(waves,registry,rules,field)==[]
+
+
 def test_initial_and_round_start_same_unit_precedence_do_not_swap_full_slots():
  registry=UnitRegistry.load(); rules=FormationRules.load()
  field=LAND_BATTLEFIELDS['land-max']
