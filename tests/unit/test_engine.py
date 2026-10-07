@@ -4,8 +4,10 @@ import pytest
 from ikariam_battle import simulate
 from ikariam_battle.battlefield import LAND_BATTLEFIELDS, LAND_MINI, NAVAL_BATTLEFIELDS, deploy
 from ikariam_battle.engine import (
- _arrival_waves, _cross_wave_rebuild_requirements, _formation_shots, _healing_status, _ir_trigger, _plan_fire, _preflight,
- _prepare_round_start, _redistribute, _resolve_volleys, _sr_trigger, _target,
+ _arrival_waves, _cap_native_finite_ammo_deployment, _cross_wave_rebuild_requirements,
+ _formation_shots, _healing_status, _ir_trigger, _plan_fire, _preflight,
+ _prepare_round_start, _redistribute, _resolve_volleys, _sr_trigger,
+ _supported_same_batch_ranked_third_handoffs, _target,
 )
 from ikariam_battle.formation import FormationRules
 from ikariam_battle.models import Army, ArmyUnit, Policy, Scenario, ScenarioError, Slot, Wave
@@ -2685,6 +2687,48 @@ def test_same_batch_exhausted_mortar_hands_existing_third_slots_to_battering_ram
  assert len(handoffs)==5
  assert all(event.details.get('from_unit_id')=='mortar' for event in handoffs)
  assert all(event.details.get('to_unit_id')=='battering_ram' for event in handoffs)
+
+
+def test_third_handoff_continues_after_unfillable_vacancy():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ field=LAND_BATTLEFIELDS['land-small']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'mortar','quantity':6,'entry_batch_id':'a0','wave_id':'mortar-a'},
+  {'unit_id':'catapult','quantity':6,'entry_batch_id':'a0','wave_id':'catapult-a'},
+  {'unit_id':'catapult','quantity':6,'entry_batch_id':'b0','wave_id':'catapult-b'},
+ ]}),registry,field)
+ mortar_a=next(w for w in waves if w.unit.wave_id=='mortar-a')
+ catapult_a=next(w for w in waves if w.unit.wave_id=='catapult-a')
+ catapult_b=next(w for w in waves if w.unit.wave_id=='catapult-b')
+ assert sorted(
+  (slot.damage_position,slot.unit_id) for wave in waves for slot in wave.slots
+  if slot.line=='third' and slot.units
+ )==[(1,'mortar'),(2,'catapult')]
+ assert catapult_b.slots==[] and catapult_b.reserve==6
+
+ mortar_a.ammo_pool_shots=0
+ catapult_a.ammo_pool_shots=0
+ events=[]
+ _cap_native_finite_ammo_deployment(
+  waves,registry,events,4,'attacker',emit_events=False,
+ )
+ _supported_same_batch_ranked_third_handoffs(
+  waves,registry,rules,field,events,4,'attacker',
+ )
+
+ # Mortar position 1 has no supported replacement, but that must not prevent
+ # Catapult position 2 from finding its later same-unit successor.
+ assert not any(slot.units for slot in mortar_a.slots)
+ assert not any(slot.units for slot in catapult_a.slots)
+ assert catapult_b.reserve==0
+ assert [(slot.damage_position,slot.units) for slot in catapult_b.slots]==[(2,6)]
+ assert any(
+  event.type=='slot_handoff'
+  and event.details.get('from_wave_id')=='catapult-a'
+  and event.details.get('to_wave_id')=='catapult-b'
+  and event.details.get('damage_position')==2
+  for event in events
+ )
 
 
 def test_exhausted_mortar_hands_third_slots_to_later_mortar_without_same_batch_peer():
