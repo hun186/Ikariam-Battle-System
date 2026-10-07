@@ -2607,6 +2607,69 @@ def test_same_batch_heavy_requirement_created_by_combat_is_supported_next_round(
             for e in result['events'])
 
 
+def test_same_batch_exhausted_mortar_hands_existing_third_slots_to_battering_rams():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ field=LAND_BATTLEFIELDS['land-max']
+ waves=deploy(Army.from_dict({'units':[
+  {'unit_id':'battering_ram','quantity':30,'entry_batch_id':'a0'},
+  {'unit_id':'mortar','quantity':30,'entry_batch_id':'a0'},
+ ]}),registry,field)
+ ram=next(w for w in waves if w.unit.unit_id=='battering_ram')
+ mortar=next(w for w in waves if w.unit.unit_id=='mortar')
+ assert ram.slots==[] and ram.reserve==30
+ assert sorted((slot.damage_position,slot.units) for slot in mortar.slots)==[
+  (1,6),(2,6),(3,6),(4,6),(5,6)]
+ mortar.ammo_pool_shots=0
+
+ events=[]; applied={}
+ boundary=_prepare_round_start(
+  waves,events,4,'attacker',applied,registry,rules,field,
+ )
+ assert boundary is False
+ assert mortar.reserve==30
+ assert not any(slot.units for slot in mortar.slots)
+ assert ram.reserve==0
+ assert sorted((slot.damage_position,slot.units) for slot in ram.slots)==[
+  (1,6),(2,6),(3,6),(4,6),(5,6)]
+ assert _cross_wave_rebuild_requirements(waves,registry,rules,field)==[]
+ handoffs=[
+  event for event in events
+  if event.type=='slot_handoff'
+  and event.details.get('reason')=='same_batch_ranked_third_replacement'
+ ]
+ assert len(handoffs)==5
+ assert all(event.details.get('from_unit_id')=='mortar' for event in handoffs)
+ assert all(event.details.get('to_unit_id')=='battering_ram' for event in handoffs)
+
+
+def test_exhausted_mortar_to_ram_replacement_continues_past_round_three():
+ s={'policy':'experimental','battlefield':'land-max','max_rounds':4,
+    'attacker':{'units':[
+      {'unit_id':'hoplite','quantity':5000,'entry_batch_id':'a0'},
+      {'unit_id':'battering_ram','quantity':30,'entry_batch_id':'a0'},
+      {'unit_id':'mortar','quantity':30,'entry_batch_id':'a0'}]},
+    'defender':{'units':[
+      {'unit_id':'hoplite','quantity':10000,'entry_batch_id':'d0'}]}}
+ result=simulate(s)
+ assert result['rounds_completed']==4
+ assert not any(
+  event['type']=='unsupported_mechanic'
+  and event['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD'
+  and event['side']=='attacker'
+  for event in result['events']
+ )
+ round4_handoffs=[
+  event for event in result['events']
+  if event['round']==4
+  and event['type']=='slot_handoff'
+  and event['side']=='attacker'
+  and event['details'].get('reason')=='same_batch_ranked_third_replacement'
+ ]
+ assert len(round4_handoffs)==5
+ assert all(event['details'].get('from_unit_id')=='mortar' for event in round4_handoffs)
+ assert all(event['details'].get('to_unit_id')=='battering_ram' for event in round4_handoffs)
+
+
 def test_post_combat_empty_slots_with_same_wave_reserve_refill_before_cross_wave_check():
  s={'policy':'experimental','battlefield':'land-mini','max_rounds':2,
     'attacker':{'units':[
