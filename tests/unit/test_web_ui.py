@@ -24,7 +24,7 @@ def test_reserve_ui_explains_rr_snapshot_timing_and_wave_damage_without_expandin
     assert 'aria-label="Reserve HP 與 RR 說明"' in INDEX
     assert "attackerReserveRrDescription" in INDEX
     assert "defenderReserveRrDescription" in INDEX
-    assert 'aria-describedby="'+rrDescriptionId+'"' in INDEX
+    assert "aria-describedby=\"'+rrDescriptionId+'\"" in INDEX
     assert 'aria-describedby="floatingTooltip"' not in INDEX
     assert 'class="sr-only"' in INDEX
     assert ".sr-only{position:absolute!important" in INDEX
