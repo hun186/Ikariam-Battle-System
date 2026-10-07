@@ -1,4 +1,4 @@
-import asyncio,json
+import asyncio,hashlib,json
 from pathlib import Path
 from asgi import application
 from ikariam_battle.models import Profiles
@@ -531,6 +531,11 @@ def test_local_unit_icon_assets_and_shared_ui_mapping():
    'barbarian_clubman','barbarian_axe_swinger','barbarian_knifeman','barbarian_axe_thrower',
    'barbarian_war_walker','barbarian_ram','barbarian_catapult','barbarian_dirigible','barbarian_fighter'
   },
+  'barbarian-fleet':{
+   'barbarian_deckwrecker','barbarian_sail_shredder','barbarian_pyroboat','barbarian_boulder_catapult',
+   'barbarian_wedge_paddler','barbarian_powder_pitcher','barbarian_terror_of_the_deep',
+   'barbarian_dragonfire','barbarian_dirigible_igniter','barbarian_nest'
+  },
  }
  assert "https://ika-sim.com/units/" not in body
  assert "function unitIconHtml(unit,cssClass='')" in body
@@ -538,7 +543,7 @@ def test_local_unit_icon_assets_and_shared_ui_mapping():
  assert 'onerror="this.hidden=true;this.nextElementSibling.hidden=false"' in body
  for domain,unit_ids in expected.items():
   for unit in unit_ids:
-   ext='webp' if domain=='barbarian' else 'png'
+   ext='webp' if domain in {'barbarian','barbarian-fleet'} else 'png'
    local=f'/assets/unit-icons/{domain}/{unit}.{ext}'
    assert local in body
    assert Path(local.lstrip('/')).is_file()
@@ -547,6 +552,41 @@ def test_local_unit_icon_assets_and_shared_ui_mapping():
  assert 'Barbarian Village 9 種陸軍與 Barbarian Fleet 10 種海軍' in body
  assert 'function renderBarbarianCatalog()' in body
  assert body==Path('public/index.html').read_text()
+
+
+
+def test_barbarian_fleet_icon_provenance_hashes_match_committed_assets():
+ provenance=Path('docs/barbarian-fleet-icon-provenance.md').read_text(encoding='utf-8')
+ rows=[line for line in provenance.splitlines() if line.startswith('| ') and '/barbarian-fleet/' in line]
+ assert len(rows)==10
+ for row in rows:
+  cells=[cell.strip() for cell in row.strip('|').split('|')]
+  local_path=cells[2].strip('`')
+  expected_sha256=cells[3].strip('`')
+  asset=Path(local_path)
+  public_asset=Path('public')/asset
+  assert asset.is_file()
+  assert public_asset.is_file()
+  root_bytes=asset.read_bytes()
+  public_bytes=public_asset.read_bytes()
+  assert root_bytes==public_bytes
+  assert hashlib.sha256(root_bytes).hexdigest()==expected_sha256
+  assert root_bytes[:4]==b'RIFF'
+  assert root_bytes[8:12]==b'WEBP'
+  assert int.from_bytes(root_bytes[4:8],'little')+8==len(root_bytes)
+  pos=12
+  saw_image_chunk=False
+  while pos<len(root_bytes):
+   assert pos+8<=len(root_bytes)
+   fourcc=root_bytes[pos:pos+4]
+   size=int.from_bytes(root_bytes[pos+4:pos+8],'little')
+   end=pos+8+size
+   assert end<=len(root_bytes)
+   if fourcc in {b'VP8 ',b'VP8L'}:
+    saw_image_chunk=True
+   pos=end+(size&1)
+  assert pos==len(root_bytes)
+  assert saw_image_chunk
 
 
 def test_http_summary_default_and_bounded_round_pages():
