@@ -1,0 +1,624 @@
+{
+  "metadata": {
+    "evidence_class": "USER_SUPPLIED_OFFICIAL_HELP_SCREENSHOTS",
+    "source": "Gameforge in-game Help",
+    "captured_date": "2026-10-05",
+    "unit_count": 15,
+    "direct_text_fields": [
+      "hp",
+      "armor",
+      "speed",
+      "size",
+      "weapon_damage",
+      "ammunition",
+      "resource_costs",
+      "upkeep_gold",
+      "population"
+    ],
+    "accuracy_method": {
+      "source": "official red Accuracy bar",
+      "method": "red fill pixels / interior track pixels; quantize to nearest 5 percentage points",
+      "quantization_percent": 5,
+      "result": "all measured values match the existing runtime Accuracy profile"
+    },
+    "military_score_contract": {
+      "formula": "general_score = resource_cost_basis_total / 50",
+      "included_resources": [
+        "wood",
+        "wine",
+        "marble",
+        "crystal",
+        "sulfur"
+      ],
+      "excluded": [
+        "population",
+        "upkeep_gold"
+      ]
+    }
+  },
+  "units": [
+    {
+      "id": "slinger",
+      "help_name": "投石兵",
+      "screenshot": "image(20261005-033839-1).png",
+      "hp": 160,
+      "armor": 0,
+      "speed": 60,
+      "size": 1,
+      "weapons": [
+        {
+          "runtime_id": "secondary",
+          "help_name": "匕首",
+          "damage": 40,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 108,
+            "track_px": 180,
+            "measured_percent": 60,
+            "quantized_percent": 60
+          }
+        },
+        {
+          "runtime_id": "primary",
+          "help_name": "拋射吊兜",
+          "damage": 60,
+          "ammo": 5,
+          "accuracy": {
+            "fill_px": 36,
+            "track_px": 180,
+            "measured_percent": 20,
+            "quantized_percent": 20
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 20,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 0
+      },
+      "resource_cost_basis_total": 20,
+      "general_score": "0.4",
+      "upkeep_gold": 2,
+      "population": 1
+    },
+    {
+      "id": "archer",
+      "help_name": "弓箭手",
+      "screenshot": "image(20261005-033839).png",
+      "hp": 320,
+      "armor": 0,
+      "speed": 60,
+      "size": 1,
+      "weapons": [
+        {
+          "runtime_id": "secondary",
+          "help_name": "短劍",
+          "damage": 100,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 108,
+            "track_px": 180,
+            "measured_percent": 60,
+            "quantized_percent": 60
+          }
+        },
+        {
+          "runtime_id": "primary",
+          "help_name": "弓箭",
+          "damage": 100,
+          "ammo": 3,
+          "accuracy": {
+            "fill_px": 72,
+            "track_px": 180,
+            "measured_percent": 40,
+            "quantized_percent": 40
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 30,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 25
+      },
+      "resource_cost_basis_total": 55,
+      "general_score": "1.1",
+      "upkeep_gold": 4,
+      "population": 1
+    },
+    {
+      "id": "sulphur_carabineer",
+      "help_name": "火槍手",
+      "screenshot": "image(20261005-033907).png",
+      "hp": 240,
+      "armor": 0,
+      "speed": 60,
+      "size": 4,
+      "weapons": [
+        {
+          "runtime_id": "secondary",
+          "help_name": "刺刀",
+          "damage": 60,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 108,
+            "track_px": 180,
+            "measured_percent": 60,
+            "quantized_percent": 60
+          }
+        },
+        {
+          "runtime_id": "primary",
+          "help_name": "火槍",
+          "damage": 580,
+          "ammo": 3,
+          "accuracy": {
+            "fill_px": 126,
+            "track_px": 180,
+            "measured_percent": 70,
+            "quantized_percent": 70
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 50,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 150
+      },
+      "resource_cost_basis_total": 200,
+      "general_score": "4",
+      "upkeep_gold": 3,
+      "population": 1
+    },
+    {
+      "id": "spearman",
+      "help_name": "長矛兵",
+      "screenshot": "image(20261005-033913).png",
+      "hp": 260,
+      "armor": 0,
+      "speed": 60,
+      "size": 1,
+      "weapons": [
+        {
+          "runtime_id": "primary",
+          "help_name": "鐵矛",
+          "damage": 80,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 118,
+            "track_px": 168,
+            "measured_percent": 70.24,
+            "quantized_percent": 70
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 30,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 0
+      },
+      "resource_cost_basis_total": 30,
+      "general_score": "0.6",
+      "upkeep_gold": 1,
+      "population": 1
+    },
+    {
+      "id": "swordsman",
+      "help_name": "劍士",
+      "screenshot": "image(20261005-033918).png",
+      "hp": 360,
+      "armor": 0,
+      "speed": 60,
+      "size": 1,
+      "weapons": [
+        {
+          "runtime_id": "primary",
+          "help_name": "劍",
+          "damage": 200,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 151,
+            "track_px": 168,
+            "measured_percent": 89.88,
+            "quantized_percent": 90
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 30,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 30
+      },
+      "resource_cost_basis_total": 60,
+      "general_score": "1.2",
+      "upkeep_gold": 4,
+      "population": 1
+    },
+    {
+      "id": "hoplite",
+      "help_name": "重裝步兵",
+      "screenshot": "image(20261005-033931).png",
+      "hp": 1120,
+      "armor": 20,
+      "speed": 60,
+      "size": 1,
+      "weapons": [
+        {
+          "runtime_id": "primary",
+          "help_name": "鐵矛",
+          "damage": 360,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 151,
+            "track_px": 168,
+            "measured_percent": 89.88,
+            "quantized_percent": 90
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 40,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 30
+      },
+      "resource_cost_basis_total": 70,
+      "general_score": "1.4",
+      "upkeep_gold": 3,
+      "population": 1
+    },
+    {
+      "id": "steam_giant",
+      "help_name": "蒸汽巨人",
+      "screenshot": "image(20261005-033939).png",
+      "hp": 3680,
+      "armor": 60,
+      "speed": 40,
+      "size": 3,
+      "weapons": [
+        {
+          "runtime_id": "primary",
+          "help_name": "蒸汽動力長槍",
+          "damage": 840,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 135,
+            "track_px": 168,
+            "measured_percent": 80.36,
+            "quantized_percent": 80
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 130,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 180
+      },
+      "resource_cost_basis_total": 310,
+      "general_score": "6.2",
+      "upkeep_gold": 12,
+      "population": 2
+    },
+    {
+      "id": "gyrocopter",
+      "help_name": "旋翼機",
+      "screenshot": "image(20261005-033952).png",
+      "hp": 580,
+      "armor": 0,
+      "speed": 80,
+      "size": 1,
+      "weapons": [
+        {
+          "runtime_id": "primary",
+          "help_name": "強弩",
+          "damage": 340,
+          "ammo": 4,
+          "accuracy": {
+            "fill_px": 135,
+            "track_px": 168,
+            "measured_percent": 80.36,
+            "quantized_percent": 80
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 25,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 100
+      },
+      "resource_cost_basis_total": 125,
+      "general_score": "2.5",
+      "upkeep_gold": 15,
+      "population": 3
+    },
+    {
+      "id": "bombardier",
+      "help_name": "轟炸氣球",
+      "screenshot": "image(20261005-034006).png",
+      "hp": 800,
+      "armor": 0,
+      "speed": 20,
+      "size": 2,
+      "weapons": [
+        {
+          "runtime_id": "primary",
+          "help_name": "炸彈",
+          "damage": 960,
+          "ammo": 2,
+          "accuracy": {
+            "fill_px": 33,
+            "track_px": 168,
+            "measured_percent": 19.64,
+            "quantized_percent": 20
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 40,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 250
+      },
+      "resource_cost_basis_total": 290,
+      "general_score": "5.8",
+      "upkeep_gold": 45,
+      "population": 5
+    },
+    {
+      "id": "battering_ram",
+      "help_name": "攻城錘",
+      "screenshot": "image(20261005-034018).png",
+      "hp": 1760,
+      "armor": 20,
+      "speed": 40,
+      "size": 5,
+      "weapons": [
+        {
+          "runtime_id": "secondary",
+          "help_name": "短劍",
+          "damage": 240,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 118,
+            "track_px": 168,
+            "measured_percent": 70.24,
+            "quantized_percent": 70
+          }
+        },
+        {
+          "runtime_id": "primary",
+          "help_name": "撞槌",
+          "damage": 1600,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 16,
+            "track_px": 168,
+            "measured_percent": 9.52,
+            "quantized_percent": 10
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 220,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 0
+      },
+      "resource_cost_basis_total": 220,
+      "general_score": "4.4",
+      "upkeep_gold": 15,
+      "population": 5
+    },
+    {
+      "id": "catapult",
+      "help_name": "投石車",
+      "screenshot": "image(20261005-034031).png",
+      "hp": 1080,
+      "armor": 0,
+      "speed": 40,
+      "size": 5,
+      "weapons": [
+        {
+          "runtime_id": "secondary",
+          "help_name": "匕首",
+          "damage": 80,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 33,
+            "track_px": 168,
+            "measured_percent": 19.64,
+            "quantized_percent": 20
+          }
+        },
+        {
+          "runtime_id": "primary",
+          "help_name": "巨石",
+          "damage": 2660,
+          "ammo": 5,
+          "accuracy": {
+            "fill_px": 16,
+            "track_px": 168,
+            "measured_percent": 9.52,
+            "quantized_percent": 10
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 260,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 300
+      },
+      "resource_cost_basis_total": 560,
+      "general_score": "11.2",
+      "upkeep_gold": 25,
+      "population": 5
+    },
+    {
+      "id": "mortar",
+      "help_name": "迫擊炮",
+      "screenshot": "image(20261005-034044).png",
+      "hp": 640,
+      "armor": 0,
+      "speed": 40,
+      "size": 5,
+      "weapons": [
+        {
+          "runtime_id": "secondary",
+          "help_name": "匕首",
+          "damage": 200,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 33,
+            "track_px": 168,
+            "measured_percent": 19.64,
+            "quantized_percent": 20
+          }
+        },
+        {
+          "runtime_id": "primary",
+          "help_name": "迫擊炮",
+          "damage": 5400,
+          "ammo": 3,
+          "accuracy": {
+            "fill_px": 16,
+            "track_px": 168,
+            "measured_percent": 9.52,
+            "quantized_percent": 10
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 300,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 1250
+      },
+      "resource_cost_basis_total": 1550,
+      "general_score": "31",
+      "upkeep_gold": 30,
+      "population": 5
+    },
+    {
+      "id": "doctor",
+      "help_name": "醫生",
+      "screenshot": "image(20261005-034055).png",
+      "hp": 240,
+      "armor": 0,
+      "speed": 60,
+      "size": 1,
+      "weapons": [
+        {
+          "runtime_id": "primary",
+          "help_name": "解剖刀",
+          "damage": 160,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 50,
+            "track_px": 168,
+            "measured_percent": 29.76,
+            "quantized_percent": 30
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 50,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 450,
+        "sulfur": 0
+      },
+      "resource_cost_basis_total": 500,
+      "general_score": "10",
+      "upkeep_gold": 20,
+      "population": 1
+    },
+    {
+      "id": "cook",
+      "help_name": "廚師",
+      "screenshot": "image(20261005-034106).png",
+      "hp": 440,
+      "armor": 0,
+      "speed": 40,
+      "size": 2,
+      "weapons": [
+        {
+          "runtime_id": "primary",
+          "help_name": "屠刀",
+          "damage": 400,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 84,
+            "track_px": 168,
+            "measured_percent": 50,
+            "quantized_percent": 50
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 50,
+        "wine": 150,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 0
+      },
+      "resource_cost_basis_total": 200,
+      "general_score": "4",
+      "upkeep_gold": 10,
+      "population": 1
+    },
+    {
+      "id": "spartan",
+      "help_name": "斯巴達戰士",
+      "screenshot": "image(20261005-034116).png",
+      "hp": 1200,
+      "armor": 120,
+      "speed": 60,
+      "size": 1,
+      "weapons": [
+        {
+          "runtime_id": "primary",
+          "help_name": "鐵矛",
+          "damage": 560,
+          "ammo": null,
+          "accuracy": {
+            "fill_px": 168,
+            "track_px": 168,
+            "measured_percent": 100,
+            "quantized_percent": 100
+          }
+        }
+      ],
+      "resource_cost_basis": {
+        "wood": 40,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 40
+      },
+      "resource_cost_basis_total": 80,
+      "general_score": "1.6",
+      "upkeep_gold": 0,
+      "population": 1,
+      "note": "Help-listed 40 wood + 40 sulfur is retained as nominal General Score basis for the premium unit."
+    }
+  ]
+}

@@ -1,0 +1,563 @@
+{
+  "metadata": {
+    "profile": "military-economy-current",
+    "scope": "current player land and naval units",
+    "verified_through_date": "2026-10-05",
+    "verification_status": "OFFICIAL_HELP_USER_SCREENSHOT_VERIFIED",
+    "formula": {
+      "resource_point_multiplier": "0.02",
+      "resources_per_general_point": 50,
+      "population_included": false,
+      "resource_reduction_buildings_affect_score": false,
+      "source_type": "COMMUNITY_REFERENCE_CURRENT",
+      "source_title": "Ikariam Fandom — Scores / Military (Generals)",
+      "source_url": "https://ikariam.fandom.com/wiki/Scores",
+      "verification": "CHATGPT_WEB_VERIFIED",
+      "retrieved": "2026-09-26"
+    },
+    "unit_scores": {
+      "source_type": "COMMUNITY_REFERENCE_CURRENT",
+      "source_title": "Ikariam Battle Simulator — current Infinite Horizons land unit GEN values",
+      "source_url": "https://ika-sim.com/",
+      "verification": "CHATGPT_WEB_VERIFIED",
+      "retrieved": "2026-09-26"
+    },
+    "spartan_score_basis": {
+      "source_type": "COMMUNITY_REFERENCE_CURRENT",
+      "source_title": "Ikariam Fandom — Spartan",
+      "source_url": "https://ikariam.fandom.com/wiki/Unit-ship%3ASpartan",
+      "verification": "CHATGPT_WEB_VERIFIED",
+      "retrieved": "2026-09-26",
+      "note": "Spartan wood/sulphur values are nominal score-basis values, not resources actually paid to recruit the premium unit."
+    },
+    "official_help_resource_verification": {
+      "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+      "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+      "captured_date": "2026-10-05",
+      "coverage": "all 15 current player land units and all 11 current player naval units",
+      "formula_verified": "resource_cost_basis_total / 50 == general_score"
+    }
+  },
+  "units": {
+    "spearman": {
+      "resource_cost_basis_total": 30,
+      "general_score": "0.6",
+      "resource_cost_basis": {
+        "wood": 30,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 0
+      },
+      "upkeep_gold": 1,
+      "population": 1,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-033913).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "swordsman": {
+      "resource_cost_basis_total": 60,
+      "general_score": "1.2",
+      "resource_cost_basis": {
+        "wood": 30,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 30
+      },
+      "upkeep_gold": 4,
+      "population": 1,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-033918).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "hoplite": {
+      "resource_cost_basis_total": 70,
+      "general_score": "1.4",
+      "resource_cost_basis": {
+        "wood": 40,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 30
+      },
+      "upkeep_gold": 3,
+      "population": 1,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-033931).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "spartan": {
+      "resource_cost_basis_total": 80,
+      "general_score": "1.6",
+      "resource_cost_basis": {
+        "wood": 40,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 40
+      },
+      "upkeep_gold": 0,
+      "population": 1,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-034116).png",
+        "note": "Help values are the nominal score basis for the premium unit."
+      }
+    },
+    "steam_giant": {
+      "resource_cost_basis_total": 310,
+      "general_score": "6.2",
+      "resource_cost_basis": {
+        "wood": 130,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 180
+      },
+      "upkeep_gold": 12,
+      "population": 2,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-033939).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "slinger": {
+      "resource_cost_basis_total": 20,
+      "general_score": "0.4",
+      "resource_cost_basis": {
+        "wood": 20,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 0
+      },
+      "upkeep_gold": 2,
+      "population": 1,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-033839-1).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "archer": {
+      "resource_cost_basis_total": 55,
+      "general_score": "1.1",
+      "resource_cost_basis": {
+        "wood": 30,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 25
+      },
+      "upkeep_gold": 4,
+      "population": 1,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-033839).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "sulphur_carabineer": {
+      "resource_cost_basis_total": 200,
+      "general_score": "4",
+      "resource_cost_basis": {
+        "wood": 50,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 150
+      },
+      "upkeep_gold": 3,
+      "population": 1,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-033907).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "battering_ram": {
+      "resource_cost_basis_total": 220,
+      "general_score": "4.4",
+      "resource_cost_basis": {
+        "wood": 220,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 0
+      },
+      "upkeep_gold": 15,
+      "population": 5,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-034018).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "catapult": {
+      "resource_cost_basis_total": 560,
+      "general_score": "11.2",
+      "resource_cost_basis": {
+        "wood": 260,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 300
+      },
+      "upkeep_gold": 25,
+      "population": 5,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-034031).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "mortar": {
+      "resource_cost_basis_total": 1550,
+      "general_score": "31",
+      "resource_cost_basis": {
+        "wood": 300,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 1250
+      },
+      "upkeep_gold": 30,
+      "population": 5,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-034044).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "gyrocopter": {
+      "resource_cost_basis_total": 125,
+      "general_score": "2.5",
+      "resource_cost_basis": {
+        "wood": 25,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 100
+      },
+      "upkeep_gold": 15,
+      "population": 3,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-033952).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "bombardier": {
+      "resource_cost_basis_total": 290,
+      "general_score": "5.8",
+      "resource_cost_basis": {
+        "wood": 40,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 250
+      },
+      "upkeep_gold": 45,
+      "population": 5,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-034006).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "doctor": {
+      "resource_cost_basis_total": 500,
+      "general_score": "10",
+      "resource_cost_basis": {
+        "wood": 50,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 450,
+        "sulfur": 0
+      },
+      "upkeep_gold": 20,
+      "population": 1,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-034055).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "cook": {
+      "resource_cost_basis_total": 200,
+      "general_score": "4",
+      "resource_cost_basis": {
+        "wood": 50,
+        "wine": 150,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 0
+      },
+      "upkeep_gold": 10,
+      "population": 1,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-034106).png",
+        "note": "Resource breakdown directly read from official Help."
+      }
+    },
+    "ram_ship": {
+      "resource_cost_basis_total": 250,
+      "resource_cost_basis": {
+        "wood": 250,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 0
+      },
+      "general_score": "5",
+      "upkeep_gold": 15,
+      "population": 3,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-041758).png",
+        "domain": "naval"
+      }
+    },
+    "ballista_ship": {
+      "resource_cost_basis_total": 340,
+      "resource_cost_basis": {
+        "wood": 180,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 160
+      },
+      "general_score": "6.8",
+      "upkeep_gold": 20,
+      "population": 6,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-041803).png",
+        "domain": "naval"
+      }
+    },
+    "fire_ship": {
+      "resource_cost_basis_total": 310,
+      "resource_cost_basis": {
+        "wood": 80,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 230
+      },
+      "general_score": "6.2",
+      "upkeep_gold": 25,
+      "population": 4,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-041806).png",
+        "domain": "naval"
+      }
+    },
+    "catapult_ship": {
+      "resource_cost_basis_total": 320,
+      "resource_cost_basis": {
+        "wood": 180,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 140
+      },
+      "general_score": "6.4",
+      "upkeep_gold": 35,
+      "population": 5,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-041830).png",
+        "domain": "naval"
+      }
+    },
+    "mortar_ship": {
+      "resource_cost_basis_total": 1120,
+      "resource_cost_basis": {
+        "wood": 220,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 900
+      },
+      "general_score": "22.4",
+      "upkeep_gold": 50,
+      "population": 5,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-041829).png",
+        "domain": "naval"
+      }
+    },
+    "steam_ram": {
+      "resource_cost_basis_total": 1200,
+      "resource_cost_basis": {
+        "wood": 400,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 800
+      },
+      "general_score": "24",
+      "upkeep_gold": 45,
+      "population": 2,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-041845).png",
+        "domain": "naval"
+      }
+    },
+    "rocket_ship": {
+      "resource_cost_basis_total": 1400,
+      "resource_cost_basis": {
+        "wood": 200,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 1200
+      },
+      "general_score": "28",
+      "upkeep_gold": 55,
+      "population": 2,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-041911).png",
+        "domain": "naval"
+      }
+    },
+    "diving_boat": {
+      "resource_cost_basis_total": 1010,
+      "resource_cost_basis": {
+        "wood": 160,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 750,
+        "sulfur": 100
+      },
+      "general_score": "20.2",
+      "upkeep_gold": 50,
+      "population": 3,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-041923).png",
+        "domain": "naval"
+      }
+    },
+    "paddle_speedboat": {
+      "resource_cost_basis_total": 320,
+      "resource_cost_basis": {
+        "wood": 40,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 280
+      },
+      "general_score": "6.4",
+      "upkeep_gold": 5,
+      "population": 1,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-041933).png",
+        "domain": "naval"
+      }
+    },
+    "balloon_carrier": {
+      "resource_cost_basis_total": 1400,
+      "resource_cost_basis": {
+        "wood": 700,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 0,
+        "sulfur": 700
+      },
+      "general_score": "28",
+      "upkeep_gold": 100,
+      "population": 8,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-041945).png",
+        "domain": "naval"
+      }
+    },
+    "tender": {
+      "resource_cost_basis_total": 800,
+      "resource_cost_basis": {
+        "wood": 300,
+        "wine": 0,
+        "marble": 0,
+        "crystal": 250,
+        "sulfur": 250
+      },
+      "general_score": "16",
+      "upkeep_gold": 100,
+      "population": 7,
+      "provenance": {
+        "source_type": "GAMEFORGE_IN_GAME_HELP_SCREENSHOT",
+        "verification": "USER_SUPPLIED_OFFICIAL_HELP",
+        "captured_date": "2026-10-05",
+        "screenshot": "image(20261005-041958).png",
+        "domain": "naval"
+      }
+    }
+  }
+}

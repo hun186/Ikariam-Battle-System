@@ -1,0 +1,1199 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ikariam Battle Simulator</title>
+<style>
+:root{--ink:#263448;--muted:#66727c;--paper:#f4e9cc;--paper2:#fffaf0;--line:#aa9368;--blue:#2d6682;--red:#9a4a3c;--gold:#b8862d;--deep:#18394a;--ok:#366d55;--warn:#8b3d31}
+*{box-sizing:border-box}body{margin:0;color:var(--ink);font:15px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#d9c79f}
+button,input,select{font:inherit}button{cursor:pointer}.hidden{display:none!important}
+header{padding:22px max(16px,calc((100% - 1280px)/2));color:#fff;background:linear-gradient(#28576d,#17394b);border-bottom:5px solid #c99d45}
+header h1{font:700 clamp(26px,4vw,42px) Georgia,serif;margin:0}header p{margin:5px 0 0;color:#dce9ed}
+main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.tab{border:1px solid #6f634e;background:#f8edd2;color:var(--ink);padding:9px 16px;border-radius:5px;font-weight:800}.tab.active{background:var(--deep);color:#fff;border-color:var(--deep)}.tab:disabled{opacity:.45;cursor:not-allowed}
+.panel{background:linear-gradient(135deg,#fffdf5,#efe0ba);border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 14px #4a381f26}
+.settings{display:flex;gap:12px;align-items:end;flex-wrap:wrap;padding:12px 14px;margin-bottom:14px}.settings label,.side-toolbar label{font-size:11px;font-weight:800;text-transform:uppercase;display:grid;gap:4px}.settings select,.settings input,.side-toolbar select,.side-toolbar input{border:1px solid #96805b;background:#fffdf7;border-radius:4px;padding:8px;color:var(--ink)}.settings-note{flex-basis:100%;padding:8px 10px;background:#f8efd8;border-left:4px solid #9a8356;font-size:12px;color:#5d5548}
+.preset-panel{padding:0;margin-bottom:14px;overflow:hidden}.preset-panel>summary{cursor:pointer;list-style:none;padding:12px 14px;font:700 20px Georgia,serif;display:flex;align-items:center;justify-content:space-between;gap:12px}.preset-panel>summary::-webkit-details-marker{display:none}.preset-panel>summary::after{content:'▸';font:700 18px system-ui}.preset-panel[open]>summary::after{content:'▾'}.preset-panel>summary small{display:block;margin-top:3px;color:#655b49;font:12px/1.4 system-ui;font-weight:500}.preset-body{padding:0 14px 12px;border-top:1px solid #d3bf96}.preset-controls{display:flex;align-items:end;gap:8px;flex-wrap:wrap;margin-top:8px}.preset-controls label{display:grid;gap:4px;font-size:11px;font-weight:800;text-transform:uppercase;min-width:210px}.preset-controls select,.preset-controls input{border:1px solid #96805b;background:#fffdf7;border-radius:4px;padding:8px;color:var(--ink);min-height:38px}.preset-controls .preset-name{min-width:220px;flex:1 1 260px}.preset-controls button{min-height:38px}.preset-status{margin-top:8px;font-size:11px;color:#655b49}.preset-status.ok{color:var(--ok);font-weight:800}.preset-status.warn{color:var(--warn);font-weight:800}
+.setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.side-setup{overflow:hidden}.side-title{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;color:#fff}.side-setup.attacker .side-title{background:linear-gradient(90deg,#894138,#ad5b4d)}.side-setup.defender .side-title{background:linear-gradient(90deg,#245d78,#3c7893)}.side-title h2{font:700 22px Georgia,serif;margin:0}.side-toolbar{display:flex;align-items:end;gap:10px}.side-toolbar select{min-width:150px}
+.unit-list{padding:10px}.unit-group{margin-bottom:10px}.unit-group-title{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#655b49;border-bottom:1px solid #cbb892;padding:4px 2px}
+.unit-setup-row{display:grid;grid-template-columns:52px minmax(190px,1fr) 74px 74px;gap:7px 8px;align-items:center;padding:8px 4px;border-bottom:1px solid #ddd0b4}.show-unit-identity .unit-setup-row{grid-template-columns:minmax(150px,.9fr) minmax(190px,1.25fr) 74px 74px}.unit-ident{display:flex;gap:8px;align-items:center;min-width:0}.unit-ident-copy{display:none;min-width:0}.show-unit-identity .unit-ident-copy{display:block}.unit-icon{width:46px;height:46px;border-radius:7px;display:grid;place-items:center;background:linear-gradient(#f7e7bf,#d5bd87);border:2px solid #9a8051;overflow:hidden}.unit-icon img{width:44px;height:44px;object-fit:contain;display:block}.unit-art-fallback{font-size:20px;line-height:1}.unit-name{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.unit-meta{font-size:11px;color:var(--muted)}
+.unit-statbox{display:none;grid-column:2/-1;gap:5px;align-items:center;flex-wrap:wrap;max-width:100%;min-width:0;font-size:10px}.show-unit-stats .unit-statbox{display:flex}.unit-statbox span:not(.stat-note){white-space:nowrap;padding:3px 7px;border:1px solid #cbb991;border-radius:999px;background:#fff8e7}.unit-statbox b{font-size:11px}.unit-statbox .stat-note{color:#746955;font-weight:600;padding:3px 7px;border-left:3px solid #b79b62;background:#f8efd8;white-space:normal;overflow-wrap:anywhere}
+.qty-control{display:grid;grid-template-columns:auto minmax(70px,1fr) auto;gap:5px;align-items:center}.slot-btn{min-height:38px;border:1px solid #8a744e;background:#ead6aa;border-radius:4px;font-size:12px;font-weight:900;padding:5px 7px}.slot-btn:disabled{opacity:.35;cursor:not-allowed}.qty{min-width:0;width:100%;padding:8px;border:1px solid #96805b;background:#fffdf7;border-radius:4px;text-align:center;font-weight:800}.level-field{display:grid;gap:3px;font-size:10px;font-weight:900;text-transform:uppercase}.level-field input{width:100%;padding:8px;border:1px solid #96805b;background:#fffdf7;border-radius:4px;text-align:center}
+.advanced{grid-column:2/-1;margin:0}.advanced summary{font-size:11px;color:#6c604d;cursor:pointer}.advanced-fields{display:flex;gap:8px;align-items:end;flex-wrap:wrap;margin-top:5px}.advanced label{display:grid;gap:3px;font-size:11px;margin:0}.advanced .batch-field{min-width:180px;flex:1 1 220px}.advanced .arrival-field{width:110px}.advanced input{width:100%;padding:6px;border:1px solid #a58e67;border-radius:4px;background:#fffdf7}.batch-help{flex-basis:100%;font-size:10px;color:#746955}.batch-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}.batch-btn{border:1px solid #8a744e;background:#f1dfb7;border-radius:4px;padding:6px 9px;font-size:11px;font-weight:800}.batch-remove{border-color:#92564b;background:#f1d0c7;color:#74382f}.extra-batch{background:#fff8e9}
+.setup-note,.report-note{padding:10px 12px;margin:12px 0;border-left:4px solid var(--gold);background:#fff4cc;color:#594e39}.barbarian-reference{margin:12px 0;border:1px solid #b69a65;background:#f7ead0;border-radius:5px}.barbarian-reference>summary{cursor:pointer;padding:10px 12px;font-weight:900;color:#5a4328}.barbarian-note{padding:0 12px 10px;font-size:12px;color:#655b49}.barbarian-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:8px;padding:0 10px 10px}.barbarian-card{display:grid;grid-template-columns:50px 1fr;gap:8px;align-items:center;padding:8px;border:1px solid #cfb987;background:#fff8e8;border-radius:5px}.barbarian-card-icon{width:46px;height:46px;object-fit:contain}.barbarian-card b{display:block}.barbarian-card small{display:block;color:#6d6353;line-height:1.35}.actions{text-align:center;margin:18px}.primary{border:1px solid #6f2d25;border-radius:5px;padding:11px 28px;background:linear-gradient(#b15a4c,#863d34);color:#fff;font-weight:900}.secondary{border:1px solid #6f634e;border-radius:5px;padding:10px 16px;background:#f8edd2;color:var(--ink);font-weight:900}.action-row{display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap}.debug-note{margin-top:7px;font-size:11px;color:#655b49}.report-tools{display:grid;justify-items:end;gap:4px}.report-tools .error{margin:0;max-width:360px;text-align:right;font-size:11px}.error{color:#8b3028;font-weight:800;margin-top:8px}
+.safety-notices{display:grid;gap:8px;margin:10px 0}.safety-card{padding:9px 11px;border-left:4px solid var(--gold);background:#fff3cb;font-size:12px}.safety-card.blocker{border-color:#a04136;background:#f8ddd4}.safety-card.warning{border-color:#b8862d;background:#fff3cb}.safety-card.assumption{border-color:#506f83;background:#e7f0f3}.safety-card b{display:block;margin-bottom:4px}.safety-card ul{margin:4px 0 0 18px;padding:0}
+.result-shell{padding:14px}.report-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}.report-head h2{font:700 24px Georgia,serif;margin:0}.report-metrics{display:flex;gap:8px;flex-wrap:wrap}.metric{min-width:115px;padding:7px 10px;border:1px solid #c6b48f;background:#fff8e7}.metric span{display:block;font-size:10px;text-transform:uppercase;color:#6d665b}.metric b{font-size:17px}
+.round-bar{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin:10px 0}.round-bar button{min-width:34px;height:34px;border:1px solid #887659;background:#f6e7c5;border-radius:4px;font-weight:800}.round-bar button.active{background:var(--deep);color:#fff}.round-bar .deployment-jump{margin-right:8px;padding:0 10px}.round-jump{display:inline-flex;align-items:center;gap:4px;margin-left:8px}.round-jump input{width:70px;height:34px;border:1px solid #887659;border-radius:4px;background:#fffaf0;padding:0 6px}.round-jump button{padding:0 8px}.round-caption{text-align:center;font-weight:900;margin:5px 0 10px}
+.battle-board{border:3px ridge #8d774f;border-radius:7px;background:#c7b284;overflow:hidden}.battle-half{display:grid;grid-template-columns:150px minmax(0,1fr);gap:8px;padding:9px}.battle-half.defender{background:linear-gradient(#bfd5da,#d9d3b9)}.battle-half.attacker{background:linear-gradient(#d7c8aa,#cdb382)}.reserve-box{align-self:stretch;border:1px solid #8d7957;background:#fff5d8cc;padding:8px;border-radius:5px}.reserve-box h3{font:700 15px Georgia,serif;margin:0 0 6px}.reserve-grid{display:flex;flex-wrap:wrap;gap:6px}.reserve-card{position:relative;width:62px;padding:4px;border:1px solid #8d7957;border-radius:4px;background:linear-gradient(#fffbe9,#dfcca4);text-align:center;font-size:10px}.reserve-card-main{display:flex;align-items:center;justify-content:center;gap:3px}.reserve-card .unit-art{width:38px;height:30px;object-fit:contain}.reserve-card-count{font-weight:900;margin-top:2px}.reserve-card-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.batch-badge{display:inline-block;margin-top:2px;padding:1px 4px;border-radius:8px;background:#6d604b;color:#fff;font-size:8px}.support-grid{display:flex;flex-wrap:wrap;gap:6px}.support-card{display:flex;align-items:center;gap:5px;min-width:62px;padding:4px 6px;border:1px solid #a28e68;border-radius:4px;background:#fffaf0;font-size:10px}.support-card img{width:30px;height:25px;object-fit:contain}.reserve-empty{color:#817768;font-size:12px}.reserve-note{margin-top:7px;padding:6px;background:#fff1c6;border-left:3px solid #b8862d;font-size:10px;color:#655b49}.formation{display:grid;gap:5px;align-content:center;min-width:0}.formation-row{display:grid;grid-template-columns:minmax(168px,.8fr) minmax(430px,2.2fr) minmax(168px,.8fr);gap:6px;align-items:center;min-width:0}.formation-side{display:grid;gap:2px;align-content:center;justify-items:center;min-width:0}.formation-side .battle-line-name{text-align:center}.formation-side.left .slots{justify-content:flex-end}.formation-side.right .slots{justify-content:flex-start}.formation-center{min-width:0}.ranged-row .formation-center{padding-inline:18px}.battle-line{display:grid;grid-template-columns:62px minmax(0,1fr);align-items:center;gap:4px}.battle-line-name{text-align:right;font-size:9px;font-weight:900;text-transform:uppercase;color:#3d4d55}.slots{display:flex;justify-content:center;gap:3px;min-width:0}.formation .slot{width:58px;min-height:42px}.formation .compact-slots .slot{width:54px;min-height:40px}.slot{position:relative;width:72px;min-height:48px;padding:3px;border:2px solid #806d4a;border-radius:4px;background:linear-gradient(#fffbe9,#d9c397);text-align:center;font-size:10px}.compact-slots .slot{width:66px;min-height:46px}.slot.empty{opacity:.46;background:#94ada788}.slot strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.slot-visual{display:flex;justify-content:center;align-items:center;gap:3px}.slot-glyph{height:28px;display:grid;place-items:center}.slot-glyph img{max-width:40px;max-height:28px;object-fit:contain;display:block}.slot-glyph .unit-art-fallback{font-size:16px;line-height:16px}.hp-rail,.ammo-rail{position:relative;display:inline-block;width:7px;height:29px;border-radius:2px;overflow:hidden;flex:0 0 auto}.hp-rail{border:1px solid #6d3e32;background:#a7463d}.hp-fill,.ammo-fill{position:absolute;left:0;right:0;bottom:0}.hp-fill{background:#5a9a49}.ammo-rail{border:1px solid #355d78;background:#9babb5}.ammo-fill{background:#3e9bd3}.slot-count{font-weight:900;line-height:1.1}.slot-loss{color:#9a3f34;font-weight:900}.slot.dead .slot-glyph img{filter:grayscale(1);opacity:.5}.slot.dead .slot-glyph .unit-art-fallback{filter:grayscale(1);opacity:.5}.floating-tooltip{position:fixed;z-index:1000;width:min(240px,calc(100vw - 16px));max-height:calc(100vh - 16px);overflow:auto;text-align:left;padding:9px;color:#fff;background:#182733f2;border:1px solid #c99d45;border-radius:4px;pointer-events:none;box-shadow:0 4px 14px #0006}.clash{height:10px;background:linear-gradient(90deg,#925342,#d4ac55,#356e88)}
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.summary-side{padding:12px}.summary-side h3{font:700 20px Georgia,serif;margin:0 0 8px}.summary-table{width:100%;border-collapse:collapse}.summary-table th,.summary-table td{padding:7px;border-bottom:1px solid #d2c19e;text-align:right}.summary-table th:first-child,.summary-table td:first-child{text-align:left}.loss{color:#9a3f34;font-weight:900}.side-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}.side-stat{padding:8px;background:#f8efd8;border:1px solid #d2c19e}.side-stat span{display:block;font-size:10px;text-transform:uppercase;color:#706654}.side-stat b{font-size:17px}.economy-note{margin-top:12px;padding:9px;background:#f8efd8;border-left:4px solid #9a8356;font-size:12px;color:#5d5548}
+.reference-page{padding:16px}.reference-head h2{font:700 26px Georgia,serif;margin:0 0 6px}.reference-head p{margin:0;color:#5f5a50;max-width:950px}.mechanics-legend{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px}.legend-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border:1px solid #c7b386;border-radius:999px;background:#fffaf0;font-size:12px;font-weight:800}.legend-dot{width:9px;height:9px;border-radius:50%;background:#5d805a}.legend-pill.partial .legend-dot{background:#b58a3c}.legend-pill.unknown .legend-dot{background:#9a5b4a}.mechanics-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:10px}.mechanics-card{padding:10px;border:1px solid #c7b386;background:#fffaf0;border-radius:5px}.mechanics-card b{display:block;margin-bottom:4px}.mechanics-card p{margin:3px 0;font-size:12px;line-height:1.48}.mechanics-known{border-left:4px solid #5d805a}.mechanics-partial{border-left:4px solid #b58a3c}.mechanics-unknown{border-left:4px solid #9a5b4a}.accuracy-note{margin-top:12px;padding:10px 12px;border-left:4px solid #506f83;background:#e7f0f3;color:#334957}.source-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}.source-card{padding:14px;border:1px solid #c7b386;border-radius:6px;background:#fffaf0}.source-card h3{font:700 19px Georgia,serif;margin:0 0 7px}.source-card p{margin:6px 0;line-height:1.55}.source-meta{font-size:13px;color:#655b49}.source-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.source-link{display:inline-block;padding:9px 12px;border:1px solid #6f634e;border-radius:5px;background:#f8edd2;color:#18394a;font-weight:900;text-decoration:none}.source-link.primary-link{background:#28576d;color:#fff;border-color:#17394b}.source-note{margin-top:12px;padding:10px 12px;border-left:4px solid #b8862d;background:#fff4cc;color:#594e39}
+.research-drawer{background:#172533;color:#dce7ed;padding:10px;margin-top:12px;border-radius:4px;font:12px ui-monospace,monospace}.research-only{display:none}.research .research-only{display:block}
+@media(max-width:1100px){.battle-half{grid-template-columns:1fr}.battle-half.defender .reserve-box{order:2}.battle-board{overflow-x:auto}.formation{min-width:880px}}
+@media(max-width:900px){.setup-grid,.summary-grid,.mechanics-grid,.source-grid{grid-template-columns:1fr}.unit-setup-row,.show-unit-identity .unit-setup-row{grid-template-columns:minmax(130px,.8fr) minmax(180px,1.4fr) 72px 72px}}
+@media(max-width:600px){main{padding:0 8px 30px}.unit-setup-row,.show-unit-identity .unit-setup-row{grid-template-columns:1fr 1fr}.unit-ident,.qty-control,.unit-statbox,.advanced{grid-column:1/-1}.advanced{margin:0}.slot{width:64px}.settings{align-items:stretch}.side-title{align-items:flex-start;flex-direction:column}.side-toolbar{width:100%}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Ikariam Battle Simulator</h1>
+  <p>以遊戲戰場操作直覺呈現的 evidence-aware 戰鬥模擬器。未知機制仍會安全停止，不假造結果。</p>
+</header>
+<main>
+  <nav class="tabs" aria-label="Simulator views">
+    <button class="tab active" type="button" data-view="setup">兵力設定</button>
+    <button class="tab" type="button" data-view="round" disabled>逐回合戰報</button>
+    <button class="tab" type="button" data-view="summary" disabled>總戰報</button>
+    <button class="tab" type="button" data-view="mechanics">戰鬥機制</button>
+    <button class="tab" type="button" data-view="source">Battle System PDF</button>
+  </nav>
+
+  <section id="setupView">
+    <section class="settings panel">
+      <label>Policy<select id="policy"><option value="experimental">Experimental / named assumptions</option><option value="strict">Strict / evidence-safe</option></select></label>
+      <label>Battle type<select id="battleDomain"></select></label>
+      <label>Battlefield<select id="battlefield"></select></label>
+      <label>Max rounds / safety cap<input id="maxRounds" type="number" min="1" max="1000" value="100"></label>
+      <label style="text-transform:none"><span><input id="researchMode" type="checkbox"> Research mode</span></label>
+      <label style="text-transform:none"><span><input id="showUnitStats" type="checkbox"> 顯示兵種數值</span></label>
+      <label style="text-transform:none"><span><input id="showUnitIdentity" type="checkbox"> 顯示兵種名稱與基本資訊</span></label>
+      <div class="settings-note">預設 100 回合；1000 回合是可手動提高的安全上限，不是固定戰鬥長度。長戰的逐回合資料會按需分頁載入，不會一次傳送全部回合。若提早分出勝負或遇到無法安全判定的機制，模擬會提早停止。Cook 士氣目前尚未完整建模；實戰常見約 15 Cook 的配置不會被當成已驗證的固定公式。</div>
+    </section>
+
+    <details class="panel preset-panel" aria-label="快速設定與自訂套裝">
+      <summary><span>快速設定 / Presets<small>需要時展開；預設收合。內建快速設定、自訂套裝與兵力歸零都在這裡；自訂套裝只保存在此瀏覽器。</small></span></summary>
+      <div class="preset-body">
+        <div class="preset-controls">
+          <label>內建快速設定<select id="builtinPreset"><option value="simple">簡單前線（原預設）</option><option value="combined">綜合陸戰（全戰線＋支援）</option><option value="player-vs-barbarian">玩家 vs 野蠻人綜合</option></select></label>
+          <button id="applyBuiltinPreset" class="secondary" type="button">套用快速設定</button>
+          <button id="clearArmies" class="secondary" type="button">兵力歸零</button>
+        </div>
+        <div class="preset-controls">
+          <label class="preset-name">自訂套裝名稱<input id="userPresetName" maxlength="60" placeholder="例如：主力城常用配置"></label>
+          <button id="saveUserPreset" class="secondary" type="button">儲存目前配置</button>
+          <label>已儲存套裝<select id="userPresetSelect"></select></label>
+          <button id="loadUserPreset" class="secondary" type="button">載入</button>
+          <button id="deleteUserPreset" class="secondary" type="button">刪除</button>
+        </div>
+        <div id="presetStatus" class="preset-status" aria-live="polite">自訂套裝使用瀏覽器 localStorage；不會上傳到伺服器，也不會改變模擬規則。</div>
+      </div>
+    </details>
+
+    <div class="actions setup-actions-top"><div class="action-row"><button id="simulateTop" class="primary" type="button">開始模擬</button><button id="downloadSetupTop" class="secondary" type="button">下載兵力設定 Debug JSON</button></div><div class="debug-note">Debug JSON 可直接貼回來協助重現問題；不包含 API key。</div><div id="errorTop" class="error" aria-hidden="true"></div></div>
+
+    <div class="setup-grid">
+      <section class="panel side-setup attacker">
+        <div class="side-title"><h2>攻擊方</h2><div class="side-toolbar"><label>兵種套裝<select id="aArmyKind" class="army-kind"><option value="player">Player</option><option value="barbarian">Barbarian</option></select></label><label id="aForgeWrap">熔爐神蹟 / Forge<select id="aForge"></select></label></div></div>
+        <div id="attackerUnits" class="unit-list"></div>
+      </section>
+      <section class="panel side-setup defender">
+        <div class="side-title"><h2>防守方</h2><div class="side-toolbar"><label>兵種套裝<select id="dArmyKind" class="army-kind"><option value="player">Player</option><option value="barbarian">Barbarian</option></select></label><label id="dForgeWrap">熔爐神蹟 / Forge<select id="dForge"></select></label><label id="defenderTownHallWrap">市政廳 / Town Hall<input id="defenderTownHallLevel" type="number" min="1" max="66" value="25"></label><label id="defenderBarbarianVillageWrap" class="hidden">野蠻人村落 / Barbarian Village<input id="defenderBarbarianVillageLevel" type="number" min="1" max="50" value="50"></label><label id="defenderBarbarianFleetStageWrap" class="hidden">野蠻艦隊 50級階數<input id="defenderBarbarianFleetStage" type="number" min="1" max="999" value="1"></label><button id="applyBarbarianFleetStage" class="secondary hidden" type="button">套用艦隊</button><label id="defenderWallWrap">城牆 / Wall<select id="defenderWallLevel"></select></label></div></div>
+        <div id="defenderUnits" class="unit-list"></div>
+      </section>
+    </div>
+
+    <div class="setup-note">預設仍維持最大陸戰戰場與 Player Lv5 熔爐、單純前線，避免一打開就塞滿大量兵力；需要多戰線驗證時可用上方「綜合陸戰」快速設定。Player 防守方可設定市政廳 Lv1–66 與城牆 Lv0–48；駐軍上限 = 250 + 50 × (市政廳 Lv + 城牆 Lv)。Barbarian 防守方可設定村落 Lv1–50；目前 2024 Gameforge 論壇實戰規則為 (村落 Lv + 城牆 Lv + 5) × 50。兩者依 v17.4 排除 Doctor / Cook（海軍則排除 Tender）；守軍數高於上限時先以最大陸戰戰場進行野戰、城牆不出場。當傷亡使守軍回到上限內時，模擬會偵測到應縮回原戰場／城牆重現的 transition；同為 land-max 的 state-only 回復可讓新鮮城牆於下一回合重新出場，跨 geometry 重建仍停在 UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION。Strict 的 active-wall 戰鬥停在 UNKNOWN-TOWN-WALL-COMBAT；Experimental 可執行具名假設下的 Artillery 破牆、破口 First 暴露、Flank lock 與可整除牆傷重分配。每列的 ±一格 由目前戰場的 slot space ÷ unit size 動態計算。Barbarian 套裝固定無 Workshop、無 Forge、無分批進場，軍分為 0；陸軍與艦隊目前兵力數量皆由使用者手動輸入。Naval Barbarian 不使用 Village／Town Hall／Wall 欄位。</div>
+    <details class="barbarian-reference"><summary>野蠻人陸軍與艦隊資料</summary><div class="barbarian-note">Barbarian Village 9 種陸軍與 Barbarian Fleet 10 種海軍都可作為獨立 Army package 進入模擬。艦隊單位數值直接來自 2026-10-05 使用者提供的官方 Help 截圖；Accuracy 由官方紅色條形比例量測並對齊 5% 網格。艦隊可手動輸入數量；另已加入使用者試算表驗證的 50級後階數模型：第1階基準為撞482／迫84／箭100／明400／航60／快180，每多一階各艦種依第1階基準線性 +15% 並向上取整，獎勵基準則每階 +10%。完整 1–49 級官方 composition 表仍待補齊。</div><div id="barbarianCatalog" class="barbarian-grid"></div></details>
+    <div class="actions"><div class="action-row"><button id="simulate" class="primary" type="button">開始模擬</button><button id="downloadSetup" class="secondary" type="button">下載兵力設定 Debug JSON</button></div><div id="error" class="error" role="alert"></div></div>
+  </section>
+
+
+  <section id="mechanicsView" class="hidden">
+    <section class="panel reference-page">
+      <div class="reference-head">
+        <h2>戰鬥機制狀態 / Mechanics Status</h2>
+        <p>這一頁是模擬器正確度的核心依據：已知且可執行的規則會明確標示；部分已知或仍未知的機制則代表目前模擬器的限制。遇到無法安全判定的規則時，Strict 模式會停止，而 Experimental 模式只會在有明確 named assumption 時繼續。</p>
+      </div>
+      <div class="mechanics-legend" aria-label="Mechanics evidence legend">
+        <span class="legend-pill"><span class="legend-dot"></span>已知 / 已實作</span>
+        <span class="legend-pill partial"><span class="legend-dot"></span>部分已知 / 仍需校準</span>
+        <span class="legend-pill unknown"><span class="legend-dot"></span>未知 / 目前限制</span>
+      </div>
+      <div class="mechanics-grid">
+        <div class="mechanics-card mechanics-known"><b>開火順序 / Firing order · 已知</b><p>Air defence → Air → Artillery → Flanks → Long-range → Main battle line。同一 formation 的攻守雙方同時取得射擊資格；較早 formation 造成的死亡會讓該兵在較晚 formation 無法再開火。</p></div>
+        <div class="mechanics-card mechanics-known"><b>目標優先序 / Target priority · 已知</b><p>每個 formation 依自己的 priority list 選目標；但會先做 weapon-specific 穿甲判定：effective ATK 必須嚴格大於 target effective DEF，ATK ≤ DEF 的候選直接跳過、不開火也不耗彈，再找下一個可傷害目標。一般無牆時 Artillery 為 Main → Flank；有 active Town Wall 時已知為 Wall 優先於普通 First。Flank 為 Flank → Long-range → Artillery → Main。</p></div>
+        <div class="mechanics-card mechanics-partial"><b>Accuracy / Precision · Experimental concentration-v1</b><p>官方演算法仍未知，Strict 仍以 UNKNOWN-ACCURACY 停止。Experimental 不把 Accuracy 當每發獨立命中率：能一擊殺死滿血目標的攻擊不製造 miss；非 one-shot 時，若最殘血目標的剩餘 HP% 仍高於武器 Accuracy，就先把傷害分散給較健康目標；降到 Accuracy 以下後才集中攻擊最殘血目標。這只影響已選定 slot 內的 individual target，不改變 Attacking Matrix、formation priority、Damage、Ammo 或開火順序。</p></div>
+        <div class="mechanics-card mechanics-known"><b>RR · Reserve Redistribution · 已實作</b><p>回合間，同一 entry batch / wave 的 persistent damage 會連同 reserve 一起重新分配；不同 wave 不共享舊傷。</p></div>
+        <div class="mechanics-card mechanics-unknown"><b>IR / SR · Trigger 未知，現在不觸發</b><p>IR 可能發生在 individual shots 之間；SR 可能發生在一條 formation 射完、下一條 formation 開火前。引擎保留 redistribution hook，但 trigger 尚未確立，因此目前固定不觸發。</p></div>
+        <div class="mechanics-card mechanics-partial"><b>D-kill / P-kill / I-kill · 部分已知</b><p>目前 Experimental baseline 使用逐擊 D-kill：一發一發計算，死亡立即生效，overkill 預設丟棄。P-kill 在部分實戰會把 overkill 重新分配給 survivors；I-kill、IR-kill、PIR-kill、M-kill 亦有實驗觀察，但一般觸發條件仍未知，因此目前不自動套用。</p></div>
+        <div class="mechanics-card mechanics-partial"><b>Healing / Repair · 部分已知 / 部分實作</b><p>Doctor 只治療 Human，Machine 不可治療；現行容量為每名 Doctor 4000/回合。Tender 從 Reserve 發揮效果，現行修護容量同樣為每艘 4000/回合，適用海軍 combat units。當 Doctor 或 Tender 的總容量足以清除全部符合資格的 persistent damage 時，引擎會直接 full-clear；這個結果不受 Healing / RR 先後影響。容量不足時，allocation 與精確 Healing / RR 順序仍未知，因此不猜部分分配。</p></div>
+        <div class="mechanics-card mechanics-partial"><b>RR 後 slot 內部傷害分配 · 未完全確立</b><p>PDF 能確立 wave → slot 的 RR，但 slot aggregate damage 如何落到 individual units 仍有未解處。Experimental 現採均勻分配後再逐擊，並以 named assumption 顯示。</p></div>
+        <div class="mechanics-card mechanics-partial"><b>Garrison / Open field · 部分實作</b><p>Player 陸軍駐軍上限 = 250 + 50 × (Town Hall Lv + Wall Lv)；Barbarian 若設定 Village Lv，採 2024 Gameforge 論壇社群規則 (Village Lv + Wall Lv + 5) × 50。判斷使用實際兵隻數，不看 unit Size；v17.4 起 Doctor / Cook 不計。守軍嚴格大於上限時使用 land-max 野戰且城牆不出場；等於上限仍非野戰。戰鬥中跨回上限時會偵測到 transition，但跨 geometry 的 wave / damage / ammo 重建尚未校準，因此以 UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION 停止。</p></div>
+        <div class="mechanics-card mechanics-partial"><b>Town Wall / 城牆 · Infinite Horizons 數值已更新</b><p>防守方可設定 Lv0–48。每段城牆 HP = 1800 + 900 × Lv、Armor = 72 × Lv；Damage 則沿用舊三段公式再 ×18：Lv1–9 = (10 + 2×Lv)×18、Lv10–19 = (30 + 5×Lv)×18、Lv20+ = (50 + 10×Lv)×18。現行觀察點 Lv1=216、Lv9=504、Lv18=2160、Lv26=5580 均吻合。已知 active Wall 存在時攻方 Land Artillery 優先 Wall，且打不穿 Armor 的 weapon 不把 shot 浪費在牆上。Strict 仍停在 UNKNOWN-TOWN-WALL-COMBAT；Experimental 已執行牆段 HP／破洞、破口對應 First 暴露、任一牆段存活時 Flank lock、以及可整除的回合間牆傷重分配。牆段先後順序與每個可穿甲 Artillery ticket 視為 successful wall hit 都是具名 Experimental assumption；Wall 本身 Accuracy／個體目標、非整除重分配與跨 geometry transition 仍未校準。</p></div>
+        <div class="mechanics-card mechanics-partial"><b>海戰 / Naval · naval-max 已可執行</b><p>官方 Help 已明確給出各 formation 的填格強弱順位、目標優先序、填格總順序與開火順序；因此這些已不再是陸戰類比假設。現行順序為 Carrier Evasion → Carrier → First Strike → Flank → Long-range → Front，同 formation 雙方同時射擊。AM、RR、Damage、Ammo 共用同一引擎。Long-range 無彈藥後補 Front 已支援 whole-wave 與 partial First fill：primary ammo 歸零後，可容納的 survivors 會分離成 First-line state、保留 RR 比例傷害並使用 secondary/hull weapon；超出 Front 容量者留在 Reserve，不會回到 Long-range。Barbarian Fleet 的 10 種官方 Help 數值已可直接在 naval-max 模擬，數量可手動輸入，也可套用目前的 50 級高階 composition 模型。仍待校準的是一般 D/P/M/IR/SR selector、reactive secondary-weapon trigger，以及 Tender 容量不足時的修護 allocation。Tender 現行修護量為每艘每回合 4000；容量足以全清 naval persistent damage 時已可安全套用 full-clear。</p></div>
+      </div>
+      <div class="accuracy-note"><b>如何解讀這一頁：</b>「已知」不代表所有細節都來自 Gameforge 原始程式碼，而是代表目前有足夠 evidence 支撐可執行 contract；「部分已知／未知」就是結果精度的邊界，不應被模擬器悄悄猜成確定答案。</div>
+    </section>
+  </section>
+
+  <section id="sourceView" class="hidden">
+    <section class="panel reference-page">
+      <div class="reference-head">
+        <h2>研究來源：Ikariam Battle System PDF</h2>
+        <p>本專案的重要理論基礎之一，是 2020 年玩家社群整理的 <i>Ikariam Battle System</i>。它把多年戰報、測試與推理整理成可分析的 Attacking Matrix、damage-position 與 Redistribution 等模型，為今天這個模擬器提供了非常重要的研究起點。</p>
+      </div>
+      <div class="source-grid">
+        <article class="source-card">
+          <h3>作者與貢獻</h3>
+          <p><b>AT Barbarossa</b> 是原始 Gameforge 英文論壇主帖作者，也是 PDF 的主要整理與撰寫者。</p>
+          <p><b>Xanto</b> 因長期協助測試、理論與研究，被列為 PDF 的共同作者。</p>
+          <p class="source-meta">PDF 署名：AT Barbarossa, Xanto · July 16, 2020</p>
+          <p>本專案向兩位作者，以及參與原始測試與討論的 Ikariam 玩家社群致意。沒有這些長期實戰紀錄與推理，許多隱藏戰鬥規則很難被系統化分析。</p>
+        </article>
+        <article class="source-card">
+          <h3>原始來源與 PDF</h3>
+          <p>AT Barbarossa 於 2020-07-21 在 Gameforge 的 Ikariam 英文論壇發表 <i>Ikariam Battle System</i> 主帖，並在帖內提供 2020-07-16 的 PDF version 1。</p>
+          <div class="source-actions">
+            <a class="source-link primary-link" href="https://forum.ikariam.gameforge.com/forum/thread/43268-ikariam-battle-system/" target="_blank" rel="noopener noreferrer">開啟原始 Gameforge 論壇帖</a>
+            <a class="source-link" href="/ikariam-battle-system.pdf" target="_blank" rel="noopener noreferrer">開啟 / 下載 PDF</a>
+          </div>
+        </article>
+      </div>
+      <div class="source-note"><b>版本提醒：</b>原作者已在論壇提醒，這份 paper 的 scenarios/tests 早於遊戲 version 13；後續單位數值與升級系統已有改動。因此本專案把 PDF 視為「戰鬥演算法與實驗證據來源」，不直接把舊數值當成現行數值；現行兵種資料與後續 Gameforge / community evidence 會另外校準。</div>
+    </section>
+  </section>
+
+  <section id="roundView" class="hidden">
+    <section class="panel result-shell">
+      <div class="report-head"><h2>逐回合戰報</h2><div class="report-tools"><button id="downloadRoundDebug" class="secondary" type="button">下載本回合 Debug JSON</button><div id="roundDebugError" class="error" aria-hidden="true"></div></div><div id="roundMetrics" class="report-metrics"></div></div>
+      <div id="roundPager" class="round-bar" aria-label="Round navigation"></div>
+      <div id="roundCaption" class="round-caption"></div>
+      <div id="battleBoard" class="battle-board"></div>
+      <div id="roundSafetyNotices" class="safety-notices"></div>
+      <div id="researchData" class="research-drawer research-only"></div>
+    </section>
+  </section>
+
+  <section id="summaryView" class="hidden">
+    <section class="panel result-shell">
+      <div class="report-head"><h2>總戰報</h2><div id="summaryMetrics" class="report-metrics"></div></div>
+      <div id="summarySafetyNotices" class="safety-notices"></div>
+      <div id="summaryGrid" class="summary-grid"></div>
+      <div class="economy-note">軍分以未折扣的原始生產資源計分基礎 ÷ 50 計算；Workshop、熔爐神蹟與其他戰鬥 buff 不改變軍分。Gross HP damage 為本模擬器逐次 damage event 的總和，與軍分損失分開呈現。</div>
+    </section>
+  </section>
+</main>
+<div id="floatingTooltip" class="floating-tooltip" role="tooltip" hidden></div>
+
+<script>
+let metadata=null, units=[], playerUnits=[], barbarianUnits=[], lastResult=null, lastBattlefieldId=null, currentRoundNumber=0, roundRenderToken=0, simulationGeneration=0, simulationRequestGeneration=0;
+const roundPageCache=new Map(), scenarioByGeneration=new Map();
+const battlefield=document.getElementById('battlefield'),battleDomain=document.getElementById('battleDomain'),policy=document.getElementById('policy'),maxRounds=document.getElementById('maxRounds'),defenderTownHallLevel=document.getElementById('defenderTownHallLevel'),defenderBarbarianVillageLevel=document.getElementById('defenderBarbarianVillageLevel'),defenderWallLevel=document.getElementById('defenderWallLevel'),researchMode=document.getElementById('researchMode'),showUnitStats=document.getElementById('showUnitStats'),showUnitIdentity=document.getElementById('showUnitIdentity'),simulateTop=document.getElementById('simulateTop'),simulate=document.getElementById('simulate'),downloadSetupTop=document.getElementById('downloadSetupTop'),downloadSetup=document.getElementById('downloadSetup'),downloadRoundDebug=document.getElementById('downloadRoundDebug'),roundDebugError=document.getElementById('roundDebugError'),errorTop=document.getElementById('errorTop'),error=document.getElementById('error'),floatingTooltip=document.getElementById('floatingTooltip');
+const builtinPreset=document.getElementById('builtinPreset'),applyBuiltinPreset=document.getElementById('applyBuiltinPreset'),clearArmiesButton=document.getElementById('clearArmies'),userPresetName=document.getElementById('userPresetName'),saveUserPreset=document.getElementById('saveUserPreset'),userPresetSelect=document.getElementById('userPresetSelect'),loadUserPreset=document.getElementById('loadUserPreset'),deleteUserPreset=document.getElementById('deleteUserPreset'),presetStatus=document.getElementById('presetStatus');
+const USER_PRESET_STORAGE_KEY='ikariam-battle-user-presets-v1';
+const viewIds={setup:'setupView',round:'roundView',summary:'summaryView',mechanics:'mechanicsView',source:'sourceView'};
+const groupOrder=['heavy_infantry','light_infantry','long_range','artillery','air','support'];
+const groupLabels={heavy_infantry:'Heavy Infantry',light_infantry:'Light Infantry',long_range:'Long Range',artillery:'Artillery',air:'Air / Anti-air',support:'Support'};
+const glyphs={heavy_infantry:'🛡',light_infantry:'⚔',long_range:'🎯',artillery:'💥',air:'✈',support:'✚'};
+const unitIconFiles={
+  hoplite:'/assets/unit-icons/land/hoplite.png',spartan:'/assets/unit-icons/land/spartan.png',steam_giant:'/assets/unit-icons/land/steam_giant.png',
+  spearman:'/assets/unit-icons/land/spearman.png',swordsman:'/assets/unit-icons/land/swordsman.png',slinger:'/assets/unit-icons/land/slinger.png',
+  archer:'/assets/unit-icons/land/archer.png',sulphur_carabineer:'/assets/unit-icons/land/sulphur_carabineer.png',
+  battering_ram:'/assets/unit-icons/land/battering_ram.png',catapult:'/assets/unit-icons/land/catapult.png',mortar:'/assets/unit-icons/land/mortar.png',
+  gyrocopter:'/assets/unit-icons/land/gyrocopter.png',bombardier:'/assets/unit-icons/land/bombardier.png',doctor:'/assets/unit-icons/land/doctor.png',cook:'/assets/unit-icons/land/cook.png',
+  steam_ram:'/assets/unit-icons/naval/steam_ram.png',fire_ship:'/assets/unit-icons/naval/fire_ship.png',ram_ship:'/assets/unit-icons/naval/ram_ship.png',
+  ballista_ship:'/assets/unit-icons/naval/ballista_ship.png',catapult_ship:'/assets/unit-icons/naval/catapult_ship.png',mortar_ship:'/assets/unit-icons/naval/mortar_ship.png',
+  diving_boat:'/assets/unit-icons/naval/diving_boat.png',rocket_ship:'/assets/unit-icons/naval/rocket_ship.png',balloon_carrier:'/assets/unit-icons/naval/balloon_carrier.png',
+  paddle_speedboat:'/assets/unit-icons/naval/paddle_speedboat.png',tender:'/assets/unit-icons/naval/tender.png',
+  barbarian_clubman:'/assets/unit-icons/barbarian/barbarian_clubman.webp',barbarian_axe_swinger:'/assets/unit-icons/barbarian/barbarian_axe_swinger.webp',
+  barbarian_knifeman:'/assets/unit-icons/barbarian/barbarian_knifeman.webp',barbarian_axe_thrower:'/assets/unit-icons/barbarian/barbarian_axe_thrower.webp',
+  barbarian_war_walker:'/assets/unit-icons/barbarian/barbarian_war_walker.webp',barbarian_ram:'/assets/unit-icons/barbarian/barbarian_ram.webp',
+  barbarian_catapult:'/assets/unit-icons/barbarian/barbarian_catapult.webp',barbarian_dirigible:'/assets/unit-icons/barbarian/barbarian_dirigible.webp',
+  barbarian_fighter:'/assets/unit-icons/barbarian/barbarian_fighter.webp',
+  barbarian_deckwrecker:'/assets/unit-icons/barbarian-fleet/barbarian_deckwrecker.webp',
+  barbarian_sail_shredder:'/assets/unit-icons/barbarian-fleet/barbarian_sail_shredder.webp',
+  barbarian_pyroboat:'/assets/unit-icons/barbarian-fleet/barbarian_pyroboat.webp',
+  barbarian_boulder_catapult:'/assets/unit-icons/barbarian-fleet/barbarian_boulder_catapult.webp',
+  barbarian_wedge_paddler:'/assets/unit-icons/barbarian-fleet/barbarian_wedge_paddler.webp',
+  barbarian_powder_pitcher:'/assets/unit-icons/barbarian-fleet/barbarian_powder_pitcher.webp',
+  barbarian_terror_of_the_deep:'/assets/unit-icons/barbarian-fleet/barbarian_terror_of_the_deep.webp',
+  barbarian_dragonfire:'/assets/unit-icons/barbarian-fleet/barbarian_dragonfire.webp',
+  barbarian_dirigible_igniter:'/assets/unit-icons/barbarian-fleet/barbarian_dirigible_igniter.webp',
+  barbarian_nest:'/assets/unit-icons/barbarian-fleet/barbarian_nest.webp'
+};
+const esc=value=>String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+
+function showView(name){
+  Object.entries(viewIds).forEach(([key,id])=>document.getElementById(id).classList.toggle('hidden',key!==name));
+  document.querySelectorAll('.tab').forEach(btn=>btn.classList.toggle('active',btn.dataset.view===name));
+}
+async function postSimulation(body){
+  const response=await fetch('/api/simulate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),data=await response.json();
+  if(!response.ok)throw Error(data.error);
+  return data;
+}
+function downloadJson(filename,payload){
+  const blob=new Blob([JSON.stringify(payload,null,2)+'\n'],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob);
+  const link=document.createElement('a');link.href=url;link.download=filename;document.body.append(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),0);
+}
+function roundPageSize(){return metadata?.report_transport?.default_round_page_size||10}
+function pageStartForRound(number){const size=roundPageSize();return Math.floor(number/size)*size}
+async function loadRoundPage(number,generation=simulationGeneration){
+  const start=pageStartForRound(number),cacheKey=generation+':'+start,scenario=scenarioByGeneration.get(generation);
+  if(generation!==simulationGeneration||!scenario)return null;
+  if(roundPageCache.has(cacheKey))return await roundPageCache.get(cacheKey);
+  const request={...scenario,report:{mode:'round_page',round_start:start,round_limit:roundPageSize()}};
+  const pending=postSimulation(request);
+  roundPageCache.set(cacheKey,pending);
+  try{
+    const page=await pending;
+    if(generation!==simulationGeneration)return null;
+    roundPageCache.set(cacheKey,page);
+    return page;
+  }catch(e){
+    if(generation===simulationGeneration)roundPageCache.delete(cacheKey);
+    throw e;
+  }
+}
+document.querySelectorAll('.tab').forEach(btn=>btn.addEventListener('click',()=>{if(!btn.disabled)showView(btn.dataset.view)}));
+
+function currentField(){return metadata.battlefields.find(f=>f.id===battlefield.value)}
+function currentDomain(){return currentField()?.domain||battleDomain.value||'land'}
+function armyKind(side){return document.getElementById(side==='attacker'?'aArmyKind':'dArmyKind').value}
+function unitById(id){return units.find(u=>u.id===id)}
+function preferredSetupLine(unit,field){
+  if(!field||!field.lines)return null;
+  if(field.lines[unit.native_line])return unit.native_line;
+  if(unit.semantic_class==='light_infantry'&&field.lines.first)return 'first';
+  return null;
+}
+function oneSlotStep(unit){
+  const field=currentField(),line=preferredSetupLine(unit,field);
+  if(!line||!unit.size||!field.lines[line])return 0;
+  return Math.floor(field.lines[line].slot_space/unit.size);
+}
+function lineLabel(line){return ({first:'Front',second:'Long range',third:'Artillery',flank:'Flank',balloon:'Air bomber','anti-balloon':'Air defense',support:'Support'})[line]||line}
+function statNumber(value){
+  if(value==null||Number.isNaN(Number(value)))return '—';
+  const n=Number(value);return Number.isInteger(n)?String(n):n.toFixed(2).replace(/\.00$/,'').replace(/(\.\d)0$/,'$1');
+}
+function effectiveSetupStats(row){
+  const unit=unitById(row.dataset.unitId),side=row.dataset.side,barbarian=unit?.army_kind==='barbarian';
+  const attackLevel=barbarian?0:Math.max(0,+row.querySelector('.attack')?.value||0);
+  const armorLevel=barbarian?0:Math.max(0,+row.querySelector('.armor')?.value||0);
+  const forgeLevel=barbarian?0:+(document.getElementById(side==='attacker'?'aForge':'dForge').value||0);
+  const forge=metadata.forge_levels?.[String(forgeLevel)]||{damage_multiplier:'1',armor_bonus:0};
+  const increment=barbarian?0:Number(metadata.workshop_increments?.[unit.domain]||0);
+  const primary=(unit.weapons||[]).find(w=>w.trigger==='primary')||(unit.weapons||[])[0];
+  const attack=primary?.damage==null?null:(Number(primary.damage)+attackLevel*increment)*Number(forge.damage_multiplier);
+  const defense=unit.base_armor==null?null:Number(unit.base_armor)+armorLevel*increment+Number(forge.armor_bonus||0);
+  return {hp:unit.hit_points,attack,defense,forgeLevel,barbarian};
+}
+function updateUnitStatRow(row){
+  const box=row.querySelector('.unit-statbox');if(!box)return;
+  const stats=effectiveSetupStats(row);
+  const note=stats.barbarian?'Barbarian 固定基礎數值 · 無 Workshop / Forge':'含 Workshop + Forge Lv'+stats.forgeLevel;
+  box.innerHTML='<span>HP <b>'+statNumber(stats.hp)+'</b></span><span>ATK <b>'+statNumber(stats.attack)+'</b></span><span>DEF <b>'+statNumber(stats.defense)+'</b></span><span class="stat-note">'+note+'</span>';
+}
+function updateAllUnitStats(){document.querySelectorAll('.unit-setup-row').forEach(updateUnitStatRow)}
+
+function unitIconHtml(unit,cssClass=''){
+  const glyph=glyphs[unit?.semantic_class]||'◆',file=unitIconFiles[unit?.id];
+  if(!file)return '<span class="unit-art-fallback '+cssClass+'">'+glyph+'</span>';
+  return '<img class="'+cssClass+'" src="'+file+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span class="unit-art-fallback" hidden>'+glyph+'</span>';
+}
+
+function renderBarbarianCatalog(){
+  const target=document.getElementById('barbarianCatalog'),catalog=[...(metadata?.barbarian_units||[])];
+  if(!target)return;
+  catalog.sort((a,b)=>(a.domain||'').localeCompare(b.domain||'')||
+    ((a.first_appearance_level??999)-(b.first_appearance_level??999))||
+    a.display_name.localeCompare(b.display_name));
+  target.innerHTML=catalog.map(unit=>{
+    const domainLabel=unit.domain==='naval'?'Barbarian Fleet · Official Help':'Barbarian Village';
+    const levels=unit.first_appearance_level==null
+      ?domainLabel
+      :('Lv'+unit.first_appearance_level+(unit.last_appearance_level?'–'+unit.last_appearance_level:'+'));
+    const weaponText=(unit.weapons||[]).map(w=>{
+      const ammo=w.ammunition==null?'∞/—':w.ammunition;
+      return (w.display_name||w.id)+': '+w.damage+' @ '+w.accuracy+'% · Ammo '+ammo;
+    }).join('；');
+    const stats='HP '+unit.hit_points+' · Armor '+unit.base_armor+
+      (unit.speed==null?'':' · Speed '+unit.speed)+' · Size '+unit.size;
+    return '<div class="barbarian-card"><div class="unit-icon" aria-hidden="true">'+unitIconHtml(unit,'barbarian-card-icon')+'</div><div><b>'+esc(unit.display_name)+'</b><small>'+esc(lineLabel(unit.native_line))+' · '+esc(levels)+'</small><small>'+esc(stats)+'</small><small>'+esc(weaponText)+'</small><small>≈ '+esc(unit.equivalent_player_unit||'custom')+' · 可模擬 · 軍分 0</small></div></div>';
+  }).join('');
+}
+
+function populateForge(id){
+  const select=document.getElementById(id);select.innerHTML='';
+  Object.entries(metadata.forge_levels).forEach(([level,e])=>select.add(new Option('Lv'+level+' · dmg ×'+e.damage_multiplier+' · armor +'+e.armor_bonus,level)));
+  if(metadata.forge_levels['5'])select.value='5';
+}
+function populateTownHallLevel(){
+  defenderTownHallLevel.min='1';defenderTownHallLevel.max=String(metadata?.garrison?.max_town_hall_level??66);
+  if(!defenderTownHallLevel.value)defenderTownHallLevel.value='25';
+}
+function populateBarbarianVillageLevel(){
+  defenderBarbarianVillageLevel.min='1';
+  defenderBarbarianVillageLevel.max=String(metadata?.garrison?.max_barbarian_village_level??50);
+  if(!defenderBarbarianVillageLevel.value)defenderBarbarianVillageLevel.value='50';
+}
+function populateWallLevels(){
+  defenderWallLevel.innerHTML='';
+  const maximum=Math.max(0,Number(metadata?.town_wall?.max_level??48));
+  for(let level=0;level<=maximum;level++)defenderWallLevel.add(new Option(level===0?'Lv0 · 無城牆':'Lv'+level,String(level)));
+  defenderWallLevel.value='0';
+  updateWallControl();
+}
+function updateWallControl(){
+  const field=currentField(),isLand=field?.domain==='land';
+  defenderWallLevel.disabled=!isLand;
+  const segments=isLand?(field?.lines?.first?.physical_order?.length||0):0;
+  const selectedPolicy=document.getElementById('policy')?.value||'experimental';
+  defenderWallLevel.title=isLand
+    ?('目前戰場對應 '+segments+' 段城牆；'+(
+      selectedPolicy==='strict'
+        ?('Strict 的 active-wall 戰鬥停在 '+(metadata?.town_wall?.rule_id||'UNKNOWN-TOWN-WALL-COMBAT'))
+        :'Experimental 可執行具名假設下的 Artillery 破牆／破口 First 暴露／Flank lock；未校準邊界仍會明確停止'
+    ))
+    :'城牆只適用於陸戰';
+}
+function populateBattleDomains(){
+  battleDomain.innerHTML='';
+  const domains=[...new Set(metadata.battlefields.map(f=>f.domain).filter(Boolean))];
+  for(const domain of domains){
+    const supported=metadata.battlefields.some(f=>f.domain===domain&&f.supported);
+    const label=domain==='land'?'陸戰 / Land':domain==='naval'?'海戰 / Naval':domain;
+    const option=new Option(label+(supported?'':'（尚未支援）'),domain);
+    option.disabled=!supported;battleDomain.add(option);
+  }
+  const land=[...battleDomain.options].find(option=>option.value==='land'&&!option.disabled);
+  if(land)battleDomain.value='land';
+  refreshBattlefieldOptions();
+}
+function refreshBattlefieldOptions(preferredId=null){
+  const domain=battleDomain.value||'land';
+  battlefield.innerHTML='';
+  const fields=metadata.battlefields.filter(f=>f.domain===domain);
+  fields.forEach(f=>{
+    const option=new Option(f.display_name+(f.supported?'':' (unsupported)'),f.id);
+    option.disabled=!f.supported;battlefield.add(option);
+  });
+  const preferred=fields.find(f=>f.id===preferredId&&f.supported);
+  const maxField=fields.find(f=>f.id===domain+'-max'&&f.supported);
+  const first=fields.find(f=>f.supported);
+  if(preferred)battlefield.value=preferred.id;
+  else if(maxField)battlefield.value=maxField.id;
+  else if(first)battlefield.value=first.id;
+  updateArmyPackageAvailability();updateWallControl();
+  renderArmy('attacker');renderArmy('defender');updateSlotButtons();updateAllUnitStats();
+}
+function updateArmyPackageAvailability(){
+  const domain=currentDomain();
+  for(const side of ['attacker','defender']){
+    const select=document.getElementById(side==='attacker'?'aArmyKind':'dArmyKind');
+    const barbarian=[...select.options].find(option=>option.value==='barbarian');
+    if(barbarian){
+      const hasBarbarianDomain=barbarianUnits.some(
+        unit=>unit.domain===domain&&unit.simulation_ready
+      );
+      barbarian.disabled=!hasBarbarianDomain;
+    }
+    if(select.value==='barbarian'&&barbarian?.disabled)select.value='player';
+    toggleArmyPackage(side,false);
+  }
+}
+function toggleArmyPackage(side,rerender=true){
+  const kind=armyKind(side),forge=document.getElementById(side==='attacker'?'aForge':'dForge');
+  const wrap=document.getElementById(side==='attacker'?'aForgeWrap':'dForgeWrap'),wasDisabled=forge.disabled;
+  if(kind==='barbarian'){
+    if(!forge.disabled)forge.dataset.playerValue=forge.value;
+    forge.value='0';forge.disabled=true;wrap.classList.add('hidden');
+  }else{
+    forge.disabled=false;wrap.classList.remove('hidden');
+    if(wasDisabled&&forge.dataset.playerValue)forge.value=forge.dataset.playerValue;
+  }
+  if(side==='defender'){
+    const townWrap=document.getElementById('defenderTownHallWrap');
+    const barbarianWrap=document.getElementById('defenderBarbarianVillageWrap');
+    const fleetStageWrap=document.getElementById('defenderBarbarianFleetStageWrap');
+    const fleetStageButton=document.getElementById('applyBarbarianFleetStage');
+    const isLand=currentDomain()==='land',isNaval=currentDomain()==='naval',isBarbarian=kind==='barbarian';
+    defenderTownHallLevel.disabled=!isLand||isBarbarian;
+    defenderBarbarianVillageLevel.disabled=!isLand||!isBarbarian;
+    document.getElementById('defenderBarbarianFleetStage').disabled=!isNaval||!isBarbarian;
+    townWrap.classList.toggle('hidden',!isLand||isBarbarian);
+    barbarianWrap.classList.toggle('hidden',!isLand||!isBarbarian);
+    fleetStageWrap.classList.toggle('hidden',!isNaval||!isBarbarian);
+    fleetStageButton.classList.toggle('hidden',!isNaval||!isBarbarian);
+  }
+  if(rerender){renderArmy(side);updateSlotButtons();updateAllUnitStats()}
+}
+function defaultQuantity(unit,side){
+  const defaultId=armyKind(side)==='barbarian'
+    ?(currentDomain()==='land'?'barbarian_clubman':null)
+    :'hoplite';
+  if(!defaultId||unit.id!==defaultId)return 0;
+  const field=currentField(),line=field?.lines?.first;
+  return line&&unit.size?line.physical_order.length*Math.floor(line.slot_space/unit.size):0;
+}
+function setupRow(unit,side,options={}){
+  const barbarian=unit.army_kind==='barbarian',extra=Boolean(options.extra),batchIndex=options.batchIndex||1;
+  const row=document.createElement('div');row.className='unit-setup-row'+(extra?' extra-batch':'');row.dataset.unitId=unit.id;row.dataset.side=side;row.dataset.batchIndex=String(batchIndex);
+  const quantity=extra?0:defaultQuantity(unit,side),batchId=options.batchId||side+'-batch-'+batchIndex,arrivalRound=options.arrivalRound??0;
+  const supportNote=unit.support_effect==='morale'?' · 士氣支援（尚未建模）':unit.support_effect==='healing'?' · 治療支援（部分建模）':'';
+  const packageNote=barbarian?' · Barbarian':'';
+  const levels=barbarian?
+    '<label class="level-field hidden">攻擊<input class="attack" type="number" min="0" value="0" disabled></label><label class="level-field hidden">防禦<input class="armor" type="number" min="0" value="0" disabled></label>':
+    '<label class="level-field">攻擊<input class="attack" type="number" min="0" value="'+(options.attack??0)+'"></label><label class="level-field">防禦<input class="armor" type="number" min="0" value="'+(options.armor??0)+'"></label>';
+  const advanced=barbarian?'':'<details class="advanced"><summary>進階：進場批次</summary><div class="advanced-fields"><label class="batch-field">Batch ID<input class="entry-batch" value="'+esc(batchId)+'"></label><label class="arrival-field">進場回合<input class="arrival-round" type="number" min="0" max="1000" value="'+arrivalRound+'"></label><div class="batch-help">同一時間抵達的不同兵種請使用相同 Batch ID 與進場回合；各兵種的彈藥與傷害狀態仍分開保存。</div></div><div class="batch-actions"><button type="button" class="batch-btn batch-add">＋ 新增進場批次</button>'+(extra?'<button type="button" class="batch-btn batch-remove">移除此批次</button>':'')+'</div></details>';
+  row.innerHTML=
+    '<div class="unit-ident"><div class="unit-icon" aria-hidden="true">'+unitIconHtml(unit)+'</div><div class="unit-ident-copy"><div class="unit-name">'+esc(unit.display_name)+(extra?' · batch '+batchIndex:'')+'</div><div class="unit-meta">'+esc(lineLabel(unit.native_line))+' · size '+esc(unit.size??'—')+(unit.general_score==null?'':' · 軍分 '+esc(unit.general_score))+packageNote+supportNote+'</div></div></div>'+
+    '<div class="qty-control"><button type="button" class="slot-btn slot-minus">−格</button><input class="qty" type="number" min="0" value="'+quantity+'" aria-label="'+esc(unit.display_name)+' quantity"><button type="button" class="slot-btn slot-plus">＋格</button></div>'+
+    levels+'<div class="unit-statbox" aria-live="polite"></div>'+advanced;
+  row.querySelector('.slot-plus').addEventListener('click',()=>adjustBySlot(row,1));
+  row.querySelector('.slot-minus').addEventListener('click',()=>adjustBySlot(row,-1));
+  row.querySelector('.attack')?.addEventListener('input',()=>updateUnitStatRow(row));
+  row.querySelector('.armor')?.addEventListener('input',()=>updateUnitStatRow(row));
+  row.querySelector('.batch-add')?.addEventListener('click',()=>addBatchRow(row));
+  const remove=row.querySelector('.batch-remove');if(remove)remove.addEventListener('click',()=>row.remove());
+  updateUnitStatRow(row);
+  return row;
+}
+function addBatchRow(sourceRow){
+  const side=sourceRow.dataset.side,unit=unitById(sourceRow.dataset.unitId);if(unit.army_kind==='barbarian')return;
+  const group=sourceRow.closest('.unit-group');
+  const matching=[...group.querySelectorAll('.unit-setup-row')].filter(row=>row.dataset.unitId===unit.id);
+  const batchIndex=Math.max(...matching.map(row=>Number(row.dataset.batchIndex)||1))+1,last=matching[matching.length-1];
+  const row=setupRow(unit,side,{extra:true,batchIndex,batchId:side+'-batch-'+batchIndex,arrivalRound:0,
+    attack:+sourceRow.querySelector('.attack').value||0,armor:+sourceRow.querySelector('.armor').value||0});
+  last.after(row);updateSlotButtons();
+}
+function renderArmy(side){
+  const root=document.getElementById(side+'Units');root.innerHTML='';
+  const kind=armyKind(side),domain=currentDomain(),source=kind==='barbarian'?barbarianUnits:playerUnits;
+  groupOrder.forEach(group=>{
+    const members=source.filter(u=>u.domain===domain&&u.semantic_class===group&&(u.numerically_supported||u.role==='support'));
+    if(!members.length)return;
+    const section=document.createElement('section');section.className='unit-group';
+    const title=document.createElement('div');title.className='unit-group-title';title.textContent=groupLabels[group]||group;section.append(title);
+    members.forEach(unit=>section.append(setupRow(unit,side)));root.append(section);
+  });
+  if(!root.children.length)root.innerHTML='<div class="reserve-note">此 battle type / army package 目前沒有可執行兵種。</div>';
+}
+function updateSlotButtons(){
+  document.querySelectorAll('.unit-setup-row').forEach(row=>{
+    const unit=unitById(row.dataset.unitId),step=oneSlotStep(unit);
+    const minus=row.querySelector('.slot-minus'),plus=row.querySelector('.slot-plus');
+    minus.textContent=step?'−'+step:'−格';plus.textContent=step?'＋'+step:'＋格';
+    minus.disabled=plus.disabled=!step;
+    minus.title=plus.title=step?('一個 '+lineLabel(preferredSetupLine(unit,currentField()))+' slot = '+step+' units'):'此戰場沒有可用的正常配置 slot';
+  });
+}
+function adjustBySlot(row,direction){
+  const step=oneSlotStep(unitById(row.dataset.unitId));if(!step)return;
+  const input=row.querySelector('.qty'),value=Math.max(0,(Number(input.value)||0)+direction*step);input.value=value;
+}
+function army(side){
+  const kind=armyKind(side),rows=[...document.querySelectorAll('#'+side+'Units .unit-setup-row')];
+  if(kind==='barbarian'){
+    const entryBatchId=side+'-barbarian-garrison';
+    const items=rows.map(row=>({
+      unit_id:row.dataset.unitId,
+      quantity:Math.max(0,+row.querySelector('.qty').value||0),
+      entry_batch_id:entryBatchId,arrival_round:0,
+      wave_id:entryBatchId+'::'+row.dataset.unitId,
+      attack_upgrade:0,armor_upgrade:0,
+    })).filter(item=>item.quantity>0);
+    return {army_kind:'barbarian',forge_level:0,units:items};
+  }
+  const items=rows.map(row=>{
+    const entryBatchId=(row.querySelector('.entry-batch').value||side+'-batch-1').trim();
+    const arrivalRound=Math.max(0,Math.trunc(+row.querySelector('.arrival-round').value||0));
+    return {unit_id:row.dataset.unitId,quantity:Math.max(0,+row.querySelector('.qty').value||0),
+      entry_batch_id:entryBatchId,arrival_round:arrivalRound,
+      wave_id:entryBatchId+'::'+row.dataset.unitId,
+      attack_upgrade:Math.max(0,+row.querySelector('.attack').value||0),
+      armor_upgrade:Math.max(0,+row.querySelector('.armor').value||0)};
+  }).filter(item=>item.quantity>0);
+  const upgrades=new Map(),batchIds=new Map(),batchRounds=new Map();
+  for(const item of items){
+    const key=item.unit_id,value=item.attack_upgrade+'/'+item.armor_upgrade;
+    if(upgrades.has(key)&&upgrades.get(key)!==value)throw Error('同一兵種的不同進場批次必須使用相同的攻擊／防禦升級。');
+    upgrades.set(key,value);
+    if(!batchIds.has(key))batchIds.set(key,new Set());
+    if(batchIds.get(key).has(item.entry_batch_id))throw Error('同一兵種的不同進場批次必須使用不同的 Batch ID。');
+    batchIds.get(key).add(item.entry_batch_id);
+    if(batchRounds.has(item.entry_batch_id)&&batchRounds.get(item.entry_batch_id)!==item.arrival_round)throw Error('同一 Batch ID 的不同兵種必須使用相同的進場回合。');
+    batchRounds.set(item.entry_batch_id,item.arrival_round);
+  }
+  return {army_kind:'player',forge_level:+document.getElementById(side==='attacker'?'aForge':'dForge').value,units:items};
+}
+function barbarianFleetCompositionForStage(stage){
+  const model=metadata?.barbarian_fleet_profile_metadata?.high_level_composition_model;
+  if(!model||!Array.isArray(model.base_stage_1))throw Error('尚無可用的野蠻艦隊 50級階數模型。');
+  const n=Math.max(1,Math.trunc(Number(stage)||1));
+  const growthBasisPoints=Math.round(Number(model.ship_growth_per_stage||0)*10000);
+  return model.base_stage_1.map(row=>{
+    const base=Math.max(0,Math.trunc(Number(row.quantity)||0));
+    const scaleBasisPoints=10000+growthBasisPoints*(n-1);
+    return {
+      unit_id:row.unit_id,
+      sheet_label:row.sheet_label,
+      quantity:Math.floor((base*scaleBasisPoints+9999)/10000),
+    };
+  });
+}
+function applyBarbarianFleetStageComposition(){
+  if(currentDomain()!=='naval'||armyKind('defender')!=='barbarian')throw Error('請先選擇海戰與防守方 Barbarian。');
+  const input=document.getElementById('defenderBarbarianFleetStage');
+  const stage=Math.max(1,Math.min(999,Math.trunc(Number(input.value)||1)));
+  input.value=String(stage);
+  const composition=barbarianFleetCompositionForStage(stage);
+  clearSideRows('defender');
+  const root=document.getElementById('defenderUnits');
+  for(const item of composition){
+    const row=[...root.querySelectorAll('.unit-setup-row')].find(
+      candidate=>candidate.dataset.unitId===item.unit_id&&!candidate.classList.contains('extra-batch')
+    );
+    if(!row)throw Error('野蠻艦隊資料缺少兵種：'+item.unit_id);
+    row.querySelector('.qty').value=String(item.quantity);
+  }
+  updateSlotButtons();updateAllUnitStats();
+  const rewardGrowth=Number(metadata?.barbarian_fleet_profile_metadata?.high_level_composition_model?.reward_growth_per_stage||0);
+  const rewardMultiplier=1+rewardGrowth*(stage-1);
+  setPresetStatus(
+    '已套用野蠻艦隊 50級第 '+stage+' 階：各艦種依第1階基準線性 +15% 並向上取整；獎勵倍率參考 ×'+statNumber(rewardMultiplier)+'。',
+    'ok'
+  );
+}
+
+function setupConfigurationFromUi(){
+  if(!metadata)throw Error('模擬器資料尚未載入完成。');
+  const submittedBattlefield=battlefield.value,field=currentField();
+  if(!field?.supported)throw Error('目前選擇的戰場尚未開放執行。');
+  const isLand=field.domain==='land';
+  return {setup_version:1,policy:policy.value,battlefield:submittedBattlefield,max_rounds:+maxRounds.value,
+    wall_level:isLand?Math.max(0,Math.trunc(+defenderWallLevel.value||0)):0,
+    town_hall_level:isLand&&armyKind('defender')==='player'?Math.max(1,Math.trunc(+defenderTownHallLevel.value||1)):null,
+    barbarian_village_level:isLand&&armyKind('defender')==='barbarian'?Math.max(1,Math.trunc(+defenderBarbarianVillageLevel.value||1)):null,
+    attacker:army('attacker'),defender:army('defender')};
+}
+function scenarioFromSetup(){
+  const config=setupConfigurationFromUi(),{setup_version,...scenario}=config;
+  if(!scenario.attacker.units.length||!scenario.defender.units.length)throw Error('攻擊方與防守方都至少要設定一種兵力。');
+  return {profiles:metadata.profiles,...scenario};
+}
+function setPresetStatus(message,tone=''){
+  presetStatus.textContent=message;
+  presetStatus.classList.toggle('ok',tone==='ok');presetStatus.classList.toggle('warn',tone==='warn');
+}
+function lineFillQuantity(field,unitId,copies=1){
+  const unit=unitById(unitId),line=unit&&preferredSetupLine(unit,field),geometry=line&&field?.lines?.[line];
+  if(!unit||!geometry||!unit.size)return 0;
+  return geometry.physical_order.length*Math.floor(geometry.slot_space/unit.size)*copies;
+}
+function presetItems(field,side,specs,{barbarian=false}={}){
+  const batchId=barbarian?side+'-barbarian-garrison':side+'-batch-1';
+  return specs.map(spec=>{
+    const quantity=spec.quantity??lineFillQuantity(field,spec.unit_id,spec.copies??1);
+    return {unit_id:spec.unit_id,quantity,entry_batch_id:batchId,arrival_round:0,
+      attack_upgrade:barbarian?0:(spec.attack_upgrade??0),armor_upgrade:barbarian?0:(spec.armor_upgrade??0)};
+  }).filter(item=>item.quantity>0);
+}
+function builtinPresetConfiguration(id){
+  const field=metadata?.battlefields?.find(f=>f.id==='land-max'&&f.supported);
+  if(!field)throw Error('找不到可執行的最大陸戰戰場。');
+  const player=(side,specs,forge=5)=>({army_kind:'player',forge_level:forge,units:presetItems(field,side,specs)});
+  if(id==='simple'){
+    return {setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100,wall_level:0,town_hall_level:25,barbarian_village_level:null,
+      attacker:player('attacker',[{unit_id:'hoplite'}]),defender:player('defender',[{unit_id:'hoplite'}])};
+  }
+  const attackerSpecs=[
+    {unit_id:'hoplite',copies:2},{unit_id:'swordsman',copies:2},{unit_id:'sulphur_carabineer',copies:2},
+    {unit_id:'mortar',copies:2},{unit_id:'gyrocopter',copies:2},{unit_id:'bombardier',copies:2},
+    {unit_id:'doctor',quantity:15},{unit_id:'cook',quantity:15},
+  ];
+  if(id==='combined'){
+    const defenderSpecs=[
+      {unit_id:'steam_giant',copies:2},{unit_id:'swordsman',copies:2},{unit_id:'archer',copies:2},
+      {unit_id:'catapult',copies:2},{unit_id:'gyrocopter',copies:2},{unit_id:'bombardier',copies:2},
+      {unit_id:'doctor',quantity:15},{unit_id:'cook',quantity:15},
+    ];
+    return {setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100,wall_level:0,town_hall_level:25,barbarian_village_level:null,
+      attacker:player('attacker',attackerSpecs),defender:player('defender',defenderSpecs)};
+  }
+  if(id==='player-vs-barbarian'){
+    const barbarianSpecs=[
+      {unit_id:'barbarian_axe_swinger',copies:2},{unit_id:'barbarian_knifeman',copies:2},
+      {unit_id:'barbarian_axe_thrower',copies:2},{unit_id:'barbarian_catapult',copies:2},
+      {unit_id:'barbarian_fighter',copies:2},{unit_id:'barbarian_dirigible',copies:2},
+    ];
+    return {setup_version:1,policy:'experimental',battlefield:field.id,max_rounds:100,wall_level:0,town_hall_level:null,barbarian_village_level:50,
+      attacker:player('attacker',attackerSpecs),
+      defender:{army_kind:'barbarian',forge_level:0,units:presetItems(field,'defender',barbarianSpecs,{barbarian:true})}};
+  }
+  throw Error('未知的快速設定。');
+}
+function clearSideRows(side){
+  const root=document.getElementById(side+'Units');
+  root.querySelectorAll('.extra-batch').forEach(row=>row.remove());
+  root.querySelectorAll('.unit-setup-row').forEach(row=>{
+    row.querySelector('.qty').value=0;
+    const attack=row.querySelector('.attack'),armor=row.querySelector('.armor'),batch=row.querySelector('.entry-batch'),arrival=row.querySelector('.arrival-round');
+    if(attack)attack.value=0;if(armor)armor.value=0;
+    if(batch)batch.value=side+'-batch-1';if(arrival)arrival.value=0;
+  });
+}
+function clearArmies(){
+  clearSideRows('attacker');clearSideRows('defender');updateAllUnitStats();
+  setPresetStatus('攻擊方與防守方兵力已歸零；戰場、城牆、套裝與 Forge 設定保留。','ok');
+}
+function applyItemToRow(row,item,side){
+  row.querySelector('.qty').value=Math.max(0,Number(item.quantity)||0);
+  const attack=row.querySelector('.attack'),armor=row.querySelector('.armor'),batch=row.querySelector('.entry-batch'),arrival=row.querySelector('.arrival-round');
+  if(attack)attack.value=Math.max(0,Number(item.attack_upgrade)||0);
+  if(armor)armor.value=Math.max(0,Number(item.armor_upgrade)||0);
+  if(batch)batch.value=String(item.entry_batch_id||side+'-batch-1');
+  if(arrival)arrival.value=Math.max(0,Math.trunc(Number(item.arrival_round)||0));
+}
+function applySideConfiguration(side,config){
+  const kind=config?.army_kind||'player',select=document.getElementById(side==='attacker'?'aArmyKind':'dArmyKind');
+  if(!['player','barbarian'].includes(kind))throw Error('套裝中的 army_kind 無效。');
+  select.value=kind;toggleArmyPackage(side);
+  const forge=document.getElementById(side==='attacker'?'aForge':'dForge');
+  if(kind==='player'){
+    const requested=String(config?.forge_level??5);
+    forge.value=[...forge.options].some(option=>option.value===requested)?requested:(metadata.forge_levels?.['5']?'5':'0');
+  }
+  clearSideRows(side);
+  const root=document.getElementById(side+'Units'),byUnit=new Map();
+  for(const item of config?.units||[]){
+    if(!item||typeof item.unit_id!=='string')throw Error('套裝含有無效兵種資料。');
+    if(!byUnit.has(item.unit_id))byUnit.set(item.unit_id,[]);
+    byUnit.get(item.unit_id).push(item);
+  }
+  for(const [unitId,items] of byUnit){
+    const base=[...root.querySelectorAll('.unit-setup-row')].find(row=>row.dataset.unitId===unitId&&!row.classList.contains('extra-batch'));
+    if(!base)throw Error('目前戰場／兵種套裝不支援：'+unitId);
+    applyItemToRow(base,items[0],side);
+    let last=base;
+    if(kind==='player'){
+      items.slice(1).forEach((item,index)=>{
+        const unit=unitById(unitId),batchIndex=index+2,row=setupRow(unit,side,{extra:true,batchIndex,
+          batchId:item.entry_batch_id||side+'-batch-'+batchIndex,arrivalRound:item.arrival_round??0,
+          attack:item.attack_upgrade??0,armor:item.armor_upgrade??0});
+        last.after(row);last=row;applyItemToRow(row,item,side);
+      });
+    }else if(items.length>1)throw Error('Barbarian 套裝同兵種不能拆成多個批次。');
+  }
+}
+function applySetupConfiguration(config){
+  if(!config||typeof config!=='object'||Array.isArray(config))throw Error('套裝格式無效。');
+  const field=metadata?.battlefields?.find(f=>f.id===config.battlefield&&f.supported);
+  if(!field)throw Error('套裝指定的戰場目前不可執行。');
+  const domainOption=[...battleDomain.options].find(option=>option.value===field.domain&&!option.disabled);
+  if(!domainOption)throw Error('套裝指定的 battle type 目前不可執行。');
+  battleDomain.value=field.domain;refreshBattlefieldOptions(field.id);
+  if(['experimental','strict'].includes(config.policy))policy.value=config.policy;
+  updateWallControl();
+  maxRounds.value=Math.max(1,Math.min(1000,Math.trunc(Number(config.max_rounds)||100)));
+  const wallMax=Math.max(0,Number(metadata?.town_wall?.max_level??48));
+  const wallLevel=Math.max(0,Math.min(wallMax,Math.trunc(Number(config.wall_level)||0)));
+  defenderWallLevel.value=String(wallLevel);
+  const townMax=Math.max(1,Number(metadata?.garrison?.max_town_hall_level??66));
+  defenderTownHallLevel.value=String(Math.max(1,Math.min(townMax,Math.trunc(Number(config.town_hall_level)||25))));
+  const barbarianMax=Math.max(1,Number(metadata?.garrison?.max_barbarian_village_level??50));
+  defenderBarbarianVillageLevel.value=String(Math.max(1,Math.min(barbarianMax,Math.trunc(Number(config.barbarian_village_level)||50))));
+  applySideConfiguration('attacker',config.attacker||{});
+  applySideConfiguration('defender',config.defender||{});
+  updateSlotButtons();updateAllUnitStats();
+}
+function readUserPresets(){
+  try{
+    const raw=JSON.parse(localStorage.getItem(USER_PRESET_STORAGE_KEY)||'[]');
+    return Array.isArray(raw)?raw.filter(item=>item&&typeof item.name==='string'&&item.config&&typeof item.config==='object'):[];
+  }catch(_){return []}
+}
+function writeUserPresets(items){
+  try{localStorage.setItem(USER_PRESET_STORAGE_KEY,JSON.stringify(items))}
+  catch(_){throw Error('瀏覽器無法儲存自訂套裝；請確認未封鎖 localStorage 或儲存空間。')}
+}
+function refreshUserPresetOptions(selected=''){
+  const items=readUserPresets();userPresetSelect.innerHTML='';
+  if(!items.length){userPresetSelect.add(new Option('尚無自訂套裝',''));userPresetSelect.disabled=true;loadUserPreset.disabled=true;deleteUserPreset.disabled=true;return}
+  userPresetSelect.disabled=false;loadUserPreset.disabled=false;deleteUserPreset.disabled=false;
+  items.forEach(item=>userPresetSelect.add(new Option(item.name,item.name)));
+  if(selected&&items.some(item=>item.name===selected))userPresetSelect.value=selected;
+}
+function saveCurrentPreset(){
+  try{
+    const name=userPresetName.value.trim();if(!name)throw Error('請先輸入自訂套裝名稱。');
+    const config=setupConfigurationFromUi(),items=readUserPresets(),index=items.findIndex(item=>item.name===name);
+    const entry={name,config,saved_at:new Date().toISOString()};
+    if(index>=0)items[index]=entry;else items.push(entry);
+    items.sort((a,b)=>a.name.localeCompare(b.name,'zh-Hant'));
+    writeUserPresets(items);refreshUserPresetOptions(name);
+    setPresetStatus((index>=0?'已更新：':'已儲存：')+name+'。','ok');
+  }catch(e){setPresetStatus(e.message,'warn')}
+}
+function loadSelectedPreset(){
+  try{
+    const name=userPresetSelect.value,item=readUserPresets().find(entry=>entry.name===name);
+    if(!item)throw Error('請先選擇已儲存的套裝。');
+    applySetupConfiguration(item.config);userPresetName.value=item.name;
+    setPresetStatus('已載入：'+item.name+'。','ok');
+  }catch(e){setPresetStatus(e.message,'warn')}
+}
+function deleteSelectedPreset(){
+  try{
+    const name=userPresetSelect.value;if(!name)throw Error('請先選擇要刪除的套裝。');
+    const items=readUserPresets().filter(item=>item.name!==name);writeUserPresets(items);refreshUserPresetOptions();
+    if(userPresetName.value.trim()===name)userPresetName.value='';
+    setPresetStatus('已刪除：'+name+'。','ok');
+  }catch(e){setPresetStatus(e.message,'warn')}
+}
+function applySelectedBuiltinPreset(){
+  try{
+    applySetupConfiguration(builtinPresetConfiguration(builtinPreset.value));
+    const label=builtinPreset.options[builtinPreset.selectedIndex]?.text||builtinPreset.value;
+    setPresetStatus('已套用：'+label+'。','ok');
+  }catch(e){setPresetStatus(e.message,'warn')}
+}
+function setupDebugPayload(){
+  const scenario=scenarioFromSetup();
+  return {debug_format:'ikariam-battle-simulator',debug_version:1,kind:'setup',exported_at:new Date().toISOString(),
+    scenario,context:{battlefield:currentField(),combat_chronology:metadata.combat_chronology}};
+}
+function downloadSetupDebug(){
+  try{
+    setSimulationError('');
+    downloadJson('ikariam-setup-debug.json',setupDebugPayload());
+  }catch(e){setSimulationError(e.message)}
+}
+
+function hpBar(percent,label='HP'){
+  const raw=percent==null?0:Number(percent),pct=Math.max(0,Math.min(100,Number.isFinite(raw)?raw:0));
+  return '<span class="hp-rail" role="img" aria-label="'+esc(label)+' '+pct+'%"><span class="hp-fill" style="height:'+pct+'%"></span></span>';
+}
+function ammoBar(percent){
+  if(percent==null)return '';
+  const raw=Number(percent),pct=Math.max(0,Math.min(100,Number.isFinite(raw)?raw:0));
+  return '<span class="ammo-rail" role="img" aria-label="Munition '+pct+'%"><span class="ammo-fill" style="height:'+pct+'%"></span></span>';
+}
+function slotTooltipHtml(slot){
+  return '<b>'+esc(slot.display_name)+'</b><br>Attack upgrade: '+slot.attack_upgrade+
+    '<br>Armor upgrade: '+slot.armor_upgrade+'<br>Hit points: '+Number(slot.hit_points_percent??0).toFixed(2).replace(/\.00$/,'')+'%'+
+    '<br>Casualties this round: '+Number(slot.casualties||0)+
+    (slot.munition_percent==null?'':'<br>Munition: '+slot.munition_percent+'%')+
+    '<span class="research-only"><br>Batch: '+esc(slot.entry_batch_id)+'<br>Native/current: '+esc(slot.native_line)+' / '+esc(slot.line)+
+    '<br>Ammo pool: '+(slot.ammo_pool_shots??'∞')+' / '+(slot.ammo_capacity_shots??'∞')+'</span>';
+}
+function tooltipAttribute(html){return esc(html)}
+let hoveredTooltipTrigger=null,focusedTooltipTrigger=null;
+function showFloatingTooltip(trigger){
+  const content=trigger?.dataset?.tooltip;if(!content)return;
+  floatingTooltip.innerHTML=content;floatingTooltip.hidden=false;
+  floatingTooltip.style.left='0px';floatingTooltip.style.top='0px';
+  const triggerRect=trigger.getBoundingClientRect(),tipRect=floatingTooltip.getBoundingClientRect(),gap=8,pad=8;
+  let left=triggerRect.left+(triggerRect.width-tipRect.width)/2;
+  left=Math.max(pad,Math.min(window.innerWidth-tipRect.width-pad,left));
+  let top=triggerRect.top-tipRect.height-gap;
+  if(top<pad)top=triggerRect.bottom+gap;
+  if(top+tipRect.height>window.innerHeight-pad)top=Math.max(pad,window.innerHeight-tipRect.height-pad);
+  floatingTooltip.style.left=Math.round(left)+'px';floatingTooltip.style.top=Math.round(top)+'px';
+}
+function hideFloatingTooltip(){floatingTooltip.hidden=true;floatingTooltip.innerHTML=''}
+function refreshFloatingTooltip(){
+  const trigger=hoveredTooltipTrigger||focusedTooltipTrigger;
+  if(trigger?.isConnected)showFloatingTooltip(trigger);else hideFloatingTooltip();
+}
+function resetFloatingTooltipState(){
+  hoveredTooltipTrigger=null;focusedTooltipTrigger=null;hideFloatingTooltip();
+}
+let floatingTooltipRefreshFrame=0;
+function scheduleFloatingTooltipRefresh(){
+  if(!hoveredTooltipTrigger&&!focusedTooltipTrigger)return;
+  if(floatingTooltipRefreshFrame)return;
+  floatingTooltipRefreshFrame=requestAnimationFrame(()=>{
+    floatingTooltipRefreshFrame=0;
+    refreshFloatingTooltip();
+  });
+}
+window.addEventListener('scroll',scheduleFloatingTooltipRefresh,true);
+window.addEventListener('resize',scheduleFloatingTooltipRefresh);
+function bindFloatingTooltips(root){
+  root.querySelectorAll('[data-tooltip]').forEach(trigger=>{
+    if(trigger.dataset.tooltipBound)return;trigger.dataset.tooltipBound='1';
+    trigger.addEventListener('mouseenter',()=>{hoveredTooltipTrigger=trigger;refreshFloatingTooltip()});
+    trigger.addEventListener('mouseleave',()=>{if(hoveredTooltipTrigger===trigger)hoveredTooltipTrigger=null;refreshFloatingTooltip()});
+    trigger.addEventListener('focus',()=>{focusedTooltipTrigger=trigger;refreshFloatingTooltip()});
+    trigger.addEventListener('blur',()=>{if(focusedTooltipTrigger===trigger)focusedTooltipTrigger=null;refreshFloatingTooltip()});
+  });
+}
+function lineSlots(state,line,geometry,positions=null,compact=false){
+  const found=state.slots.filter(s=>s.line===line).sort((a,b)=>a.physical_position-b.physical_position);
+  const order=geometry[line]?.physical_order||[],physicalPositions=positions||order.map((_,index)=>index+1);
+  return '<div class="slots'+(compact?' compact-slots':'')+'">'+physicalPositions.map(position=>{
+    const slot=found.find(v=>v.physical_position===position);
+    const unit=unitById(slot?.unit_id);
+    if(!slot)return '<div class="slot empty" aria-label="Empty '+esc(line)+' slot">◇</div>';
+    const dead=Number(slot.units||0)===0,hp=dead?0:Number(slot.hit_points_percent??0),loss=Number(slot.casualties||0);
+    const ammo=slot.munition_percent==null?null:Number(slot.munition_percent);
+    const tip=tooltipAttribute(slotTooltipHtml(slot)),label=esc(slot.display_name)+' · '+Number(slot.units||0)+' alive · '+loss+' casualties this round'+(ammo==null?'':' · '+ammo+'% munition');
+    return '<div class="slot'+(dead?' dead':'')+'" tabindex="0" aria-label="'+label+'" data-tooltip="'+tip+'"><div class="slot-visual"><div class="slot-glyph" aria-hidden="true">'+unitIconHtml(unit)+'</div>'+hpBar(hp,'HP')+ammoBar(ammo)+'</div>'+
+      '<div class="slot-count">'+Number(slot.units||0)+' <span class="slot-loss">(-'+loss+')</span></div></div>';
+  }).join('')+'</div>';
+}
+function lineRow(state,line,geometry){
+  return '<div class="battle-line"><div class="battle-line-name">'+esc(lineLabel(line))+'</div>'+lineSlots(state,line,geometry)+'</div>';
+}
+function splitLinePositions(geometry,line,side){
+  const count=geometry[line]?.physical_order?.length||0;
+  if(!count)return [];
+  const half=Math.ceil(count/2);
+  return side==='left'
+    ?Array.from({length:half},(_,i)=>i+1)
+    :Array.from({length:count-half},(_,i)=>half+i+1);
+}
+function sideLine(state,line,geometry,side,positions=null){
+  if(!geometry[line])return '<div class="formation-side '+side+'"></div>';
+  const chosen=positions??geometry[line].physical_order.map((_,index)=>index+1);
+  return '<div class="formation-side '+side+'"><div class="battle-line-name">'+esc(lineLabel(line))+'</div>'+lineSlots(state,line,geometry,chosen,true)+'</div>';
+}
+function centerLine(state,line,geometry){
+  return geometry[line]?'<div class="formation-center">'+lineRow(state,line,geometry)+'</div>':'<div class="formation-center"></div>';
+}
+function frontRow(state,geometry){
+  const left=sideLine(state,'flank',geometry,'left',splitLinePositions(geometry,'flank','left'));
+  const center=centerLine(state,'first',geometry);
+  const right=sideLine(state,'flank',geometry,'right',splitLinePositions(geometry,'flank','right'));
+  return '<div class="formation-row front-row">'+left+center+right+'</div>';
+}
+function rangedRow(state,geometry){
+  return '<div class="formation-row ranged-row"><div></div>'+centerLine(state,'second',geometry)+'<div></div></div>';
+}
+function rearRow(state,geometry){
+  const left=sideLine(state,'anti-balloon',geometry,'left');
+  const center=centerLine(state,'third',geometry);
+  const right=sideLine(state,'balloon',geometry,'right');
+  return '<div class="formation-row rear-row">'+left+center+right+'</div>';
+}
+function formationGrid(state,name,geometry){
+  const front=frontRow(state,geometry),ranged=rangedRow(state,geometry),rear=rearRow(state,geometry);
+  const rows=name==='attacker'?[rear,ranged,front]:[front,ranged,rear];
+  return '<div class="formation">'+rows.join('')+'</div>';
+}
+function reserveGroups(state){
+  const groups=new Map(),slotDamageByWave=new Map();
+  const waveKey=(unitId,waveId,batchId)=>JSON.stringify([unitId,waveId,batchId]);
+  for(const slot of state.slots||[]){
+    const key=waveKey(slot.unit_id,slot.wave_id,slot.entry_batch_id);
+    slotDamageByWave.set(key,(slotDamageByWave.get(key)||0)+Number(slot.damage||0));
+  }
+  for(const wave of state.waves||[]){
+    if(!wave.reserve)continue;
+    const unit=unitById(wave.unit_id),hp=Number(unit?.hit_points||0),maxHp=Number(wave.reserve)*hp;
+    const reserveDamage=Number(wave.reserve_damage||0);
+    const deployedDamage=slotDamageByWave.get(waveKey(wave.unit_id,wave.wave_id,wave.entry_batch_id))||0;
+    const group=groups.get(wave.unit_id)||{unit_id:wave.unit_id,count:0,max_hp:0,remaining_hp:0,batches:[]};
+    group.count+=Number(wave.reserve);group.max_hp+=maxHp;group.remaining_hp+=Math.max(0,maxHp-reserveDamage);
+    group.batches.push({id:wave.entry_batch_id,count:Number(wave.reserve),damage:reserveDamage,deployed_damage:deployedDamage,total_damage:reserveDamage+deployedDamage,hp_percent:wave.reserve_hit_points_percent,munition_percent:wave.munition_percent});
+    groups.set(wave.unit_id,group);
+  }
+  return [...groups.values()].map(group=>({...group,hp_percent:group.max_hp?Math.max(0,Math.min(100,100*group.remaining_hp/group.max_hp)):0}));
+}
+function reserveCard(group){
+  const unit=unitById(group.unit_id),batches=group.batches;
+  const reserveDamage=batches.reduce((sum,b)=>sum+b.damage,0);
+  const deployedDamage=batches.reduce((sum,b)=>sum+b.deployed_damage,0);
+  const waveDamage=batches.reduce((sum,b)=>sum+b.total_damage,0);
+  const detail=batches.map(batch=>'<br>Batch '+esc(batch.id)+': '+batch.count+' · RR Reserve HP '+statNumber(batch.hp_percent)+'% · Reserve dmg '+batch.damage+' · Deployed dmg '+batch.deployed_damage+(batch.munition_percent==null?'':' · Ammo '+statNumber(batch.munition_percent)+'%')).join('');
+  const tip=tooltipAttribute('<b>'+esc(unit?.display_name||group.unit_id)+' Reserve</b><br>Total: '+group.count+'<br>RR Reserve HP: '+statNumber(group.hp_percent)+'%'+
+    '<br>Reserve persistent damage: '+reserveDamage+'<br>Current deployed persistent damage: '+deployedDamage+'<br>Wave persistent damage total: '+waveDamage+
+    '<br><small>Round snapshots are post-combat. New deployed damage is redistributed at the next round start after any supported Healing step.</small>'+detail);
+  return '<div class="reserve-card" tabindex="0" data-tooltip="'+tip+'"><div class="reserve-card-main"><div aria-hidden="true">'+unitIconHtml(unit,'unit-art')+'</div>'+hpBar(group.hp_percent,'RR Reserve HP')+'</div>'+
+    '<div class="reserve-card-count">'+group.count+'</div><div class="reserve-card-name">'+esc(unit?.display_name||group.unit_id)+'</div>'+
+    (batches.length>1?'<span class="batch-badge">'+batches.length+'批</span>':'')+'</div>';
+}
+function supportCards(entries){
+  return entries.map(([id,n])=>{const unit=unitById(id);return '<div class="support-card"><span aria-hidden="true">'+unitIconHtml(unit)+'</span><span>'+esc(unit?.display_name||id)+'<br><b>'+n+'</b></span></div>';}).join('');
+}
+function reserveBox(state,name,geometry){
+  const reserve=reserveGroups(state),support=Object.entries(state.deployed_support||{}).filter(([,n])=>n);
+  const flankReserve=reserve.some(group=>unitById(group.unit_id)?.native_line==='flank');
+  const note=flankReserve&&!geometry.flank?'<div class="reserve-note">此戰場沒有 Flank slot；未能補入前線的側翼兵會留在 Reserve。</div>':'';
+  const rrNote=reserve.length?'<div class="reserve-note">Reserve HP 是目前 snapshot 中經上一個回合邊界 RR 分到 Reserve 的 persistent damage；本回合新傷仍在 deployed slots，下一回合開始才經 Healing／RR 重分配。若 Doctor full-clear 生效，Reserve 持續 100% 是預期結果。</div>':'';
+  return '<aside class="reserve-box"><h3>'+name+' Reserve</h3>'+
+    (reserve.length?'<div class="reserve-grid">'+reserve.map(reserveCard).join('')+'</div>':'<div class="reserve-empty">No reserve</div>')+rrNote+note+
+    '<h3 style="margin-top:12px">Support</h3>'+
+    (support.length?'<div class="support-grid">'+supportCards(support)+'</div>':'<div class="reserve-empty">No deployed support</div>')+
+    '</aside>';
+}
+function battleHalf(state,name){
+  const geometry=metadata.battlefields.find(f=>f.id===lastBattlefieldId)?.lines||{};
+  const formation=formationGrid(state,name,geometry);
+  return '<section class="battle-half '+name+'">'+reserveBox(state,name==='defender'?'Defender':'Attacker',geometry)+formation+'</section>';
+}
+function renderPager(){
+  const root=document.getElementById('roundPager');root.innerHTML='';
+  const maximum=lastResult.rounds_completed;
+  const add=(label,number,disabled=false,cssClass='')=>{
+    const b=document.createElement('button');b.type='button';b.textContent=label;b.disabled=disabled;if(cssClass)b.classList.add(cssClass);
+    b.classList.toggle('active',number===currentRoundNumber);
+    if(!disabled)b.addEventListener('click',()=>renderRound(number).catch(e=>error.textContent=e.message));root.append(b);return b;
+  };
+  add('初始部署',0,false,'deployment-jump');
+  if(maximum<1)return;
+  const anchor=currentRoundNumber===0?1:currentRoundNumber;
+  const start=Math.max(1,Math.min(anchor-4,Math.max(1,maximum-8))),end=Math.min(maximum,start+8);
+  add('«',1,currentRoundNumber===1);
+  add('‹',Math.max(1,currentRoundNumber-1),currentRoundNumber<=1);
+  for(let number=start;number<=end;number++)add(String(number),number);
+  add('›',currentRoundNumber===0?1:Math.min(maximum,currentRoundNumber+1),currentRoundNumber===maximum);
+  add('»',maximum,currentRoundNumber===maximum);
+  const jump=document.createElement('span');jump.className='round-jump';
+  const input=document.createElement('input');input.type='number';input.min='1';input.max=String(maximum);input.step='1';input.placeholder='回合';input.setAttribute('aria-label','跳到指定回合');
+  if(currentRoundNumber>0)input.value=String(currentRoundNumber);
+  const go=document.createElement('button');go.type='button';go.textContent='跳轉';
+  const jumpNow=()=>{const raw=Number(input.value),whole=Number.isFinite(raw)?Math.trunc(raw):1,value=Math.max(1,Math.min(maximum,whole));input.value=String(value);renderRound(value).catch(e=>error.textContent=e.message)};
+  go.addEventListener('click',jumpNow);input.addEventListener('keydown',event=>{if(event.key==='Enter')jumpNow()});
+  jump.append(input,go);root.append(jump);
+}
+function safetyNoticesHtml(data){
+  const blockers=[...new Set(data.events.filter(e=>e.type==='unsupported_mechanic').map(e=>e.details?.rule_id).filter(Boolean))];
+  const warnings=[...new Set(data.warnings||[])],assumptions=data.assumptions||[],cards=[];
+  const blockerHelp={
+    'UNKNOWN-FORMATION-FALLBACK':'主戰線需要尚未支援的 fallback。整個 Light Infantry wave 可完整轉入 First；Long-range 彈藥歸零後的 whole-wave 與 partial First fill 也已支援。這個邊界現在代表 Light 同 wave 跨 First/Flank 分兵、不同兵種跨 wave 重建、reactive secondary-weapon trigger，或其他尚未驗證的 fallback。',
+    'UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS':'同一 wave 同時跨多條 runtime line 的戰鬥與 RR 尚未完整校準。',
+    'UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION':'防守方駐軍數跨過 garrison limit，野戰狀態需要切換：可能從原戰場進入 land-max，或由 land-max 縮回原戰場並讓城牆重新出現。門檻已能準確偵測，但跨 geometry 的 wave/slot/damage/ammo 重建尚未校準。',
+    'UNKNOWN-TOWN-WALL-COMBAT':'Strict 模式遇到 active Town Wall 時停止於此 evidence boundary。Experimental 已可在具名假設下執行 Artillery 破牆、破口 First 暴露、Flank lock 與可整除牆傷重分配；Wall offensive Accuracy、非整除重分配與其他未校準牆戰細節仍會另以明確 boundary 停止。',
+  };
+  const roundCap=data.events.find(e=>e.type==='safety_limit_reached');
+  if(roundCap)cards.push('<div class="safety-card warning"><b>Safety round cap reached / 已達安全回合上限</b><div>Simulation stopped at '+esc(roundCap.details?.limit)+' rounds without a resolved outcome.</div></div>');
+  const morale=data.morale_status,moraleSides=morale?.sides||{},aCook=moraleSides.attacker?.cook_count||0,dCook=moraleSides.defender?.cook_count||0;
+  if(aCook||dCook){
+    const moraleStatuses=[moraleSides.attacker?.status,moraleSides.defender?.status].filter(Boolean);
+    let handling;
+    if(moraleStatuses.includes('ignored_by_named_assumption')){
+      handling='Experimental：已依 '+esc(morale.experimental_assumption_id)+' 繼續，但不套用 Cook 的士氣效果。';
+    }else if(moraleStatuses.includes('unsupported_boundary')){
+      handling='Strict：遇到 Cook 會以 '+esc(morale.strict_rule_id)+' 停在證據邊界。';
+    }else{
+      handling='尚未到達士氣處理：戰鬥先因其他 unsupported boundary 停止，'+esc(morale.experimental_assumption_id)+' 並未套用。';
+    }
+    cards.push('<div class="safety-card warning"><b>Morale / 士氣尚未建模</b><div>攻擊方 Cook '+aCook+'；防守方 Cook '+dCook+'。'+handling+' 實戰常見約 15 Cook 僅作配置參考，不是已驗證固定公式。</div></div>');
+  }
+  const garrison=data.garrison_status;
+  if(garrison?.modeled){
+    const settlementText=garrison.settlement_kind==='barbarian_village'
+      ?('野蠻人村落 Lv'+esc(garrison.barbarian_village_level))
+      :('市政廳 Lv'+esc(garrison.town_hall_level));
+    cards.push('<div class="safety-card '+(garrison.open_field?'warning':'assumption')+'"><b>Garrison / 駐軍上限</b><div>'+settlementText+' + 城牆 Lv'+esc(garrison.wall_level)+' → 上限 '+esc(garrison.garrison_limit)+'；開戰可計數守軍 '+esc(garrison.counted_defenders)+'（Doctor/Cook 不計）。'+(garrison.open_field?'因超過上限，初始為 land-max 野戰、城牆不出場。':'未超過上限，使用原戰場。')+(garrison.transition_reached?' 本次已到達野戰狀態切換門檻。':'')+'</div></div>');
+  }
+  const wall=data.wall_status;
+  if((wall?.level||0)>0){
+    let wallClass='assumption',wallDetail='';
+    if(wall.status==='suppressed'){
+      wallClass='warning';
+      wallDetail='目前因野戰狀態暫不出場。';
+    }else if(wall.status==='unsupported_boundary'){
+      wallClass='blocker';
+      wallDetail='Strict / evidence-safe：active-wall 戰鬥停在 '+esc(wall.rule_id)+'。';
+    }else{
+      const breached=(wall.breached_positions||[]).map(esc);
+      wallDetail=wall.status==='not_reached'
+        ?'Experimental wall capability 可執行，但本次戰鬥在進入牆戰前已結束；沒有套用城牆戰鬥效果。'
+        :('Experimental wall runtime：'+(
+          wall.status==='breached'
+            ?'全部牆段已突破。'
+            :('已突破 damage position '+(breached.length?breached.join(', '):'無')+'；'+(wall.flanks_locked?'Flank 仍鎖定。':'Flank 已解鎖。'))
+        )+' 牆段順序、wall successful-hit 與 Wall offensive Accuracy 仍屬具名假設／未校準邊界。');
+    }
+    cards.push('<div class="safety-card '+wallClass+'"><b>Town Wall / 城牆 Lv'+esc(wall.level)+'</b><div>'+esc(wall.segments)+' 段 · 每段 HP '+esc(wall.hit_points)+' · Armor '+esc(wall.armor)+' · Damage '+esc(wall.damage)+' · Accuracy：新版待校準。'+wallDetail+'</div></div>');
+  }
+  const healing=data.healing_status,healingSides=healing?.sides||{},aDoctor=healingSides.attacker?.doctor_count||0,dDoctor=healingSides.defender?.doctor_count||0;
+  if(aDoctor||dDoctor){
+    const healingStatuses=[healingSides.attacker?.status,healingSides.defender?.status].filter(Boolean);
+    let healingHandling;
+    if(healingStatuses.includes('partial_allocation_unresolved')){
+      healingHandling='Experimental：容量不足以全清可治療 Human 傷害時，依 '+esc(healing.experimental_assumption_id)+' 不猜部分 allocation；已能確定的 full-clear 回合仍會正常套用。';
+    }else if(healingStatuses.includes('unsupported_boundary')){
+      healingHandling='Strict：Doctor 的不完整 allocation 規則仍以 '+esc(healing.strict_rule_id)+' 停在證據邊界。';
+    }else if(healingStatuses.includes('applied_exact_subset')){
+      healingHandling='已套用可確定的 full-clear 子集：總 Doctor 容量足以清除當回合全部可治療 Human persistent damage。';
+    }else{
+      healingHandling='尚未到達需要實際治療的回合交界，或該時點沒有可治療 persistent damage。';
+    }
+    cards.push('<div class="safety-card warning"><b>Healing / 治療部分建模</b><div>攻擊方 Doctor '+aDoctor+'；防守方 Doctor '+dDoctor+'。'+healingHandling+' 每名 Doctor derived capacity = '+esc(healing.derived_capacity_per_doctor)+'；已知治療為每回合效果，並在下一回合戰鬥開始前反映。精確 Healing / RR 先後與容量不足時的 allocation 仍未知；full-clear 子集因結果為全部傷害歸零，不受先後順序影響。</div></div>');
+  }
+  const tender=data.tender_status,tenderSides=tender?.sides||{},aTender=tenderSides.attacker?.tender_count||0,dTender=tenderSides.defender?.tender_count||0;
+  if(aTender||dTender){
+    const tenderStatuses=[tenderSides.attacker?.status,tenderSides.defender?.status].filter(Boolean);
+    let tenderHandling;
+    if(tenderStatuses.includes('partial_allocation_unresolved')){
+      tenderHandling='Experimental：4000/艘/回合的總容量不足以全清 naval persistent damage 時，依 '+esc(tender.experimental_assumption_id)+' 不猜部分 allocation。';
+    }else if(tenderStatuses.includes('unsupported_boundary')){
+      tenderHandling='Strict：Tender 容量已知，但部分 allocation 仍停在 '+esc(tender.strict_rule_id)+'。';
+    }else if(tenderStatuses.includes('applied_exact_subset')){
+      tenderHandling='已套用可確定的 full-clear 子集：Tender 總容量足以清除該回合全部 naval persistent damage。';
+    }else{
+      tenderHandling='尚未到達需要實際修護的回合交界，或該時點沒有 naval persistent damage。';
+    }
+    cards.push('<div class="safety-card warning"><b>Tender / 海軍修護部分建模</b><div>攻擊方 Tender '+aTender+'；防守方 Tender '+dTender+'。'+tenderHandling+' 每艘 Tender capacity = '+esc(tender.capacity_per_tender)+' / 回合；效果由 Reserve 生效。精確 Healing / RR 先後與容量不足 allocation 仍未知。</div></div>');
+  }
+  if(blockers.length)cards.push('<div class="safety-card blocker"><b>Unsupported mechanics / 無法安全判定</b><ul>'+blockers.map(id=>'<li><b>'+esc(id)+'</b>'+(blockerHelp[id]?'<div>'+esc(blockerHelp[id])+'</div>':'')+'</li>').join('')+'</ul></div>');
+  if(warnings.length)cards.push('<div class="safety-card warning"><b>Evidence warnings</b><ul>'+warnings.map(item=>'<li>'+esc(item)+'</li>').join('')+'</ul></div>');
+  if(assumptions.length)cards.push('<div class="safety-card assumption"><b>Experimental assumptions actually used</b><ul>'+assumptions.map(item=>'<li>'+esc(item.id)+': '+esc(item.description)+'</li>').join('')+'</ul></div>');
+  return cards.join('');
+}
+function renderSafetyNotices(){
+  const html=safetyNoticesHtml(lastResult);
+  document.getElementById('roundSafetyNotices').innerHTML=html;
+  document.getElementById('summarySafetyNotices').innerHTML=html;
+}
+async function renderRound(number){
+  const token=++roundRenderToken,generation=simulationGeneration;
+  number=Math.max(0,Math.min(number,lastResult.rounds_completed));
+  const page=await loadRoundPage(number,generation);
+  if(token!==roundRenderToken||generation!==simulationGeneration||!page)return;
+  const round=page.rounds.find(item=>item.round===number);
+  if(!round)throw Error('Requested round was not returned by the simulator.');
+  currentRoundNumber=number;
+  document.getElementById('roundCaption').textContent=round.round===0?'部署狀態':'Round '+round.round+' / '+lastResult.rounds_completed;
+  resetFloatingTooltipState();
+  const board=document.getElementById('battleBoard');
+  board.innerHTML=battleHalf(round.attacker,'attacker')+'<div class="clash" aria-hidden="true"></div>'+battleHalf(round.defender,'defender');
+  bindFloatingTooltips(board);
+  const aStats=round.combat_statistics?.attacker||{},dStats=round.combat_statistics?.defender||{};
+  const healingValue=value=>value==null?'部分未知':Number(value).toLocaleString();
+  document.getElementById('roundMetrics').innerHTML=
+    '<div class="metric"><span>Status</span><b>'+esc(lastResult.status)+'</b></div>'+
+    '<div class="metric"><span>Outcome</span><b>'+esc(lastResult.outcome)+'</b></div>'+
+    '<div class="metric"><span>攻擊方造成傷害</span><b>'+Number(aStats.damage_dealt||0).toLocaleString()+' / 累計 '+Number(aStats.cumulative_damage_dealt||0).toLocaleString()+'</b></div>'+
+    '<div class="metric"><span>攻擊方承受傷害</span><b>'+Number(aStats.damage_taken||0).toLocaleString()+' / 累計 '+Number(aStats.cumulative_damage_taken||0).toLocaleString()+'</b></div>'+
+    '<div class="metric"><span>攻擊方治療</span><b>'+healingValue(aStats.healing)+' / 累計 '+healingValue(aStats.cumulative_healing)+'</b></div>'+
+    '<div class="metric"><span>防守方造成傷害</span><b>'+Number(dStats.damage_dealt||0).toLocaleString()+' / 累計 '+Number(dStats.cumulative_damage_dealt||0).toLocaleString()+'</b></div>'+
+    '<div class="metric"><span>防守方承受傷害</span><b>'+Number(dStats.damage_taken||0).toLocaleString()+' / 累計 '+Number(dStats.cumulative_damage_taken||0).toLocaleString()+'</b></div>'+
+    '<div class="metric"><span>防守方治療</span><b>'+healingValue(dStats.healing)+' / 累計 '+healingValue(dStats.cumulative_healing)+'</b></div>';
+  const events=page.events.filter(e=>e.round===round.round);
+  document.getElementById('researchData').innerHTML='<details><summary>Continuation state</summary><pre>'+esc(JSON.stringify({attacker:round.attacker.continuation_state,defender:round.defender.continuation_state},null,2))+'</pre></details><details><summary>Wave / batch state</summary><pre>'+esc(JSON.stringify({attacker:round.attacker.waves,defender:round.defender.waves},null,2))+'</pre></details><details><summary>Engine events</summary><pre>'+esc(JSON.stringify(events,null,2))+'</pre></details>';
+  renderSafetyNotices();renderPager();
+}
+async function roundDebugPayload(){
+  const generation=simulationGeneration,scenario=scenarioByGeneration.get(generation);
+  if(!lastResult||!scenario)throw Error('尚無可下載的戰鬥結果。');
+  const page=await loadRoundPage(currentRoundNumber,generation);
+  if(generation!==simulationGeneration||!page)throw Error('戰鬥資料已更新，請重新下載目前回合。');
+  const round=page.rounds.find(item=>item.round===currentRoundNumber);
+  if(!round)throw Error('找不到目前回合資料。');
+  const currentRoundEvents=page.events.filter(e=>e.round===round.round);
+  const diagnosticEvents=[...(lastResult.events||[]),...currentRoundEvents];
+  const unsupportedMechanics=[...new Set(diagnosticEvents.filter(e=>e.type==='unsupported_mechanic').map(e=>e.details?.rule_id).filter(Boolean))];
+  return {debug_format:'ikariam-battle-simulator',debug_version:1,kind:'round',exported_at:new Date().toISOString(),
+    scenario,simulation_summary:lastResult,current_round_number:round.round,current_round:round,current_round_events:currentRoundEvents,
+    diagnostics:{unsupported_mechanics:unsupportedMechanics,warnings:lastResult.warnings||[],assumptions:lastResult.assumptions||[],report:page.report||null}};
+}
+async function downloadCurrentRoundDebug(){
+  roundDebugError.textContent='';
+  try{
+    const payload=await roundDebugPayload(),suffix=payload.current_round_number===0?'deployment':'round-'+payload.current_round_number;
+    downloadJson('ikariam-'+suffix+'-debug.json',payload);
+  }catch(e){roundDebugError.textContent=e.message}
+}
+function summarySide(side,label){
+  const initial=lastResult.initial_state[side].remaining||{},final=lastResult.final_state[side].remaining||{},loss=lastResult.casualties[side]||{};
+  const ids=[...new Set([...Object.keys(initial),...Object.keys(final),...Object.keys(loss)])].filter(id=>(initial[id]||final[id]||loss[id]));
+  const military=lastResult.military_score?.[side]||{},combat=lastResult.combat_statistics?.[side]||{},morale=lastResult.morale_status?.sides?.[side]||{},healing=lastResult.healing_status?.sides?.[side]||{},tender=lastResult.tender_status?.sides?.[side]||{};
+  const moraleStatusLabel={ignored_by_named_assumption:'假設忽略',unsupported_boundary:'Strict 邊界',not_reached:'尚未到達',not_present:'未使用'}[morale.status]||'未建模';
+  const moraleText=(morale.cook_count||0)?'Cook '+morale.cook_count+' · '+moraleStatusLabel:'Cook 0 · 未使用';
+  const healingStatusLabel={applied_exact_subset:'已套用可確定子集',partial_allocation_unresolved:'部分分配未知',unsupported_boundary:'Strict 邊界',not_reached:'尚未到達',not_present:'未使用'}[healing.status]||'部分建模';
+  const healingText=(healing.doctor_count||0)?'Doctor '+healing.doctor_count+' · '+healingStatusLabel:'Doctor 0 · 未使用';
+  const tenderStatusLabel={applied_exact_subset:'已套用可確定子集',partial_allocation_unresolved:'部分分配未知',unsupported_boundary:'Strict 邊界',not_reached:'尚未到達',not_present:'未使用'}[tender.status]||'部分建模';
+  const tenderText=(tender.tender_count||0)?'Tender '+tender.tender_count+' · '+tenderStatusLabel:'Tender 0 · 未使用';
+  const appliedHealing=Number(combat.engine_healing_applied||0);
+  const grossHealing=combat.gross_healing==null?'部分未知 · 已套用 '+appliedHealing.toLocaleString():Number(combat.gross_healing||0).toLocaleString();
+  const scoreLost=military.general_score_lost==null?'不可用':'−'+military.general_score_lost;
+  const scoreDestroyed=military.general_score_destroyed==null?'不可用':String(military.general_score_destroyed);
+  return '<section class="panel summary-side"><h3>'+label+'</h3><table class="summary-table"><thead><tr><th>兵種</th><th>初始</th><th>損失</th><th>剩餘</th></tr></thead><tbody>'+
+    ids.map(id=>{const unit=unitById(id);return '<tr><td>'+esc(unit?.display_name||id)+'</td><td>'+(initial[id]||0)+'</td><td class="loss">−'+(loss[id]||0)+'</td><td>'+(final[id]||0)+'</td></tr>'}).join('')+
+    '</tbody></table><div class="side-stats"><div class="side-stat"><span>軍分損失</span><b>'+scoreLost+'</b></div><div class="side-stat"><span>造成軍分消減</span><b>'+scoreDestroyed+'</b></div><div class="side-stat"><span>Gross damage dealt</span><b>'+Number(combat.gross_damage_dealt||0).toLocaleString()+'</b></div><div class="side-stat"><span>Gross damage taken</span><b>'+Number(combat.gross_damage_taken||0).toLocaleString()+'</b></div><div class="side-stat"><span>Healing</span><b>'+grossHealing+'</b></div><div class="side-stat"><span>Doctor / 治療</span><b>'+esc(healingText)+'</b></div><div class="side-stat"><span>Tender / 修護</span><b>'+esc(tenderText)+'</b></div><div class="side-stat"><span>Cook / 士氣</span><b>'+esc(moraleText)+'</b></div></div></section>';
+}
+function renderSummary(){
+  const aLoss=Object.values(lastResult.casualties.attacker||{}).reduce((a,b)=>a+b,0),dLoss=Object.values(lastResult.casualties.defender||{}).reduce((a,b)=>a+b,0);
+  document.getElementById('summaryMetrics').innerHTML='<div class="metric"><span>Rounds</span><b>'+lastResult.rounds_completed+'</b></div><div class="metric"><span>Attacker losses</span><b>'+aLoss+'</b></div><div class="metric"><span>Defender losses</span><b>'+dLoss+'</b></div>';
+  document.getElementById('summaryGrid').innerHTML=summarySide('attacker','攻擊方')+summarySide('defender','防守方');
+}
+function setReportsEnabled(enabled){
+  document.querySelector('[data-view="round"]').disabled=!enabled;document.querySelector('[data-view="summary"]').disabled=!enabled;
+}
+function enableReports(){setReportsEnabled(true)}
+function disableReports(){setReportsEnabled(false)}
+function setSimulationError(message){
+  const value=message||'';
+  errorTop.textContent=value;
+  error.textContent=value;
+}
+async function boot(){
+  const response=await fetch('/api/simulate'),data=await response.json();metadata=data;
+  playerUnits=(data.units||[]).filter(u=>u.numerically_supported||u.role==='support');
+  barbarianUnits=(data.barbarian_units||[]).filter(u=>u.simulation_ready);
+  units=[...playerUnits,...barbarianUnits];
+  populateForge('aForge');populateForge('dForge');populateTownHallLevel();populateBarbarianVillageLevel();populateWallLevels();
+  renderBarbarianCatalog();populateBattleDomains();refreshUserPresetOptions();
+}
+battleDomain.addEventListener('change',()=>refreshBattlefieldOptions());
+battlefield.addEventListener('change',()=>{updateArmyPackageAvailability();updateWallControl();updateSlotButtons();updateAllUnitStats()});
+policy.addEventListener('change',updateWallControl);
+document.getElementById('aArmyKind').addEventListener('change',()=>toggleArmyPackage('attacker'));
+document.getElementById('dArmyKind').addEventListener('change',()=>toggleArmyPackage('defender'));
+document.getElementById('applyBarbarianFleetStage').addEventListener('click',()=>{
+  try{setSimulationError('');applyBarbarianFleetStageComposition()}catch(e){setSimulationError(e.message)}
+});
+researchMode.addEventListener('change',()=>document.body.classList.toggle('research',researchMode.checked));
+showUnitStats.addEventListener('change',()=>{document.body.classList.toggle('show-unit-stats',showUnitStats.checked);if(showUnitStats.checked)updateAllUnitStats()});
+showUnitIdentity.addEventListener('change',()=>document.body.classList.toggle('show-unit-identity',showUnitIdentity.checked));
+document.getElementById('aForge').addEventListener('change',updateAllUnitStats);
+document.getElementById('dForge').addEventListener('change',updateAllUnitStats);
+async function runSimulation(){
+  setSimulationError('');
+  let requestGeneration=null;
+  try{
+    const scenario=scenarioFromSetup(),submittedBattlefield=scenario.battlefield;
+    requestGeneration=++simulationRequestGeneration;
+    ++roundRenderToken;
+    disableReports();
+    const data=await postSimulation({...scenario,report:{mode:'summary'}});
+    if(requestGeneration!==simulationRequestGeneration)return;
+    simulationGeneration=requestGeneration;
+    roundPageCache.clear();scenarioByGeneration.clear();scenarioByGeneration.set(simulationGeneration,scenario);
+    lastResult=data;lastBattlefieldId=data.garrison_status?.effective_battlefield||submittedBattlefield;currentRoundNumber=data.rounds_completed;
+    renderSummary();enableReports();await renderRound(currentRoundNumber);
+    if(requestGeneration===simulationRequestGeneration&&simulationGeneration===requestGeneration)showView('round');
+  }catch(e){
+    if(requestGeneration===null){
+      setSimulationError(e.message);
+      return;
+    }
+    if(requestGeneration===simulationRequestGeneration){
+      if(lastResult){
+        enableReports();
+        try{
+          await renderRound(currentRoundNumber);
+        }catch(recoveryError){
+          if(requestGeneration===simulationRequestGeneration)setSimulationError(e.message+' · Active report refresh failed: '+recoveryError.message);
+          return;
+        }
+      }else{
+        disableReports();
+      }
+      if(requestGeneration===simulationRequestGeneration)setSimulationError(e.message);
+    }
+  }
+}
+simulate.addEventListener('click',runSimulation);
+simulateTop.addEventListener('click',runSimulation);
+downloadSetup.addEventListener('click',downloadSetupDebug);
+downloadSetupTop.addEventListener('click',downloadSetupDebug);
+applyBuiltinPreset.addEventListener('click',applySelectedBuiltinPreset);
+clearArmiesButton.addEventListener('click',clearArmies);
+saveUserPreset.addEventListener('click',saveCurrentPreset);
+loadUserPreset.addEventListener('click',loadSelectedPreset);
+deleteUserPreset.addEventListener('click',deleteSelectedPreset);
+userPresetSelect.addEventListener('change',()=>{if(userPresetSelect.value)userPresetName.value=userPresetSelect.value});
+downloadRoundDebug.addEventListener('click',downloadCurrentRoundDebug);
+boot().catch(e=>setSimulationError(e.message));
+</script>
+</body>
+</html>

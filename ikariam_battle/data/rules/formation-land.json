@@ -1,0 +1,167 @@
+{
+  "metadata": {
+    "profile": "formation-land",
+    "version": 1,
+    "domain": "land",
+    "implementation_status": "ALL_LAND_GEOMETRIES_PLANNER_IMPLEMENTED_COMBAT_GUARDED",
+    "sources": [
+      {
+        "source_type": "GAMEFORGE_IN_GAME_HELP",
+        "title": "Art of Warfare formation and line priorities",
+        "verification": "USER_SUPPLIED_AUTHORITY"
+      },
+      {
+        "source_type": "EMPIRICAL_MECHANICS_PAPER",
+        "title": "ikariam battle system.pdf section 2.2",
+        "verification": "REPOSITORY_ARTIFACT"
+      },
+      {
+        "source_type": "USER_PROVIDED_BATTLE_OBSERVATION",
+        "title": "Partial heavy front with light-infantry fallback",
+        "verification": "CURRENT_BEHAVIOR_CORROBORATION"
+      },
+      {
+        "source_type": "GAMEFORGE_CURRENT_BATTLEFIELD_GUIDE",
+        "title": "Ikariam Battleground: current Artillery and RCL ordering",
+        "verification": "WEB_VERIFIED_2026-10-02"
+      },
+      {
+        "source_type": "GAME_UPDATE_NOTE",
+        "title": "Patch 0.3.5 strongest-group battlefield fill rule",
+        "verification": "COMMUNITY_ARCHIVE_CORROBORATION"
+      },
+      {
+        "source_type": "EMPIRICAL_MECHANICS_PAPER",
+        "title": "Second-line exhausted Long-Range First-line fallback / close-weapon behavior",
+        "verification": "REPOSITORY_ARTIFACT_PLUS_USER_INTERPRETATION_2026-10-05"
+      },
+      {
+        "source_type": "USER_PROVIDED_BATTLE_OBSERVATION",
+        "title": "Finite-ammo native deployment / zero-ammo Long-Range Reserve behavior",
+        "verification": "USER_OBSERVED_2026-10-05"
+      },
+      {
+        "source_type": "USER_REASONED_MECHANICS_INTERPRETATION",
+        "title": "RR before exhausted Long-Range partial First selection",
+        "verification": "USER_CONFIRMED_2026-10-05",
+        "rule": "Redistribute persistent damage across the whole surviving wave first, then select the First-line subset; aggregate implementation uses the same proportional RR allocator."
+      }
+    ]
+  },
+  "lines": {
+    "first": {
+      "eligible_semantic_classes": [
+        "heavy_infantry",
+        "light_infantry"
+      ],
+      "class_precedence": [
+        "heavy_infantry",
+        "light_infantry"
+      ],
+      "fallback_semantic_classes": [
+        "light_infantry"
+      ],
+      "deployment_order_authority": "battlefield_geometry.damage_priority",
+      "standard_physical_damage_labels_evidence": [
+        6,
+        4,
+        2,
+        1,
+        3,
+        5,
+        7
+      ],
+      "implementation_status": "IMPLEMENTED_FOR_ALL_LAND_GEOMETRIES",
+      "exhausted_long_range_fallback": {
+        "source_native_line": "second",
+        "requires_primary_ammo_exhausted": true,
+        "fallback_weapon": "secondary_close_weapon",
+        "class_precedence_after": [
+          "heavy_infantry",
+          "light_infantry"
+        ],
+        "implementation_status": "WHOLE_WAVE_AND_PARTIAL_FIRST_FILL;RR_BEFORE_SELECTION;EXCESS_STAYS_RESERVE"
+      }
+    },
+    "second": {
+      "eligible_native_lines": [
+        "second"
+      ],
+      "deployment_order_authority": "battlefield_geometry.damage_priority",
+      "standard_physical_damage_labels_evidence": [
+        6,
+        4,
+        2,
+        1,
+        3,
+        5,
+        7
+      ],
+      "implementation_status": "NATIVE_ONLY",
+      "unit_selection_policy": "strongest_slot_group_primary_damage",
+      "unit_selection_evidence": "GAMEFORGE_CURRENT_ORDER_PLUS_USER_OBSERVED_PARTIAL_GROUP",
+      "ammunition_deployment": {
+        "rule": "Native finite-ammo deployment is capped by remaining primary shots. At zero shots Long-Range does not refill Second.",
+        "fallback": "Zero-ammo Long-Range may fill First with secondary close weapon; excess remains Reserve.",
+        "status": "IMPLEMENTED"
+      }
+    },
+    "third": {
+      "eligible_native_lines": [
+        "third"
+      ],
+      "deployment_order_authority": "battlefield_geometry.damage_priority",
+      "standard_physical_damage_labels_evidence": [
+        5,
+        3,
+        1,
+        2,
+        4
+      ],
+      "implementation_status": "NATIVE_ONLY",
+      "unit_selection_policy": "strongest_slot_group_primary_damage",
+      "unit_selection_evidence": "GAMEFORGE_CURRENT_ORDER_PLUS_USER_OBSERVED_PARTIAL_GROUP"
+    },
+    "flank": {
+      "eligible_native_lines": [
+        "flank"
+      ],
+      "deployment_order_authority": "battlefield_geometry.damage_priority",
+      "standard_physical_damage_labels_evidence": [
+        6,
+        4,
+        2,
+        1,
+        3,
+        5
+      ],
+      "implementation_status": "NATIVE_SLOTS_LAND_SMALL_THROUGH_MAX"
+    },
+    "balloon": {
+      "eligible_native_lines": [
+        "balloon"
+      ],
+      "deployment_order_authority": "battlefield_geometry.damage_priority",
+      "standard_physical_damage_labels_evidence": [
+        1,
+        2
+      ],
+      "implementation_status": "NATIVE_ONLY"
+    },
+    "anti-balloon": {
+      "eligible_native_lines": [
+        "anti-balloon"
+      ],
+      "deployment_order_authority": "battlefield_geometry.damage_priority",
+      "standard_physical_damage_labels_evidence": [
+        2,
+        1
+      ],
+      "implementation_status": "NATIVE_ONLY"
+    }
+  },
+  "unknowns": [
+    "UNKNOWN-NON-STANDARD-RENUMBERING",
+    "UNKNOWN-SECONDARY-WEAPON-TRIGGER"
+  ]
+}

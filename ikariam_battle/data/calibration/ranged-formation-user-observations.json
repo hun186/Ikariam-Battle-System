@@ -1,0 +1,25 @@
+{
+  "evidence_class": "USER_PROVIDED_BATTLE_OBSERVATION",
+  "implementation_status": "CALIBRATION_ONLY_UNSUPPORTED_IN_PRODUCTION",
+  "cases": [
+    {
+      "id": "RANGED-PARTIAL-AMMO-2",
+      "surviving_quantity": null,
+      "surviving_quantity_status": "unknown_many_surviving_units_observed",
+      "ammo_pool_shots": 2,
+      "observed_second_line_deployed": 2,
+      "observed_same_batch_additional_units": true,
+      "observed_non_firing_remainder_in_front": true,
+      "unknowns": ["trigger", "placement", "priority", "front_weapon"]
+    },
+    {
+      "id": "RANGED-FULL-LINE-AMMO-282",
+      "alive": 838,
+      "ammo_pool_shots": 282,
+      "observed_second_line_slots_full": 7,
+      "observed_non_firing_remainder_location": "reserve_or_off_field",
+      "observed_automatic_front_fallback": false,
+      "unknowns": ["full_line_threshold_generalization", "slot_capacity_for_observed_battlefield"]
+    }
+  ]
+}
