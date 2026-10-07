@@ -390,6 +390,13 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert 'function reserveGroups(state)' in body and 'reserve_hit_points_percent' in body
  assert 'batches.length>1' in body and 'batch-badge' in body
  assert "Reserve persistent damage" in body
+ assert 'class="reserve-info"' in body and 'class="reserve-heading"' in body
+ assert 'Reserve HP 與 RR 說明' in body
+ assert "attackerReserveRrDescription" in body and "defenderReserveRrDescription" in body
+ assert "aria-describedby=\"'+rrDescriptionId+'\"" in body
+ assert 'aria-describedby="floatingTooltip"' not in body
+ assert 'class="sr-only"' in body and '.sr-only{position:absolute!important' in body
+ assert "const rrNote=reserve.length?" not in body
  assert "Math.floor(field.lines[line].slot_space/unit.size)" in body
  assert "unit.semantic_class==='light_infantry'&&field.lines.first" in body
  assert "minus.textContent=step?'−'+step" in body and "plus.textContent=step?'＋'+step" in body
@@ -400,7 +407,7 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert "line.physical_order.length*Math.floor(line.slot_space/unit.size)" in body
  assert 'formation-row front-row' in body and 'formation-row ranged-row' in body and 'formation-row rear-row' in body
  assert "sideLine(state,'flank',geometry,'left'" in body and "sideLine(state,'flank',geometry,'right'" in body
- assert "sideLine(state,'anti-balloon',geometry,'left')" in body and "sideLine(state,'balloon',geometry,'right')" in body
+ assert "sideLine(state,'balloon',geometry,'left')" in body and "sideLine(state,'anti-balloon',geometry,'right')" in body
  assert "name==='attacker'?[rear,ranged,front]:[front,ranged,rear]" in body
  assert 'air-zone' not in body and 'flank-column' not in body and 'ground-zone' not in body
  assert '@media(max-width:1100px)' in body
