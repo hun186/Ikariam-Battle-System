@@ -961,7 +961,7 @@ def test_rebuild_requirements_ignore_zero_ammo_native_reserve_but_keep_long_rang
  assert any(
   event.type=='formation_fallback'
   and event.details.get('wave_id')=='ranged-a'
-  and event.details.get('runtime_line')=='first'
+  and event.details.get('to_line')=='first'
   for event in ranged_events
  )
 
