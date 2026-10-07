@@ -909,6 +909,47 @@ def test_exhausted_earlier_air_wave_cannot_reclaim_native_slots_from_later_ammo_
  assert _cross_wave_rebuild_requirements(waves,registry,rules,field)==[]
 
 
+def test_rebuild_requirements_ignore_zero_ammo_native_reserve_but_keep_long_range_fallback():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ field=LAND_BATTLEFIELDS['land-max']
+
+ air=deploy(Army.from_dict({'units':[
+  {'unit_id':'gyrocopter','quantity':30,'entry_batch_id':'air-a','wave_id':'gyro-a'},
+  {'unit_id':'gyrocopter','quantity':30,'entry_batch_id':'air-b','wave_id':'gyro-b'},
+ ]}),registry,field)
+ gyro_a=next(w for w in air if w.unit.wave_id=='gyro-a')
+ gyro_b=next(w for w in air if w.unit.wave_id=='gyro-b')
+ gyro_a.ammo_pool_shots=0
+ gyro_b.ammo_pool_shots=120
+ events=[]; applied={}
+ _prepare_round_start(
+  air,events,4,'attacker',applied,registry,rules,field,
+ )
+ assert gyro_a.reserve==30 and not any(slot.units for slot in gyro_a.slots)
+ assert sum(slot.units for slot in gyro_b.slots if slot.line=='anti-balloon')==30
+ assert _cross_wave_rebuild_requirements(air,registry,rules,field)==[]
+
+ ranged=deploy(Army.from_dict({'units':[
+  {'unit_id':'sulphur_carabineer','quantity':60,
+   'entry_batch_id':'ranged-a','wave_id':'ranged-a'},
+ ]}),registry,field)
+ ranged_wave=ranged[0]
+ ranged_wave.ammo_pool_shots=0
+ ranged_wave.reserve=60
+ ranged_wave.slots=[]
+ requirements=_cross_wave_rebuild_requirements(
+  ranged,registry,rules,field,
+ )
+ assert not any(
+  requirement['runtime_line']=='second'
+  for requirement in requirements
+ )
+ assert any(
+  requirement['runtime_line']=='first'
+  for requirement in requirements
+ )
+
+
 def test_initial_and_round_start_same_unit_precedence_do_not_swap_full_slots():
  registry=UnitRegistry.load(); rules=FormationRules.load()
  field=LAND_BATTLEFIELDS['land-max']
