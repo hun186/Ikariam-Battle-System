@@ -28,9 +28,10 @@ def hold_initial_wall_formations(attacker, defender):
             kept = []
             for slot in wave.slots:
                 if slot.line in held:
-                    if slot.damage:
-                        raise ValueError("initial Town Wall hold requires undamaged slots")
+                    # At a same-geometry garrison exit, the wall can reappear
+                    # after combat; carry survivor damage into Reserve intact.
                     wave.reserve += slot.units
+                    wave.reserve_damage += slot.damage
                 else:
                     kept.append(slot)
             wave.slots[:] = kept
