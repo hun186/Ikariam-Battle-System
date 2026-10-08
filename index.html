@@ -32,6 +32,7 @@ main{max-width:1280px;margin:18px auto;padding:0 16px 42px}
 @media(max-width:1190px){.battle-half{grid-template-columns:minmax(0,1fr)}.battle-half.defender .reserve-box{order:2}.formation{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}.formation-row{min-width:880px}}
 @media(max-width:900px){.setup-grid,.summary-grid,.mechanics-grid,.source-grid{grid-template-columns:1fr}.unit-setup-row,.show-unit-identity .unit-setup-row{grid-template-columns:minmax(130px,.8fr) minmax(180px,1.4fr) 72px 72px}}
 @media(max-width:600px){main{padding:0 8px 30px}.unit-setup-row,.show-unit-identity .unit-setup-row{grid-template-columns:1fr 1fr}.unit-ident,.qty-control,.unit-statbox,.advanced{grid-column:1/-1}.advanced{margin:0}.slot{width:64px}.settings{align-items:stretch}.side-title{align-items:flex-start;flex-direction:column}.side-toolbar{width:100%}}
+.wall-slot .slot-glyph{font-size:22px;line-height:28px}.wall-slot.dead .slot-glyph{opacity:.4;filter:grayscale(1)}.wall-slot .slot-count{font-size:12px}
 </style>
 </head>
 <body>
@@ -836,6 +837,19 @@ function lineSlots(state,line,geometry,positions=null,compact=false){
       '<div class="slot-count">'+Number(slot.units||0)+' <span class="slot-loss">(-'+loss+')</span></div></div>';
   }).join('')+'</div>';
 }
+function wallLineRow(wall){
+  // Render this round's frozen sections, never the cumulative final wall_status.
+  const sections=[...(wall.sections||[])].sort((a,b)=>Number(a.physical_position)-Number(b.physical_position));
+  return '<div class="battle-line"><div class="slots">'+sections.map(section=>{
+    const gone=!!section.destroyed,remaining=Number(section.remaining_hit_points||0);
+    const maxHp=Math.max(1,Number(wall.hit_points||0));
+    const hp=Math.max(0,Math.min(100,remaining/maxHp*100));
+    const label='Town Wall Lv'+Number(wall.level)+' · position '+Number(section.damage_position);
+    const accessible=label+' · '+(gone?'breached':'HP '+remaining+' / '+maxHp);
+    const details='<b>'+esc(label)+'</b><div>'+(gone?'Breached / 已突破':('HP '+remaining+' / '+maxHp))+'</div><div>城牆反擊尚未建模；本格僅顯示模擬的城牆段狀態。</div>';
+    return '<div class="slot wall-slot'+(gone?' dead':'')+'" tabindex="0" aria-label="'+esc(accessible)+'" data-tooltip="'+tooltipAttribute(details)+'"><div class="slot-visual"><div class="slot-glyph" aria-hidden="true">🏰</div>'+hpBar(hp,'HP')+'</div><div class="slot-count">'+(gone?'0':'1')+'</div></div>';
+  }).join('')+'</div></div>';
+}
 function lineRow(state,line,geometry){
   return '<div class="battle-line">'+lineSlots(state,line,geometry)+'</div>';
 }
@@ -855,9 +869,10 @@ function sideLine(state,line,geometry,side,positions=null){
 function centerLine(state,line,geometry){
   return geometry[line]?'<div class="formation-center">'+lineRow(state,line,geometry)+'</div>':'<div class="formation-center"></div>';
 }
-function frontRow(state,geometry){
+function frontRow(state,geometry,wall=null){
   const left=sideLine(state,'flank',geometry,'left',splitLinePositions(geometry,'flank','left'));
-  const center=centerLine(state,'first',geometry);
+  const showWall=wall?.active&&(wall.sections||[]).some(section=>!section.destroyed);
+  const center=showWall?'<div class="formation-center">'+wallLineRow(wall)+'</div>':centerLine(state,'first',geometry);
   const right=sideLine(state,'flank',geometry,'right',splitLinePositions(geometry,'flank','right'));
   return '<div class="formation-row front-row">'+left+center+right+'</div>';
 }
@@ -870,8 +885,8 @@ function rearRow(state,geometry){
   const right=sideLine(state,'anti-balloon',geometry,'right');
   return '<div class="formation-row rear-row">'+left+center+right+'</div>';
 }
-function formationGrid(state,name,geometry){
-  const front=frontRow(state,geometry),ranged=rangedRow(state,geometry),rear=rearRow(state,geometry);
+function formationGrid(state,name,geometry,wall=null){
+  const front=frontRow(state,geometry,wall),ranged=rangedRow(state,geometry),rear=rearRow(state,geometry);
   const rows=name==='attacker'?[rear,ranged,front]:[front,ranged,rear];
   return '<div class="formation">'+rows.join('')+'</div>';
 }
@@ -923,13 +938,13 @@ function reserveBox(state,name,geometry,reserve){
     (support.length?'<div class="support-grid">'+supportCards(support)+'</div>':'<div class="reserve-empty">No deployed support</div>')+
     '</aside>';
 }
-function battleHalf(state,name){
+function battleHalf(state,name,wall=null){
   const geometry=metadata.battlefields.find(f=>f.id===lastBattlefieldId)?.lines||{};
   const reserve=reserveGroups(state);
   // Two through four compact columns; leave more room for the battlefield when Reserve is small.
   const reserveColumns=Math.max(2,Math.min(4,reserve.length));
   const reserveWidth=reserveColumns*68+12; // 62px cards, 6px gaps, 18px box padding/borders.
-  const formation=formationGrid(state,name,geometry);
+  const formation=formationGrid(state,name,geometry,wall);
   return '<section class="battle-half '+name+'" style="--reserve-width:'+reserveWidth+'px">'+
     reserveBox(state,name==='defender'?'Defender':'Attacker',geometry,reserve)+formation+'</section>';
 }
@@ -1061,7 +1076,7 @@ async function renderRound(number){
   document.getElementById('roundCaption').textContent=round.round===0?'部署狀態':'Round '+round.round+' / '+lastResult.rounds_completed;
   resetFloatingTooltipState();
   const board=document.getElementById('battleBoard');
-  board.innerHTML=battleHalf(round.attacker,'attacker')+'<div class="clash" aria-hidden="true"></div>'+battleHalf(round.defender,'defender');
+  board.innerHTML=battleHalf(round.attacker,'attacker')+'<div class="clash" aria-hidden="true"></div>'+battleHalf(round.defender,'defender',round.wall);
   bindFloatingTooltips(board);
   const aStats=round.combat_statistics?.attacker||{},dStats=round.combat_statistics?.defender||{};
   const healingValue=value=>value==null?'部分未知':Number(value).toLocaleString();
@@ -1075,7 +1090,7 @@ async function renderRound(number){
     '<div class="metric"><span>防守方承受傷害</span><b>'+Number(dStats.damage_taken||0).toLocaleString()+' / 累計 '+Number(dStats.cumulative_damage_taken||0).toLocaleString()+'</b></div>'+
     '<div class="metric"><span>防守方治療</span><b>'+healingValue(dStats.healing)+' / 累計 '+healingValue(dStats.cumulative_healing)+'</b></div>';
   const events=page.events.filter(e=>e.round===round.round);
-  document.getElementById('researchData').innerHTML='<details><summary>Continuation state</summary><pre>'+esc(JSON.stringify({attacker:round.attacker.continuation_state,defender:round.defender.continuation_state},null,2))+'</pre></details><details><summary>Wave / batch state</summary><pre>'+esc(JSON.stringify({attacker:round.attacker.waves,defender:round.defender.waves},null,2))+'</pre></details><details><summary>Engine events</summary><pre>'+esc(JSON.stringify(events,null,2))+'</pre></details>';
+  document.getElementById('researchData').innerHTML='<details><summary>Continuation state</summary><pre>'+esc(JSON.stringify({attacker:round.attacker.continuation_state,defender:round.defender.continuation_state},null,2))+'</pre></details><details><summary>Wave / batch state</summary><pre>'+esc(JSON.stringify({attacker:round.attacker.waves,defender:round.defender.waves,wall:round.wall},null,2))+'</pre></details><details><summary>Engine events</summary><pre>'+esc(JSON.stringify(events,null,2))+'</pre></details>';
   renderSafetyNotices();renderPager();
 }
 async function roundDebugPayload(){
