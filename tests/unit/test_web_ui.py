@@ -48,6 +48,21 @@ def test_round_reserve_uses_content_aware_columns_and_mobile_scrolling():
     assert '.battle-board{overflow-x:auto}' not in INDEX
 
 
+def test_round_formation_hides_visual_line_headings_and_preserves_slot_geometry():
+    # Remove the round's decorative headings only; setup reference labels stay.
+    assert INDEX == PUBLIC_INDEX
+    assert "battle-line-name" not in INDEX
+    assert "function lineLabel(line)" in INDEX
+    assert 'function lineRow(state,line,geometry){' in INDEX
+    assert '''return '<div class="battle-line">'+lineSlots(state,line,geometry)+'</div>';''' in INDEX
+    assert '''return '<div class="formation-side '+side+'">'+lineSlots(state,line,geometry,chosen,true)+'</div>';''' in INDEX
+    assert ".battle-line{display:grid;grid-template-columns:minmax(0,1fr);align-items:center}" in INDEX
+    assert "const front=frontRow(state,geometry),ranged=rangedRow(state,geometry),rear=rearRow(state,geometry);" in INDEX
+    assert "const rows=name==='attacker'?[rear,ranged,front]:[front,ranged,rear];" in INDEX
+    assert "slotTooltipHtml(slot)" in INDEX
+    assert "lineSlots(state,line,geometry" in INDEX
+
+
 def test_battlefield_air_units_match_game_left_right_layout():
     assert "const left=sideLine(state,'balloon',geometry,'left');" in INDEX
     assert "const right=sideLine(state,'anti-balloon',geometry,'right');" in INDEX
