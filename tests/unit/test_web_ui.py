@@ -57,10 +57,21 @@ def test_round_formation_hides_visual_line_headings_and_preserves_slot_geometry(
     assert '''return '<div class="battle-line">'+lineSlots(state,line,geometry)+'</div>';''' in INDEX
     assert '''return '<div class="formation-side '+side+'">'+lineSlots(state,line,geometry,chosen,true)+'</div>';''' in INDEX
     assert ".battle-line{display:grid;grid-template-columns:minmax(0,1fr);align-items:center}" in INDEX
-    assert "const front=frontRow(state,geometry),ranged=rangedRow(state,geometry),rear=rearRow(state,geometry);" in INDEX
+    assert "const front=frontRow(state,geometry,wall),ranged=rangedRow(state,geometry),rear=rearRow(state,geometry);" in INDEX
     assert "const rows=name==='attacker'?[rear,ranged,front]:[front,ranged,rear];" in INDEX
     assert "slotTooltipHtml(slot)" in INDEX
     assert "lineSlots(state,line,geometry" in INDEX
+
+
+def test_round_wall_view_shows_actual_round_segments_with_experimental_warning():
+    assert INDEX == PUBLIC_INDEX
+    assert 'function wallLineRow(wall)' in INDEX
+    assert 'const showWall=wall?.active&&(wall.sections||[]).some(section=>!section.destroyed)' in INDEX
+    assert "battleHalf(round.defender,'defender',round.wall)" in INDEX
+    assert '城牆反擊尚未建模' in INDEX
+    assert 'section.remaining_hit_points' in INDEX
+    assert 'physical_position' in INDEX
+    assert 'tooltipAttribute(details)' in INDEX
 
 
 def test_battlefield_air_units_match_game_left_right_layout():
