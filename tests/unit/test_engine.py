@@ -124,6 +124,28 @@ def test_round_wall_is_hidden_when_garrison_suppresses_city_wall():
                   'sections':[],'wall_offense_modeled':False}
 
 
+def test_strict_active_wall_round_zero_snapshot_even_on_unsupported_exit():
+    s={'policy':'strict','battlefield':'land-max','wall_level':24,
+       'town_hall_level':25,
+       'attacker':{'units':[{'unit_id':'hoplite','quantity':350}]},
+       'defender':{'units':[{'unit_id':'hoplite','quantity':350}]}}
+    result=simulate(s)
+    assert result['status']=='inconclusive' and result['rounds_completed']==0
+    wall=result['rounds'][0]['wall']
+    assert wall['level']==24 and wall['active'] is True
+    assert wall['hit_points']==23400 and len(wall['sections'])==7
+    assert all(not piece['destroyed'] for piece in wall['sections'])
+
+
+def test_preloop_no_wall_early_return_has_explicit_null_wall():
+    s={'policy':'experimental','battlefield':'land-mini','wall_level':0,
+       'attacker':{'units':[{'unit_id':'hoplite','quantity':30}]},
+       'defender':{'units':[]}}
+    result=simulate(s)
+    assert result['rounds_completed']==0
+    assert result['rounds'][0]['wall'] is None
+
+
 def test_experimental_mortars_breach_active_wall_and_unlock_flanks():
  s={
   'policy':'experimental','battlefield':'land-mini','max_rounds':1,
