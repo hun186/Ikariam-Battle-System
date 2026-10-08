@@ -32,6 +32,13 @@ from .target_eligibility import (
 )
 from .units import UnitRegistry
 from .weapon_selection import UnsupportedWeaponSelection, select_active_weapon
+from .wall_formation import (
+    hold_initial_wall_formations,
+    deploy_prior_round_wall_vacancies,
+    wall_cross_wave_requirements,
+    wall_safe_round_start_field,
+    defender_has_held_front_reserve,
+)
 from .wall import (
     MAX_TOWN_WALL_LEVEL,
     TOWN_WALL_RULE_ID,
@@ -3079,6 +3086,11 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     defender = deploy(Army(tuple(item for item in scenario.defender.units if item.arrival_round == 0),
                            scenario.defender.forge_level, scenario.defender.army_kind),
                       registry, field, formation_profile)
+    # Town Wall physically owns the defender's First slots; both Flanks are
+    # held in Reserve. The deployment event stream must never claim those
+    # blocked slots were on the field in round zero.
+    if wall_runtime_active and wall_sections:
+        hold_initial_wall_formations(attacker, defender)
     events: list[Event] = []
     for side, waves in (("attacker", attacker), ("defender", defender)):
         for wave in waves:
@@ -3228,6 +3240,12 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         },
     }
     for number in range(1, scenario.max_rounds + 1):
+        # Round-boundary eligibility is frozen before this round's artillery
+        # can damage the wall. New holes may only receive units next round.
+        wall_intact_at_round_start = bool(
+            wall_runtime_active and wall_sections
+            and wall_flanks_locked(wall_sections)
+        )
         attacker_arrivals = _arrival_waves(scenario.attacker, number, registry, events, "attacker")
         defender_arrivals = _arrival_waves(scenario.defender, number, registry, events, "defender")
         attacker.extend(attacker_arrivals)
@@ -3275,13 +3293,17 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         for side, side_blockers in arrival_blockers.items():
             if "UNKNOWN-MORALE-SUPPORT" in side_blockers:
                 _assume(applied, events, "EXP-MORALE-NONE-001", number, "arrival", side)
+        attacker_round_field = wall_safe_round_start_field(
+            field, wall_runtime_active, wall_intact_at_round_start, "attacker")
+        defender_round_field = wall_safe_round_start_field(
+            field, wall_runtime_active, wall_intact_at_round_start, "defender")
         attacker_fallback_boundary = _prepare_round_start(
             attacker, events, number, "attacker", applied,
-            registry, formation_rules, field, support,
+            registry, formation_rules, attacker_round_field, support,
             scheduled_wave_ids["attacker"])
         defender_fallback_boundary = _prepare_round_start(
             defender, events, number, "defender", applied,
-            registry, formation_rules, field, support,
+            registry, formation_rules, defender_round_field, support,
             scheduled_wave_ids["defender"])
         if attacker_fallback_boundary or defender_fallback_boundary:
             completed = number
@@ -3296,6 +3318,10 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             cross_wave_boundary = True
             break
         if wall_runtime_active and wall_sections:
+            for side, waves in (("attacker", attacker), ("defender", defender)):
+                deploy_prior_round_wall_vacancies(
+                    waves, registry, formation_rules, field, wall_sections,
+                    number, side, events, _event)
             redistribution = wall_redistribution_plan(
                 wall_sections, scenario.wall_level
             )
@@ -3326,8 +3352,12 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                     "defender", wall_level=scenario.wall_level, **redistribution,
                 )
         cross_wave = {
-            "attacker": _cross_wave_rebuild_requirements(attacker, registry, formation_rules, field),
-            "defender": _cross_wave_rebuild_requirements(defender, registry, formation_rules, field),
+            "attacker": wall_cross_wave_requirements(
+                _cross_wave_rebuild_requirements(attacker, registry, formation_rules, field),
+                "attacker", wall_intact_at_round_start),
+            "defender": wall_cross_wave_requirements(
+                _cross_wave_rebuild_requirements(defender, registry, formation_rules, field),
+                "defender", wall_intact_at_round_start),
         }
         if any(cross_wave.values()):
             for side, requirements in cross_wave.items():
@@ -3511,10 +3541,14 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         # or termination decision so an unimplemented cross-wave replacement
         # can never be mistaken for an exact battle outcome.
         post_combat_cross_wave = {
-            "attacker": _cross_wave_rebuild_requirements(
-                attacker, registry, formation_rules, field),
-            "defender": _cross_wave_rebuild_requirements(
-                defender, registry, formation_rules, field),
+            "attacker": wall_cross_wave_requirements(
+                _cross_wave_rebuild_requirements(
+                    attacker, registry, formation_rules, field),
+                "attacker", wall_intact_at_round_start),
+            "defender": wall_cross_wave_requirements(
+                _cross_wave_rebuild_requirements(
+                    defender, registry, formation_rules, field),
+                "defender", wall_intact_at_round_start),
         }
         if any(post_combat_cross_wave.values()):
             for side, requirements in post_combat_cross_wave.items():
@@ -3537,6 +3571,11 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                         side_waves, registry, formation_rules, field)):
                 states[side] = ContinuationState.SUSTAINING.value
         if _wall_sustains_defender(wall_runtime_active, wall_sections):
+            states["defender"] = ContinuationState.SUSTAINING.value
+        elif (wall_intact_at_round_start
+              and defender_has_held_front_reserve(defender, registry)):
+            # Last wall section fell *this* round; Next-round Front deployment
+            # is known to be available, so do not terminate a round early.
             states["defender"] = ContinuationState.SUSTAINING.value
         effective_attacker_state = dict(attacker_state)
         effective_defender_state = dict(defender_state)
