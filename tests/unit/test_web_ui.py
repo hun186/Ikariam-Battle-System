@@ -2,6 +2,7 @@ from pathlib import Path
 
 
 INDEX = (Path(__file__).resolve().parents[2] / "index.html").read_text(encoding="utf-8")
+PUBLIC_INDEX = (Path(__file__).resolve().parents[2] / "public" / "index.html").read_text(encoding="utf-8")
 
 
 def test_round_view_places_battle_board_directly_after_navigation_before_notices():
@@ -30,6 +31,21 @@ def test_reserve_ui_explains_rr_snapshot_timing_and_wave_damage_without_expandin
     assert ".sr-only{position:absolute!important" in INDEX
     assert 'id="floatingTooltip" class="floating-tooltip" role="tooltip"' in INDEX
     assert "const rrNote=reserve.length?" not in INDEX
+
+
+def test_round_reserve_uses_content_aware_columns_and_mobile_scrolling():
+    # Both entry points must render the same UI.
+    assert INDEX == PUBLIC_INDEX
+    assert "Math.max(2,Math.min(4,reserve.length))" in INDEX
+    assert "const reserveWidth=reserveColumns*68+12" in INDEX
+    assert "grid-template-columns:var(--reserve-width,284px) minmax(0,1fr)" in INDEX
+    assert ".reserve-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr))" in INDEX
+    assert '.reserve-card{position:relative;min-width:0;' in INDEX
+    assert '@media(max-width:1190px){.battle-half{grid-template-columns:minmax(0,1fr)}' in INDEX
+    assert '.battle-half.defender .reserve-box{order:2}' in INDEX
+    assert '.formation{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}' in INDEX
+    assert '.formation-row{min-width:880px}' in INDEX
+    assert '.battle-board{overflow-x:auto}' not in INDEX
 
 
 def test_battlefield_air_units_match_game_left_right_layout():
