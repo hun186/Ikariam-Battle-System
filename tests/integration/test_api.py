@@ -410,11 +410,17 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert "sideLine(state,'balloon',geometry,'left')" in body and "sideLine(state,'anti-balloon',geometry,'right')" in body
  assert "name==='attacker'?[rear,ranged,front]:[front,ranged,rear]" in body
  assert 'air-zone' not in body and 'flank-column' not in body and 'ground-zone' not in body
- assert '@media(max-width:1100px)' in body
- assert '.battle-half{grid-template-columns:1fr}.battle-half.defender .reserve-box{order:2}.battle-board{overflow-x:auto}.formation{min-width:880px}' in body
+ # Reserve stacks within the viewport, while only formation rows scroll on narrow screens.
+ assert '@media(max-width:1190px)' in body
+ assert '.battle-half{grid-template-columns:minmax(0,1fr)}.battle-half.defender .reserve-box{order:2}' in body
+ assert '.formation{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}' in body
+ assert '.formation-row{min-width:880px}' in body
+ assert '.battle-board{overflow-x:auto}' not in body
  assert '.formation{min-width:790px}' not in body
  assert '.battle-half{grid-template-columns:1fr}.reserve-box{order:2}' not in body
- assert "reserveBox(state,name==='defender'?'Defender':'Attacker',geometry)+formation" in body
+ assert "reserveBox(state,name==='defender'?'Defender':'Attacker',geometry,reserve)+formation" in body
+ assert 'grid-template-columns:var(--reserve-width,284px) minmax(0,1fr)' in body
+ assert '.reserve-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr))' in body
  assert '@media(max-width:900px){.setup-grid,.summary-grid,.mechanics-grid,.source-grid{grid-template-columns:1fr}' in body
  assert '}\n@media(max-width:900px)' in body
  assert '}\\n@media(max-width:900px)' not in body
