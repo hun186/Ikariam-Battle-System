@@ -1,0 +1,242 @@
+{
+  "schema_version": 1,
+  "case_id": "reikjavikas-20260625-round1",
+  "kind": "observed_battle_round",
+  "battlefield": "land-max",
+  "wall_level": 0,
+  "evidence": {
+    "screenshot": "REIKJAVIKAS Round 1/9 2026-06-25 14:48:54 user-supplied",
+    "debug": "ikariam-round-1-debug (2).json",
+    "exported_at": "2026-10-08T14:55:26.841Z",
+    "notes": "Corrected attacker Mortars from 27 to 30; round 1 both sides enter with full HP. Screenshot is an observation, not a computed engine result."
+  },
+  "scenario": {
+    "policy": "experimental",
+    "battlefield": "land-max",
+    "wall_level": 0,
+    "town_hall_level": 25,
+    "max_rounds": 1,
+    "attacker": {
+      "forge_level": 5,
+      "units": [
+        {
+          "unit_id": "hoplite",
+          "quantity": 1200,
+          "attack_upgrade": 24,
+          "armor_upgrade": 21
+        },
+        {
+          "unit_id": "swordsman",
+          "quantity": 1000,
+          "attack_upgrade": 24,
+          "armor_upgrade": 26
+        },
+        {
+          "unit_id": "sulphur_carabineer",
+          "quantity": 84,
+          "attack_upgrade": 16,
+          "armor_upgrade": 9
+        },
+        {
+          "unit_id": "battering_ram",
+          "quantity": 30,
+          "attack_upgrade": 0,
+          "armor_upgrade": 0
+        },
+        {
+          "unit_id": "mortar",
+          "quantity": 30,
+          "attack_upgrade": 5,
+          "armor_upgrade": 3
+        },
+        {
+          "unit_id": "gyrocopter",
+          "quantity": 600,
+          "attack_upgrade": 20,
+          "armor_upgrade": 17
+        }
+      ]
+    },
+    "defender": {
+      "forge_level": 5,
+      "units": [
+        {
+          "unit_id": "hoplite",
+          "quantity": 10082,
+          "attack_upgrade": 18,
+          "armor_upgrade": 18
+        },
+        {
+          "unit_id": "steam_giant",
+          "quantity": 3,
+          "attack_upgrade": 0,
+          "armor_upgrade": 0
+        },
+        {
+          "unit_id": "spearman",
+          "quantity": 3,
+          "attack_upgrade": 0,
+          "armor_upgrade": 0
+        },
+        {
+          "unit_id": "swordsman",
+          "quantity": 7066,
+          "attack_upgrade": 18,
+          "armor_upgrade": 18
+        },
+        {
+          "unit_id": "slinger",
+          "quantity": 3,
+          "attack_upgrade": 0,
+          "armor_upgrade": 0
+        },
+        {
+          "unit_id": "sulphur_carabineer",
+          "quantity": 1008,
+          "attack_upgrade": 10,
+          "armor_upgrade": 10
+        },
+        {
+          "unit_id": "battering_ram",
+          "quantity": 120,
+          "attack_upgrade": 0,
+          "armor_upgrade": 0
+        },
+        {
+          "unit_id": "mortar",
+          "quantity": 90,
+          "attack_upgrade": 11,
+          "armor_upgrade": 11
+        },
+        {
+          "unit_id": "bombardier",
+          "quantity": 386,
+          "attack_upgrade": 11,
+          "armor_upgrade": 11
+        },
+        {
+          "unit_id": "gyrocopter",
+          "quantity": 1800,
+          "attack_upgrade": 12,
+          "armor_upgrade": 12
+        }
+      ]
+    }
+  },
+  "observed": {
+    "casualties": {
+      "attacker": {
+        "hoplite": 159,
+        "swordsman": 120,
+        "gyrocopter": 26
+      },
+      "defender": {
+        "hoplite": 168,
+        "swordsman": 132,
+        "bombardier": 30
+      }
+    },
+    "slot_losses": {
+      "attacker": {
+        "hoplite": [
+          21,
+          23,
+          25,
+          25,
+          24,
+          23,
+          18
+        ],
+        "swordsman": [
+          18,
+          21,
+          21,
+          21,
+          21,
+          18
+        ],
+        "gyrocopter": [
+          13,
+          13
+        ]
+      },
+      "defender": {
+        "hoplite": [
+          22,
+          25,
+          26,
+          26,
+          25,
+          25,
+          19
+        ],
+        "swordsman": [
+          18,
+          24,
+          24,
+          24,
+          24,
+          18
+        ],
+        "bombardier": [
+          15,
+          15
+        ]
+      }
+    },
+    "wall_present": false,
+    "air": {
+      "attacker_gyrocopter": [
+        13,
+        13
+      ],
+      "defender_bombardier": [
+        15,
+        15
+      ]
+    }
+  },
+  "legacy_model": {
+    "casualties": {
+      "attacker": {
+        "hoplite": 137,
+        "swordsman": 120,
+        "gyrocopter": 30
+      },
+      "defender": {
+        "hoplite": 161,
+        "swordsman": 132,
+        "bombardier": 30
+      }
+    },
+    "air": {
+      "attacker_gyrocopter": [
+        15,
+        15
+      ],
+      "defender_bombardier": [
+        15,
+        15
+      ]
+    },
+    "gyro_net_damage": {
+      "attacker_to_defender_bombardier": 431,
+      "defender_to_attacker_gyrocopter": 355
+    },
+    "forge_level": {
+      "attacker": 5,
+      "defender": 5
+    }
+  },
+  "research": {
+    "focus": [
+      "first-line damage spread",
+      "gyrocopter-to-gyrocopter individual damage selection"
+    ],
+    "known": "Both sides Forge Lv5; zero wall; air defender Bombardier casualties match, attacker Gyrocopter casualties differ by 4.",
+    "do_not_assume": [
+      "unknown Accuracy formula",
+      "Doctor or Cook affect initial full-HP first-round kills"
+    ]
+  }
+}
