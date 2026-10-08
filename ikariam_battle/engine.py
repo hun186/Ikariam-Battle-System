@@ -43,6 +43,7 @@ from .wall import (
     wall_redistribution_plan,
     wall_section_snapshot,
     wall_status,
+    wall_stats,
 )
 
 
@@ -85,6 +86,19 @@ def _assume(applied: dict[str, dict[str, str]], events: list[Event], assumption_
            for event in events):
         return
     _event(events, round_no, phase, "assumption_applied", side, **assumption)
+
+
+def _round_wall_snapshot(level: int, active: bool, sections: list[Any]) -> dict[str, Any] | None:
+    """Freeze wall state for this round; do not substitute final wall_status."""
+    if not level:
+        return None
+    return {
+        "level": level,
+        "active": bool(active),
+        "hit_points": int(wall_stats(level)["hit_points"] or 0),
+        "sections": wall_section_snapshot(sections, level) if active and sections else [],
+        "wall_offense_modeled": False,
+    }
 
 
 def _snapshot(waves: list[Wave], registry: UnitRegistry, battle_end: BattleEndProfile,
@@ -3210,7 +3224,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     targeting = TargetingProfile.load(targeting_profile)
     support = SupportProfile.load(scenario.profiles.support)
     total = {"attacker": defaultdict(int), "defender": defaultdict(int)}
-    rounds = [{"round":0, **deepcopy(initial), "casualties":{"attacker":{},"defender":{}}}]
+    rounds = [{"round":0, **deepcopy(initial), "casualties":{"attacker":{},"defender":{}},
+               "wall":_round_wall_snapshot(scenario.wall_level,wall_runtime_active,wall_sections)}]
     completed = 0
     fallback_boundary = False
     both_zero_boundary = False
@@ -3256,6 +3271,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                         "attacker": attacker_state,
                         "defender": defender_state,
                         "casualties": {"attacker": {}, "defender": {}},
+                     "wall": _round_wall_snapshot(scenario.wall_level,wall_runtime_active,wall_sections),
                     })
                     garrison_transition_boundary = True
                     break
@@ -3292,6 +3308,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 "attacker": attacker_state,
                 "defender": defender_state,
                 "casualties": {"attacker": {}, "defender": {}},
+             "wall": _round_wall_snapshot(scenario.wall_level,wall_runtime_active,wall_sections),
             })
             cross_wave_boundary = True
             break
@@ -3315,6 +3332,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                         "attacker": attacker_state,
                         "defender": defender_state,
                         "casualties": {"attacker": {}, "defender": {}},
+                     "wall": _round_wall_snapshot(scenario.wall_level,wall_runtime_active,wall_sections),
                     })
                     wall_combat_boundary = True
                     break
@@ -3346,6 +3364,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 "attacker": attacker_state,
                 "defender": defender_state,
                 "casualties": {"attacker": {}, "defender": {}},
+             "wall": _round_wall_snapshot(scenario.wall_level,wall_runtime_active,wall_sections),
             })
             cross_wave_boundary = True
             break
@@ -3473,7 +3492,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         attacker_state = _snapshot(attacker, registry, battle_end, a_slot_dead)
         defender_state = _snapshot(defender, registry, battle_end, d_slot_dead)
         rounds.append({"round":number,"attacker":attacker_state,"defender":defender_state,
-                       "casualties":{"attacker":dict(a_dead),"defender":dict(d_dead)}})
+                       "casualties":{"attacker":dict(a_dead),"defender":dict(d_dead)},
+                       "wall":_round_wall_snapshot(scenario.wall_level,wall_runtime_active,wall_sections)})
 
         # Same-geometry open-field exit is a supported state-only change.
         # Apply it before any independent cross-wave boundary can stop the
