@@ -1454,6 +1454,8 @@ def _prepare_round_start(
     """Re-pack, apply safe Doctor/Tender full-clear healing, then RR damage."""
     _rebuild_formation(waves, events, number, side)
     if registry is not None and rules is not None and field is not None:
+        _deploy_fresh_empty_native_lines(
+            waves, registry, rules, field, events, number, side)
         _supported_same_batch_heavy_first_handoffs(
             waves, registry, rules, field, events, number, side)
         _supported_same_unit_same_line_handoffs(
@@ -1497,9 +1499,9 @@ def _arrival_waves(army: Army, round_no: int, registry: UnitRegistry,
                    events: list[Event], side: str) -> list[Wave]:
     """Activate unit-specific state waves for entry batches that arrive this round.
 
-    Arrival is modeled independently from formation replacement: newly arrived
-    combat units begin in Reserve. If they immediately need an open runtime slot,
-    the deferred cross-wave boundary below stops rather than inventing placement.
+    Newly arrived combat units begin in Reserve. Round-start processing may
+    form a wholly unowned native non-First line for a sole fresh wave; other
+    placements still use supported handoffs or the deferred safety boundary.
     """
     items = [item for item in army.units if item.arrival_round == round_no]
     if not items:
@@ -1522,6 +1524,72 @@ def _arrival_waves(army: Army, round_no: int, registry: UnitRegistry,
                entry_batch_id=batch_id, arrival_round=round_no,
                units=dict(sorted(units.items())))
     return result
+
+
+def _deploy_fresh_empty_native_lines(
+    waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field,
+    events: list[Event], number: int, side: str,
+) -> None:
+    """Form an absent non-First native line from a sole fresh-arrival wave.
+
+    New entry batches first arrive in Reserve. A native line with no physical
+    slot owners at all is initial deployment, not an existing cross-wave slot
+    handoff. Only the unambiguous case of one eligible reserve-only wave that
+    arrived this round is executable here. First-line arrivals, lines with
+    pre-existing (even empty) slots, and competing wave/unit candidates stay
+    under their existing formation and cross-wave guards.
+    """
+    if number <= 0:
+        return
+    for line_name, geometry in field.lines.items():
+        if line_name == "first" or any(
+            slot.line == line_name for wave in waves for slot in wave.slots
+        ):
+            continue
+        candidates = [
+            wave for wave in waves
+            if wave.reserve > 0 and not wave.slots
+            and registry.get(wave.unit.unit_id).role == "combat"
+            and registry.get(wave.unit.unit_id).native_line == line_name
+            and line_name in eligible_runtime_lines(
+                registry.get(wave.unit.unit_id), rules, field
+            )
+        ]
+        if len(candidates) != 1:
+            continue
+        wave = candidates[0]
+        if wave.unit.arrival_round != number:
+            continue
+        unit = registry.get(wave.unit.unit_id)
+        capacity = geometry.slot_space // unit.size
+        if capacity <= 0:
+            continue
+        remaining = wave.reserve
+        if unit.primary_weapon.ammunition is not None:
+            remaining = min(remaining, max(0, int(wave.ammo_pool_shots or 0)))
+        for position in geometry.damage_priority:
+            if remaining <= 0:
+                break
+            quantity = min(capacity, remaining)
+            slot = Slot(
+                f"{line_name}-{position}", line_name,
+                geometry.physical_position(position), position,
+                unit.id, wave.unit.wave_id, quantity, capacity,
+            )
+            wave.slots.append(slot)
+            wave.reserve -= quantity
+            remaining -= quantity
+            _event(
+                events, number, "deploy", "deployment", side,
+                slot_id=slot.slot_id, line=line_name,
+                physical_position=slot.physical_position,
+                damage_position=position, unit_id=unit.id,
+                wave_id=wave.unit.wave_id,
+                entry_batch_id=wave.unit.batch_id,
+                arrival_round=wave.unit.arrival_round,
+                quantity=quantity, reserve=wave.reserve,
+                reason="fresh_empty_native_line",
+            )
 
 
 def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
