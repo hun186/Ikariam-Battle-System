@@ -1600,8 +1600,10 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
     deep copy. This prevents the safety guard from drifting behind supported
     same-wave refill, same-batch mixed-Heavy compaction, ammo-aware same-unit
     same-line replacement across entry batches, or same-batch ranked Third-line
-    replacement into already-existing empty Artillery positions. Zero-shot
-    finite-ammo reserves are not native-line rebuild requirements, while
+    replacement into already-existing empty Artillery positions. It also catches
+    delayed native waves that inherit only a subset of a newly initialized line
+    while other physical positions have never been created. Finite-ammo Reserve
+    counts as a requirement only if shots remain beyond already-deployed units;
     supported non-native Long-Range fallback remains visible.
     """
     projected = deepcopy(waves)
@@ -1626,39 +1628,62 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
         projected, registry, rules, field, projection_events, 0, "projection")
 
     occupied: dict[str, set[int]] = defaultdict(set)
+    owned: dict[str, set[int]] = defaultdict(set)
     for wave in projected:
         for slot in wave.slots:
+            # A zero-unit Slot is still a physical position owned by the
+            # existing formation. Same-unit handoff can reuse it, but filling a
+            # never-created position needs an unsupported cross-wave rebuild.
+            owned[slot.line].add(slot.damage_position)
             if slot.units:
                 occupied[slot.line].add(slot.damage_position)
 
     requirements: list[dict[str, Any]] = []
     for wave in projected:
-        # A wave that already owns slots has a supported same-wave path. A
-        # reserve-only wave reaches this boundary only when the supported
-        # compactions above still cannot place it.
-        if not wave.reserve or wave.slots:
+        if not wave.reserve:
             continue
         unit = registry.get(wave.unit.unit_id)
         if unit.role != "combat":
             continue
         for runtime_line in eligible_runtime_lines(unit, rules, field):
-            # Native-line finite-ammo placement uses the same deployability
-            # contract as round-start compaction. A zero-shot reserve is not an
-            # outstanding native-line rebuild requirement. Non-native fallback
-            # remains eligible (for example exhausted Long-Range -> First).
+            # Normally a wave that already owns slots is covered by supported
+            # same-wave / same-unit compaction. Delayed native reinforcements are
+            # different: they can inherit a *subset* of physical positions from
+            # an earlier newly initialized line, leaving viable Reserve while
+            # additional never-created positions remain available in geometry.
+            # Never silently treat that under-deployment as supported combat.
+            partial_delayed_native = (
+                bool(wave.slots)
+                and wave.unit.arrival_round > 0
+                and runtime_line == unit.native_line
+                and any(slot.line == runtime_line for slot in wave.slots)
+            )
+            if wave.slots and not partial_delayed_native:
+                continue
+            # A native finite-ammo wave may already deploy as many units as its
+            # remaining pool permits. Only extra *fire-capable* Reserve can need
+            # additional physical slots; do not flag ammo-limited leftovers.
             if (
                 runtime_line == unit.native_line
                 and unit.primary_weapon.ammunition is not None
                 and wave.ammo_pool_shots is not None
-                and wave.ammo_pool_shots <= 0
             ):
-                continue
+                deployed = sum(
+                    slot.units for slot in wave.slots
+                    if slot.line == runtime_line
+                )
+                if wave.ammo_pool_shots <= deployed:
+                    continue
             geometry = field.lines.get(runtime_line)
             if geometry is None:
                 continue
+            occupied_positions = (
+                owned[runtime_line] if partial_delayed_native
+                else occupied[runtime_line]
+            )
             open_positions = [
                 position for position in geometry.damage_priority
-                if position not in occupied[runtime_line]
+                if position not in occupied_positions
             ]
             if not open_positions:
                 continue
