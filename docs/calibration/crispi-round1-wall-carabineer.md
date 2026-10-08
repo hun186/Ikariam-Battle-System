@@ -17,9 +17,16 @@
 |---|---:|---:|
 | Mortar | 10 (five slots of 2) | 10 |
 | Bombardier | 30 (two slots of 15) | 30 |
-| Wall sections breached | **3 of 7** (physical middle three) | **5 of 7** (damage positions 1–5) |
+| Wall sections breached | **5 of 7** (physical positions 2–6) | **5 of 7** (damage positions 1–5 = physical positions 2–6) |
 
-Game attacker Hoplite physical-slot losses: **[1, 11, 11, 11, 11, 6, 1]**, 52 total. Simulator: **[9, 16, 16, 17, 16, 11, 9]**, 94 total. Game wall physical line is [1,1,1,0,0,0,1] alive, while the existing experimental engine assumes five positions breached in Round 1. Game defender Hoplites remain in Reserve behind Wall in this screenshot; simulator treats exposed defender Hoplite slots as eligible for immediate same-round First-phase fire.
+Game attacker Hoplite physical-slot losses: **[1, 11, 11, 11, 11, 6, 1]**, 52 total. Simulator: **[9, 16, 16, 17, 16, 11, 9]**, 94 total. Game wall physical line is **[1,0,0,0,0,0,1]** alive, matching the simulator's five breaches in physical positions 2–6. The earlier claim that only three wall sections were breached was a screenshot-reading error. Game defender Hoplites remain in Reserve behind Wall in this screenshot; simulator treats exposed defender Hoplite slots as eligible for immediate same-round First-phase fire.
+
+## User-confirmed wall formation constraints (2026-10-08)
+
+1. Seven active Town Wall sections initially occupy First; defender Hoplites must **not** deploy into First until **the next round** after a wall physical-position vacancy appears.
+2. While **any wall section** survives, defender Flank stays **empty**. Flank may fill only **the round after** the last section breaks; open-field battles with suppressed walls use normal Flank deployment.
+3. **Only the attacker has Forge Lv5**; the defender has Forge Lv0. Both Gyrocopter groups have zero casualties, while the attacker's Gyrocopters kill 30 defending Bombardiers and defender's Gyrocopters kill 20 attacking Bombardiers.
+4. This PR fixes per-round wall **reporting/rendering** only, not the initial wall occupancy, reinforcement timing, Flank lock, or wall offensive mechanics. A visual overlay must not be mistaken for actual engine parity.
 
 ## Split the model's 94 losses by actual firing phases
 
@@ -31,7 +38,7 @@ Game attacker Hoplite physical-slot losses: **[1, 11, 11, 11, 11, 6, 1]**, 52 to
 | Town Wall | **0** — `EXP-WALL-OFFENSE-NONE-001` explicitly disables offensive fire |
 | **Total** | **94** |
 
-Compare the user's candidate actual causal explanation **20 Mortar + 30 Carabineer + 2 Wall = 52**. The same-round defender Hoplite exposure accounts for **50 of the model's 94 deaths**. **Do not** conclude that all 42 extra deaths arise from Firearm Accuracy. The wall is not merely absent from the picture: its offensive firing is absent in the engine, and the five-section breach prediction is unlike the observed three.
+Compare the user's candidate actual causal explanation **20 Mortar + 30 Carabineer + 2 Wall = 52**. The same-round defender Hoplite exposure accounts for **50 of the model's 94 deaths**. **Do not** conclude that all 42 extra deaths arise from Firearm Accuracy. The wall is not merely absent from the picture: its offensive firing is absent in the engine, and the premature defender Hoplite deployment and same-round firing are a distinct battle-mechanics mismatch. The observed breach count and positions do match the model in this case.
 
 ## Carabineer case: an unusually clear damage-allocation test
 
@@ -52,7 +59,7 @@ AT Barbarossa, *Ikariam Battle System* (2020), chapter 4, [published Gameforge f
 - **IR — Immediate Redistribution:** potential redistribution **inside a slot after individual shots**; applicability is unresolved for the present 500-damage Carabineer test.
 - The 2020 paper predates current version-13+ numeric stats; **timing/structure can guide hypotheses but not be assumed to prove current damage formula**.
 
-The current engine explicitly uses `EXP-SR-DISABLED-001`, `EXP-IR-DISABLED-001`, `EXP-WALL-OFFENSE-NONE-001` and `EXP-WALL-ARTILLERY-SUCCESSFUL-HIT-001`. Wall Level 24 has **23,400 HP/section** and each modeled Mortar hit applies **4,522** after armor: **six hits to breach one section**. Counting all 30 modeled hits as successful produces five breached sections, compared with the game's three. Wall accuracy and shot-target behavior remain an important independent calibration target.
+The current engine explicitly uses `EXP-SR-DISABLED-001`, `EXP-IR-DISABLED-001`, `EXP-WALL-OFFENSE-NONE-001` and `EXP-WALL-ARTILLERY-SUCCESSFUL-HIT-001`. Wall Level 24 has **23,400 HP/section** and each modeled Mortar hit applies **4,522** after armor: **six hits to breach one section**. Counting all 30 modeled hits as successful produces five breached sections, **matching the screenshot's five breached positions (physical 2–6)**. This single case supports the breach-count outcome but does not independently establish a universal wall Accuracy or address-selection formula.
 
 ## UI fix delivered in this PR
 
@@ -60,4 +67,4 @@ The existing final `simulation_summary.wall_status.sections_state` is **final-ro
 
 This PR adds an **immutable per-round `round.wall` snapshot** for regular Experimental simulation, including active/suppressed flag, HP and 7 per-position sections. The browser shows the current-round wall icons and breached locations while the wall is at least partially intact, and the UI explicitly warns that wall offense is **not modeled**. It does not alter `EXP-WALL-OFFENSE-NONE-001`, first-line eligibility, wall successful-hit assumptions or damage calculations.
 
-**Next separate mechanics PR** after multiple cases confirm: test wall attacking phase and shots, defender First-line entry timing, wall Accuracy/valid strikes (three vs five breaches), and the Carabineer per-slot casualty vector. Do not hide incomplete mechanics by forcing `52` with arbitrary adjustment.
+**Next separate mechanics PR** after multiple cases confirm: test wall attacking phase and shots, defender First-line entry **one round after** a wall gap becomes available, flank deployment only on the round after full wall removal (or immediate open-field), independently verify wall Accuracy across other observations, and test the Carabineer per-slot casualty vector. Do not hide incomplete mechanics by forcing `52` with arbitrary adjustment.
