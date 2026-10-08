@@ -1457,6 +1457,7 @@ def _prepare_round_start(
     rules: FormationRules | None = None, field=None,
     support: SupportProfile | None = None,
     reserved_wave_ids: set[tuple[str, str]] | None = None,
+    block_first_fallback: bool = False,
 ) -> bool:
     """Re-pack, apply safe Doctor/Tender full-clear healing, then RR damage."""
     _rebuild_formation(waves, events, number, side)
@@ -1471,9 +1472,15 @@ def _prepare_round_start(
             waves, registry, events, number, side)
         _supported_same_batch_ranked_third_handoffs(
             waves, registry, rules, field, events, number, side)
-        fallback_boundary = _supported_whole_wave_first_fallback(
-            waves, registry, rules, field, events, number, side,
-            reserved_wave_ids=reserved_wave_ids)
+        # A live Town Wall blocks any *new* defender First slot in this
+        # same round; existing physically occupied First slots are still
+        # re-packed by the normal supported compaction functions above.
+        fallback_boundary = (
+            False if block_first_fallback
+            else _supported_whole_wave_first_fallback(
+                waves, registry, rules, field, events, number, side,
+                reserved_wave_ids=reserved_wave_ids)
+        )
         if fallback_boundary:
             return True
         # Whole-wave promotion can vacate native-line physical positions that
@@ -3304,7 +3311,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         defender_fallback_boundary = _prepare_round_start(
             defender, events, number, "defender", applied,
             registry, formation_rules, defender_round_field, support,
-            scheduled_wave_ids["defender"])
+            scheduled_wave_ids["defender"],
+            block_first_fallback=wall_intact_at_round_start)
         if attacker_fallback_boundary or defender_fallback_boundary:
             completed = number
             attacker_state = _snapshot(attacker, registry, battle_end)
