@@ -94,6 +94,36 @@ def test_experimental_active_wall_early_exit_reports_capability_not_strict_bound
  )
 
 
+def test_round_wall_snapshots_preserve_initial_sections_and_round_identity():
+    s={'policy':'experimental','battlefield':'land-max','max_rounds':1,
+       'wall_level':24,'town_hall_level':25,
+       'attacker':{'units':[{'unit_id':'hoplite','quantity':350},
+                            {'unit_id':'mortar','quantity':30,'attack_upgrade':7}]},
+       'defender':{'units':[{'unit_id':'hoplite','quantity':1000}]}}
+    result=simulate(s)
+    before=result['rounds'][0]['wall']
+    assert before['active'] is True and before['level']==24
+    assert before['hit_points']==23400 and before['wall_offense_modeled'] is False
+    assert len(before['sections'])==7
+    assert all(not x['destroyed'] and x['damage']==0 for x in before['sections'])
+    if result['rounds_completed']:
+        after=result['rounds'][1]['wall']
+        assert after['active'] and len(after['sections'])==7
+        assert after['sections'] is not before['sections']
+        assert all(not x['destroyed'] and x['damage']==0 for x in before['sections'])
+
+
+def test_round_wall_is_hidden_when_garrison_suppresses_city_wall():
+    s={'policy':'experimental','battlefield':'land-max','max_rounds':1,
+       'wall_level':1,'town_hall_level':1,
+       'attacker':{'units':[{'unit_id':'hoplite','quantity':350}]},
+       'defender':{'units':[{'unit_id':'hoplite','quantity':351}]}}
+    result=simulate(s)
+    wall=result['rounds'][0]['wall']
+    assert wall=={'level':1,'active':False,'hit_points':2700,
+                  'sections':[],'wall_offense_modeled':False}
+
+
 def test_experimental_mortars_breach_active_wall_and_unlock_flanks():
  s={
   'policy':'experimental','battlefield':'land-mini','max_rounds':1,
