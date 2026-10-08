@@ -129,6 +129,8 @@ def test_complete_wall_breach_opens_flank_only_from_following_round():
     case = _case("crispi")
     scenario = dict(case["scenario"])
     scenario["wall_level"] = 1
+    # A low wall reduces the garrison limit; raise Town Hall so the wall remains active.
+    scenario["town_hall_level"] = 40
     scenario["max_rounds"] = 2
     result = simulate(scenario)
     breaches = [event for event in result["events"]
