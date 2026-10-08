@@ -3523,6 +3523,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                     wall_sections = initial_wall_sections(
                         scenario.wall_level, field
                     )
+                    hold_initial_wall_formations(attacker, defender)
                 _event(
                     events, number, "round_end", "garrison_state_change", "defender",
                     direction="exit_open_field",
@@ -3654,6 +3655,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                     wall_sections = initial_wall_sections(
                         scenario.wall_level, field
                     )
+                    hold_initial_wall_formations(attacker, defender)
                 _event(
                     events, number, "round_end", "garrison_state_change", "defender",
                     direction="exit_open_field",
