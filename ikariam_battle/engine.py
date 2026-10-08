@@ -645,9 +645,18 @@ def _supported_same_unit_same_line_handoffs(
     mixes waves. Ammo, persistent damage, Workshop state, and wave identity stay
     attached to the concrete wave.
 
-    Reserve-only waves join only their native runtime line. This deliberately
-    does not infer Light-Infantry fallback, cross-line placement, a different
-    unit type taking ownership, or creation of new physical slots.
+    Reserve-only waves join only their native runtime line. Native-line
+    finite-ammo deployment is ammo-aware here: a wave may own at most as many
+    native-line units as its remaining primary shots can fire, so an exhausted
+    earlier wave cannot reclaim slots from a later live wave merely because it
+    has earlier formation precedence. This applies to every finite-ammo native
+    line; non-native fallback (for example exhausted Long-Range promoted to
+    First with a secondary weapon) remains governed by its separate fallback
+    and weapon-selection rules.
+
+    This deliberately does not infer Light-Infantry fallback, cross-line
+    placement, a different unit type taking ownership, or creation of new
+    physical slots.
     """
     _guard_single_line_waves(waves)
 
@@ -717,17 +726,31 @@ def _supported_same_unit_same_line_handoffs(
             continue
 
         totals: dict[str, int] = {}
+        deployable_totals: dict[str, int] = {}
         damage_totals: dict[str, int] = {}
         for wave in group:
-            totals[wave.unit.wave_id] = wave.reserve + sum(
+            total = wave.reserve + sum(
                 slot.units for slot in wave.slots
                 if slot.line == runtime_line
             )
+            totals[wave.unit.wave_id] = total
+            deployable = total
+            if (
+                runtime_line == unit.native_line
+                and unit.primary_weapon.ammunition is not None
+                and wave.ammo_pool_shots is not None
+            ):
+                deployable = min(
+                    deployable,
+                    max(0, int(wave.ammo_pool_shots)),
+                )
+            deployable_totals[wave.unit.wave_id] = deployable
             damage_totals[wave.unit.wave_id] = _wave_persistent_damage(wave)
 
         desired: dict[int, tuple[Wave, int]] = {}
         for wave in group:
-            remaining = totals[wave.unit.wave_id]
+            remaining = deployable_totals[wave.unit.wave_id]
+            assigned = 0
             for position in positions:
                 if not remaining:
                     break
@@ -736,7 +759,8 @@ def _supported_same_unit_same_line_handoffs(
                 quantity = min(remaining, capacity)
                 desired[position] = (wave, quantity)
                 remaining -= quantity
-            wave.reserve = remaining
+                assigned += quantity
+            wave.reserve = totals[wave.unit.wave_id] - assigned
 
         # Ownership may move across slots, but RR ownership stays with the
         # concrete state wave. Park the full damage population first; final RR
@@ -801,6 +825,196 @@ def _supported_same_unit_same_line_handoffs(
                 reason="same_unit_same_line_wave_replacement",
                 compaction=True,
             )
+
+        for wave in group:
+            wave.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
+
+
+def _supported_same_batch_ranked_third_handoffs(
+    waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field,
+    events: list[Event], number: int, side: str,
+) -> None:
+    """Fill already-existing empty land Artillery slots from the same entry batch.
+
+    Initial Third-line placement already uses the formation profile's ranked
+    concrete-group policy. During later rounds a finite-ammo Artillery wave can
+    release those physical slots after its primary ammunition reaches zero.
+    This narrow handoff lets another Third-line combat wave from the *same*
+    entry batch inherit only those already-existing empty positions, using the
+    same strongest/weakest concrete-group ranking as initial formation.
+
+    The established same-unit/same-line cross-batch replacement rule has higher
+    precedence: after finite-ammo capping exposes an empty position, a deployable
+    later wave of the *same unit* gets that inherited position before a different
+    same-batch Artillery unit is ranked for it. This preserves the already
+    supported same-unit handoff instead of silently hiding it behind the newer
+    same-batch mixed-Artillery path.
+
+    It does not replace occupied slots, create new physical positions, infer a
+    different-unit cross-batch placement, or move units across runtime lines.
+    Wave-owned ammo, persistent damage, Workshop state, and identity remain
+    separate.
+    """
+    if getattr(field, "domain", None) != "land":
+        return
+    geometry = field.lines.get("third")
+    if geometry is None:
+        return
+
+    policy = rules.lines.get("third", {}).get("unit_selection_policy", "formation_order")
+    if policy not in {
+        "strongest_slot_group_primary_damage",
+        "weakest_slot_group_primary_damage",
+    }:
+        return
+    strongest = policy.startswith("strongest")
+
+    groups: dict[str, list[Wave]] = defaultdict(list)
+    for wave in waves:
+        unit = registry.get(wave.unit.unit_id)
+        if (
+            unit.role == "combat"
+            and unit.native_line == "third"
+            and "third" in eligible_runtime_lines(unit, rules, field)
+        ):
+            groups[wave.unit.batch_id].append(wave)
+
+    def deployable_reserve(wave: Wave) -> int:
+        unit = registry.get(wave.unit.unit_id)
+        available = max(0, wave.reserve)
+        if unit.primary_weapon.ammunition is not None and wave.ammo_pool_shots is not None:
+            already_deployed = sum(
+                slot.units for slot in wave.slots if slot.line == "third"
+            )
+            available = min(
+                available,
+                max(0, int(wave.ammo_pool_shots) - already_deployed),
+            )
+        return available
+
+    for batch_id, group in groups.items():
+        # A single-wave batch can still expose an empty Third position that a
+        # same-unit wave from a later entry batch is already allowed to inherit.
+        # Different-unit ranked replacement remains batch-local below.
+        owners: dict[int, tuple[Wave, Slot]] = {}
+        for wave in group:
+            for slot in wave.slots:
+                if slot.line != "third":
+                    continue
+                if slot.damage_position in owners:
+                    raise ScenarioError(
+                        f"duplicate Third-line ownership at damage position "
+                        f"{slot.damage_position} in entry batch {batch_id}"
+                    )
+                owners[slot.damage_position] = (wave, slot)
+        if not owners:
+            continue
+
+        open_positions = [
+            position for position in geometry.damage_priority
+            if position in owners and not owners[position][1].units
+        ]
+        for position in open_positions:
+            previous_wave, previous_slot = owners[position]
+            previous_unit = registry.get(previous_wave.unit.unit_id)
+
+            # Preserve the older supported same-unit/same-line cross-batch rule
+            # before considering a different same-batch Artillery type. The
+            # finite-ammo cap has already run, so exhausted waves contribute no
+            # deployable Reserve here.
+            same_unit_candidates = [
+                wave for wave in waves
+                if wave is not previous_wave
+                and wave.unit.unit_id == previous_wave.unit.unit_id
+                and registry.get(wave.unit.unit_id).native_line == "third"
+                and deployable_reserve(wave) > 0
+            ]
+            same_unit_candidates.sort(
+                key=lambda wave: wave.unit.formation_order_key
+            )
+
+            def rank(wave: Wave):
+                unit = registry.get(wave.unit.unit_id)
+                capacity = geometry.slot_space // unit.size
+                quantity = min(deployable_reserve(wave), capacity)
+                damage = unit.primary_weapon.damage
+                if damage is None:
+                    raise ScenarioError(
+                        f"primary weapon damage missing for formation selection: {unit.id}"
+                    )
+                score = (quantity * damage, damage, quantity)
+                signed = tuple(-value for value in score) if strongest else score
+                return (*signed, wave.unit.formation_order_key)
+
+            if same_unit_candidates:
+                target_wave = same_unit_candidates[0]
+                handoff_reason = "same_unit_same_line_wave_replacement"
+            else:
+                candidates = [
+                    wave for wave in group
+                    if deployable_reserve(wave) > 0
+                ]
+                if not candidates:
+                    # One vacancy may be unfillable while a later vacancy has a
+                    # different owner with an otherwise-supported successor.
+                    # Evaluate each existing physical position independently.
+                    continue
+                target_wave = min(candidates, key=rank)
+                handoff_reason = "same_batch_ranked_third_replacement"
+
+            target_unit = registry.get(target_wave.unit.unit_id)
+            capacity = geometry.slot_space // target_unit.size
+            quantity = min(deployable_reserve(target_wave), capacity)
+            if quantity <= 0:
+                continue
+
+            if previous_slot.damage:
+                previous_wave.reserve_damage += previous_slot.damage
+                previous_slot.damage = 0
+
+            if previous_wave is target_wave:
+                previous_slot.units = quantity
+                previous_slot.capacity = capacity
+                target_wave.reserve -= quantity
+                _event(
+                    events, number, "deploy", "slot_repacked", side,
+                    slot_id=previous_slot.slot_id,
+                    damage_position=position,
+                    previous_units=0,
+                    units=quantity,
+                    reason=handoff_reason,
+                )
+                continue
+
+            previous_wave.slots.remove(previous_slot)
+            slot = Slot(
+                f"third-{position}", "third",
+                geometry.physical_position(position), position,
+                target_unit.id, target_wave.unit.wave_id, quantity, capacity,
+            )
+            target_wave.slots.append(slot)
+            target_wave.slots.sort(
+                key=lambda slot: (slot.line, slot.damage_position)
+            )
+            target_wave.reserve -= quantity
+            owners[position] = (target_wave, slot)
+            details = {
+                "line": "third",
+                "damage_position": position,
+                "physical_position": slot.physical_position,
+                "from_unit_id": previous_unit.id,
+                "from_wave_id": previous_wave.unit.wave_id,
+                "to_unit_id": target_unit.id,
+                "to_wave_id": target_wave.unit.wave_id,
+                "entry_batch_id": target_wave.unit.batch_id,
+                "quantity": quantity,
+                "capacity": capacity,
+                "reason": handoff_reason,
+                "compaction": True,
+            }
+            if handoff_reason == "same_unit_same_line_wave_replacement":
+                details["from_entry_batch_id"] = previous_wave.unit.batch_id
+            _event(events, number, "deploy", "slot_handoff", side, **details)
 
         for wave in group:
             wave.slots.sort(key=lambda slot: (slot.line, slot.damage_position))
@@ -1214,6 +1428,8 @@ def _has_supported_round_start_first_placement(
         projected, registry, rules, field, projection_events, 0, "projection")
     _cap_native_finite_ammo_deployment(
         projected, registry, projection_events, 0, "projection", emit_events=False)
+    _supported_same_batch_ranked_third_handoffs(
+        projected, registry, rules, field, projection_events, 0, "projection")
     _supported_whole_wave_first_fallback(
         projected, registry, rules, field, projection_events, 0, "projection")
     _rebuild_formation(projected, projection_events, 0, "projection")
@@ -1244,6 +1460,8 @@ def _prepare_round_start(
             waves, registry, rules, field, events, number, side)
         _cap_native_finite_ammo_deployment(
             waves, registry, events, number, side)
+        _supported_same_batch_ranked_third_handoffs(
+            waves, registry, rules, field, events, number, side)
         fallback_boundary = _supported_whole_wave_first_fallback(
             waves, registry, rules, field, events, number, side,
             reserved_wave_ids=reserved_wave_ids)
@@ -1252,12 +1470,17 @@ def _prepare_round_start(
         # Whole-wave promotion can vacate native-line physical positions that
         # a later same-unit wave is allowed to inherit. First re-pack each
         # concrete wave across its inherited slots, then run the already
-        # supported same-unit/same-line cross-wave compaction.
+        # supported same-unit/same-line cross-wave compaction. The generic
+        # handoff itself is ammo-aware on native lines, so exhausted waves cannot
+        # reclaim slots here. The dedicated Third pass below remains responsible
+        # only for mixed-unit same-batch Artillery replacement.
         _rebuild_formation(waves, events, number, side)
         _supported_same_unit_same_line_handoffs(
             waves, registry, rules, field, events, number, side)
         _cap_native_finite_ammo_deployment(
             waves, registry, events, number, side, emit_events=False)
+        _supported_same_batch_ranked_third_handoffs(
+            waves, registry, rules, field, events, number, side)
     if registry is not None and support is not None:
         _apply_supported_doctor_healing(
             waves, registry, support, events, number, side, applied)
@@ -1307,8 +1530,11 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
 
     The projection reuses the same round-start formation code as execution on a
     deep copy. This prevents the safety guard from drifting behind supported
-    same-wave refill, same-batch mixed-Heavy compaction, or same-unit same-line
-    replacement across entry batches.
+    same-wave refill, same-batch mixed-Heavy compaction, ammo-aware same-unit
+    same-line replacement across entry batches, or same-batch ranked Third-line
+    replacement into already-existing empty Artillery positions. Zero-shot
+    finite-ammo reserves are not native-line rebuild requirements, while
+    supported non-native Long-Range fallback remains visible.
     """
     projected = deepcopy(waves)
     projection_events: list[Event] = []
@@ -1319,6 +1545,8 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
         projected, registry, rules, field, projection_events, 0, "projection")
     _cap_native_finite_ammo_deployment(
         projected, registry, projection_events, 0, "projection", emit_events=False)
+    _supported_same_batch_ranked_third_handoffs(
+        projected, registry, rules, field, projection_events, 0, "projection")
     _supported_whole_wave_first_fallback(
         projected, registry, rules, field, projection_events, 0, "projection")
     _rebuild_formation(projected, projection_events, 0, "projection")
@@ -1326,6 +1554,8 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
         projected, registry, rules, field, projection_events, 0, "projection")
     _cap_native_finite_ammo_deployment(
         projected, registry, projection_events, 0, "projection", emit_events=False)
+    _supported_same_batch_ranked_third_handoffs(
+        projected, registry, rules, field, projection_events, 0, "projection")
 
     occupied: dict[str, set[int]] = defaultdict(set)
     for wave in projected:
@@ -1344,6 +1574,17 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
         if unit.role != "combat":
             continue
         for runtime_line in eligible_runtime_lines(unit, rules, field):
+            # Native-line finite-ammo placement uses the same deployability
+            # contract as round-start compaction. A zero-shot reserve is not an
+            # outstanding native-line rebuild requirement. Non-native fallback
+            # remains eligible (for example exhausted Long-Range -> First).
+            if (
+                runtime_line == unit.native_line
+                and unit.primary_weapon.ammunition is not None
+                and wave.ammo_pool_shots is not None
+                and wave.ammo_pool_shots <= 0
+            ):
+                continue
             geometry = field.lines.get(runtime_line)
             if geometry is None:
                 continue
