@@ -1454,6 +1454,8 @@ def _prepare_round_start(
     """Re-pack, apply safe Doctor/Tender full-clear healing, then RR damage."""
     _rebuild_formation(waves, events, number, side)
     if registry is not None and rules is not None and field is not None:
+        _deploy_fresh_empty_native_lines(
+            waves, registry, rules, field, events, number, side)
         _supported_same_batch_heavy_first_handoffs(
             waves, registry, rules, field, events, number, side)
         _supported_same_unit_same_line_handoffs(
@@ -1497,9 +1499,9 @@ def _arrival_waves(army: Army, round_no: int, registry: UnitRegistry,
                    events: list[Event], side: str) -> list[Wave]:
     """Activate unit-specific state waves for entry batches that arrive this round.
 
-    Arrival is modeled independently from formation replacement: newly arrived
-    combat units begin in Reserve. If they immediately need an open runtime slot,
-    the deferred cross-wave boundary below stops rather than inventing placement.
+    Newly arrived combat units begin in Reserve. Round-start processing may
+    form a wholly unowned native non-First line for a sole fresh wave; other
+    placements still use supported handoffs or the deferred safety boundary.
     """
     items = [item for item in army.units if item.arrival_round == round_no]
     if not items:
@@ -1524,6 +1526,72 @@ def _arrival_waves(army: Army, round_no: int, registry: UnitRegistry,
     return result
 
 
+def _deploy_fresh_empty_native_lines(
+    waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field,
+    events: list[Event], number: int, side: str,
+) -> None:
+    """Form an absent non-First native line from a sole fresh-arrival wave.
+
+    New entry batches first arrive in Reserve. A native line with no physical
+    slot owners at all is initial deployment, not an existing cross-wave slot
+    handoff. Only the unambiguous case of one eligible reserve-only wave that
+    arrived this round is executable here. First-line arrivals, lines with
+    pre-existing (even empty) slots, and competing wave/unit candidates stay
+    under their existing formation and cross-wave guards.
+    """
+    if number <= 0:
+        return
+    for line_name, geometry in field.lines.items():
+        if line_name == "first" or any(
+            slot.line == line_name for wave in waves for slot in wave.slots
+        ):
+            continue
+        candidates = [
+            wave for wave in waves
+            if wave.reserve > 0 and not wave.slots
+            and registry.get(wave.unit.unit_id).role == "combat"
+            and registry.get(wave.unit.unit_id).native_line == line_name
+            and line_name in eligible_runtime_lines(
+                registry.get(wave.unit.unit_id), rules, field
+            )
+        ]
+        if len(candidates) != 1:
+            continue
+        wave = candidates[0]
+        if wave.unit.arrival_round != number:
+            continue
+        unit = registry.get(wave.unit.unit_id)
+        capacity = geometry.slot_space // unit.size
+        if capacity <= 0:
+            continue
+        remaining = wave.reserve
+        if unit.primary_weapon.ammunition is not None:
+            remaining = min(remaining, max(0, int(wave.ammo_pool_shots or 0)))
+        for position in geometry.damage_priority:
+            if remaining <= 0:
+                break
+            quantity = min(capacity, remaining)
+            slot = Slot(
+                f"{line_name}-{position}", line_name,
+                geometry.physical_position(position), position,
+                unit.id, wave.unit.wave_id, quantity, capacity,
+            )
+            wave.slots.append(slot)
+            wave.reserve -= quantity
+            remaining -= quantity
+            _event(
+                events, number, "deploy", "deployment", side,
+                slot_id=slot.slot_id, line=line_name,
+                physical_position=slot.physical_position,
+                damage_position=position, unit_id=unit.id,
+                wave_id=wave.unit.wave_id,
+                entry_batch_id=wave.unit.batch_id,
+                arrival_round=wave.unit.arrival_round,
+                quantity=quantity, reserve=wave.reserve,
+                reason="fresh_empty_native_line",
+            )
+
+
 def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
                                      rules: FormationRules, field) -> list[dict[str, Any]]:
     """Return cross-wave placements still unsupported after exact supported projection.
@@ -1532,8 +1600,10 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
     deep copy. This prevents the safety guard from drifting behind supported
     same-wave refill, same-batch mixed-Heavy compaction, ammo-aware same-unit
     same-line replacement across entry batches, or same-batch ranked Third-line
-    replacement into already-existing empty Artillery positions. Zero-shot
-    finite-ammo reserves are not native-line rebuild requirements, while
+    replacement into already-existing empty Artillery positions. It also catches
+    delayed native waves that inherit only a subset of a newly initialized line
+    while other physical positions have never been created. Finite-ammo Reserve
+    counts as a requirement only if shots remain beyond already-deployed units;
     supported non-native Long-Range fallback remains visible.
     """
     projected = deepcopy(waves)
@@ -1558,39 +1628,62 @@ def _cross_wave_rebuild_requirements(waves: list[Wave], registry: UnitRegistry,
         projected, registry, rules, field, projection_events, 0, "projection")
 
     occupied: dict[str, set[int]] = defaultdict(set)
+    owned: dict[str, set[int]] = defaultdict(set)
     for wave in projected:
         for slot in wave.slots:
+            # A zero-unit Slot is still a physical position owned by the
+            # existing formation. Same-unit handoff can reuse it, but filling a
+            # never-created position needs an unsupported cross-wave rebuild.
+            owned[slot.line].add(slot.damage_position)
             if slot.units:
                 occupied[slot.line].add(slot.damage_position)
 
     requirements: list[dict[str, Any]] = []
     for wave in projected:
-        # A wave that already owns slots has a supported same-wave path. A
-        # reserve-only wave reaches this boundary only when the supported
-        # compactions above still cannot place it.
-        if not wave.reserve or wave.slots:
+        if not wave.reserve:
             continue
         unit = registry.get(wave.unit.unit_id)
         if unit.role != "combat":
             continue
         for runtime_line in eligible_runtime_lines(unit, rules, field):
-            # Native-line finite-ammo placement uses the same deployability
-            # contract as round-start compaction. A zero-shot reserve is not an
-            # outstanding native-line rebuild requirement. Non-native fallback
-            # remains eligible (for example exhausted Long-Range -> First).
+            # Normally a wave that already owns slots is covered by supported
+            # same-wave / same-unit compaction. Delayed native reinforcements are
+            # different: they can inherit a *subset* of physical positions from
+            # an earlier newly initialized line, leaving viable Reserve while
+            # additional never-created positions remain available in geometry.
+            # Never silently treat that under-deployment as supported combat.
+            partial_delayed_native = (
+                bool(wave.slots)
+                and wave.unit.arrival_round > 0
+                and runtime_line == unit.native_line
+                and any(slot.line == runtime_line for slot in wave.slots)
+            )
+            if wave.slots and not partial_delayed_native:
+                continue
+            # A native finite-ammo wave may already deploy as many units as its
+            # remaining pool permits. Only extra *fire-capable* Reserve can need
+            # additional physical slots; do not flag ammo-limited leftovers.
             if (
                 runtime_line == unit.native_line
                 and unit.primary_weapon.ammunition is not None
                 and wave.ammo_pool_shots is not None
-                and wave.ammo_pool_shots <= 0
             ):
-                continue
+                deployed = sum(
+                    slot.units for slot in wave.slots
+                    if slot.line == runtime_line
+                )
+                if wave.ammo_pool_shots <= deployed:
+                    continue
             geometry = field.lines.get(runtime_line)
             if geometry is None:
                 continue
+            occupied_positions = (
+                owned[runtime_line] if partial_delayed_native
+                else occupied[runtime_line]
+            )
             open_positions = [
                 position for position in geometry.damage_priority
-                if position not in occupied[runtime_line]
+                if position not in occupied_positions
             ]
             if not open_positions:
                 continue
