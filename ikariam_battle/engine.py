@@ -3159,16 +3159,22 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     if scenario.policy is Policy.STRICT:
         blockers += ["UNKNOWN-KILL-SELECTION", "UNKNOWN-ROUNDING-SELECTOR",
                      "UNKNOWN-ACCURACY", "UNKNOWN-IR-TRIGGER", "UNKNOWN-SR-TRIGGER"]
-        return _unsupported(
+        result = _unsupported(
             scenario, events, initial, sorted(set(blockers)), warnings,
             effective_profiles,
         )
+        result["rounds"][0]["wall"] = _round_wall_snapshot(
+            scenario.wall_level, wall_runtime_active, wall_sections)
+        return result
     if {"UNKNOWN-MULTIPLE-TARGET-WAVES",
         "UNKNOWN-MULTILINE-WAVE-COMBAT-SEMANTICS",
         "UNKNOWN-FALLBACK-LIGHT-INFANTRY-COMBAT"} & set(blockers):
-        return _unsupported(
+        result = _unsupported(
             scenario, events, initial, blockers, warnings, effective_profiles
         )
+        result["rounds"][0]["wall"] = _round_wall_snapshot(
+            scenario.wall_level, wall_runtime_active, wall_sections)
+        return result
     applied: dict[str, dict[str, str]] = {}
     for side, side_blockers in (("attacker", attacker_blockers), ("defender", defender_blockers)):
         if "UNKNOWN-MORALE-SUPPORT" in side_blockers:
@@ -3179,7 +3185,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         return {"profiles":effective_profiles,"policy":scenario.policy.value,"status":"inconclusive",
                 "outcome":"inconclusive","rounds_completed":0,"casualties":{"attacker":{},"defender":{}},
                 "initial_state":initial,"final_state":initial,
-                "rounds":[{"round":0,**deepcopy(initial),"casualties":{"attacker":{},"defender":{}}}],
+                "rounds":[{"round":0,**deepcopy(initial),"casualties":{"attacker":{},"defender":{}},
+                           "wall":_round_wall_snapshot(scenario.wall_level,wall_runtime_active,wall_sections)}],
                 "events":[e.as_dict() for e in events],"assumptions":list(applied.values()),"warnings":warnings}
     if (all(state == ContinuationState.NOT_SUSTAINING.value for state in initial_states.values())
             and not both_initially_empty_but_pending):
@@ -3188,7 +3195,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         return {"profiles":effective_profiles,"policy":scenario.policy.value,"status":"inconclusive",
                 "outcome":"inconclusive","rounds_completed":0,"casualties":{"attacker":{},"defender":{}},
                 "initial_state":initial,"final_state":initial,
-                "rounds":[{"round":0,**deepcopy(initial),"casualties":{"attacker":{},"defender":{}}}],
+                "rounds":[{"round":0,**deepcopy(initial),"casualties":{"attacker":{},"defender":{}},
+                           "wall":_round_wall_snapshot(scenario.wall_level,wall_runtime_active,wall_sections)}],
                 "events":[e.as_dict() for e in events],"assumptions":list(applied.values()),"warnings":warnings}
     if both_initially_empty_but_pending:
         pending_sides = [side for side, rows in initial_pending.items() if rows]
@@ -3218,7 +3226,8 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         return {"profiles":effective_profiles,"policy":scenario.policy.value,"status":"completed",
                 "outcome":initial_outcome,"rounds_completed":0,"casualties":{"attacker":{},"defender":{}},
                 "initial_state":initial,"final_state":initial,
-                "rounds":[{"round":0,**deepcopy(initial),"casualties":{"attacker":{},"defender":{}}}],
+                "rounds":[{"round":0,**deepcopy(initial),"casualties":{"attacker":{},"defender":{}},
+                           "wall":_round_wall_snapshot(scenario.wall_level,wall_runtime_active,wall_sections)}],
                 "events":[e.as_dict() for e in events],"assumptions":list(applied.values()),"warnings":warnings}
     workshop, forge = WorkshopProfile.load(scenario.profiles.workshop), ForgeProfile.load(scenario.profiles.forge)
     targeting = TargetingProfile.load(targeting_profile)
