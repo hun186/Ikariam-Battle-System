@@ -129,20 +129,15 @@ def wall_cross_wave_requirements(requirements, side, wall_runtime_active):
 
 
 def wall_safe_round_start_field(field, wall_present, wall_still_intact, side):
-    """Disable mid-round wall-vacancy fallback and newly arriving Flank.
+    """Block fresh Flank placement without mutating First geometry.
 
-    Preserve real battlefield geometry for combat. During reserve processing,
-    defender First is temporarily an empty geometry while walls remain, so
-    existing long-range/light fallback cannot fabricate mid-round First slots.
-    Dedicated next-round native First placement uses the real geometry later.
+    Existing First positions keep their original physical indexes for safe
+    same-wave/same-unit compaction. The engine independently blocks defender
+    whole-wave First fallback until the next round after wall destruction.
     """
-    if not wall_present or not wall_still_intact:
+    if not wall_present or not wall_still_intact or "flank" not in field.lines:
         return field
-    lines = dict(field.lines)
-    lines.pop("flank", None)
-    if side == "defender" and "first" in lines:
-        first = lines["first"]
-        lines["first"] = LineGeometry("first", (), first.slot_space)
+    lines = {name: geom for name, geom in field.lines.items() if name != "flank"}
     return Battlefield(field.id, field.domain,
                        MappingProxyType(lines), field.provenance)
 
