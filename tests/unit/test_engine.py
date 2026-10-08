@@ -3147,6 +3147,81 @@ def test_both_round_zero_empty_armies_emit_combined_initial_wait_event():
             and e['side']=='defender' for e in result['events'])
 
 
+def test_uploaded_round2_delayed_bombardiers_deploy_into_empty_balloon_line():
+ # Reproduces ikariam-round-2-debug (2).json: attacker balloon line has never
+ # been deployed; 30 Bombardiers arrive as batch-2 in round 2, then batch-3 in 3.
+ attacker_rows=[
+  ('hoplite',1200,0,24,21),('swordsman',1000,0,24,26),
+  ('sulphur_carabineer',84,0,16,9),('battering_ram',30,0,0,0),
+  ('mortar',30,0,5,3),('gyrocopter',600,0,20,17),
+  ('cook',33,0,0,0),('doctor',50,0,0,0),
+  ('bombardier',30,2,0,0),('bombardier',30,3,0,0),
+ ]
+ defender_rows=[
+  ('hoplite',10082,18,18),('steam_giant',224,0,0),
+  ('spearman',3,0,0),('swordsman',7066,0,0),
+  ('archer',700,0,0),('slinger',3,0,0),
+  ('sulphur_carabineer',1008,0,0),('battering_ram',120,0,0),
+  ('mortar',90,11,11),('bombardier',386,11,11),
+  ('gyrocopter',1800,12,12),('cook',110,0,0),('doctor',50,0,0),
+ ]
+ a=[{'unit_id':unit,'quantity':qty,'entry_batch_id':f'attacker-batch-{1 if rnd==0 else rnd}',
+     'arrival_round':rnd,'attack_upgrade':atk,'armor_upgrade':arm}
+    for unit,qty,rnd,atk,arm in attacker_rows]
+ de=[{'unit_id':unit,'quantity':qty,'entry_batch_id':'defender-batch-1',
+      'attack_upgrade':atk,'armor_upgrade':arm}
+     for unit,qty,atk,arm in defender_rows]
+ s={'policy':'experimental','battlefield':'land-max','max_rounds':3,
+    'wall_level':0,'town_hall_level':25,
+    'attacker':{'forge_level':5,'units':a},
+    'defender':{'forge_level':5,'units':de}}
+ result=simulate(s)
+ assert result['rounds_completed']>=2
+ round2_error=[e for e in result['events']
+               if e['round']==2 and e['type']=='unsupported_mechanic'
+               and e['details'].get('rule_id')=='UNKNOWN-CROSS-WAVE-FORMATION-REBUILD']
+ assert not round2_error
+ placements=[e for e in result['events']
+             if e['round']==2 and e['type']=='deployment' and e['side']=='attacker'
+             and e['details'].get('reason')=='fresh_empty_native_line']
+ assert len(placements)==2
+ assert {e['details']['damage_position'] for e in placements}=={1,2}
+ assert all(e['details']['line']=='balloon'
+            and e['details']['unit_id']=='bombardier'
+            and e['details']['quantity']==15
+            and e['details']['wave_id']=='attacker-batch-2::bombardier'
+            for e in placements)
+ assert any(e['round']==2 and e['type']=='attacking_matrix'
+            and e['side']=='attacker'
+            and e['details'].get('unit_id')=='bombardier'
+            for e in result['events'])
+
+
+def test_fresh_empty_native_line_is_ammo_capped_and_does_not_steal_slots():
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ field=LAND_BATTLEFIELDS['land-max']
+ from ikariam_battle.engine import _deploy_fresh_empty_native_lines
+ fresh=Wave(ArmyUnit('bombardier',30,'b2',entry_batch_id='b2',arrival_round=2),
+            30,[],0,9,0,60)
+ events=[]
+ _deploy_fresh_empty_native_lines([fresh],registry,rules,field,events,2,'attacker')
+ assert sum(slot.units for slot in fresh.slots)==9
+ assert fresh.reserve==21 and fresh.ammo_pool_shots==9
+ assert {slot.damage_position for slot in fresh.slots}=={1}
+ # Existing physical slots, even emptied ones, remain owned by their waves.
+ old=Wave(ArmyUnit('bombardier',0,'b1',entry_batch_id='b1'),
+          0,[Slot('balloon-1','balloon',1,1,'bombardier','b1',0,15)],0,0)
+ other=Wave(ArmyUnit('bombardier',30,'b3',entry_batch_id='b3',arrival_round=3),
+            30,[],0,60,0,60)
+ _deploy_fresh_empty_native_lines([old,other],registry,rules,field,[],3,'attacker')
+ assert other.reserve==30 and not other.slots
+ # Competing candidates for a wholly vacant native line remain guarded.
+ competitor=Wave(ArmyUnit('bombardier',10,'b4',entry_batch_id='b4',arrival_round=3),
+                 10,[],0,20,0,20)
+ _deploy_fresh_empty_native_lines([other,competitor],registry,rules,field,[],3,'attacker')
+ assert not other.slots and not competitor.slots
+
+
 def test_arrival_cross_wave_boundary_preserves_boundary_round_snapshot():
  s={'policy':'experimental','battlefield':'land-mini','max_rounds':3,
     'attacker':{'units':[
