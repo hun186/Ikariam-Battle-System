@@ -12,7 +12,7 @@ import pytest
 from ikariam_battle import simulate
 
 
-CASES = Path(__file__).resolve().parent / "fixtures" / "reverse_engineering"
+CASES = Path(__file__).resolve().parents[1] / "fixtures" / "reverse_engineering"
 
 
 def _case(name):
