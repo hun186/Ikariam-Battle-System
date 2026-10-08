@@ -127,17 +127,23 @@ def wall_cross_wave_requirements(requirements, side, wall_runtime_active):
     ]
 
 
-def wall_safe_round_start_field(field, wall_present, wall_still_intact):
-    """Hide Flank from *new* native-line arrivals while any wall remains.
+def wall_safe_round_start_field(field, wall_present, wall_still_intact, side):
+    """Disable mid-round wall-vacancy fallback and newly arriving Flank.
 
-    Existing line geometry never changes and will be used for regular combat.
-    This is only the round-start formation helper's eligibility view.
+    Preserve real battlefield geometry for combat. During reserve processing,
+    defender First is temporarily an empty geometry while walls remain, so
+    existing long-range/light fallback cannot fabricate mid-round First slots.
+    Dedicated next-round native First placement uses the real geometry later.
     """
-    if not wall_present or not wall_still_intact or "flank" not in field.lines:
+    if not wall_present or not wall_still_intact:
         return field
+    lines = dict(field.lines)
+    lines.pop("flank", None)
+    if side == "defender" and "first" in lines:
+        first = lines["first"]
+        lines["first"] = LineGeometry("first", (), first.slot_space)
     return Battlefield(field.id, field.domain,
-                       MappingProxyType({name: geometry for name, geometry in field.lines.items()
-                                         if name != "flank"}), field.provenance)
+                       MappingProxyType(lines), field.provenance)
 
 
 def defender_has_held_front_reserve(waves, registry):
