@@ -3223,6 +3223,65 @@ def test_fresh_empty_native_line_is_ammo_capped_and_does_not_steal_slots():
  assert not other.slots and not competitor.slots
 
 
+def test_later_air_reinforcement_with_partial_inherited_line_stops_safely():
+ # Codex P1 reproduction: round-2 fresh 1-Bombardier wave owns only Balloon-1.
+ # After it dies, round-3 reinforcements inherit that slot but must not keep
+ # fighting as though the still-never-created Balloon-2 position were filled.
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ field=LAND_BATTLEFIELDS['land-max']
+ first=Wave(ArmyUnit('bombardier',1,'b2',entry_batch_id='b2',arrival_round=2),
+            1,[],0,2,0,2)
+ events=[]; applied={}
+ _prepare_round_start([first],events,2,'attacker',applied,registry,rules,field)
+ assert len(first.slots)==1 and first.slots[0].damage_position==1
+ assert first.slots[0].units==1 and first.reserve==0
+ first.slots[0].units=0  # Lost in the intervening combat phase.
+ next_wave=Wave(ArmyUnit('bombardier',30,'b3',entry_batch_id='b3',arrival_round=3),
+                30,[],0,60,0,60)
+ waves=[first,next_wave]
+ _prepare_round_start(waves,events,3,'attacker',applied,registry,rules,field)
+ assert sum(slot.units for slot in next_wave.slots)==15
+ assert next_wave.reserve==15
+ requirements=_cross_wave_rebuild_requirements(waves,registry,rules,field)
+ assert any(
+  req['wave_id']=='b3'
+  and req['runtime_line']=='balloon'
+  and req['reserve']==15
+  and req['open_damage_positions']==[2]
+  for req in requirements
+ )
+ assert all(req['wave_id']!='b2' for req in requirements)
+
+
+def test_partial_delayed_native_ammo_cap_does_not_raise_false_boundary():
+ # Reserve cannot enter an additional native slot when its remaining ammo
+ # is already fully committed to the deployed portion of its own wave.
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ field=LAND_BATTLEFIELDS['land-max']
+ wave=Wave(ArmyUnit('bombardier',30,'b2',entry_batch_id='b2',arrival_round=2),
+           30,[],0,9,0,60)
+ _prepare_round_start([wave],[],2,'attacker',{},registry,rules,field)
+ assert sum(slot.units for slot in wave.slots)==9
+ assert wave.reserve==21 and wave.ammo_pool_shots==9
+ assert _cross_wave_rebuild_requirements([wave],registry,rules,field)==[]
+
+
+def test_partial_delayed_native_does_not_flag_full_geometry_or_other_lines():
+ # A later wave with Reserve but with all physical Balloon positions owned
+ # is normal; only *never-created* positions require a new unsupported rule.
+ registry=UnitRegistry.load(); rules=FormationRules.load()
+ field=LAND_BATTLEFIELDS['land-max']
+ early=Wave(ArmyUnit('bombardier',30,'b2',entry_batch_id='b2',arrival_round=2),
+            30,[],0,60,0,60)
+ _prepare_round_start([early],[],2,'attacker',{},registry,rules,field)
+ later=Wave(ArmyUnit('bombardier',30,'b3',entry_batch_id='b3',arrival_round=3),
+            30,[],0,60,0,60)
+ waves=[early,later]
+ _prepare_round_start(waves,[],3,'attacker',{},registry,rules,field)
+ assert later.reserve==30 and not later.slots
+ assert _cross_wave_rebuild_requirements(waves,registry,rules,field)==[]
+
+
 def test_arrival_cross_wave_boundary_preserves_boundary_round_snapshot():
  s={'policy':'experimental','battlefield':'land-mini','max_rounds':3,
     'attacker':{'units':[
