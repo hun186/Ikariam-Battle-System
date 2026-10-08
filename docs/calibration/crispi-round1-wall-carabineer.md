@@ -24,7 +24,7 @@ Game attacker Hoplite physical-slot losses: **[1, 11, 11, 11, 11, 6, 1]**, 52 to
 ## User-confirmed wall formation constraints (2026-10-08)
 
 1. Seven active Town Wall sections initially occupy First; defender Hoplites must **not** deploy into First until **the next round** after a wall physical-position vacancy appears.
-2. While **any wall section** survives, defender Flank stays **empty**. Flank may fill only **the round after** the last section breaks; open-field battles with suppressed walls use normal Flank deployment.
+2. While **any wall section** survives, **both attacker and defender Flank** stay **empty**. Flanks may fill only **the round after** the last section breaks; open-field battles with suppressed walls use normal Flank deployment.
 3. **Only the attacker has Forge Lv5**; the defender has Forge Lv0. Both Gyrocopter groups have zero casualties, while the attacker's Gyrocopters kill 30 defending Bombardiers and defender's Gyrocopters kill 20 attacking Bombardiers.
 4. This PR fixes per-round wall **reporting/rendering** only, not the initial wall occupancy, reinforcement timing, Flank lock, or wall offensive mechanics. A visual overlay must not be mistaken for actual engine parity.
 
