@@ -140,7 +140,7 @@ def test_strict_active_wall_round_zero_snapshot_even_on_unsupported_exit():
 def test_preloop_no_wall_early_return_has_explicit_null_wall():
     s={'policy':'experimental','battlefield':'land-mini','wall_level':0,
        'attacker':{'units':[{'unit_id':'hoplite','quantity':30}]},
-       'defender':{'units':[]}}
+       'defender':{'units':[{'unit_id':'gyrocopter','quantity':10}]}}
     result=simulate(s)
     assert result['rounds_completed']==0
     assert result['rounds'][0]['wall'] is None
