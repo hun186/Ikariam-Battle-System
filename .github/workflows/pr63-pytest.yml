@@ -26,7 +26,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
-          python -m pip install -e .
+          # pyproject.toml sets pytest pythonpath to repo root; custom backend is not PEP 660 editable.
           python -m pip install pytest
       - name: Run complete pytest suite
         run: python -m pytest -q
