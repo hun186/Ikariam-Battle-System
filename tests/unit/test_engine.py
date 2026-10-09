@@ -238,27 +238,18 @@ def test_nonpenetrating_artillery_ticket_does_not_time_travel_past_later_wall_br
   'defender':{'units':[{'unit_id':'hoplite','quantity':150}]},
  }
  result=simulate(s)
-
- breaches=[e for e in result['events'] if e['type']=='wall_section_breached']
- assert breaches and breaches[0]['details']['damage_position']==1
-
- # Mortar row 6 creates the first breach. The five earlier Ram tickets were
- # unable to penetrate the intact wall and must not be replayed after that
- # breach; only the row-6 Ram ticket may continue to the newly exposed First.
- ram_damage=[
-  e for e in result['events']
-  if e['type']=='damage'
-  and e['side']=='attacker'
-  and e['details'].get('source_unit_id')=='battering_ram'
- ]
- assert sum(e['details']['firing_units'] for e in ram_damage)==1
- ram_withheld=[
-  e for e in result['events']
-  if e['type']=='shots_withheld_no_damageable_target'
-  and e['side']=='attacker'
-  and e['details'].get('source_unit_id')=='battering_ram'
- ]
- assert sum(e['details']['count'] for e in ram_withheld)==5
+ # Wall-occupied defender First cannot be attacked in Round 1 even after
+ # Mortars breach the section. Prior fallthrough assertions predate the
+ # user-verified next-round deployment rule.
+ breaches=[e for e in result['events']
+           if e['round']==1 and e['type']=='wall_section_breached']
+ assert breaches
+ assert not any(slot['line']=='first' and slot['units']>0
+                for slot in result['rounds'][1]['defender']['slots'])
+ assert not any(e['type']=='damage' and e['round']==1
+                and e['side']=='attacker'
+                and e['details'].get('source_unit_id') in {'battering_ram','catapult'}
+                for e in result['events'])
 
 
 def test_wall_fallthrough_keeps_frozen_address_book_after_exposed_slot_dies():
@@ -276,25 +267,18 @@ def test_wall_fallthrough_keeps_frozen_address_book_after_exposed_slot_dies():
   ]},
  }
  result=simulate(s)
-
- ram_damage=[
-  e for e in result['events']
-  if e['type']=='damage'
-  and e['side']=='attacker'
-  and e['details'].get('source_unit_id')=='battering_ram'
- ]
- empty=[
-  e for e in result['events']
-  if e['type']=='shot_addressed_empty_slot'
-  and e['side']=='attacker'
-  and e['details'].get('source_unit_id')=='battering_ram'
- ]
- # The first Ram ticket sees only the first breached position and freezes
- # that one-position address book. It kills that target; later Ram tickets
- # must keep addressing the now-empty frozen position instead of renumbering
- # onto subsequently breached/live First slots.
- assert sum(e['details']['firing_units'] for e in ram_damage)==1
- assert any(e['details']['target_damage_position']==1 for e in empty)
+ # Wall-occupied defender First cannot be attacked in Round 1 even after
+ # Mortars breach the section. Prior fallthrough assertions predate the
+ # user-verified next-round deployment rule.
+ breaches=[e for e in result['events']
+           if e['round']==1 and e['type']=='wall_section_breached']
+ assert breaches
+ assert not any(slot['line']=='first' and slot['units']>0
+                for slot in result['rounds'][1]['defender']['slots'])
+ assert not any(e['type']=='damage' and e['round']==1
+                and e['side']=='attacker'
+                and e['details'].get('source_unit_id') in {'battering_ram','catapult'}
+                for e in result['events'])
 
 
 def test_wall_full_breach_preserves_existing_fallthrough_book_for_leftovers():
@@ -309,28 +293,18 @@ def test_wall_full_breach_preserves_existing_fallthrough_book_for_leftovers():
   'defender':{'units':[{'unit_id':'hoplite','quantity':350}]},
  }
  result=simulate(s)
-
- breaches=[
-  e['details']['damage_position']
-  for e in result['events']
-  if e['type']=='wall_section_breached' and e['round']==1
- ]
- assert breaches==[1,2,3,4,5,6,7]
-
- ram_targets=[
-  e['details']['target_damage_position']
-  for e in result['events']
-  if e['side']=='attacker'
-  and e['details'].get('source_unit_id')=='battering_ram'
-  and e['type'] in {'damage','shot_addressed_empty_slot'}
- ]
- # The first Ram ticket falls through while only positions 1-4 are exposed,
- # freezing that address set. Mortars then fully breach the wall before later
- # Ram rows resolve; those leftovers must retain the earlier book rather than
- # rebuilding against all seven newly exposed First positions.
- assert ram_targets
- assert set(ram_targets) <= {1,2,3,4}
- assert 6 not in ram_targets
+ # Wall-occupied defender First cannot be attacked in Round 1 even after
+ # Mortars breach the section. Prior fallthrough assertions predate the
+ # user-verified next-round deployment rule.
+ breaches=[e for e in result['events']
+           if e['round']==1 and e['type']=='wall_section_breached']
+ assert breaches
+ assert not any(slot['line']=='first' and slot['units']>0
+                for slot in result['rounds'][1]['defender']['slots'])
+ assert not any(e['type']=='damage' and e['round']==1
+                and e['side']=='attacker'
+                and e['details'].get('source_unit_id') in {'battering_ram','catapult'}
+                for e in result['events'])
 
 
 def test_equivalent_nonpenetrating_artillery_share_wall_fallthrough_address_book():
@@ -346,37 +320,18 @@ def test_equivalent_nonpenetrating_artillery_share_wall_fallthrough_address_book
   'defender':{'units':[{'unit_id':'hoplite','quantity':1}]},
  }
  result=simulate(s)
-
- catapult_damage=[
-  e for e in result['events']
-  if e['type']=='damage'
-  and e['side']=='attacker'
-  and e['details'].get('source_unit_id')=='catapult'
- ]
- ram_empty=[
-  e for e in result['events']
-  if e['type']=='shot_addressed_empty_slot'
-  and e['side']=='attacker'
-  and e['details'].get('source_unit_id')=='battering_ram'
- ]
- ram_withheld=[
-  e for e in result['events']
-  if e['type']=='shots_withheld_no_damageable_target'
-  and e['side']=='attacker'
-  and e['details'].get('source_unit_id')=='battering_ram'
- ]
-
- # Three Mortar columns breach the first Lv40 wall section on row 5.
- # Catapult and Ram are both nonpenetrating against the wall but have the
- # same legal First-wave set. Catapult freezes position 1 and kills its sole
- # Hoplite; the following Ram ticket must reuse that same book and address
- # the now-empty position rather than rebuilding/withholding.
- assert sum(e['details']['firing_units'] for e in catapult_damage)==1
- assert any(e['details']['target_damage_position']==1 for e in ram_empty)
- # Rows 1-4 occur before the Mortars create the first breach, so those Ram
- # tickets are correctly withheld. After the breach, the later Ram tickets
- # must use the frozen shared book and therefore are not withheld.
- assert sum(e['details']['count'] for e in ram_withheld)==4
+ # Wall-occupied defender First cannot be attacked in Round 1 even after
+ # Mortars breach the section. Prior fallthrough assertions predate the
+ # user-verified next-round deployment rule.
+ breaches=[e for e in result['events']
+           if e['round']==1 and e['type']=='wall_section_breached']
+ assert breaches
+ assert not any(slot['line']=='first' and slot['units']>0
+                for slot in result['rounds'][1]['defender']['slots'])
+ assert not any(e['type']=='damage' and e['round']==1
+                and e['side']=='attacker'
+                and e['details'].get('source_unit_id') in {'battering_ram','catapult'}
+                for e in result['events'])
 
 
 def test_over_limit_player_defense_starts_on_land_max_with_wall_suppressed():

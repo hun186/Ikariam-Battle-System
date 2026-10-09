@@ -32,6 +32,13 @@ from .target_eligibility import (
 )
 from .units import UnitRegistry
 from .weapon_selection import UnsupportedWeaponSelection, select_active_weapon
+from .wall_formation import (
+    hold_initial_wall_formations,
+    deploy_prior_round_wall_vacancies,
+    wall_cross_wave_requirements,
+    wall_safe_round_start_field,
+    defender_has_held_front_reserve,
+)
 from .wall import (
     MAX_TOWN_WALL_LEVEL,
     TOWN_WALL_RULE_ID,
@@ -1107,6 +1114,7 @@ def _supported_whole_wave_first_fallback(
     waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field,
     events: list[Event], number: int, side: str,
     reserved_wave_ids: set[tuple[str, str]] | None = None,
+    allowed_first_positions: set[int] | None = None,
 ) -> bool:
     """Move one whole supported fallback wave into open First slots.
 
@@ -1203,7 +1211,19 @@ def _supported_whole_wave_first_fallback(
             if live_lines:
                 continue
         elif live_lines != {unit.native_line}:
-            continue
+            # While a Town Wall is active, the Flank is deliberately held in
+            # Reserve. A wholly reserve-only Light wave may enter *already
+            # breached* First positions in this restricted wall-gap pass, but
+            # it must never compete before native First placement. Ordinary
+            # (wall-free) fallback still needs live native-line ownership.
+            held_light_into_wall_gap = (
+                allowed_first_positions is not None
+                and unit.semantic_class == "light_infantry"
+                and not live_lines
+                and wave.reserve > 0
+            )
+            if not held_light_into_wall_gap:
+                continue
 
         total_units = wave.reserve + sum(slot.units for slot in wave.slots)
         capacity = geometry.slot_space // unit.size
@@ -1212,7 +1232,10 @@ def _supported_whole_wave_first_fallback(
         open_positions = [
             position for position in geometry.damage_priority
             if position not in occupied
+            and (allowed_first_positions is None or position in allowed_first_positions)
         ]
+        if not open_positions and allowed_first_positions is not None:
+            continue
         required_slots = (total_units + capacity - 1) // capacity
         source_lines = sorted({slot.line for slot in wave.slots if slot.units})
         total_damage = _park_wave_damage_for_redeployment(wave)
@@ -1464,6 +1487,7 @@ def _prepare_round_start(
     rules: FormationRules | None = None, field=None,
     support: SupportProfile | None = None,
     reserved_wave_ids: set[tuple[str, str]] | None = None,
+    block_first_fallback: bool = False,
 ) -> bool:
     """Re-pack, apply safe Doctor/Tender full-clear healing, then RR damage."""
     _rebuild_formation(waves, events, number, side)
@@ -1478,9 +1502,15 @@ def _prepare_round_start(
             waves, registry, events, number, side)
         _supported_same_batch_ranked_third_handoffs(
             waves, registry, rules, field, events, number, side)
-        fallback_boundary = _supported_whole_wave_first_fallback(
-            waves, registry, rules, field, events, number, side,
-            reserved_wave_ids=reserved_wave_ids)
+        # A live Town Wall blocks any *new* defender First slot in this
+        # same round; existing physically occupied First slots are still
+        # re-packed by the normal supported compaction functions above.
+        fallback_boundary = (
+            False if block_first_fallback
+            else _supported_whole_wave_first_fallback(
+                waves, registry, rules, field, events, number, side,
+                reserved_wave_ids=reserved_wave_ids)
+        )
         if fallback_boundary:
             return True
         # Whole-wave promotion can vacate native-line physical positions that
@@ -3093,6 +3123,11 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     defender = deploy(Army(tuple(item for item in scenario.defender.units if item.arrival_round == 0),
                            scenario.defender.forge_level, scenario.defender.army_kind),
                       registry, field, formation_profile)
+    # Town Wall physically owns the defender's First slots; both Flanks are
+    # held in Reserve. The deployment event stream must never claim those
+    # blocked slots were on the field in round zero.
+    if wall_runtime_active and wall_sections:
+        hold_initial_wall_formations(attacker, defender)
     events: list[Event] = []
     for side, waves in (("attacker", attacker), ("defender", defender)):
         for wave in waves:
@@ -3252,6 +3287,12 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         },
     }
     for number in range(1, scenario.max_rounds + 1):
+        # Round-boundary eligibility is frozen before this round's artillery
+        # can damage the wall. New holes may only receive units next round.
+        wall_intact_at_round_start = bool(
+            wall_runtime_active and wall_sections
+            and wall_flanks_locked(wall_sections)
+        )
         attacker_arrivals = _arrival_waves(scenario.attacker, number, registry, events, "attacker")
         defender_arrivals = _arrival_waves(scenario.defender, number, registry, events, "defender")
         attacker.extend(attacker_arrivals)
@@ -3300,14 +3341,19 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         for side, side_blockers in arrival_blockers.items():
             if "UNKNOWN-MORALE-SUPPORT" in side_blockers:
                 _assume(applied, events, "EXP-MORALE-NONE-001", number, "arrival", side)
+        attacker_round_field = wall_safe_round_start_field(
+            field, wall_runtime_active, wall_intact_at_round_start, "attacker")
+        defender_round_field = wall_safe_round_start_field(
+            field, wall_runtime_active, wall_intact_at_round_start, "defender")
         attacker_fallback_boundary = _prepare_round_start(
             attacker, events, number, "attacker", applied,
-            registry, formation_rules, field, support,
+            registry, formation_rules, attacker_round_field, support,
             scheduled_wave_ids["attacker"])
         defender_fallback_boundary = _prepare_round_start(
             defender, events, number, "defender", applied,
-            registry, formation_rules, field, support,
-            scheduled_wave_ids["defender"])
+            registry, formation_rules, defender_round_field, support,
+            scheduled_wave_ids["defender"],
+            block_first_fallback=bool(wall_runtime_active and wall_sections))
         if attacker_fallback_boundary or defender_fallback_boundary:
             completed = number
             attacker_state = _snapshot(attacker, registry, battle_end)
@@ -3317,11 +3363,85 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 "attacker": attacker_state,
                 "defender": defender_state,
                 "casualties": {"attacker": {}, "defender": {}},
-             "wall": _round_wall_snapshot(scenario.wall_level,wall_runtime_active,wall_sections),
+            "wall": _round_wall_snapshot(scenario.wall_level, wall_runtime_active, wall_sections),
             })
             cross_wave_boundary = True
             break
         if wall_runtime_active and wall_sections:
+            wall_gap_conflicts = {}
+            for side, waves in (("attacker", attacker), ("defender", defender)):
+                conflicts, placed = deploy_prior_round_wall_vacancies(
+                    waves, registry, formation_rules, field, wall_sections,
+                    number, side, events, _event)
+                wall_gap_conflicts[side] = conflicts
+                if placed:
+                    # Initial RR ran during general round-start preparation,
+                    # before wall vacancies could accept Reserve. Reallocate
+                    # the *same* persistent wave damage to the final deployed
+                    # subset; do not reset newly deployed slots to full HP.
+                    _redistribute(waves, events, number, side, applied)
+                if conflicts:
+                    break
+            if any(wall_gap_conflicts.values()):
+                for side, requirements in wall_gap_conflicts.items():
+                    if requirements:
+                        _event(
+                            events, number, "round_start", "unsupported_mechanic", side,
+                            rule_id="UNKNOWN-CROSS-WAVE-FORMATION-REBUILD",
+                            requirements=requirements,
+                        )
+                completed = number
+                attacker_state = _snapshot(attacker, registry, battle_end)
+                defender_state = _snapshot(defender, registry, battle_end)
+                rounds.append({
+                    "round": number,
+                    "attacker": attacker_state,
+                    "defender": defender_state,
+                    "casualties": {"attacker": {}, "defender": {}},
+                "wall": _round_wall_snapshot(scenario.wall_level, wall_runtime_active, wall_sections),
+                })
+                cross_wave_boundary = True
+                break
+            # Native defender First troops have now claimed all supported
+            # prior-round wall vacancies. Only *after that* may exhausted
+            # Second / Light fallback consider the physical positions that
+            # are already breached, never intact Town Wall slots.
+            if number >= 2:
+                breached_first_positions = {
+                    section.damage_position for section in wall_sections
+                    if section.destroyed
+                }
+                if breached_first_positions:
+                    defender_fallback_boundary = _supported_whole_wave_first_fallback(
+                        defender, registry, formation_rules, field,
+                        events, number, "defender",
+                        reserved_wave_ids=scheduled_wave_ids["defender"],
+                        allowed_first_positions=breached_first_positions,
+                    )
+                    if defender_fallback_boundary:
+                        completed = number
+                        attacker_state = _snapshot(attacker, registry, battle_end)
+                        defender_state = _snapshot(defender, registry, battle_end)
+                        rounds.append({
+                            "round": number,
+                            "attacker": attacker_state,
+                            "defender": defender_state,
+                            "casualties": {"attacker": {}, "defender": {}},
+                        "wall": _round_wall_snapshot(scenario.wall_level, wall_runtime_active, wall_sections),
+                        })
+                        cross_wave_boundary = True
+                        break
+                    _rebuild_formation(defender, events, number, "defender")
+                    _supported_same_unit_same_line_handoffs(
+                        defender, registry, formation_rules, field,
+                        events, number, "defender")
+                    _cap_native_finite_ammo_deployment(
+                        defender, registry, events, number, "defender",
+                        emit_events=False)
+                    _supported_same_batch_ranked_third_handoffs(
+                        defender, registry, formation_rules, field,
+                        events, number, "defender")
+                    _redistribute(defender, events, number, "defender", applied)
             redistribution = wall_redistribution_plan(
                 wall_sections, scenario.wall_level
             )
@@ -3353,8 +3473,12 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                     "defender", wall_level=scenario.wall_level, **redistribution,
                 )
         cross_wave = {
-            "attacker": _cross_wave_rebuild_requirements(attacker, registry, formation_rules, field),
-            "defender": _cross_wave_rebuild_requirements(defender, registry, formation_rules, field),
+            "attacker": wall_cross_wave_requirements(
+                _cross_wave_rebuild_requirements(attacker, registry, formation_rules, field),
+                "attacker", wall_intact_at_round_start),
+            "defender": wall_cross_wave_requirements(
+                _cross_wave_rebuild_requirements(defender, registry, formation_rules, field),
+                "defender", wall_intact_at_round_start),
         }
         if any(cross_wave.values()):
             for side, requirements in cross_wave.items():
@@ -3373,7 +3497,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 "attacker": attacker_state,
                 "defender": defender_state,
                 "casualties": {"attacker": {}, "defender": {}},
-             "wall": _round_wall_snapshot(scenario.wall_level,wall_runtime_active,wall_sections),
+            "wall": _round_wall_snapshot(scenario.wall_level, wall_runtime_active, wall_sections),
             })
             cross_wave_boundary = True
             break
@@ -3522,6 +3646,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                     wall_sections = initial_wall_sections(
                         scenario.wall_level, field
                     )
+                    hold_initial_wall_formations(attacker, defender)
                 _event(
                     events, number, "round_end", "garrison_state_change", "defender",
                     direction="exit_open_field",
@@ -3540,10 +3665,14 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
         # or termination decision so an unimplemented cross-wave replacement
         # can never be mistaken for an exact battle outcome.
         post_combat_cross_wave = {
-            "attacker": _cross_wave_rebuild_requirements(
-                attacker, registry, formation_rules, field),
-            "defender": _cross_wave_rebuild_requirements(
-                defender, registry, formation_rules, field),
+            "attacker": wall_cross_wave_requirements(
+                _cross_wave_rebuild_requirements(
+                    attacker, registry, formation_rules, field),
+                "attacker", bool(wall_runtime_active and wall_sections)),
+            "defender": wall_cross_wave_requirements(
+                _cross_wave_rebuild_requirements(
+                    defender, registry, formation_rules, field),
+                "defender", bool(wall_runtime_active and wall_sections)),
         }
         if any(post_combat_cross_wave.values()):
             for side, requirements in post_combat_cross_wave.items():
@@ -3566,6 +3695,11 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                         side_waves, registry, formation_rules, field)):
                 states[side] = ContinuationState.SUSTAINING.value
         if _wall_sustains_defender(wall_runtime_active, wall_sections):
+            states["defender"] = ContinuationState.SUSTAINING.value
+        elif (wall_intact_at_round_start
+              and defender_has_held_front_reserve(defender, registry)):
+            # Last wall section fell *this* round; Next-round Front deployment
+            # is known to be available, so do not terminate a round early.
             states["defender"] = ContinuationState.SUSTAINING.value
         effective_attacker_state = dict(attacker_state)
         effective_defender_state = dict(defender_state)
@@ -3644,6 +3778,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                     wall_sections = initial_wall_sections(
                         scenario.wall_level, field
                     )
+                    hold_initial_wall_formations(attacker, defender)
                 _event(
                     events, number, "round_end", "garrison_state_change", "defender",
                     direction="exit_open_field",
