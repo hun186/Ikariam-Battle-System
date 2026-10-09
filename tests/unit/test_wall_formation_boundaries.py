@@ -265,8 +265,9 @@ def test_wall_held_reserve_light_enters_only_unoccupied_breached_front():
     rules = FormationRules.load()
     field = LAND_BATTLEFIELDS["land-max"]
     sections = initial_wall_sections(24, field)
-    for section in sections[:5]:
-        section.destroyed = True
+    for section in sections:
+        if section.damage_position in {1, 2, 3, 4, 5}:
+            section.destroyed = True
     native = Wave(ArmyUnit("hoplite", 200), 200, [])
     held_light = Wave(ArmyUnit("swordsman", 40), 40, [])
     waves = [native, held_light]
