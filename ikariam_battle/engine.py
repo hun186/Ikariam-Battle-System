@@ -3553,11 +3553,11 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             "attacker": wall_cross_wave_requirements(
                 _cross_wave_rebuild_requirements(
                     attacker, registry, formation_rules, field),
-                "attacker", wall_intact_at_round_start),
+                "attacker", bool(wall_runtime_active and wall_sections)),
             "defender": wall_cross_wave_requirements(
                 _cross_wave_rebuild_requirements(
                     defender, registry, formation_rules, field),
-                "defender", wall_intact_at_round_start),
+                "defender", bool(wall_runtime_active and wall_sections)),
         }
         if any(post_combat_cross_wave.values()):
             for side, requirements in post_combat_cross_wave.items():
