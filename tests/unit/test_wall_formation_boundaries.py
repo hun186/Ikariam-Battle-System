@@ -1,7 +1,7 @@
 """Town Wall occupies First and blocks both Flanks until the *next* round."""
 from ikariam_battle import simulate
 from ikariam_battle.battlefield import LAND_BATTLEFIELDS
-from ikariam_battle.engine import _redistribute, _event
+from ikariam_battle.engine import _redistribute, _event, _supported_whole_wave_first_fallback
 from ikariam_battle.formation import FormationRules
 from ikariam_battle.models import ArmyUnit, Wave
 from ikariam_battle.units import UnitRegistry
@@ -154,3 +154,103 @@ def test_newly_occupied_wall_gap_receives_existing_reserve_damage():
     assert wave.reserve_damage == 0
     assert sum(slot.damage for slot in wave.slots) == 1120
     assert sum(slot.damage for slot in wave.slots) + wave.reserve_damage == 1120
+
+
+def test_native_front_reserve_claims_all_wall_gaps_before_carabineer_fallback():
+    # The reported P1: even though the Long-Range wave is out of shots, seven
+    # already breached Town Wall slots must go first to native Hoplites.
+    registry = UnitRegistry.load()
+    rules = FormationRules.load()
+    field = LAND_BATTLEFIELDS["land-max"]
+    sections = initial_wall_sections(24, field)
+    for section in sections:
+        section.destroyed = True
+    native = Wave(ArmyUnit("hoplite", 700), 700, [])
+    exhausted = Wave(ArmyUnit("sulphur_carabineer", 84),
+                     84, [], 0, 0)
+    waves = [native, exhausted]
+    events = []
+
+    conflicts, placed = deploy_prior_round_wall_vacancies(
+        waves, registry, rules, field, sections, 4, "defender",
+        events, _event,
+    )
+    assert conflicts == [] and placed
+    assert {slot.damage_position for slot in native.slots} == set(range(1, 8))
+    assert sum(slot.units for slot in native.slots) == 350
+    assert native.reserve == 350
+    assert _supported_whole_wave_first_fallback(
+        waves, registry, rules, field, events, 4, "defender",
+        allowed_first_positions={
+            section.damage_position for section in sections if section.destroyed
+        },
+    ) is False
+    assert not any(slot.line == "first" and slot.units > 0
+                   for slot in exhausted.slots)
+    assert exhausted.reserve == 84
+
+
+def test_fallback_only_uses_residual_breached_front_after_native_priority():
+    registry = UnitRegistry.load()
+    rules = FormationRules.load()
+    field = LAND_BATTLEFIELDS["land-max"]
+    sections = initial_wall_sections(24, field)
+    for section in sections:
+        section.destroyed = True
+    native = Wave(ArmyUnit("hoplite", 250), 250, [])
+    exhausted = Wave(ArmyUnit("sulphur_carabineer", 84),
+                     84, [], 0, 0)
+    waves = [native, exhausted]
+    events = []
+    conflicts, placed = deploy_prior_round_wall_vacancies(
+        waves, registry, rules, field, sections, 4, "defender",
+        events, _event,
+    )
+    assert conflicts == [] and placed
+    assert {slot.damage_position for slot in native.slots} == {1,2,3,4,5}
+    assert _supported_whole_wave_first_fallback(
+        waves, registry, rules, field, events, 4, "defender",
+        allowed_first_positions={
+            section.damage_position for section in sections if section.destroyed
+        },
+    ) is False
+    native_positions = {slot.damage_position for slot in native.slots if slot.units}
+    fallback_positions = {
+        slot.damage_position for wave in waves
+        if wave.unit.unit_id == "sulphur_carabineer"
+        for slot in wave.slots if slot.line == "first" and slot.units
+    }
+    assert native_positions == {1,2,3,4,5}
+    assert fallback_positions and fallback_positions <= {6,7}
+    assert fallback_positions.isdisjoint(native_positions)
+
+
+def test_fallback_cannot_enter_intact_wall_position_after_partial_breach():
+    registry = UnitRegistry.load()
+    rules = FormationRules.load()
+    field = LAND_BATTLEFIELDS["land-max"]
+    sections = initial_wall_sections(24, field)
+    for section in sections[:-1]:
+        section.destroyed = True
+    native = Wave(ArmyUnit("hoplite", 250), 250, [])
+    exhausted = Wave(ArmyUnit("sulphur_carabineer", 84),
+                     84, [], 0, 0)
+    waves = [native, exhausted]
+    events = []
+    conflicts, placed = deploy_prior_round_wall_vacancies(
+        waves, registry, rules, field, sections, 3, "defender",
+        events, _event,
+    )
+    assert conflicts == [] and placed
+    breached = {section.damage_position for section in sections if section.destroyed}
+    intact = {section.damage_position for section in sections if not section.destroyed}
+    assert _supported_whole_wave_first_fallback(
+        waves, registry, rules, field, events, 3, "defender",
+        allowed_first_positions=breached,
+    ) is False
+    first_positions = {
+        slot.damage_position for wave in waves
+        for slot in wave.slots if slot.line == "first" and slot.units
+    }
+    assert first_positions <= breached
+    assert first_positions.isdisjoint(intact)
