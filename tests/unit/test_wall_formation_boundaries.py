@@ -10,7 +10,7 @@ def _case(*, wall=24, hall=25, rounds=2, attackers_mortar=30):
         "attacker": {
             "forge_level": 5,
             "units": [
-                {"unit_id": "hoplite", "quantity":350},
+                {"unit_id": "hoplite", "quantity":700},
                 {"unit_id": "swordsman", "quantity":160},
                 {"unit_id": "mortar", "quantity":attackers_mortar,
                  "attack_upgrade":7},
