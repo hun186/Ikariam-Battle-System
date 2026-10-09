@@ -1,0 +1,32 @@
+name: PR 63 pytest
+
+on:
+  push:
+    branches:
+      - fix/wall-occupancy-round-boundary-flanks
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    name: pytest -q (Python 3.11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact branch commit
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          # pyproject.toml sets pytest pythonpath to repo root; custom backend is not PEP 660 editable.
+          python -m pip install pytest
+      - name: Run complete pytest suite
+        run: python -m pytest -q
