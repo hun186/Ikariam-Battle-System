@@ -1,9 +1,11 @@
-name: PR 63 pytest
+name: Ikariam battle full pytest
 
 on:
   push:
     branches:
       - fix/wall-occupancy-round-boundary-flanks
+      - research/wall-air-round1-reference-cases
+      - fix/round-wall-snapshot-render
   workflow_dispatch:
 
 permissions:
