@@ -3,30 +3,30 @@
 ## Evidence
 
 - Real detailed combat screenshot titled **Kauja par crispi1 Rounds 1/8**, timestamp **2026-04-12 10:33:32** (provided in conversation).
-- Current simulator export **ikariam-round-1-debug (3).json**, exported **2026-10-08T15:18:27.708Z** (provided in conversation; raw bytes **not** committed).
+- Historical simulator export **ikariam-round-1-debug (3).json** (before PR #63), exported **2026-10-08T15:18:27.708Z** (provided in conversation; raw bytes **not** committed).
 - Simulator: `land-max`, `wall_level=24`, `town_hall_level=25`, `policy=experimental`. Attacker Forge 5; defender Forge 0. User specifically notes defender 20 surviving Mortars each kill one Hoplite, then Sulphur Carabineers fire, then surviving wall bombs account for two Hoplites. These attributions are the user's empirical interpretation, not independently logged by the in-game client.
 
 ## What actually matches and differs
 
-| Attacker loss | Game screenshot | Simulator Round 1 |
+| Attacker loss | Game screenshot | Legacy simulator Round 1 (pre-#63) |
 |---|---:|---:|
 | Hoplite | **52** | **94** |
 | Bombardier | 20 | 20 |
 
-| Defender loss | Game screenshot | Simulator Round 1 |
+| Defender loss | Game screenshot | Legacy simulator Round 1 (pre-#63) |
 |---|---:|---:|
 | Mortar | 10 (five slots of 2) | 10 |
 | Bombardier | 30 (two slots of 15) | 30 |
 | Wall sections breached | **5 of 7** (physical positions 2–6) | **5 of 7** (damage positions 1–5 = physical positions 2–6) |
 
-Game attacker Hoplite physical-slot losses: **[1, 11, 11, 11, 11, 6, 1]**, 52 total. Simulator: **[9, 16, 16, 17, 16, 11, 9]**, 94 total. Game wall physical line is **[1,0,0,0,0,0,1]** alive, matching the simulator's five breaches in physical positions 2–6. The earlier claim that only three wall sections were breached was a screenshot-reading error. Game defender Hoplites remain in Reserve behind Wall in this screenshot; simulator treats exposed defender Hoplite slots as eligible for immediate same-round First-phase fire.
+Game attacker Hoplite physical-slot losses: **[1, 11, 11, 11, 11, 6, 1]**, 52 total. Simulator: **[9, 16, 16, 17, 16, 11, 9]**, 94 total. Game wall physical line is **[1,0,0,0,0,0,1]** alive, matching the simulator's five breaches in physical positions 2–6. The earlier claim that only three wall sections were breached was a screenshot-reading error. Game defender Hoplites remain in Reserve behind Wall in this screenshot. The *legacy export* incorrectly treated defender Hoplite slots as eligible for immediate same-round First-phase fire; PR #63 has since corrected initial wall occupancy and next-round refill in Hosted `main`.
 
 ## User-confirmed wall formation constraints (2026-10-08)
 
 1. Seven active Town Wall sections initially occupy First; defender Hoplites must **not** deploy into First until **the next round** after a wall physical-position vacancy appears.
 2. While **any wall section** survives, **both attacker and defender Flank** stay **empty**. Flanks may fill only **the round after** the last section breaks; open-field battles with suppressed walls use normal Flank deployment.
 3. **Only the attacker has Forge Lv5**; the defender has Forge Lv0. Both Gyrocopter groups have zero casualties, while the attacker's Gyrocopters kill 30 defending Bombardiers and defender's Gyrocopters kill 20 attacking Bombardiers.
-4. This PR fixes per-round wall **reporting/rendering** only, not the initial wall occupancy, reinforcement timing, Flank lock, or wall offensive mechanics. A visual overlay must not be mistaken for actual engine parity.
+4. PR #63 has already implemented initial wall occupancy, reinforcement timing and both-sides Flank lock in Hosted `main`, with 408/408 pytest at its exact merge head. This separate PR now adds per-round wall **reporting/rendering** without altering the remaining unverified wall offensive mechanics. A visual overlay alone must not be mistaken for damage parity.
 
 ## Split the model's 94 losses by actual firing phases
 
@@ -38,7 +38,7 @@ Game attacker Hoplite physical-slot losses: **[1, 11, 11, 11, 11, 6, 1]**, 52 to
 | Town Wall | **0** — `EXP-WALL-OFFENSE-NONE-001` explicitly disables offensive fire |
 | **Total** | **94** |
 
-Compare the user's candidate actual causal explanation **20 Mortar + 30 Carabineer + 2 Wall = 52**. The same-round defender Hoplite exposure accounts for **50 of the model's 94 deaths**. **Do not** conclude that all 42 extra deaths arise from Firearm Accuracy. The wall is not merely absent from the picture: its offensive firing is absent in the engine, and the premature defender Hoplite deployment and same-round firing are a distinct battle-mechanics mismatch. The observed breach count and positions do match the model in this case.
+Compare the user's candidate actual causal explanation **20 Mortar + 30 Carabineer + 2 Wall = 52**. In the **pre-#63 legacy export**, same-round defender Hoplite exposure accounts for **50 of the model's 94 deaths**. **Do not** conclude that all 42 extra deaths arise from Firearm Accuracy. The wall is not merely absent from the picture: its offensive firing is absent in the engine, and the premature defender Hoplite deployment and same-round firing are a distinct battle-mechanics mismatch. The observed breach count and positions do match the model in this case.
 
 ## Carabineer case: an unusually clear damage-allocation test
 
@@ -65,6 +65,6 @@ The current engine explicitly uses `EXP-SR-DISABLED-001`, `EXP-IR-DISABLED-001`,
 
 The existing final `simulation_summary.wall_status.sections_state` is **final-round** wall state. Its values cannot represent Round 1. Previously no `round.wall` existed, so the UI rendered defender Hoplites in Front even while the wall was active.
 
-This PR adds an **immutable per-round `round.wall` snapshot** for regular Experimental simulation, including active/suppressed flag, HP and 7 per-position sections. The browser shows the current-round wall icons and breached locations while the wall is at least partially intact, and the UI explicitly warns that wall offense is **not modeled**. It does not alter `EXP-WALL-OFFENSE-NONE-001`, first-line eligibility, wall successful-hit assumptions or damage calculations.
+This PR adds an **immutable per-round `round.wall` snapshot** for regular Experimental simulation, including active/suppressed flag, HP and 7 per-position sections. The browser shows intact wall sections and, when next-round reinforcement has arrived in a previously breached position, the **actual defender First unit** rather than a ghost wall tile. The UI explicitly warns that wall offense is **not modeled**. It does not alter `EXP-WALL-OFFENSE-NONE-001`, first-line eligibility, wall successful-hit assumptions or damage calculations.
 
-**Next separate mechanics PR** after multiple cases confirm: test wall attacking phase and shots, defender First-line entry **one round after** a wall gap becomes available, flank deployment only on the round after full wall removal (or immediate open-field), independently verify wall Accuracy across other observations, and test the Carabineer per-slot casualty vector. Do not hide incomplete mechanics by forcing `52` with arbitrary adjustment.
+**Remaining calibration work:** with wall occupancy/next-round reinforcement/flank timing implemented in PR #63, independently verify wall offensive attack phases and shots, wall Accuracy in additional cases, and the Carabineer per-slot casualty vector. Do not hide incomplete mechanics by forcing `52` with arbitrary adjustment.
