@@ -837,11 +837,21 @@ function lineSlots(state,line,geometry,positions=null,compact=false){
       '<div class="slot-count">'+Number(slot.units||0)+' <span class="slot-loss">(-'+loss+')</span></div></div>';
   }).join('')+'</div>';
 }
-function wallLineRow(wall){
-  // Render this round's frozen sections, never the cumulative final wall_status.
+function wallLineRow(wall,state){
+  // Each prior-round breach is now an ordinary defender First slot. Show the
+  // actual defender in that gap if the N+1 deployment has filled it.
   const sections=[...(wall.sections||[])].sort((a,b)=>Number(a.physical_position)-Number(b.physical_position));
   return '<div class="battle-line"><div class="slots">'+sections.map(section=>{
     const gone=!!section.destroyed,remaining=Number(section.remaining_hit_points||0);
+    if(gone){
+      const slot=state.slots.find(s=>s.line==='first'&&Number(s.physical_position)===Number(section.physical_position)&&Number(s.units||0)>0);
+      if(slot){
+        const unit=unitById(slot.unit_id),hp=Number(slot.hit_points_percent??0),loss=Number(slot.casualties||0);
+        const ammo=slot.munition_percent==null?null:Number(slot.munition_percent);
+        const label=esc(slot.display_name)+' · '+Number(slot.units||0)+' alive · '+loss+' casualties this round';
+        return '<div class="slot" tabindex="0" aria-label="'+label+'" data-tooltip="'+tooltipAttribute(slotTooltipHtml(slot))+'"><div class="slot-visual"><div class="slot-glyph" aria-hidden="true">'+unitIconHtml(unit)+'</div>'+hpBar(hp,'HP')+ammoBar(ammo)+'</div><div class="slot-count">'+Number(slot.units||0)+' <span class="slot-loss">(-'+loss+')</span></div></div>';
+      }
+    }
     const maxHp=Math.max(1,Number(wall.hit_points||0));
     const hp=Math.max(0,Math.min(100,remaining/maxHp*100));
     const label='Town Wall Lv'+Number(wall.level)+' · position '+Number(section.damage_position);
@@ -872,7 +882,7 @@ function centerLine(state,line,geometry){
 function frontRow(state,geometry,wall=null){
   const left=sideLine(state,'flank',geometry,'left',splitLinePositions(geometry,'flank','left'));
   const showWall=wall?.active&&(wall.sections||[]).some(section=>!section.destroyed);
-  const center=showWall?'<div class="formation-center">'+wallLineRow(wall)+'</div>':centerLine(state,'first',geometry);
+  const center=showWall?'<div class="formation-center">'+wallLineRow(wall,state)+'</div>':centerLine(state,'first',geometry);
   const right=sideLine(state,'flank',geometry,'right',splitLinePositions(geometry,'flank','right'));
   return '<div class="formation-row front-row">'+left+center+right+'</div>';
 }
