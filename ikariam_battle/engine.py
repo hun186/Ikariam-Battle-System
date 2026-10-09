@@ -3326,10 +3326,39 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             cross_wave_boundary = True
             break
         if wall_runtime_active and wall_sections:
+            wall_gap_conflicts = {}
             for side, waves in (("attacker", attacker), ("defender", defender)):
-                deploy_prior_round_wall_vacancies(
+                conflicts, placed = deploy_prior_round_wall_vacancies(
                     waves, registry, formation_rules, field, wall_sections,
                     number, side, events, _event)
+                wall_gap_conflicts[side] = conflicts
+                if placed:
+                    # Initial RR ran during general round-start preparation,
+                    # before wall vacancies could accept Reserve. Reallocate
+                    # the *same* persistent wave damage to the final deployed
+                    # subset; do not reset newly deployed slots to full HP.
+                    _redistribute(waves, events, number, side, applied)
+                if conflicts:
+                    break
+            if any(wall_gap_conflicts.values()):
+                for side, requirements in wall_gap_conflicts.items():
+                    if requirements:
+                        _event(
+                            events, number, "round_start", "unsupported_mechanic", side,
+                            rule_id="UNKNOWN-CROSS-WAVE-FORMATION-REBUILD",
+                            requirements=requirements,
+                        )
+                completed = number
+                attacker_state = _snapshot(attacker, registry, battle_end)
+                defender_state = _snapshot(defender, registry, battle_end)
+                rounds.append({
+                    "round": number,
+                    "attacker": attacker_state,
+                    "defender": defender_state,
+                    "casualties": {"attacker": {}, "defender": {}},
+                })
+                cross_wave_boundary = True
+                break
             redistribution = wall_redistribution_plan(
                 wall_sections, scenario.wall_level
             )
