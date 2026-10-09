@@ -65,7 +65,11 @@ def test_round_formation_hides_visual_line_headings_and_preserves_slot_geometry(
 
 def test_round_wall_view_shows_actual_round_segments_with_experimental_warning():
     assert INDEX == PUBLIC_INDEX
-    assert 'function wallLineRow(wall)' in INDEX
+    assert 'function wallLineRow(wall,state)' in INDEX
+    assert "wallLineRow(wall,state)+'</div>'" in INDEX
+    assert "state.slots.find(s=>s.line==='first'" in INDEX
+    assert "Number(s.physical_position)===Number(section.physical_position)" in INDEX
+    assert 'tooltipAttribute(slotTooltipHtml(slot))' in INDEX
     assert 'const showWall=wall?.active&&(wall.sections||[]).some(section=>!section.destroyed)' in INDEX
     assert "battleHalf(round.defender,'defender',round.wall)" in INDEX
     assert '城牆反擊尚未建模' in INDEX
