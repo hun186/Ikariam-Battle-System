@@ -254,3 +254,57 @@ def test_fallback_cannot_enter_intact_wall_position_after_partial_breach():
     }
     assert first_positions <= breached
     assert first_positions.isdisjoint(intact)
+
+
+def test_wall_held_reserve_light_enters_only_unoccupied_breached_front():
+    # Codex P1: the wall keeps Light Infantry in Reserve instead of giving it
+    # live Flank slots. After native First Hoplites claim four old breaches,
+    # reserve-only Swordsmen must be eligible for the fifth (never an intact
+    # wall position) in the restricted wall-gap fallback pass.
+    registry = UnitRegistry.load()
+    rules = FormationRules.load()
+    field = LAND_BATTLEFIELDS["land-max"]
+    sections = initial_wall_sections(24, field)
+    for section in sections[:5]:
+        section.destroyed = True
+    native = Wave(ArmyUnit("hoplite", 200), 200, [])
+    held_light = Wave(ArmyUnit("swordsman", 40), 40, [])
+    waves = [native, held_light]
+    events = []
+    conflicts, placed = deploy_prior_round_wall_vacancies(
+        waves, registry, rules, field, sections, 2, "defender",
+        events, _event,
+    )
+    assert conflicts == [] and placed is True
+    native_positions = {slot.damage_position for slot in native.slots}
+    assert native_positions == {1, 2, 3, 4}
+    assert not held_light.slots and held_light.reserve == 40
+    breached = {section.damage_position for section in sections if section.destroyed}
+    intact = {section.damage_position for section in sections if not section.destroyed}
+    assert _supported_whole_wave_first_fallback(
+        waves, registry, rules, field, events, 2, "defender",
+        allowed_first_positions=breached,
+    ) is False
+    light_positions = {
+        slot.damage_position for slot in held_light.slots
+        if slot.line == "first" and slot.units > 0
+    }
+    assert light_positions == {5}
+    assert held_light.reserve == 0
+    assert light_positions.isdisjoint(native_positions)
+    assert light_positions.isdisjoint(intact)
+
+
+def test_reserve_only_light_requires_wall_gap_restricted_fallback():
+    # No new unrestricted fallback is permitted for undeployed Light on
+    # wall-free/non-wall formation. Only the dedicated wall-gap pass lifts
+    # the native-Flank live-slot prerequisite.
+    registry = UnitRegistry.load()
+    rules = FormationRules.load()
+    field = LAND_BATTLEFIELDS["land-max"]
+    held_light = Wave(ArmyUnit("swordsman", 40), 40, [])
+    events = []
+    assert _supported_whole_wave_first_fallback(
+        [held_light], registry, rules, field, events, 2, "defender",
+    ) is False
+    assert held_light.reserve == 40 and held_light.slots == []
