@@ -1197,7 +1197,19 @@ def _supported_whole_wave_first_fallback(
             if live_lines:
                 continue
         elif live_lines != {unit.native_line}:
-            continue
+            # While a Town Wall is active, the Flank is deliberately held in
+            # Reserve. A wholly reserve-only Light wave may enter *already
+            # breached* First positions in this restricted wall-gap pass, but
+            # it must never compete before native First placement. Ordinary
+            # (wall-free) fallback still needs live native-line ownership.
+            held_light_into_wall_gap = (
+                allowed_first_positions is not None
+                and unit.semantic_class == "light_infantry"
+                and not live_lines
+                and wave.reserve > 0
+            )
+            if not held_light_into_wall_gap:
+                continue
 
         total_units = wave.reserve + sum(slot.units for slot in wave.slots)
         capacity = geometry.slot_space // unit.size
