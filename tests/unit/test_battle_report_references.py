@@ -1,8 +1,8 @@
 """Pinned user-observed Ikariam rounds: evidence tests and expected rule gaps.
 
 The JSON fixtures contain user-observed casualties and the exact corrected input
-scenario. Tests marked xfail are *not approved behavior*; they represent known
-incomplete mechanics and must become passing tests before that feature ships.
+scenario. Strict xfails denote remaining empirical gaps, not approved behavior. The
+Town Wall tests implemented in PR #63 are ordinary passing regressions.
 """
 import json
 from pathlib import Path
@@ -37,6 +37,15 @@ def test_round1_reference_fixture_is_a_consistent_observation(name):
             assert all(isinstance(loss, int) and loss >= 0 for loss in losses)
     assert case["scenario"]["attacker"]["forge_level"] == case["legacy_model"]["forge_level"]["attacker"]
     assert case["scenario"]["defender"]["forge_level"] == case["legacy_model"]["forge_level"]["defender"]
+    # Exported debug preserves arrival/wave identities across each unit type.
+    for side in ("attacker", "defender"):
+        assert case["scenario"][side]["army_kind"] == "player"
+        for unit in case["scenario"][side]["units"]:
+            assert unit["entry_batch_id"] == side + "-batch-1"
+            assert unit["wave_id"] == side + "-batch-1::" + unit["unit_id"]
+            assert unit["arrival_round"] == 0
+    assert case["evidence"]["source_max_rounds"] == 100
+    assert case["scenario"]["max_rounds"] == 1
 
 
 def test_crispi_wall_is_five_breached_not_three_and_forge_is_asymmetric():
@@ -76,7 +85,6 @@ def test_reikjavikas_air_hits_defending_bombardiers_exactly():
     assert case["scenario"]["defender"]["forge_level"] == 5
 
 
-@pytest.mark.xfail(strict=True, reason="KNOWN GAP: seven intact Town Wall sections must occupy all defender First slots until next round")
 def test_crispi_defender_first_is_entirely_wall_at_initial_deployment():
     result = _simulate("crispi")
     defender = result["rounds"][0]["defender"]
@@ -84,7 +92,6 @@ def test_crispi_defender_first_is_entirely_wall_at_initial_deployment():
                 if slot["line"] == "first" and slot["units"] > 0]
 
 
-@pytest.mark.xfail(strict=True, reason="KNOWN GAP: Flank remains empty on BOTH sides while any active Town Wall section survives")
 def test_crispi_round1_both_sides_flank_are_empty():
     result = _simulate("crispi")
     for side in ("attacker", "defender"):
@@ -92,7 +99,6 @@ def test_crispi_round1_both_sides_flank_are_empty():
                     if slot["line"] == "flank" and slot["units"] > 0]
 
 
-@pytest.mark.xfail(strict=True, reason="KNOWN GAP: a breach during round N permits defender First troops to enter only in round N+1")
 def test_crispi_breached_wall_never_allows_defender_first_to_fire_in_round1():
     result = _simulate("crispi")
     defender_first_fire = [
@@ -124,7 +130,6 @@ def test_crispi_next_round_first_occupies_only_prior_round_breached_positions():
     assert all(slot["damage_position"] in round1_breaches for slot in following)
 
 
-@pytest.mark.xfail(strict=True, reason="KNOWN GAP: after complete wall breach in round N, flank waits until round N+1")
 def test_complete_wall_breach_opens_flank_only_from_following_round():
     case = _case("crispi")
     scenario = dict(case["scenario"])
