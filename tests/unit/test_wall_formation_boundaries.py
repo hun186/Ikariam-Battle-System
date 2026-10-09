@@ -1,5 +1,12 @@
 """Town Wall occupies First and blocks both Flanks until the *next* round."""
 from ikariam_battle import simulate
+from ikariam_battle.battlefield import LAND_BATTLEFIELDS
+from ikariam_battle.engine import _redistribute, _event
+from ikariam_battle.formation import FormationRules
+from ikariam_battle.models import ArmyUnit, Wave
+from ikariam_battle.units import UnitRegistry
+from ikariam_battle.wall import initial_wall_sections
+from ikariam_battle.wall_formation import deploy_prior_round_wall_vacancies
 
 
 def _case(*, wall=24, hall=25, rounds=2, attackers_mortar=30):
@@ -108,3 +115,42 @@ def test_open_field_suppressed_wall_allows_initial_flank():
     assert result["garrison_status"]["open_field"] is True
     assert _live_line(result["rounds"][0], "attacker", "flank")
     assert _live_line(result["rounds"][0], "defender", "flank")
+
+
+def test_competing_wall_gap_reinforcement_remains_an_explicit_unknown():
+    s = _case(rounds=2)
+    s["defender"]["units"].append({
+        "unit_id": "steam_giant", "quantity":10,
+        "entry_batch_id": "additional-first-wave", "arrival_round":1,
+    })
+    result = simulate(s)
+    unresolved = [
+        event for event in result["events"]
+        if event["type"] == "unsupported_mechanic"
+        and event["details"].get("rule_id") == "UNKNOWN-CROSS-WAVE-FORMATION-REBUILD"
+        and any(item.get("reason") == "competing_wall_gap_native_waves"
+                for item in event["details"].get("requirements", []))
+    ]
+    assert unresolved
+    assert unresolved[0]["round"] == 2
+    assert result["status"] == "inconclusive"
+
+
+def test_newly_occupied_wall_gap_receives_existing_reserve_damage():
+    registry = UnitRegistry.load()
+    rules = FormationRules.load()
+    field = LAND_BATTLEFIELDS["land-max"]
+    sections = initial_wall_sections(24, field)
+    sections[0].destroyed = True
+    # The prior round's persistent damage belongs to this one state wave.
+    wave = Wave(ArmyUnit("hoplite", 50), 50, [], 1120)
+    events = []
+    conflicts, placed = deploy_prior_round_wall_vacancies(
+        [wave], registry, rules, field, sections, 2, "defender", events, _event,
+    )
+    assert conflicts == [] and placed is True
+    assert wave.reserve == 0 and sum(slot.units for slot in wave.slots) == 50
+    _redistribute([wave], events, 2, "defender", {})
+    assert wave.reserve_damage == 0
+    assert sum(slot.damage for slot in wave.slots) == 1120
+    assert sum(slot.damage for slot in wave.slots) + wave.reserve_damage == 1120
