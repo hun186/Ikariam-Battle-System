@@ -1100,6 +1100,7 @@ def _supported_whole_wave_first_fallback(
     waves: list[Wave], registry: UnitRegistry, rules: FormationRules, field,
     events: list[Event], number: int, side: str,
     reserved_wave_ids: set[tuple[str, str]] | None = None,
+    allowed_first_positions: set[int] | None = None,
 ) -> bool:
     """Move one whole supported fallback wave into open First slots.
 
@@ -1205,7 +1206,10 @@ def _supported_whole_wave_first_fallback(
         open_positions = [
             position for position in geometry.damage_priority
             if position not in occupied
+            and (allowed_first_positions is None or position in allowed_first_positions)
         ]
+        if not open_positions and allowed_first_positions is not None:
+            continue
         required_slots = (total_units + capacity - 1) // capacity
         source_lines = sorted({slot.line for slot in wave.slots if slot.units})
         total_damage = _park_wave_damage_for_redeployment(wave)
@@ -3312,7 +3316,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
             defender, events, number, "defender", applied,
             registry, formation_rules, defender_round_field, support,
             scheduled_wave_ids["defender"],
-            block_first_fallback=wall_intact_at_round_start)
+            block_first_fallback=bool(wall_runtime_active and wall_sections))
         if attacker_fallback_boundary or defender_fallback_boundary:
             completed = number
             attacker_state = _snapshot(attacker, registry, battle_end)
@@ -3359,6 +3363,45 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
                 })
                 cross_wave_boundary = True
                 break
+            # Native defender First troops have now claimed all supported
+            # prior-round wall vacancies. Only *after that* may exhausted
+            # Second / Light fallback consider the physical positions that
+            # are already breached, never intact Town Wall slots.
+            if number >= 2:
+                breached_first_positions = {
+                    section.damage_position for section in wall_sections
+                    if section.destroyed
+                }
+                if breached_first_positions:
+                    defender_fallback_boundary = _supported_whole_wave_first_fallback(
+                        defender, registry, formation_rules, field,
+                        events, number, "defender",
+                        reserved_wave_ids=scheduled_wave_ids["defender"],
+                        allowed_first_positions=breached_first_positions,
+                    )
+                    if defender_fallback_boundary:
+                        completed = number
+                        attacker_state = _snapshot(attacker, registry, battle_end)
+                        defender_state = _snapshot(defender, registry, battle_end)
+                        rounds.append({
+                            "round": number,
+                            "attacker": attacker_state,
+                            "defender": defender_state,
+                            "casualties": {"attacker": {}, "defender": {}},
+                        })
+                        cross_wave_boundary = True
+                        break
+                    _rebuild_formation(defender, events, number, "defender")
+                    _supported_same_unit_same_line_handoffs(
+                        defender, registry, formation_rules, field,
+                        events, number, "defender")
+                    _cap_native_finite_ammo_deployment(
+                        defender, registry, events, number, "defender",
+                        emit_events=False)
+                    _supported_same_batch_ranked_third_handoffs(
+                        defender, registry, formation_rules, field,
+                        events, number, "defender")
+                    _redistribute(defender, events, number, "defender", applied)
             redistribution = wall_redistribution_plan(
                 wall_sections, scenario.wall_level
             )
