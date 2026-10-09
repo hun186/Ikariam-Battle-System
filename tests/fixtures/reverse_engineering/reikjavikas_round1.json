@@ -8,7 +8,8 @@
     "screenshot": "REIKJAVIKAS Round 1/9 2026-06-25 14:48:54 user-supplied",
     "debug": "ikariam-round-1-debug (2).json",
     "exported_at": "2026-10-08T14:55:26.841Z",
-    "notes": "Corrected attacker Mortars from 27 to 30; round 1 both sides enter with full HP. Screenshot is an observation, not a computed engine result."
+    "notes": "Corrected attacker Mortars from 27 to 30; round 1 both sides enter with full HP. Screenshot is an observation, not a computed engine result. Exported scenario profile, army_kind, wave_id, entry_batch_id and arrival_round fields are now preserved; max_rounds alone normalized from 100 to 1 for first-round fixture.",
+    "source_max_rounds": 100
   },
   "scenario": {
     "policy": "experimental",
@@ -23,39 +24,58 @@
           "unit_id": "hoplite",
           "quantity": 1200,
           "attack_upgrade": 24,
-          "armor_upgrade": 21
+          "armor_upgrade": 21,
+          "entry_batch_id": "attacker-batch-1",
+          "arrival_round": 0,
+          "wave_id": "attacker-batch-1::hoplite"
         },
         {
           "unit_id": "swordsman",
           "quantity": 1000,
           "attack_upgrade": 24,
-          "armor_upgrade": 26
+          "armor_upgrade": 26,
+          "entry_batch_id": "attacker-batch-1",
+          "arrival_round": 0,
+          "wave_id": "attacker-batch-1::swordsman"
         },
         {
           "unit_id": "sulphur_carabineer",
           "quantity": 84,
           "attack_upgrade": 16,
-          "armor_upgrade": 9
+          "armor_upgrade": 9,
+          "entry_batch_id": "attacker-batch-1",
+          "arrival_round": 0,
+          "wave_id": "attacker-batch-1::sulphur_carabineer"
         },
         {
           "unit_id": "battering_ram",
           "quantity": 30,
           "attack_upgrade": 0,
-          "armor_upgrade": 0
+          "armor_upgrade": 0,
+          "entry_batch_id": "attacker-batch-1",
+          "arrival_round": 0,
+          "wave_id": "attacker-batch-1::battering_ram"
         },
         {
           "unit_id": "mortar",
           "quantity": 30,
           "attack_upgrade": 5,
-          "armor_upgrade": 3
+          "armor_upgrade": 3,
+          "entry_batch_id": "attacker-batch-1",
+          "arrival_round": 0,
+          "wave_id": "attacker-batch-1::mortar"
         },
         {
           "unit_id": "gyrocopter",
           "quantity": 600,
           "attack_upgrade": 20,
-          "armor_upgrade": 17
+          "armor_upgrade": 17,
+          "entry_batch_id": "attacker-batch-1",
+          "arrival_round": 0,
+          "wave_id": "attacker-batch-1::gyrocopter"
         }
-      ]
+      ],
+      "army_kind": "player"
     },
     "defender": {
       "forge_level": 5,
@@ -64,64 +84,107 @@
           "unit_id": "hoplite",
           "quantity": 10082,
           "attack_upgrade": 18,
-          "armor_upgrade": 18
+          "armor_upgrade": 18,
+          "entry_batch_id": "defender-batch-1",
+          "arrival_round": 0,
+          "wave_id": "defender-batch-1::hoplite"
         },
         {
           "unit_id": "steam_giant",
           "quantity": 3,
           "attack_upgrade": 0,
-          "armor_upgrade": 0
+          "armor_upgrade": 0,
+          "entry_batch_id": "defender-batch-1",
+          "arrival_round": 0,
+          "wave_id": "defender-batch-1::steam_giant"
         },
         {
           "unit_id": "spearman",
           "quantity": 3,
           "attack_upgrade": 0,
-          "armor_upgrade": 0
+          "armor_upgrade": 0,
+          "entry_batch_id": "defender-batch-1",
+          "arrival_round": 0,
+          "wave_id": "defender-batch-1::spearman"
         },
         {
           "unit_id": "swordsman",
           "quantity": 7066,
           "attack_upgrade": 18,
-          "armor_upgrade": 18
+          "armor_upgrade": 18,
+          "entry_batch_id": "defender-batch-1",
+          "arrival_round": 0,
+          "wave_id": "defender-batch-1::swordsman"
         },
         {
           "unit_id": "slinger",
           "quantity": 3,
           "attack_upgrade": 0,
-          "armor_upgrade": 0
+          "armor_upgrade": 0,
+          "entry_batch_id": "defender-batch-1",
+          "arrival_round": 0,
+          "wave_id": "defender-batch-1::slinger"
         },
         {
           "unit_id": "sulphur_carabineer",
           "quantity": 1008,
           "attack_upgrade": 10,
-          "armor_upgrade": 10
+          "armor_upgrade": 10,
+          "entry_batch_id": "defender-batch-1",
+          "arrival_round": 0,
+          "wave_id": "defender-batch-1::sulphur_carabineer"
         },
         {
           "unit_id": "battering_ram",
           "quantity": 120,
           "attack_upgrade": 0,
-          "armor_upgrade": 0
+          "armor_upgrade": 0,
+          "entry_batch_id": "defender-batch-1",
+          "arrival_round": 0,
+          "wave_id": "defender-batch-1::battering_ram"
         },
         {
           "unit_id": "mortar",
           "quantity": 90,
           "attack_upgrade": 11,
-          "armor_upgrade": 11
+          "armor_upgrade": 11,
+          "entry_batch_id": "defender-batch-1",
+          "arrival_round": 0,
+          "wave_id": "defender-batch-1::mortar"
         },
         {
           "unit_id": "bombardier",
           "quantity": 386,
           "attack_upgrade": 11,
-          "armor_upgrade": 11
+          "armor_upgrade": 11,
+          "entry_batch_id": "defender-batch-1",
+          "arrival_round": 0,
+          "wave_id": "defender-batch-1::bombardier"
         },
         {
           "unit_id": "gyrocopter",
           "quantity": 1800,
           "attack_upgrade": 12,
-          "armor_upgrade": 12
+          "armor_upgrade": 12,
+          "entry_batch_id": "defender-batch-1",
+          "arrival_round": 0,
+          "wave_id": "defender-batch-1::gyrocopter"
         }
-      ]
-    }
+      ],
+      "army_kind": "player"
+    },
+    "profiles": {
+      "mechanics": "battle-system-paper-2020",
+      "unit_stats": "infinite-horizons-current",
+      "workshop": "v14-workshop",
+      "forge": "v14-hephaistos",
+      "support": "v17-support-healing",
+      "targeting": "legacy-community-land-targeting",
+      "battle_end": "legacy-community-battle-end",
+      "formation": "formation-land",
+      "economy": "military-economy-current"
+    },
+    "barbarian_village_level": null
   },
   "observed": {
     "casualties": {
