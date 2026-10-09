@@ -6,7 +6,7 @@
 
 - `tests/fixtures/reverse_engineering/reikjavikas_round1.json`：**無牆**、雙方 Forge Lv5、攻方迫砲已校正為 **30**、雙方滿 HP；區分實戰傷亡 `observed` 和舊引擎 `legacy_model`。
 - `tests/fixtures/reverse_engineering/crispi_round1.json`：**Lv24 城牆七格**、**只有攻方 Forge Lv5，守方 Forge Lv0**；包含兩軍空戰、城牆存活格子、火槍與牆反擊歸因假說及補位時序。
-- `tests/unit/test_battle_report_references.py`：直接從這兩份 JSON 建立模擬輸入。先用正常 PASS 測試防止欄位/實戰觀測或 Forge 混淆；用 `pytest.mark.xfail(strict=True)` 把**尚未正確建模**的行為寫成規格測試。**xfail 不等於該規則已實作完成**。未來引擎改好後須移除相應 xfail，讓測試成為正常 PASS；若意外 XPASS，嚴格模式會提醒更新測試。
+- `tests/unit/test_battle_report_references.py`：直接從這兩份 JSON 建立模擬輸入。先用正常 PASS 測試防止欄位／戰報觀測／Forge 混淆。PR #63 已在 `main` 實作的初始城牆佔位、首回合雙側翼鎖定、當回合禁止守方 First 開火及全破後次回合側翼開啟，均已改為一般 PASS 測試；仍保留 3 個 strict xfail 作為尚待證明的跨回合缺口補位案例、REIKJAVIKAS 旋翼機個體擊殺及 Crispi 實戰方陣死亡數差異。xfail 不是成功驗證；任何 XPASS(strict) 都應改為正常 PASS 並重新確認規格。
 - 執行：`pytest -q tests/unit/test_battle_report_references.py`，最終仍需在 GitHub Hosted current exact head 上檢查全套測試。
 
 ## 城牆佈陣：已確認的目標規格（Crispi）
@@ -14,7 +14,7 @@
 1. **初始佈陣：**七段完整城牆上陣時，守方 `first` 七格是**牆，不是方陣兵／蒸汽巨人**。所有待補前排兵留在 Reserve；即使城牆在本回合內被打穿，也**不得讓守方方陣當回合進場或開火**。
 2. **缺牆補兵：**回合 N 結束時有城牆缺口，**N+1 回合開始**才依已空出的實體位置補入守方 Front 地面兵，未打穿的牆格不能被同時占用。不應讓牆後兵在第三戰線攻擊完成的同一回合直接插進第一戰線。
 3. **雙方 Flank 鎖定：**任何城牆仍存在時，**攻方與守方** `flank` 都不部署。即使 N 回合中破盡城牆，側翼也要到 **N+1** 才可入場；**野戰（garrison 超過上限，城牆被壓制）**則從初始佈陣就可以正常填 Flank。
-4. **計算與顯示分開：**單純在畫面上把守方 Hoplite 換成牆圖示，無法阻止引擎把方陣兵提前部署／開火。當前 PR #61 的 `round.wall` 提供呈現/快照，不代表上述 engine 規則已通過。應先以測試守住規格，再依正確的整回合補位方式修改 formation state。
+4. **計算與顯示分開：**單純在畫面上把守方 Hoplite 換成牆圖示，無法阻止引擎把方陣兵提前部署／開火。目前 `main` 已透過 PR #63 實作上述部署機制並通過完整 CI；尚開放的 PR #61 專門補足 `round.wall` 每回合快照與畫面呈現，兩者須在 #61 合流後以整合測試交叉驗證。
 5. **本場實際牆：**第一回合實際戰報城牆物理位置 **[1,0,0,0,0,0,1]**，即**中間五格被打穿**（2–6），左右兩段存活。放大原圖後已修正先前誤寫的「三格破洞」。模擬同樣突破五格，故**不能以這一場主張模擬破牆數量錯誤**；其他案例的 wall hit/Accuracy 仍須獨立驗證。
 6. 城牆反擊的攻擊落點和 Accuracy 尚未有可核實的細節。使用者根據實戰歸納牆殺 2、存活守方迫砲殺 20、火槍殺 30，共 52；最後這個分解是**帶條件的來源歸因假說**，不是遊戲事件級逐發紀錄。
 
@@ -52,7 +52,7 @@
 
 ## 實作順序與驗收
 
-1. 讓 **牆佔前排、下一回合填缺口、雙方 Flank 鎖定/解鎖** 的 xfail 先轉成 PASS；驗證 Wild/Open-field 例外；回合前後`round.wall`與`round.defender.slots`一致。
+1. **已完成部分：** `main`（PR #63）實作牆佔前排及雙方 Flank 延後部署，四個已證實行為由 xfail 轉為正式 PASS。**待查：** Crispi 特定多回合場景的 `First` 缺口補位仍為 strict xfail，不能因其他測試通過就宣稱本場回合 2 已驗證；`round.wall` 與 `round.defender.slots` 的整合則由 PR #61 另外驗證。
 2. 再校準城牆反擊，隔離來源對攻方第一列的傷亡。各攻擊階段保留 trace；禁止用「提前派守方方陣」替代牆擊殺。
 3. 分開測試兩場的 air parity：Crispi 應保留 30/20 正確結果，REIKJAVIKAS 的 Gyrocopter 26 而非 30 為獨立待驗目標。
 4. 每次調整來源/目標/傷害分配，必須回歸其他已知吻合的 Swordsmen、Bombardier、迫砲單發擊殺案例。不要為某一場硬編常數。
