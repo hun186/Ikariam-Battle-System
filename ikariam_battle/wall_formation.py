@@ -54,7 +54,8 @@ def deploy_prior_round_wall_vacancies(waves, registry, rules, field, sections,
     cross-wave replacement precedence is not fabricated.
     """
     if round_no < 2 or not sections or field.domain != "land":
-        return
+        return [], False
+    did_place = False
     intact = {section.damage_position for section in sections if not section.destroyed}
     breached = {section.damage_position for section in sections if section.destroyed}
     available_lines = []
@@ -76,6 +77,22 @@ def deploy_prior_round_wall_vacancies(waves, registry, rules, field, sections,
         ]
         if not native_candidates:
             continue
+        if len(native_candidates) > 1:
+            # Different unit-state waves (including arriving batches) have no
+            # validated priority for claiming a brand-new Town Wall gap.
+            # Stop at the existing UNKNOWN rather than silently sorting them.
+            return ([{
+                "runtime_line": line,
+                "reason": "competing_wall_gap_native_waves",
+                "open_damage_positions": list(positions),
+                "candidates": [
+                    {"unit_id": wave.unit.unit_id,
+                     "wave_id": wave.unit.wave_id,
+                     "entry_batch_id": wave.unit.batch_id,
+                     "reserve": wave.reserve}
+                    for wave in native_candidates
+                ],
+            }], did_place)
         # A subset geometry keeps original *damage-position identifiers*.
         # Temporary physical indexes are never used for permanent Slots.
         first = field.lines["first"]
@@ -103,6 +120,7 @@ def deploy_prior_round_wall_vacancies(waves, registry, rules, field, sections,
                         placement.wave_id, placement.quantity, placement.capacity)
             wave.slots.append(slot)
             wave.reserve -= placement.quantity
+            did_place = True
             emit(events, round_no, "deploy", "deployment", side,
                  slot_id=slot.slot_id, line=line,
                  physical_position=slot.physical_position,
@@ -111,6 +129,7 @@ def deploy_prior_round_wall_vacancies(waves, registry, rules, field, sections,
                  arrival_round=wave.unit.arrival_round,
                  quantity=placement.quantity, reserve=wave.reserve,
                  reason=reason)
+    return [], did_place
 
 
 def wall_cross_wave_requirements(requirements, side, wall_runtime_active):
