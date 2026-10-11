@@ -207,7 +207,7 @@ def test_reikjavikas_gyrocopter_accurate_air_death_distribution():
     assert [loss for _, loss in losses] == case["observed"]["air"]["attacker_gyrocopter"]
 
 
-@pytest.mark.xfail(strict=True, reason="KNOWN GAP: wall occupancy, wall offense and Carabineer redistribution differ from observed Crispi 52 kills")
+@pytest.mark.xfail(strict=True, reason="UNRESOLVED: Town Wall offensive damage and Carabineer hit/damage allocation cause modeled 44 vs observed 52 attacker Hoplite losses")
 def test_crispi_round1_total_hoplite_losses_match_observed_case():
     case = _case("crispi")
     result = _simulate("crispi")
