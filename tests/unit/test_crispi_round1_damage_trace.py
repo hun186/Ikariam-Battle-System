@@ -35,7 +35,7 @@ def test_local_trace_revision_rejects_dirty_checkout(monkeypatch):
     def fake_check_output(command, **kwargs):
         calls.append(command)
         if command[1] == "status":
-            return "?? potentially_shadowing_module.py\\n"
+            return "?? potentially_shadowing_module.py\n"
         raise AssertionError("Dirty checkout must not claim a commit revision")
 
     monkeypatch.setattr(trace.subprocess, "check_output", fake_check_output)
@@ -54,7 +54,7 @@ def test_local_clean_trace_revision_reads_git_head(monkeypatch):
 
     def fake_check_output(command, **kwargs):
         commands.append(command)
-        return "" if command[1] == "status" else revision + "\\n"
+        return "" if command[1] == "status" else revision + "\n"
 
     monkeypatch.setattr(trace.subprocess, "check_output", fake_check_output)
     assert trace.resolve_revision() == revision
