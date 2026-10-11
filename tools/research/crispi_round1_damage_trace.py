@@ -160,6 +160,13 @@ def main() -> None:
     print("Defender sources to attacker Hoplite:")
     for unit, source in model["defender_sources_to_attacker_hoplite"].items():
         print(f"  {unit}: casualties={source['casualties']}, shots={source['shots']}, net_damage={source['net_damage']}")
+        positions = ", ".join(
+            f"{position}: {values['casualties']} killed / {values['shots']} hits"
+            for position, values in sorted(
+                source["target_positions"].items(), key=lambda pair: int(pair[0])
+            )
+        )
+        print(f"    target damage positions: {positions}")
     print(f"Event source sum equals snapshot: {model['source_events_sum_equals_snapshot']}")
     print(f"Wall breach physical positions: {[x['physical_position'] for x in model['breached_wall_positions']]}")
     print(f"JSON trace: {args.output}")
