@@ -1,0 +1,334 @@
+{
+  "schema_version": 1,
+  "case_id": "crispi-20260412-round1",
+  "kind": "observed_battle_round",
+  "battlefield": "land-max",
+  "wall_level": 24,
+  "evidence": {
+    "screenshot": "Kauja par crispi1 Rounds 1/8 2026-04-12 10:33:32 user-supplied",
+    "debug": "ikariam-round-1-debug (3).json",
+    "exported_at": "2026-10-08T15:18:27.708Z",
+    "notes": "Zoom verified wall row physical left-to-right: 1,0,0,0,0,0,1 (FIVE breached, not three). User confirms deployment constraints and attacker-only Forge. Exported scenario profile, army_kind, wave_id, entry_batch_id and arrival_round fields are now preserved; max_rounds alone normalized from 100 to 1 for first-round fixture.",
+    "source_max_rounds": 100
+  },
+  "scenario": {
+    "policy": "experimental",
+    "battlefield": "land-max",
+    "wall_level": 24,
+    "town_hall_level": 25,
+    "max_rounds": 1,
+    "attacker": {
+      "forge_level": 5,
+      "units": [
+        {
+          "unit_id": "hoplite",
+          "quantity": 1513,
+          "attack_upgrade": 14,
+          "armor_upgrade": 12,
+          "entry_batch_id": "attacker-batch-1",
+          "arrival_round": 0,
+          "wave_id": "attacker-batch-1::hoplite"
+        },
+        {
+          "unit_id": "swordsman",
+          "quantity": 853,
+          "attack_upgrade": 0,
+          "armor_upgrade": 0,
+          "entry_batch_id": "attacker-batch-1",
+          "arrival_round": 0,
+          "wave_id": "attacker-batch-1::swordsman"
+        },
+        {
+          "unit_id": "battering_ram",
+          "quantity": 114,
+          "attack_upgrade": 0,
+          "armor_upgrade": 0,
+          "entry_batch_id": "attacker-batch-1",
+          "arrival_round": 0,
+          "wave_id": "attacker-batch-1::battering_ram"
+        },
+        {
+          "unit_id": "mortar",
+          "quantity": 57,
+          "attack_upgrade": 7,
+          "armor_upgrade": 7,
+          "entry_batch_id": "attacker-batch-1",
+          "arrival_round": 0,
+          "wave_id": "attacker-batch-1::mortar"
+        },
+        {
+          "unit_id": "bombardier",
+          "quantity": 45,
+          "attack_upgrade": 4,
+          "armor_upgrade": 4,
+          "entry_batch_id": "attacker-batch-1",
+          "arrival_round": 0,
+          "wave_id": "attacker-batch-1::bombardier"
+        },
+        {
+          "unit_id": "gyrocopter",
+          "quantity": 134,
+          "attack_upgrade": 9,
+          "armor_upgrade": 7,
+          "entry_batch_id": "attacker-batch-1",
+          "arrival_round": 0,
+          "wave_id": "attacker-batch-1::gyrocopter"
+        },
+        {
+          "unit_id": "cook",
+          "quantity": 30,
+          "attack_upgrade": 0,
+          "armor_upgrade": 0,
+          "entry_batch_id": "attacker-batch-1",
+          "arrival_round": 0,
+          "wave_id": "attacker-batch-1::cook"
+        },
+        {
+          "unit_id": "doctor",
+          "quantity": 30,
+          "attack_upgrade": 0,
+          "armor_upgrade": 0,
+          "entry_batch_id": "attacker-batch-1",
+          "arrival_round": 0,
+          "wave_id": "attacker-batch-1::doctor"
+        }
+      ],
+      "army_kind": "player"
+    },
+    "defender": {
+      "forge_level": 0,
+      "units": [
+        {
+          "unit_id": "hoplite",
+          "quantity": 1103,
+          "attack_upgrade": 0,
+          "armor_upgrade": 0,
+          "entry_batch_id": "defender-batch-1",
+          "arrival_round": 0,
+          "wave_id": "defender-batch-1::hoplite"
+        },
+        {
+          "unit_id": "spartan",
+          "quantity": 180,
+          "attack_upgrade": 0,
+          "armor_upgrade": 0,
+          "entry_batch_id": "defender-batch-1",
+          "arrival_round": 0,
+          "wave_id": "defender-batch-1::spartan"
+        },
+        {
+          "unit_id": "swordsman",
+          "quantity": 405,
+          "attack_upgrade": 0,
+          "armor_upgrade": 0,
+          "entry_batch_id": "defender-batch-1",
+          "arrival_round": 0,
+          "wave_id": "defender-batch-1::swordsman"
+        },
+        {
+          "unit_id": "sulphur_carabineer",
+          "quantity": 252,
+          "attack_upgrade": 4,
+          "armor_upgrade": 2,
+          "entry_batch_id": "defender-batch-1",
+          "arrival_round": 0,
+          "wave_id": "defender-batch-1::sulphur_carabineer"
+        },
+        {
+          "unit_id": "battering_ram",
+          "quantity": 30,
+          "attack_upgrade": 0,
+          "armor_upgrade": 0,
+          "entry_batch_id": "defender-batch-1",
+          "arrival_round": 0,
+          "wave_id": "defender-batch-1::battering_ram"
+        },
+        {
+          "unit_id": "mortar",
+          "quantity": 30,
+          "attack_upgrade": 1,
+          "armor_upgrade": 1,
+          "entry_batch_id": "defender-batch-1",
+          "arrival_round": 0,
+          "wave_id": "defender-batch-1::mortar"
+        },
+        {
+          "unit_id": "bombardier",
+          "quantity": 30,
+          "attack_upgrade": 2,
+          "armor_upgrade": 2,
+          "entry_batch_id": "defender-batch-1",
+          "arrival_round": 0,
+          "wave_id": "defender-batch-1::bombardier"
+        },
+        {
+          "unit_id": "gyrocopter",
+          "quantity": 79,
+          "attack_upgrade": 4,
+          "armor_upgrade": 4,
+          "entry_batch_id": "defender-batch-1",
+          "arrival_round": 0,
+          "wave_id": "defender-batch-1::gyrocopter"
+        },
+        {
+          "unit_id": "cook",
+          "quantity": 30,
+          "attack_upgrade": 0,
+          "armor_upgrade": 0,
+          "entry_batch_id": "defender-batch-1",
+          "arrival_round": 0,
+          "wave_id": "defender-batch-1::cook"
+        }
+      ],
+      "army_kind": "player"
+    },
+    "profiles": {
+      "mechanics": "battle-system-paper-2020",
+      "unit_stats": "infinite-horizons-current",
+      "workshop": "v14-workshop",
+      "forge": "v14-hephaistos",
+      "support": "v17-support-healing",
+      "targeting": "legacy-community-land-targeting",
+      "battle_end": "legacy-community-battle-end",
+      "formation": "formation-land",
+      "economy": "military-economy-current"
+    },
+    "barbarian_village_level": null
+  },
+  "observed": {
+    "casualties": {
+      "attacker": {
+        "hoplite": 52,
+        "bombardier": 20,
+        "gyrocopter": 0
+      },
+      "defender": {
+        "bombardier": 30,
+        "mortar": 10,
+        "gyrocopter": 0
+      }
+    },
+    "slot_losses": {
+      "attacker": {
+        "hoplite": [
+          1,
+          11,
+          11,
+          11,
+          11,
+          6,
+          1
+        ],
+        "bombardier": [
+          10,
+          10
+        ],
+        "gyrocopter": [
+          0,
+          0
+        ]
+      },
+      "defender": {
+        "bombardier": [
+          15,
+          15
+        ],
+        "mortar": [
+          2,
+          2,
+          2,
+          2,
+          2
+        ],
+        "gyrocopter": [
+          0,
+          0
+        ]
+      }
+    },
+    "wall_alive_physical": [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      1
+    ],
+    "wall_breached_physical_positions": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "first_round": {
+      "defender_first_units_deployed": 0,
+      "attacker_flank_units_deployed": 0,
+      "defender_flank_units_deployed": 0
+    },
+    "source_attribution_hypothesis": {
+      "defender_mortar_to_attacker_hoplite": 20,
+      "defender_carabineer_to_attacker_hoplite": 30,
+      "town_wall_to_attacker_hoplite": 2
+    }
+  },
+  "legacy_model": {
+    "casualties": {
+      "attacker": {
+        "hoplite": 94,
+        "bombardier": 20
+      },
+      "defender": {
+        "bombardier": 30,
+        "mortar": 10,
+        "hoplite": 100
+      }
+    },
+    "air": {
+      "attacker_bombardier": [
+        10,
+        10
+      ],
+      "defender_bombardier": [
+        15,
+        15
+      ]
+    },
+    "gyro_net_damage": {
+      "attacker_to_defender_bombardier": 432,
+      "defender_to_attacker_bombardier": 320
+    },
+    "forge_level": {
+      "attacker": 5,
+      "defender": 0
+    },
+    "first_round_wrong_defender_hoplite_kills": 50,
+    "first_round_carabineer_kills": 24,
+    "first_round_mortar_kills": 20,
+    "first_round_wall_offense_kills": 0,
+    "breached_wall_sections": 5
+  },
+  "user_confirmed_mechanics": {
+    "initial_wall_occupancy": "All 7 Town Wall positions occupy defender Front at round 1; defender Heavy Infantry cannot deploy into same slot before the wall is breached.",
+    "front_reinforcement": "After a wall section breaks in round N, reserve defender First-line units may occupy that vacancy only at start of round N+1.",
+    "flank_lock": "Both attacker and defender Flank are empty while any wall section exists. If all wall sections break in round N, Flank may deploy starting round N+1. For open-field with wall suppressed, Flank deploys normally.",
+    "wall_fire": "Two Town Wall kills on attacker Hoplites are a user-informed aggregate attribution; precise slot selection not independently proven."
+  },
+  "research": {
+    "focus": [
+      "wall occupancy and deferred refill",
+      "Flank lock both sides",
+      "wall offensive phase",
+      "Carabineer 500-damage vs 1120-HP kill selection",
+      "asymmetric Forge air damage"
+    ],
+    "known": "Only attacker Forge Lv5, defender Forge Lv0. Attacker Gyrocopters kill 15 defenders' Bombardiers per air slot; defender Gyrocopters kill 10 attackers' Bombardiers per air slot. Both match observed game casualties.",
+    "do_not_assume": [
+      "3 wall sections breached",
+      "both players use Forge",
+      "SR or IR triggered",
+      "Forge-independent Gyrocopter rules"
+    ]
+  }
+}
