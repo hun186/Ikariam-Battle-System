@@ -71,7 +71,7 @@ def test_round_wall_view_shows_actual_round_segments_with_experimental_warning()
     assert "Number(s.physical_position)===Number(section.physical_position)" in INDEX
     assert "Number(s.physical_position)===Number(section.physical_position)&&Number(s.units||0)>0" not in INDEX
     assert "dead=Number(slot.units||0)===0,hp=dead?0:Number(slot.hit_points_percent??0)" in INDEX
-    assert "return '<div class=\"slot'+(dead?' dead':'')+'\" tabindex=\"0\"'" in INDEX
+    assert "return '<div class=\"slot'+(dead?' dead':'')+'\" tabindex=\"0\" aria-label=" in INDEX
     assert 'tooltipAttribute(slotTooltipHtml(slot))' in INDEX
     assert 'const showWall=wall?.active&&(wall.sections||[]).some(section=>!section.destroyed)' in INDEX
     assert "battleHalf(round.defender,'defender',round.wall)" in INDEX
