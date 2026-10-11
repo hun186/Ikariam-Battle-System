@@ -844,12 +844,12 @@ function wallLineRow(wall,state){
   return '<div class="battle-line"><div class="slots">'+sections.map(section=>{
     const gone=!!section.destroyed,remaining=Number(section.remaining_hit_points||0);
     if(gone){
-      const slot=state.slots.find(s=>s.line==='first'&&Number(s.physical_position)===Number(section.physical_position)&&Number(s.units||0)>0);
+      const slot=state.slots.find(s=>s.line==='first'&&Number(s.physical_position)===Number(section.physical_position));
       if(slot){
-        const unit=unitById(slot.unit_id),hp=Number(slot.hit_points_percent??0),loss=Number(slot.casualties||0);
+        const unit=unitById(slot.unit_id),dead=Number(slot.units||0)===0,hp=dead?0:Number(slot.hit_points_percent??0),loss=Number(slot.casualties||0);
         const ammo=slot.munition_percent==null?null:Number(slot.munition_percent);
         const label=esc(slot.display_name)+' · '+Number(slot.units||0)+' alive · '+loss+' casualties this round';
-        return '<div class="slot" tabindex="0" aria-label="'+label+'" data-tooltip="'+tooltipAttribute(slotTooltipHtml(slot))+'"><div class="slot-visual"><div class="slot-glyph" aria-hidden="true">'+unitIconHtml(unit)+'</div>'+hpBar(hp,'HP')+ammoBar(ammo)+'</div><div class="slot-count">'+Number(slot.units||0)+' <span class="slot-loss">(-'+loss+')</span></div></div>';
+        return '<div class="slot'+(dead?' dead':'')+'" tabindex="0" aria-label="'+label+'" data-tooltip="'+tooltipAttribute(slotTooltipHtml(slot))+'"><div class="slot-visual"><div class="slot-glyph" aria-hidden="true">'+unitIconHtml(unit)+'</div>'+hpBar(hp,'HP')+ammoBar(ammo)+'</div><div class="slot-count">'+Number(slot.units||0)+' <span class="slot-loss">(-'+loss+')</span></div></div>';
       }
     }
     const maxHp=Math.max(1,Number(wall.hit_points||0));
