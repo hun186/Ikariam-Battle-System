@@ -425,9 +425,9 @@ def test_static_ui_uses_game_like_setup_slot_steps_rounds_and_summary():
  assert '}\n@media(max-width:900px)' in body
  assert '}\\n@media(max-width:900px)' not in body
  assert '此戰場沒有 Flank slot；未能補入前線的側翼兵會留在 Reserve。' in body
- assert 'const formation=formationGrid(state,name,geometry)' in body
+ assert 'const formation=formationGrid(state,name,geometry,wall)' in body
  assert "battleHalf(round.attacker,'attacker')" in body
- assert "battleHalf(round.defender,'defender')" in body
+ assert "battleHalf(round.defender,'defender',round.wall)" in body
  assert "add('初始部署',0,false,'deployment-jump')" in body
  assert "add('«',1" in body and "add('»',maximum" in body
  assert "currentRoundNumber===0?1:Math.min(maximum,currentRoundNumber+1)" in body
