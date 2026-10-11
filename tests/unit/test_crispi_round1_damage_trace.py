@@ -71,3 +71,40 @@ def test_uncommitted_development_can_build_report_without_revision(monkeypatch):
     report = trace.build_report()
     assert report["source_commit_sha"] is None
     assert report["current_model"]["attacker_hoplite_casualties"] == 44
+
+
+def test_unified_trace_keeps_wall_firing_separate_from_breach_outcomes():
+    current = build_report()["current_model"]
+    assert current["event_counts"]["wall_damage"] == 30
+    assert len(current["wall_damage_events"]) == 30
+    assert len(current["raw_damage_events_by_source"]["attacker/mortar/wall_damage"]) == 30
+    assert all(
+        shot["side"] == "attacker"
+        and shot["details"]["source_unit_id"] == "mortar"
+        for shot in current["wall_damage_events"]
+    )
+    assert len(current["wall_breach_outcomes"]) == 5
+    assert {
+        outcome["details"]["physical_position"]
+        for outcome in current["wall_breach_outcomes"]
+    } == {2, 3, 4, 5, 6}
+    assert not any(
+        "wall_section_breached" in key
+        for key in current["raw_damage_events_by_source"]
+    )
+
+
+def test_unified_trace_retains_round_slot_casualties_and_source_matrix():
+    report = build_report()
+    current = report["current_model"]
+    assert current["slot_losses"]["attacker"]
+    assert current["slot_losses"]["defender"]
+    assert all(
+        slot["casualties"] > 0 and slot["physical_position"] is not None
+        for slot in current["slot_losses"]["attacker"]
+    )
+    assert current["source_events_sum_equals_snapshot"]
+    assert current["attacker_hoplite_casualties"] == 44
+    assert report["observed"]["attacker_hoplite_casualties"] == 52
+    assert current["delta_observed_minus_model"] == 8
+    assert len(current["raw_damage_events_by_source"]["defender/mortar/damage"]) > 0
