@@ -45,7 +45,7 @@ def resolve_revision() -> str:
     return revision
 
 
-def build_report() -> dict:
+def build_report(source_commit_sha: str | None = None) -> dict:
     case = json.loads(CASE_PATH.read_text(encoding="utf-8"))
     scenario = json.loads(json.dumps(case["scenario"]))
     scenario["max_rounds"] = 1
@@ -127,7 +127,7 @@ def build_report() -> dict:
 
     return {
         "schema_version": 1,
-        "source_commit_sha": resolve_revision(),
+        "source_commit_sha": source_commit_sha,
         "case_id": case["case_id"],
         "evidence_boundary": {
             "observed": "User-supplied game screenshot; casualties are not per-source game telemetry",
@@ -177,7 +177,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True, help="Write JSON artifact here")
     args = parser.parse_args()
-    report = build_report()
+    # Only an exported artifact claims immutable Git revision provenance.
+    report = build_report(source_commit_sha=resolve_revision())
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     model = report["current_model"]
