@@ -65,12 +65,32 @@ def build_report(source_commit_sha: str | None = None) -> dict:
     relevant_assumptions = set()
     breaches = []
     other_unsupported = []
+    # Raw simulator events are evidence, not actual game shot telemetry.
+    raw_events_by_source = defaultdict(list)
+    wall_shot_events = []
+    wall_breach_outcomes = []
 
     for event in result["events"]:
         if event.get("round") != 1:
             continue
         kind = event["type"]
-        d = event.get("details", {})
+        d = event.get("details") or {}
+        if kind in {"damage", "damage_calculation", "wall_damage"}:
+            key = "/".join((
+                str(event.get("side") or "unspecified"),
+                str(d.get("source_unit_id") or "unspecified"),
+                kind,
+            ))
+            raw_events_by_source[key].append({
+                "phase": event.get("phase"),
+                "details": d,
+            })
+        if kind == "wall_damage":
+            wall_shot_events.append({
+                "side": event.get("side"),
+                "phase": event.get("phase"),
+                "details": d,
+            })
         if kind == "damage" and event.get("side") == "defender" and d.get("target_unit_id") == "hoplite":
             unit_id = d.get("source_unit_id", "unidentified")
             counts = {
@@ -109,6 +129,11 @@ def build_report(source_commit_sha: str | None = None) -> dict:
             if d.get("id"):
                 relevant_assumptions.add(d["id"])
         elif kind == "wall_section_breached":
+            wall_breach_outcomes.append({
+                "side": event.get("side"),
+                "phase": event.get("phase"),
+                "details": d,
+            })
             breaches.append({
                 "physical_position": d.get("physical_position"),
                 "damage_position": d.get("damage_position"),
@@ -164,6 +189,30 @@ def build_report(source_commit_sha: str | None = None) -> dict:
             "assumptions_applied_in_round1": sorted(relevant_assumptions),
             "unsupported_events": other_unsupported,
             "damage_events": damage_events,
+            "raw_damage_events_by_source": dict(sorted(raw_events_by_source.items())),
+            "wall_damage_events": wall_shot_events,
+            "wall_breach_outcomes": wall_breach_outcomes,
+            "slot_losses": {
+                side: [
+                    {key: slot.get(key) for key in (
+                        "line", "physical_position", "damage_position",
+                        "unit_id", "units", "casualties", "damage",
+                    )}
+                    for slot in round1[side]["slots"]
+                    if slot.get("casualties", 0)
+                ]
+                for side in ("attacker", "defender")
+            },
+            "event_counts": {
+                kind: sum(
+                    e.get("round") == 1 and e.get("type") == kind
+                    for e in result["events"]
+                )
+                for kind in sorted({
+                    e.get("type") for e in result["events"]
+                    if e.get("round") == 1
+                })
+            },
         },
         "unproven": [
             "Which attacker Hoplites the game Town Wall actually kills",
