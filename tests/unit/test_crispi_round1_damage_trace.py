@@ -1,10 +1,12 @@
 """The event trace distinguishes actual screenshot values from model events."""
+import re
 from tools.research.crispi_round1_damage_trace import build_report
 
 
 def test_crispi_round1_trace_preserves_evidence_provenance():
     report = build_report()
     assert report["schema_version"] == 1
+    assert re.fullmatch(r"[0-9a-f]{40}", report["source_commit_sha"])
     assert report["observed"]["attacker_hoplite_casualties"] == 52
     assert report["legacy_model"]["attacker_hoplite_casualties"] == 94
     current = report["current_model"]
