@@ -111,7 +111,29 @@ def test_crispi_breached_wall_never_allows_defender_first_to_fire_in_round1():
     assert defender_first_fire == []
 
 
-@pytest.mark.xfail(strict=True, reason="KNOWN GAP: partial wall breach changes First deployment only at the next round boundary")
+def test_crispi_round2_competing_native_front_waves_stops_as_explicit_unknown():
+    """The full Crispi scenario has two First candidates; this is a safe UNKNOWN,
+    not evidence that the round-2 occupancy simulation has succeeded."""
+    result = _simulate("crispi", rounds=2)
+    breaches = [
+        event for event in result["events"]
+        if event["round"] == 1 and event["type"] == "wall_section_breached"
+    ]
+    assert len(breaches) == 5
+    conflicts = [
+        event for event in result["events"]
+        if event["round"] == 2
+        and event["type"] == "unsupported_mechanic"
+        and event["details"].get("rule_id") == "UNKNOWN-CROSS-WAVE-FORMATION-REBUILD"
+        and any(req.get("reason") == "competing_wall_gap_native_waves"
+                for req in event["details"].get("requirements", []))
+    ]
+    assert conflicts, "Competing Hoplite and Spartan Front precedence must not be guessed"
+    assert result["rounds_completed"] == 2
+    assert result["status"] == "inconclusive"
+
+
+@pytest.mark.xfail(strict=True, reason="UNRESOLVED: empirically validated priority between concurrent defender Hoplite and Spartan First waves")
 def test_crispi_next_round_first_occupies_only_prior_round_breached_positions():
     result = _simulate("crispi", rounds=2)
     round1_breaches = {
@@ -137,6 +159,15 @@ def test_complete_wall_breach_opens_flank_only_from_following_round():
     # A low wall reduces the garrison limit; raise Town Hall so the wall remains active.
     scenario["town_hall_level"] = 40
     scenario["max_rounds"] = 2
+    # Isolate verified native-First behavior: the real Crispi defender has
+    # BOTH Hoplite and Spartan candidate waves, which correctly produces
+    # UNKNOWN on the next-round gap priority, stopping before Flank placement.
+    # That unresolved precedence is independently asserted above.
+    scenario["defender"] = dict(scenario["defender"])
+    scenario["defender"]["units"] = [
+        unit for unit in scenario["defender"]["units"]
+        if unit["unit_id"] != "spartan"
+    ]
     result = simulate(scenario)
     breaches = [event for event in result["events"]
                 if event["round"] == 1 and event["type"] == "wall_section_breached"]
@@ -145,9 +176,11 @@ def test_complete_wall_breach_opens_flank_only_from_following_round():
                     if slot["line"] == "flank" and slot["units"] > 0]
                for idx in (0, 1) for side in ("attacker", "defender"))
     assert len(result["rounds"]) >= 3
-    assert any(slot["line"] == "flank" and slot["units"] > 0
-               for side in ("attacker", "defender")
-               for slot in result["rounds"][2][side]["slots"])
+    for side in ("attacker", "defender"):
+        assert any(slot["line"] == "flank" and slot["units"] > 0
+                   for slot in result["rounds"][2][side]["slots"]), (
+            side, "did not enter Flank in round 2 after complete wall breach"
+        )
 
 
 def test_open_field_suppressed_wall_allows_flank_from_initial_deployment():
