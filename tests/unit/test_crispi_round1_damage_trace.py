@@ -4,7 +4,7 @@ from tools.research.crispi_round1_damage_trace import build_report
 
 
 def test_crispi_round1_trace_preserves_evidence_provenance():
-    report = build_report()
+    report = build_report(source_commit_sha="a" * 40)
     assert report["schema_version"] == 1
     assert re.fullmatch(r"[0-9a-f]{40}", report["source_commit_sha"])
     assert report["observed"]["attacker_hoplite_casualties"] == 52
@@ -59,3 +59,15 @@ def test_local_clean_trace_revision_reads_git_head(monkeypatch):
     monkeypatch.setattr(trace.subprocess, "check_output", fake_check_output)
     assert trace.resolve_revision() == revision
     assert [cmd[1] for cmd in commands] == ["status", "rev-parse"]
+
+
+def test_uncommitted_development_can_build_report_without_revision(monkeypatch):
+    from tools.research import crispi_round1_damage_trace as trace
+
+    def should_not_resolve():
+        raise AssertionError("build_report must not inspect Git status")
+
+    monkeypatch.setattr(trace, "resolve_revision", should_not_resolve)
+    report = trace.build_report()
+    assert report["source_commit_sha"] is None
+    assert report["current_model"]["attacker_hoplite_casualties"] == 44
