@@ -6,7 +6,7 @@
 
 - `tests/fixtures/reverse_engineering/reikjavikas_round1.json`：**無牆**、雙方 Forge Lv5、攻方迫砲已校正為 **30**、雙方滿 HP；區分實戰傷亡 `observed` 和舊引擎 `legacy_model`。
 - `tests/fixtures/reverse_engineering/crispi_round1.json`：**Lv24 城牆七格**、**只有攻方 Forge Lv5，守方 Forge Lv0**；包含兩軍空戰、城牆存活格子、火槍與牆反擊歸因假說及補位時序。
-- `tests/unit/test_battle_report_references.py`：直接從這兩份 JSON 建立模擬輸入。先用正常 PASS 測試防止欄位／戰報觀測／Forge 混淆。PR #63 已在 `main` 實作的初始城牆佔位、首回合雙側翼鎖定、當回合禁止守方 First 開火及全破後次回合側翼開啟，均已改為一般 PASS 測試；仍保留 3 個 strict xfail 作為尚待證明的跨回合缺口補位案例、REIKJAVIKAS 旋翼機個體擊殺及 Crispi 實戰方陣死亡數差異。xfail 不是成功驗證；任何 XPASS(strict) 都應改為正常 PASS 並重新確認規格。
+- `tests/unit/test_battle_report_references.py`：直接從這兩份 JSON 建立模擬輸入。先用正常 PASS 測試防止欄位／戰報觀測／Forge 混淆。PR #63 已在 `main` 實作的初始城牆佔位、首回合雙側翼鎖定、當回合禁止守方 First 開火及全破後次回合側翼開啟，均已改為一般 PASS 測試；仍保留 3 個 strict xfail 作為尚待證明的 Crispi Hoplite／Spartan 多 Wave 原生 Front 優先序、REIKJAVIKAS 旋翼機個體擊殺及 Crispi 實戰方陣死亡數差異。另以獨立普通 PASS 測試要求，在多 Wave 情況下明確產生 `UNKNOWN-CROSS-WAVE-FORMATION-REBUILD`，不能靜默跳過，也不可把它誤認為已完成補位。xfail 不是成功驗證；任何 XPASS(strict) 都應改為正常 PASS 並重新確認規格。
 - 執行：`pytest -q tests/unit/test_battle_report_references.py`，最終仍需在 GitHub Hosted current exact head 上檢查全套測試。
 
 ## 城牆佈陣：已確認的目標規格（Crispi）
@@ -18,9 +18,9 @@
 5. **本場實際牆：**第一回合實際戰報城牆物理位置 **[1,0,0,0,0,0,1]**，即**中間五格被打穿**（2–6），左右兩段存活。放大原圖後已修正先前誤寫的「三格破洞」。模擬同樣突破五格，故**不能以這一場主張模擬破牆數量錯誤**；其他案例的 wall hit/Accuracy 仍須獨立驗證。
 6. 城牆反擊的攻擊落點和 Accuracy 尚未有可核實的細節。使用者根據實戰歸納牆殺 2、存活守方迫砲殺 20、火槍殺 30，共 52；最後這個分解是**帶條件的來源歸因假說**，不是遊戲事件級逐發紀錄。
 
-### 當前錯誤的來源分解（Crispi）
+### PR #63 合併前的歷史 Debug 來源分解（Crispi）
 
-| 攻方方陣死亡來源 | 實戰候選歸因 | 目前 Debug |
+| 攻方方陣死亡來源 | 實戰候選歸因 | **舊版（PR #63 前）Debug** |
 |---|---:|---:|
 | 守方迫砲 | 20 | 20 |
 | 守方火槍 | 30（尚待驗證） | 24 |
@@ -28,7 +28,7 @@
 | 守方方陣 | 0（有牆不應上場） | **50（錯誤前置部署）** |
 | **合計** | **52** | **94** |
 
-**不能以 94 − 52 = 42 直接反推火槍 Accuracy。** 必須先排除不應開火的守方方陣，確認城牆攻擊時序及破洞延遲補位，再研究 84 火槍、每發淨 500、目標方陣 HP 1120 的 14/7 AM 分配與 SR/IR。
+**這張表不是現行模擬結果。** Codex 在 PR #62 exact head `a981bff` 的實際重算指出：現行模型第一回合攻方 Hoplite 死亡 **44**，且守方 First 沒有提前攻擊；實戰觀測是 **52**，仍相差 8。不能拿舊版的 **94 − 52 = 42** 反推火槍 Accuracy。應先獨立驗證城牆攻擊、火槍分散與 SR/IR 等候選機制，再追蹤每個來源的傷亡差距。
 
 ## 兩個案例的空戰對照：不能混用熔爐加成
 
@@ -52,7 +52,7 @@
 
 ## 實作順序與驗收
 
-1. **已完成部分：** `main`（PR #63）實作牆佔前排及雙方 Flank 延後部署，四個已證實行為由 xfail 轉為正式 PASS。**待查：** Crispi 特定多回合場景的 `First` 缺口補位仍為 strict xfail，不能因其他測試通過就宣稱本場回合 2 已驗證；`round.wall` 與 `round.defender.slots` 的整合則由 PR #61 另外驗證。
+1. **已完成部分：** `main`（PR #63）實作牆佔前排及雙方 Flank 延後部署，四個已證實行為由 xfail 轉為正式 PASS。**待查：** Crispi 同時具有 Hoplite 與 Spartan 候選的回合 2，應先顯式驗證安全 `UNKNOWN`，兩 Wave 的實際優先序仍為 strict xfail；將移除 Spartan 的單一原生 Front 測試獨立驗證雙方 Flank 於全破牆的次回合填入；`round.wall` 與 `round.defender.slots` 的整合則由 PR #61 另外驗證。
 2. 再校準城牆反擊，隔離來源對攻方第一列的傷亡。各攻擊階段保留 trace；禁止用「提前派守方方陣」替代牆擊殺。
 3. 分開測試兩場的 air parity：Crispi 應保留 30/20 正確結果，REIKJAVIKAS 的 Gyrocopter 26 而非 30 為獨立待驗目標。
 4. 每次調整來源/目標/傷害分配，必須回歸其他已知吻合的 Swordsmen、Bombardier、迫砲單發擊殺案例。不要為某一場硬編常數。
