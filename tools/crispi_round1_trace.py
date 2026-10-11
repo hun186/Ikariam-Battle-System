@@ -22,7 +22,7 @@ def collect_trace(case: dict, result: dict) -> dict:
     events = [
         event for event in result["events"] if event.get("round") == 1
     ]
-    firing_types = {"damage", "damage_calculation", "wall_section_breached"}
+    firing_types = {"damage", "damage_calculation", "wall_damage"}
     shots = [event for event in events if event.get("type") in firing_types]
     by_source = defaultdict(list)
     for event in shots:
@@ -66,6 +66,9 @@ def collect_trace(case: dict, result: dict) -> dict:
             event_type: sum(e.get("type") == event_type for e in events)
             for event_type in sorted({e.get("type") for e in events})
         },
+        "wall_breach_outcomes": [
+            event for event in events if event.get("type") == "wall_section_breached"
+        ],
         "damage_events_by_source": {
             "/".join(key): rows for key, rows in sorted(by_source.items())
         },
