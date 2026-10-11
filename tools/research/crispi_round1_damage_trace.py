@@ -9,6 +9,9 @@ from __future__ import annotations
 import argparse
 from collections import defaultdict
 import json
+import os
+import re
+import subprocess
 from pathlib import Path
 import sys
 
@@ -17,6 +20,18 @@ sys.path.insert(0, str(ROOT))
 from ikariam_battle import simulate  # noqa: E402
 
 CASE_PATH = ROOT / "tests/fixtures/reverse_engineering/crispi_round1.json"
+
+
+def resolve_revision() -> str:
+    """Require immutable 40-character commit SHA in exported evidence."""
+    revision = os.environ.get("GITHUB_SHA")
+    if not revision:
+        revision = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
+        ).strip()
+    if not re.fullmatch(r"[0-9a-f]{40}", revision):
+        raise ValueError("Trace requires an exact full 40-character Git commit SHA")
+    return revision
 
 
 def build_report() -> dict:
@@ -101,11 +116,12 @@ def build_report() -> dict:
 
     return {
         "schema_version": 1,
+        "source_commit_sha": resolve_revision(),
         "case_id": case["case_id"],
         "evidence_boundary": {
             "observed": "User-supplied game screenshot; casualties are not per-source game telemetry",
             "legacy_model": "Pre-PR63 simulator export; not current model output",
-            "current_model": "Simulator-generated events for the source scenario on this checked-out commit",
+            "current_model": "Simulator-generated events for source_commit_sha on this checked-out commit",
         },
         "observed": {
             "attacker_hoplite_casualties": observed_losses,
