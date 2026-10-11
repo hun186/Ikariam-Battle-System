@@ -5,6 +5,7 @@ on:
     branches:
       - fix/wall-occupancy-round-boundary-flanks
       - research/wall-air-round1-reference-cases
+      - research/crispi-r1-damage-trace
       - fix/round-wall-snapshot-render
   workflow_dispatch:
 
@@ -32,3 +33,11 @@ jobs:
           python -m pip install pytest
       - name: Run complete pytest suite
         run: python -m pytest -q
+      - name: Export Crispi R1 diagnostic trace
+        run: python -m tools.crispi_round1_trace > crispi-round1-trace.json
+      - name: Upload Crispi R1 trace
+        uses: actions/upload-artifact@v4
+        with:
+          name: crispi-round1-trace
+          path: crispi-round1-trace.json
+          retention-days: 30
