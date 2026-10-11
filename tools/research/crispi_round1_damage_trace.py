@@ -26,6 +26,17 @@ def resolve_revision() -> str:
     """Require immutable 40-character commit SHA in exported evidence."""
     revision = os.environ.get("GITHUB_SHA")
     if not revision:
+        # A local HEAD is reproducible only when the entire checkout is clean.
+        # Include untracked files: they can shadow imports or alter the fixture.
+        dirty = subprocess.check_output(
+            ["git", "status", "--porcelain", "--untracked-files=all"],
+            cwd=ROOT, text=True,
+        )
+        if dirty.strip():
+            raise RuntimeError(
+                "Cannot attribute a local trace to HEAD with a dirty worktree; "
+                "commit or remove local changes first"
+            )
         revision = subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
         ).strip()
