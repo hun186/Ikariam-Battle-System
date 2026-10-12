@@ -45,6 +45,84 @@ def resolve_revision() -> str:
     return revision
 
 
+
+def compare_hoplite_physical_positions(case: dict, round1: dict, damage_events: list[dict]) -> dict:
+    """Compare independently observed physical slots with current simulator slots.
+
+    The engine's AM addresses *damage positions*. Never assume those numbers
+    equal left-to-right *physical positions*: map them through the actual
+    Round-1 attacker First-line slot snapshot before joining event sources.
+    """
+    observed = case["observed"]["slot_losses"]["attacker"]["hoplite"]
+    snapshot = [
+        slot for slot in round1["attacker"]["slots"]
+        if slot.get("line") == "first" and slot.get("unit_id") == "hoplite"
+    ]
+    by_physical = {}
+    by_damage = {}
+    for slot in snapshot:
+        physical = slot.get("physical_position")
+        damage = slot.get("damage_position")
+        if not isinstance(physical, int) or not isinstance(damage, int):
+            raise ValueError("Crispi Hoplite slots require explicit physical and damage positions")
+        if physical in by_physical or damage in by_damage:
+            raise ValueError("Ambiguous Hoplite physical-to-damage-position mapping")
+        by_physical[physical] = slot
+        by_damage[damage] = physical
+
+    expected_positions = set(range(1, len(observed) + 1))
+    if set(by_physical) != expected_positions:
+        raise ValueError("Crispi physical Hoplite positions must cover the observed seven slots")
+
+    event_sources = defaultdict(lambda: defaultdict(lambda: {
+        "casualties": 0, "shots": 0, "net_damage": 0,
+    }))
+    unmapped_events = []
+    for event in damage_events:
+        damage_position = event.get("target_damage_position")
+        if damage_position not in by_damage:
+            unmapped_events.append({
+                "target_damage_position": damage_position,
+                "source_unit_id": event.get("source_unit_id"),
+                "casualties": event.get("casualties"),
+            })
+            continue
+        physical = by_damage[damage_position]
+        source = event_sources[physical][event["source_unit_id"]]
+        for field in ("casualties", "shots", "net_damage"):
+            source[field] += int(event.get(field) or 0)
+
+    rows = []
+    for physical in sorted(expected_positions):
+        slot = by_physical[physical]
+        modeled = int(slot.get("casualties") or 0)
+        sources = dict(sorted(event_sources[physical].items()))
+        rows.append({
+            "physical_position": physical,
+            "model_damage_position": slot["damage_position"],
+            "observed_hoplite_losses": observed[physical - 1],
+            "modeled_hoplite_losses": modeled,
+            "gap_observed_minus_modeled": observed[physical - 1] - modeled,
+            "modeled_remaining_units": slot.get("units"),
+            "modeled_slot_damage": slot.get("damage"),
+            "modeled_defender_sources": sources,
+            "source_losses_equal_slot": sum(x["casualties"] for x in sources.values()) == modeled,
+        })
+
+    observed_total = sum(observed)
+    modeled_total = sum(row["modeled_hoplite_losses"] for row in rows)
+    return {
+        "position_basis": "physical left-to-right 1..7, mapped via current Round-1 slot snapshot",
+        "event_basis": "simulator damage events only; observed game source attribution unavailable",
+        "positions": rows,
+        "observed_total": observed_total,
+        "modeled_total": modeled_total,
+        "gap_observed_minus_modeled": observed_total - modeled_total,
+        "source_losses_equal_each_slot": all(row["source_losses_equal_slot"] for row in rows),
+        "unmapped_simulator_events": unmapped_events,
+    }
+
+
 def build_report(source_commit_sha: str | None = None) -> dict:
     case = json.loads(CASE_PATH.read_text(encoding="utf-8"))
     scenario = json.loads(json.dumps(case["scenario"]))
@@ -149,6 +227,7 @@ def build_report(source_commit_sha: str | None = None) -> dict:
     }
     attribution_sum = sum(entry["casualties"] for entry in grouped.values())
     legacy = case["legacy_model"]["casualties"]["attacker"]["hoplite"]
+    position_comparison = compare_hoplite_physical_positions(case, round1, damage_events)
 
     return {
         "schema_version": 1,
@@ -166,6 +245,7 @@ def build_report(source_commit_sha: str | None = None) -> dict:
             "source_attribution_hypothesis": case["observed"]["source_attribution_hypothesis"],
         },
         "legacy_model": {"attacker_hoplite_casualties": legacy},
+        "physical_hoplite_comparison": position_comparison,
         "current_model": {
             "status": result.get("status"),
             "rounds_completed": result.get("rounds_completed"),
@@ -245,6 +325,14 @@ def main() -> None:
         )
         print(f"    target damage positions: {positions}")
     print(f"Event source sum equals snapshot: {model['source_events_sum_equals_snapshot']}")
+    print("Observed/model Hoplite by physical position (left to right):")
+    for row in report["physical_hoplite_comparison"]["positions"]:
+        print(
+            f"  physical {row['physical_position']} / damage {row['model_damage_position']}: "
+            f"observed={row['observed_hoplite_losses']}, modeled={row['modeled_hoplite_losses']}, "
+            f"gap={row['gap_observed_minus_modeled']}, "
+            f"simulated_sources={row['modeled_defender_sources']}"
+        )
     print(f"Wall breach physical positions: {[x['physical_position'] for x in model['breached_wall_positions']]}")
     print(f"JSON trace: {args.output}")
 
