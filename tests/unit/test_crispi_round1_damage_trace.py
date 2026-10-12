@@ -108,3 +108,19 @@ def test_unified_trace_retains_round_slot_casualties_and_source_matrix():
     assert report["observed"]["attacker_hoplite_casualties"] == 52
     assert current["delta_observed_minus_model"] == 8
     assert len(current["raw_damage_events_by_source"]["defender/mortar/damage"]) > 0
+
+
+def test_generated_trace_output_is_ignored_but_evidence_fixture_is_not():
+    """Local artifact reruns may overwrite JSON without hiding source changes."""
+    import subprocess
+    from tools.research import crispi_round1_damage_trace as trace
+
+    def ignored(path):
+        return subprocess.run(
+            ["git", "check-ignore", "--quiet", "--no-index", path],
+            cwd=trace.ROOT, check=False,
+        ).returncode == 0
+
+    assert ignored("research-output/crispi_r1_current_trace.json")
+    assert not ignored("tests/fixtures/reverse_engineering/crispi_round1.json")
+    assert not ignored("tools/research/crispi_round1_damage_trace.py")
