@@ -81,3 +81,33 @@ def test_an_unmapped_damage_event_is_reported_not_silently_redistributed():
     assert len(matrix["unmapped_simulator_events"]) == 1
     assert matrix["unmapped_simulator_events"][0]["target_damage_position"] == 99
     assert matrix["modeled_total"] == 0
+
+
+def test_crispi_current_position_baseline_tracks_signed_gap_not_just_total():
+    """Intentional CURRENT-MODEL baseline, not a claim about real-game shots.
+
+    A future evidence-supported calibration can update this assertion together
+    with its independent references and the strict empirical xfail.
+    """
+    comparison = build_report()["physical_hoplite_comparison"]
+    rows = comparison["positions"]
+    assert [r["model_damage_position"] for r in rows] == [6, 4, 2, 1, 3, 5, 7]
+    assert [r["modeled_hoplite_losses"] for r in rows] == [2, 9, 9, 9, 9, 4, 2]
+    assert [r["gap_observed_minus_modeled"] for r in rows] == [-1, 2, 2, 2, 2, 2, -1]
+
+    mortars = [
+        r["modeled_defender_sources"].get("mortar", {}).get("casualties", 0)
+        for r in rows
+    ]
+    carabineers = [
+        r["modeled_defender_sources"].get("sulphur_carabineer", {}).get("casualties", 0)
+        for r in rows
+    ]
+    carabineer_shots = [
+        r["modeled_defender_sources"].get("sulphur_carabineer", {}).get("shots", 0)
+        for r in rows
+    ]
+    assert mortars == [0, 5, 5, 5, 5, 0, 0]
+    assert carabineers == [2, 4, 4, 4, 4, 4, 2]
+    assert carabineer_shots == [7, 14, 14, 14, 14, 14, 7]
+    assert sum(carabineer_shots) == 84
