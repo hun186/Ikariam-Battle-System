@@ -105,6 +105,8 @@ def control_case(case: dict, *, attacker_forge: int, defender_forge: int) -> dic
         "model_am_hit_slots": hit_counts,
         "gross_damage_per_slot": [n*damage.final_damage for n in hit_counts],
         "reported_total_deaths": case["reported_carrier_total_deaths"],
+        "observed_game_round": case["observed_round_number"],
+        "model_round_matches_confirmed_game_round": (case["observed_round_number"] == 1),
         "model_rounds_completed": result.get("rounds_completed"),
         "model_total_carrier_deaths": (
             round1["casualties"]["defender"].get(defender.id, 0)
@@ -115,7 +117,7 @@ def control_case(case: dict, *, attacker_forge: int, defender_forge: int) -> dic
         "model_source_damage_events": target_damage_events,
         "model_applied_assumptions": result.get("assumptions", []),
         "synthetic_frontline_warning": "Invented 35 player Steam Rams per side, not evidence of real historical fleet",
-        "round_warning": "Comparison uses first round as a model control; user has not yet confirmed source records refer to end of first round",
+        "round_warning": "User CONFIRMED observed deaths at end of Round 1; simulator also runs Round 1, but invented First-line fleets and missing real supporting ships prevent exact historical replication",
         "forge_scope_warning": "Both player sides Forge5 is user-confirmed; attacker-only variant is explicitly counterfactual",
     }
 
