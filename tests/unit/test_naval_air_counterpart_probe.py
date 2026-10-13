@@ -264,7 +264,7 @@ def test_inverse_research_agent_handoff_routes_to_live_provenance():
     assert "Round 1" in guide
     assert "Forge" in guide
     assert "30" in guide and "6" in guide
-    assert "unknown" in guide.lower() and "not verified" in guide.lower()
+    assert "unknown" in guide.lower() and "not a verified" in guide.lower()
     for fixture in (
         "naval_air_counterparts_20261013.json",
         "naval_ram_deckwrecker_20261013.json",
