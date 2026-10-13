@@ -138,7 +138,8 @@ def test_air_artifact_preserves_full_synthetic_round1_damage_and_assumptions():
         control = item["current_engine_control"]
         events = control["synthetic_round1_model_events"]
         kinds = {x["type"] for x in events}
-        assert {"attacking_matrix", "damage", "damage_calculation"}.issubset(kinds)
+        assert {"attacking_matrix", "damage", "damage_calculation",
+                "assumption_applied", "formation_fire_phase"}.issubset(kinds)
         assert all(x["round"] == 1 for x in events)
         assert control["model_applied_assumptions"]
         assumptions = {x["id"] for x in control["model_applied_assumptions"]}
@@ -166,3 +167,55 @@ def test_air_artifact_preserves_full_synthetic_round1_damage_and_assumptions():
     ]
     assert sum(e["details"]["overkill_discarded"] for e in speedboat_damage) == 466
     assert all(e["details"]["resolution"] == "sequential_d_kill_baseline" for e in speedboat_damage)
+
+
+def test_no_forge_defense3_two_deaths_are_chat_only_not_full_battle_assumptions():
+    """Conditional 30-v-6 is not yet confirmed for this distinct no-Forge case."""
+    evidence = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    cases = evidence["additional_observations"]
+    assert len(cases) == 1
+    item = cases[0]
+    assert item["case"] == "barbarian_fast_vs_player_carrier_def3_no_forge"
+    assert item["observed_player_defense_upgrade"] == 3
+    assert item["observed_player_forge_level"] == 0
+    assert item["observed_total_player_carrier_deaths"] == 2
+    assert item["source"] == "USER_CHAT_2026_10_13_NEW_OBSERVATION"
+    assert not item["attacker_and_target_counts_verified_for_this_case"]
+    assert not item["round_number_verified"]
+    assert not item["known_per_slot_deaths"]
+    assert not item["aircraft_unit_id_mapping_verified"]
+    assert item["observed_bars_percent"] is None
+    assert item["conditional_compare_to_forward_battles"]["hypothetical_attacker_slots"] == [15, 15]
+    assert item["conditional_compare_to_forward_battles"]["hypothetical_defender_slots"] == [3, 3]
+
+
+def test_no_forge_defense3_is_consistent_but_does_not_shrink_focus_interval():
+    """Same 30-v-6 and all 30 hits: bounds must generalize across Forge states."""
+    from copy import deepcopy
+
+    earlier = _cases()["barbarian_fast_vs_player_carrier_def7"]
+    candidate = deepcopy(earlier)
+    candidate["case"] = "conditional_barbarian_fast_vs_player_carrier_def3_no_forge"
+    candidate["player_defense_upgrade"] = 3
+    candidate["player_forge_level"] = 0
+    del candidate["reported_player_total_deaths"]
+    derived = damage_and_round_observables(candidate)
+    assert derived["net_damage"] == 310
+    assert derived["model_target_am_hit_counts"] == [16, 14]
+    assert [s * derived["net_damage"] for s in [16, 14]] == [4960, 4340]
+
+    # Hypothesis: one kill per slot when a fixed max focus share f of each
+    # slot's total hit damage can concentrate on an initially full 2,800 HP hull.
+    # The new no-Forge case yields f >= 2800/(14*310), strictly weaker
+    # than existing DEF7/8 constraints f >= 2800/(16*250) and
+    # f < 2800/(16*240); this is validation, NOT identification.
+    hp = derived["target_unit_hp"]
+    lower_new = hp / (14*310)
+    lower_old = hp / (16*250)
+    upper_old = hp / (16*240)
+    assert 0.645 < lower_new < 0.646
+    assert lower_new < lower_old == 0.7 < upper_old < 0.73
+    for ratio in (0.70, 0.7222, 0.729):
+        assert 16*310*ratio >= hp
+        assert 14*310*ratio >= hp
+    # No fixed targeting, Accuracy or overflow behavior established.
