@@ -136,6 +136,15 @@ def run_current_full_engine_control(case: dict) -> dict:
             if slot.get("unit_id") == case["target"]
         ],
         "attacking_matrix_events": matrix,
+        # Preserve the COMPLETE model round-1 event trace, rather than only
+        # AM summaries. Damage, Accuracy decisions, overkill and assumptions
+        # are needed to audit why current MODEL HP differs from real-game bars.
+        # These are SYNTHETIC simulator events, never real per-ship hit logs.
+        "synthetic_round1_model_events": [
+            event for event in result.get("events", [])
+            if event.get("round") == 1
+        ],
+        "model_applied_assumptions": result.get("assumptions", []),
         "unsupported_events": [
             x for x in result.get("events", [])
             if x.get("type") == "unsupported_mechanic"
