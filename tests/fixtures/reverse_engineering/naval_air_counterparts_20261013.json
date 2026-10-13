@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "case_id": "naval-paddle-speedboat-vs-balloon-carrier-counterpart-20261013",
+  "evidence_class": "USER_CONVERSATION_REPORTED_REAL_GAME_OUTCOMES",
+  "source": {
+    "medium": "User-reported game observations in ChatGPT conversation 2026-10-13",
+    "original_battle_reports_attached": false,
+    "raw_game_individual_shot_trace_available": false,
+    "note": "Official battle reports do not reveal individual target-hit sequences; infer from visible casualties and remaining formation health bars."
+  },
+  "candidate_unit_mapping": {
+    "barbarian_speedboat": "barbarian_dirigible_igniter",
+    "player_carrier": "balloon_carrier",
+    "player_speedboat": "paddle_speedboat",
+    "barbarian_carrier": "barbarian_nest",
+    "status": "provisional_equivalence_by_role_and_help_names_verify_with_game_unit_labels"
+  },
+  "observed": [
+    {
+      "case": "barbarian_fast_vs_player_carrier_def7",
+      "attacker": "barbarian_dirigible_igniter",
+      "target": "balloon_carrier",
+      "attacker_count": 30,
+      "target_count": 6,
+      "attacker_positions": 2,
+      "attacker_units_per_position": 15,
+      "target_positions": 2,
+      "target_units_per_position": 3,
+      "player_defense_upgrade": 7,
+      "player_attack_upgrade": 0,
+      "player_forge_level": 5,
+      "barbarian_forge_level": 0,
+      "reported_player_total_deaths": 1,
+      "source": "USER_CHAT",
+      "bar_percentages": null
+    },
+    {
+      "case": "barbarian_fast_vs_player_carrier_def8",
+      "attacker": "barbarian_dirigible_igniter",
+      "target": "balloon_carrier",
+      "attacker_count": 30,
+      "target_count": 6,
+      "attacker_positions": 2,
+      "attacker_units_per_position": 15,
+      "target_positions": 2,
+      "target_units_per_position": 3,
+      "player_defense_upgrade": 8,
+      "player_attack_upgrade": 0,
+      "player_forge_level": 5,
+      "barbarian_forge_level": 0,
+      "reported_player_total_deaths": 0,
+      "source": "USER_CHAT",
+      "bar_percentages": null
+    },
+    {
+      "case": "barbarian_fast_vs_player_carrier_def14",
+      "attacker": "barbarian_dirigible_igniter",
+      "target": "balloon_carrier",
+      "attacker_count": 30,
+      "target_count": 6,
+      "attacker_positions": 2,
+      "attacker_units_per_position": 15,
+      "target_positions": 2,
+      "target_units_per_position": 3,
+      "player_defense_upgrade": 14,
+      "player_attack_upgrade": 0,
+      "player_forge_level": 5,
+      "barbarian_forge_level": 0,
+      "reported_player_total_deaths": 0,
+      "reported_occupied_slot_bars_percent": [
+        65,
+        70
+      ],
+      "source": "USER_CHAT",
+      "bar_percentages": [
+        65,
+        70
+      ]
+    },
+    {
+      "case": "player_fast_att14_vs_barbarian_carrier",
+      "attacker": "paddle_speedboat",
+      "target": "barbarian_nest",
+      "attacker_count": 30,
+      "target_count": 6,
+      "attacker_positions": 2,
+      "attacker_units_per_position": 15,
+      "target_positions": 2,
+      "target_units_per_position": 3,
+      "player_defense_upgrade": 0,
+      "player_attack_upgrade": 14,
+      "player_forge_level": 5,
+      "barbarian_forge_level": 0,
+      "reported_barbarian_deaths_per_position": 1,
+      "reported_survivor_slot_bars_percent": [
+        53,
+        65
+      ],
+      "source": "USER_CHAT",
+      "count_is_assumed_from_previous_comparison": true,
+      "bar_percentages": [
+        53,
+        65
+      ]
+    }
+  ],
+  "model_assumptions": {
+    "scenario_type": "1_round_isolated_two_unit_type_not_exact_original_fleet",
+    "field": "naval-max",
+    "players_have_other_ships_unknown": true,
+    "conditional_shot_count": "30 live attacking speedboats fire one shot each if eligible; AM addresses 2 target slots by formation row, possibly 16+14",
+    "bar_interpretation": "floor of 100*(remaining alive target ships full HP minus persistent retained damage)/(remaining alive target ships full HP)",
+    "overflow_model": "conditional conservation of all incoming damage, even across one sunk ship",
+    "no_claim_of_true_attack_order_for_unseen_original_battle": true,
+    "prefer_actual_simulator_AM_trace": true,
+    "never_hardcode_observed_casualties_into_combat_logic": true
+  }
+}
