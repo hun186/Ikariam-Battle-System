@@ -90,6 +90,20 @@ def run_current_full_engine_control(case: dict) -> dict:
             }],
         },
     }
+    # Synthetic First-line fillers make the real one-round engine execute
+    # anti-balloon->balloon fire phases. They were NOT observed in these battles.
+    sides["attacker"]["units"].insert(0, {
+        "unit_id": "barbarian_wedge_paddler" if is_barbarian_attacker else "steam_ram",
+        "quantity": 42 if is_barbarian_attacker else 35,
+        "attack_upgrade": 0,
+        "armor_upgrade": 0,
+    })
+    sides["defender"]["units"].insert(0, {
+        "unit_id": "steam_ram" if is_barbarian_attacker else "barbarian_wedge_paddler",
+        "quantity": 35 if is_barbarian_attacker else 42,
+        "attack_upgrade": 0,
+        "armor_upgrade": 0,
+    })
     result = simulate({
         "policy": "experimental", "battlefield": "naval-max", "max_rounds": 1,
         **sides,
@@ -104,6 +118,7 @@ def run_current_full_engine_control(case: dict) -> dict:
         "evidence_class": "CONTROLLED_SYNTHETIC_CURRENT_ENGINE_NOT_HISTORICAL",
         "status": result.get("status"),
         "rounds_completed": result.get("rounds_completed"),
+        "invented_first_line_filler_not_observed": True,
         "source_count": case["attacker_count"],
         "target_count": case["target_count"],
         "attacker_unit": case["attacker"],
