@@ -118,5 +118,34 @@
     "never_hardcode_observed_casualties_into_combat_logic": true,
     "reverse_army_counts_are_provisional": false,
     "reverse_bar_snapshot_round_confirmed": 1
-  }
+  },
+  "additional_observations": [
+    {
+      "case": "barbarian_fast_vs_player_carrier_def3_no_forge",
+      "evidence_class": "USER_CHAT_REPORTED_AGGREGATE_CASUALTIES",
+      "source": "USER_CHAT_2026_10_13_NEW_OBSERVATION",
+      "observed_player_defense_upgrade": 3,
+      "observed_player_forge_level": 0,
+      "observed_total_player_carrier_deaths": 2,
+      "known_per_slot_deaths": false,
+      "observed_bars_percent": null,
+      "round_number_verified": false,
+      "attacker_and_target_counts_verified_for_this_case": false,
+      "aircraft_unit_id_mapping_verified": false,
+      "conditional_compare_to_forward_battles": {
+        "hypothetical_attacker_count": 30,
+        "hypothetical_defender_count": 6,
+        "hypothetical_attacker_slots": [
+          15,
+          15
+        ],
+        "hypothetical_defender_slots": [
+          3,
+          3
+        ],
+        "hypothetical_battlefield": "naval-max",
+        "note": "Same 30 fast boats / six carriers / two slots and round-one loss are intentionally UNCONFIRMED for this distinct no-Forge defense3 observation; numbers are reused only as a comparison hypothesis."
+      }
+    }
+  ]
 }
