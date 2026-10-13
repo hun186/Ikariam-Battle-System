@@ -64,7 +64,7 @@ DEF14: `3080−2×1160=760=24.675%` HP. DEF15: `3080−2×1150=780=25.325%`. The
 
 ### 3.3 Effective focus share, an *inverse* surrogate—not a targeting algorithm
 
-If an unknown fraction `f` of total **addressed successful** hit damage in one carrier slot can be concentrated on one fresh 2800-HP target, and DEF7's single total death occurred in 16-hit slot while DEF8's zero losses is due to failure of concentration in that slot:
+**Conditional surrogate with a restrictive assumption:** Define `f` as the **same deterministic REALIZED concentration fraction** of a slot's addressed effective damage delivered to one initially full 2,800-HP carrier across the compared Forge5 DEF7 and DEF8 observations—not a maximum allowable share and not a verified game-targeting algorithm. **Assume** DEF7's one death occurred in the 16-hit target slot and DEF8's zero deaths arose because that slot received insufficient concentrated damage. Under only those assumptions:
 
 ```
 DEF7 Forge5 (d=250): 16*250*f ≥ 2800    => f ≥ 0.700000
@@ -72,7 +72,7 @@ DEF8 Forge5 (d=240): 16*240*f < 2800    => f < 0.729167
 => conditional 70.0000% ≤ f < 72.9167%
 ```
 
-The no-Forge DEF3 two-death observation, **if** interpreted as one death per slot, adds `14×310*f ≥ 2800 => f ≥ 64.516%`—a **weaker bound**, hence it is *consistent* with but **does not tighten** the prior 70–72.9167% interval. Since two deaths' **slot distribution remains unknown**, even that lower bound is **not an unconditional deduction** from the new game report. These inequalities **depend on** the same 16/14 active shots, per-slot target counts, a single maximum focus share across Forge modes, one-death-per-16-slot assumption at DEF7, same timing and no other mixed-fleet effects. They are a convenient falsifiable model-fit summary, **not evidence that Accuracy95 literally maps to f=72%**. There is no reason to extrapolate it to another unit count or Accuracy80 without held-out validation.
+The no-Forge DEF3 two-death observation, **if** interpreted as one death per slot, adds `14×310*f ≥ 2800 => f ≥ 64.516%`—a **weaker bound**, hence it is *consistent* with but **does not tighten** the prior 70–72.9167% interval. Since two deaths' **slot distribution remains unknown**, even that lower bound is **not an unconditional deduction** from the new game report. These inequalities **depend on** the same 16/14 active shots, per-slot target counts, a single equal realized focus share across Forge modes, one-death-per-16-slot assumption at DEF7, same timing and no other mixed-fleet effects. They are a convenient falsifiable model-fit summary, **not evidence that Accuracy95 literally maps to f=72%**. There is no reason to extrapolate it to another unit count or Accuracy80 without held-out validation.
 
 ## 4. Current engine results and why they are not the game
 
@@ -86,15 +86,48 @@ Strict mode continues to mark the unknown Accuracy algorithm as unresolved. Expe
 2. Build independent candidate selector implementations around a fixed source AM with **row-major 16/14**, phase order, and a target multiset of individual HP; compare (a) spread healthy, (b) focus wounded, (c) damage-dependent threshold, (d) pooled slot damage, (e) hit success/miss variants. Avoid fixed `f` as an executable physical targeting strategy unless one can define its shot-level/aggregate realization.
 3. Vary excess handling **orthogonally**: discard lethal overkill; retain surplus into a slot pool; distribute after kill; or calculate aggregate D/P/IR/SR/RR. Tests must demand *both* correct casualties and floor HP-bar percentages, with explicit UI denominator alternatives.
 4. Score all supplied cases **jointly**; hold out at least one player-vs-Barbarian air case, Forge-on/off case, Ram DEF14/15 case, or follow-up round. Find parameter-identifiable ranges or label **UNDERDETERMINED** instead of choosing a single appealing formula.
-5. Collect only **observable** game data: first/second-round per-slot casualties and bars, available ship counts, Workshop/Forge, supporting fleet, ammo and arrival stage. No impossible real per-ship shot record is required. Still needed: which slot(s) lost the **two carriers** at no-Forge DEF3; whether bars are truncated; true original non-air fleet composition.
+5. Collect only **observable** game data: first/second-round per-slot casualties and bars, available ship counts, Workshop/Forge, supporting fleet, ammo and arrival stage. No impossible real per-ship shot record is required. Still needed: which slot(s) lost the **two carriers** at no-Forge DEF3; whether bars are truncated; true original non-air fleet composition; and the source round, side-specific Forge5 activation and slot split for the new player-vs-player speedboat/carrier three-case holdout. **The DEF3 30-vs-6 layout and Round 1 timing are already user-confirmed and must not be requested again.**
 6. Preserve every meaningful new source/derivation and each falsification result in this document and the source-specific fixtures, update `.codex/memory.md` and `.codex/backlog.md`; keep **proposed formula**, **current simulator behavior**, and **Gameforge-confirmed behavior** clearly distinguished. Request fresh exact-head CI/Codex Review and never merge without explicit owner command.
 
 ## 6. Continuous audit trail / current gates
 
 - [Issue #68](https://github.com/hun186/Ikariam-Battle-System/issues/68): chronology, user-supplied evidence updates and inverse-constraint design.
-- [Draft PR #69](https://github.com/hun186/Ikariam-Battle-System/pull/69): actual research code / source fixtures / tests / documents. Research commits and Hosted main may advance independently; this note deliberately does **not** hardcode an allegedly current SHA. Recheck live repository.
+- [Draft PR #69](https://github.com/hun186/Ikariam-Battle-System/pull/69): actual research code / source fixtures / tests / documents. Research commits and Hosted main may advance independently; this note does not assert that a **past reviewed SHA is current**. **Historical audit anchor:** the most recent *completed* Codex Review seen before the three player-vs-player holdouts was for exact head `3b41c714be38efcfb47575897713aeeeb83cfa19` on 2026-10-13 15:13:50 UTC (three P2 findings: define `f` as realized; remove already confirmed DEF3 data from open backlog; persist reviewed SHA). Its exact-head CI [#38419470506](https://github.com/hun186/Ikariam-Battle-System/actions/runs/38419470506) succeeded, 471 passed / 3 expected xfailed. **Those findings are not a pass for any newer head**; check currently submitted review threads and exact-head actions before concluding review status. Recheck live repository.
 - [Merged PR #70](https://github.com/hun186/Ikariam-Battle-System/pull/70): official five-tier naval geometry fix. It established physical slots / spaces, **not** whole fleet identity or official Accuracy.
 - The first unmerged air-HP holdout comparison had CI **466 passed/3 xfailed**. Subsequent user-confirmed reverse data and full round-event trace reached **467 passed/3 xfailed**; after the additional no-Forge observation, CI reached **469 passed/3 xfailed** on then-current head. These are *historical verified runs*, not an assertion about a newer, untested head. New commits require a new run and a new exact-head Codex Review.
 - Latest known Codex feedback on previous head requested preservation of `additional_observations` in the uploaded report. It must remain a **separate raw evidence field**, without fabricating a synthetic simulator trace for any case lacking inputs. Check that the current test explicitly protects this field and whether the thread was resolved.
 
 **Work handoff promise:** A new AI agent should be able to read this one note and the two fixtures and state exactly which empirical outcomes are confirmed, which numbers are conditional current-model predictions, which hypotheses remain competitive, what Forge's working hypothesis is, and which GitHub checks are outstanding—*before* proposing changes to battle rules.
+
+## 7. New player-vs-player fast boat versus carrier held-out cases (2026-10-13)
+
+**User's NEW game evidence:** 30 player Paddle Speedboats attacked six **player** Balloon Carriers; the user stated Forge Level 5, but did **not explicitly clarify whether both player sides or only the attacking player used Forge 5**. Exact round number, casualty split by slot and remaining original fleet are not yet confirmed. Preserve game-reported **total** carrier deaths as follows:
+
+| Player speedboat Attack | Player carrier Armor upgrade | Observed TOTAL player-carrier losses | Two-sided Forge5 production net hit | Model hits to kill 2800 HP carrier |
+|---:|---:|---:|---:|---:|
+| 12 | 8 | **2** | 314 | 9 |
+| 20 | 16 | **2** | 326 | 9 |
+| 17 | 18 | **1** | 271 | 11 |
+
+**New data fixture:** `tests/fixtures/reverse_engineering/naval_pvp_fast_boat_carrier_20261013.json` (separate from Barbarian targets and from Ram workbook). **Executable exact-engine control:** `tools/research/naval_pvp_fast_carrier_probe.py` with regression `tests/unit/test_naval_pvp_fast_carrier_probe.py`. To execute a full first-round engine test, it adds **invented 35 Steam Rams per side** and selects `naval-max`; those frontlines are NOT asserted to have existed in the user's battle. Two explicit Forge scopes are compared to avoid silently inventing the defender's Forge setting:
+
+| PvP ATT/DEF | Observed total | CURRENT synthetic engine **both sides Forge5** | CURRENT synthetic engine **attacker-only Forge5** |
+| --- | ---: | ---: | ---: |
+| 12 / 8 | 2 | **2** (slots 1+1) | **2** (slots 1+1) |
+| 20 / 16 | 2 | **2** (slots 1+1) | **2** (slots 1+1) |
+| **17 / 18** | **1** | **2** (slots 1+1) — **FAIL** | **2** (slots 1+1) — **FAIL** |
+
+**Conditional source AM:** with two full 15-ship source slots and two target slots, current row-major `_shot_rows` and actual simulator AM events both produce **16 / 14** shots. Current Experimental Accuracy90 concentrates both sufficiently to kill one in each slot, even at net damage 271 (eleven shots needed on a fresh target). Thus the **ATT17/DEF18 observation is a held-out falsifier** for the current 90%-based within-slot wounded-focus rule under those controls, and remains a mismatch if only attacker Forge5.
+
+**Separate conditional focus-share numerical fit, not official rule:** If a **single deterministic realized fraction** `f` of gross slot damage applies to one carrier with both slots firing 16/14 full shots, and the third observation's one loss happens in 16-hit slot (not game-confirmed), then
+```
+ATT12/DEF8 d=314: 14*314*f >= 2800 (both slots one kill, conditional)
+ATT20/DEF16 d=326: 14*326*f >= 2800
+ATT17/DEF18 d=271: 16*271*f >= 2800; 14*271*f < 2800
+=> f ∈ [ max(2800/4396, 2800/4564, 2800/4336), 2800/3794 )
+     = [~0.64576, ~0.73801)
+```
+A test `f=0.70` predicts totals 2/2/1, and ALSO falls in the *separate, more restrictive* Barbarian Accuracy95 conditional DEF7/DEF8 range `[0.70,0.72917)`. **Do not infer Accuracy90 or Accuracy95 literally implies f=0.70**: this is a non-executable, aggregate fit, conditional on shot success and slot allocation; many dissimilar discrete selectors can fit. The cross-Accuracy overlap especially warns against assuming a simple direct Accuracy-to-focus formula. Need a **single implementable selector** that predicts original Ram results AND these carrier outcomes without case IDs or special defense thresholds.
+
+**Reproducibility:** Source-only GitHub workflow `.github/workflows/naval-ram-empirical-probe.yml` uploads the new `naval_pvp_fast_carrier_probe.json` artifact alongside prior two JSON artifacts. Historical first execution on head `acd67d22dd74a5f79cc963b11924576de132cb98` [Actions #38421340989](https://github.com/hun186/Ikariam-Battle-System/actions/runs/38421340989) succeeded (471 tests passed / 3 expected xfailed, BEFORE new PvP regression tests), with six actual model-control outcomes. Verify exact-head CI anew after subsequent documentation and regression changes. **No actual game individual-shot data exists.**
+
