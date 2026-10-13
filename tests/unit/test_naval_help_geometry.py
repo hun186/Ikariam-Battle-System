@@ -103,6 +103,8 @@ def test_each_help_geometry_can_execute_one_complete_naval_round(tier):
         "defender": {"units": [{"unit_id": "steam_ram", "quantity": 35}]},
     })
     assert result["profiles"]["formation"] == "formation-naval"
+    assert any("five Level 0+/8+/15+/22+/29+" in w for w in result["warnings"])
+    assert not any("smaller geometries" in w for w in result["warnings"])
     assert result["rounds_completed"] == 1
     assert any(e["type"] == "attacking_matrix" for e in result["events"])
     assert any(s["line"] == "first" for s in result["initial_state"]["attacker"]["slots"])
