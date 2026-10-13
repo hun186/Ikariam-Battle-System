@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "case_id": "naval-player-fast-boat-vs-player-balloon-carrier-20261013",
+  "evidence_class": "USER_CHAT_REPORTED_REAL_BATTLE_AGGREGATE",
+  "source": {
+    "medium": "User ChatGPT conversation 2026-10-13",
+    "original_battle_reports_attached": false,
+    "comment": "User provided three cases: 30 player fast boats against six player carriers and Forge level five. Which side(s) had Forge active, exact game round, other fleet units, and casualty split by physical slot were NOT specified. Preserve these as unknown until user confirms."
+  },
+  "observed": [
+    {
+      "case": "pvp_fast_att12_carrier_def8",
+      "attacker_unit_id": "paddle_speedboat",
+      "attacker_count": 30,
+      "defender_unit_id": "balloon_carrier",
+      "defender_count": 6,
+      "attacker_attack_upgrade": 12,
+      "defender_armor_upgrade": 8,
+      "reported_forge_level": 5,
+      "reported_carrier_total_deaths": 2,
+      "death_slots_unknown": true,
+      "observed_round_unknown": true
+    },
+    {
+      "case": "pvp_fast_att20_carrier_def16",
+      "attacker_unit_id": "paddle_speedboat",
+      "attacker_count": 30,
+      "defender_unit_id": "balloon_carrier",
+      "defender_count": 6,
+      "attacker_attack_upgrade": 20,
+      "defender_armor_upgrade": 16,
+      "reported_forge_level": 5,
+      "reported_carrier_total_deaths": 2,
+      "death_slots_unknown": true,
+      "observed_round_unknown": true
+    },
+    {
+      "case": "pvp_fast_att17_carrier_def18",
+      "attacker_unit_id": "paddle_speedboat",
+      "attacker_count": 30,
+      "defender_unit_id": "balloon_carrier",
+      "defender_count": 6,
+      "attacker_attack_upgrade": 17,
+      "defender_armor_upgrade": 18,
+      "reported_forge_level": 5,
+      "reported_carrier_total_deaths": 1,
+      "death_slots_unknown": true,
+      "observed_round_unknown": true
+    }
+  ],
+  "model_controls": {
+    "battlefield": "naval-max",
+    "mode": "experimental",
+    "comparison_round": 1,
+    "attacker_slots": [
+      15,
+      15
+    ],
+    "defender_slots": [
+      3,
+      3
+    ],
+    "slots_derived_from_official_help_not_explicitly_reconfirmed_for_these_three_battles": true,
+    "invented_both_sides_front_fillers_not_observed": true,
+    "conditional_forge_configs": [
+      {
+        "attacker_forge": 5,
+        "defender_forge": 5,
+        "label": "both_players_forge5"
+      },
+      {
+        "attacker_forge": 5,
+        "defender_forge": 0,
+        "label": "attacker_only_forge5"
+      }
+    ],
+    "assumptions_not_gamefacts": [
+      "Original game round unknown",
+      "Actual full fleet including front line unknown",
+      "Forge5 stated without explicit confirmation that both players ran it",
+      "AM 16/14 is model allocation",
+      "Official individual target allocation unknown",
+      "Real game ship-by-ship target traces unavailable"
+    ]
+  }
+}
