@@ -6,7 +6,7 @@
     "medium": "User-reported game observations in ChatGPT conversation 2026-10-13",
     "original_battle_reports_attached": false,
     "raw_game_individual_shot_trace_available": false,
-    "note": "Official battle reports do not reveal individual target-hit sequences; infer from visible casualties and remaining formation health bars."
+    "note": "Official battle reports do not reveal individual target-hit sequences; infer from visible casualties and remaining formation health bars. Follow-up chat confirmed the reverse player's 30 speedboats (2x15) attacked six Barbarian carriers (2x3), with 53%/65% shown after round one; this is not a shot-by-shot trace."
   },
   "candidate_unit_mapping": {
     "barbarian_speedboat": "barbarian_dirigible_igniter",
@@ -97,11 +97,13 @@
         65
       ],
       "source": "USER_CHAT",
-      "count_is_assumed_from_previous_comparison": true,
       "bar_percentages": [
         53,
         65
-      ]
+      ],
+      "counts_and_layout_confirmed_by_user": true,
+      "health_bars_observed_after_round": 1,
+      "confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_CONFIRMED_BOTH_30_VS_6_AND_END_OF_ROUND_1"
     }
   ],
   "model_assumptions": {
@@ -113,6 +115,8 @@
     "overflow_model": "conditional conservation of all incoming damage, even across one sunk ship",
     "no_claim_of_true_attack_order_for_unseen_original_battle": true,
     "prefer_actual_simulator_AM_trace": true,
-    "never_hardcode_observed_casualties_into_combat_logic": true
+    "never_hardcode_observed_casualties_into_combat_logic": true,
+    "reverse_army_counts_are_provisional": false,
+    "reverse_bar_snapshot_round_confirmed": 1
   }
 }
