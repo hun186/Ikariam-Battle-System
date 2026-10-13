@@ -70,6 +70,23 @@
       15,
       19
     ],
-    "not_observed_exact_original_battle_configuration": true
+    "not_observed_exact_original_battle_configuration": true,
+    "synthetic_geometry_valid_front_fillers": {
+      "evidence_class": "CONTROLLED_INVENTED_UNITS_NOT_OBSERVED_IN_HISTORICAL_BATTLE",
+      "attacker_front": {
+        "unit_id": "barbarian_wedge_paddler",
+        "quantity": 42,
+        "workshop": 0,
+        "forge": 0
+      },
+      "defender_front": {
+        "unit_id": "steam_ram",
+        "quantity": 35,
+        "attack_upgrade": 0,
+        "armor_upgrade": 0
+      },
+      "reason": "Fill all seven max Sea Fight First slots (7x25 space); keep original 36 each of native Flank Rams in six physical Flank slots (6x20 space)",
+      "do_not_calibrate_casualties_as_real_battle": true
+    }
   }
 }
