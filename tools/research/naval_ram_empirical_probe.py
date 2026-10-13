@@ -11,6 +11,9 @@ import json
 from pathlib import Path
 
 from ikariam_battle import simulate
+from ikariam_battle.accuracy import select_accuracy_target
+from ikariam_battle.engine import _apply_sequential_hit
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[2]
 CASE = ROOT / "tests/fixtures/reverse_engineering/naval_ram_deckwrecker_20261013.json"
@@ -31,6 +34,52 @@ def net_damage_math(armor_upgrade: int) -> dict:
         "barbarian_hp_pct_if_three_die_and_all_six_hits_conserved": (
             100 * (3 * hp - (6 * player_hit - 3 * hp)) / (3 * hp)
         ),
+    }
+
+
+
+def microprobe_six_hits(net_damage: int, weapon_accuracy: int = 80) -> dict:
+    """Actual current experimental selection and sequential hit for six shots.
+
+    Exact code path, but one synthetic target slot: not a full historical battle.
+    """
+    hp = 3080
+    queue = [0] * 6
+    slot = SimpleNamespace(units=6, damage=0)
+    history = []
+    deaths = 0
+    overkill = 0
+    for shot in range(1, 7):
+        selected = select_accuracy_target(queue, hp, net_damage, weapon_accuracy)
+        prior, killed, discarded = _apply_sequential_hit(
+            slot, queue, hp, net_damage, selected.target_index
+        )
+        deaths += killed
+        overkill += discarded
+        history.append({
+            "shot": shot,
+            "target_index": selected.target_index,
+            "mode": selected.mode,
+            "prior_unit_damage": prior,
+            "killed": killed,
+            "overkill_discarded": discarded,
+            "queue_remaining_damage": list(queue),
+        })
+    return {
+        "evidence_class": "CONTROLLED_CURRENT_ENGINE_MICROPROBE",
+        "starting_units": 6,
+        "hit_count": 6,
+        "net_damage_per_hit": net_damage,
+        "accuracy": weapon_accuracy,
+        "deaths": deaths,
+        "surviving_units": slot.units,
+        "persistent_damage": slot.damage,
+        "overkill_discarded": overkill,
+        "survivor_average_hp_pct": (
+            100 * (slot.units * hp - slot.damage) / (slot.units * hp)
+            if slot.units else None
+        ),
+        "history": history,
     }
 
 
@@ -81,7 +130,7 @@ def model_one_controlled_round(armor_upgrade: int, attack_upgrade: int = 20) -> 
                 "units", "casualties", "damage",
             )}
             for s in round1[side]["slots"]
-            if s.get("unit_id") == unit and s.get("line") == "flank"
+            if s.get("unit_id") == unit
         ]
     events = []
     for e in result.get("events", []):
@@ -108,7 +157,11 @@ def model_one_controlled_round(armor_upgrade: int, attack_upgrade: int = 20) -> 
             "barbarian_deckwrecker", 0
         ),
         "defender_player_deaths": round1["casualties"]["defender"].get("ram_ship", 0),
-        "round1_flank_slots": slots,
+        "round1_unit_slots_all_lines": slots,
+        "unsupported_events": [
+            e for e in result.get("events", [])
+            if e.get("type") == "unsupported_mechanic"
+        ],
         "round1_events": events,
     }
 
@@ -125,6 +178,14 @@ def build_report() -> dict:
         "source": fixture["source"],
         "controlled_model_assumptions": fixture["controlled_scenario_assumptions"],
         "independent_arithmetic": [net_damage_math(level) for level in variants],
+        "microprobe_current_accuracy_and_overkill": {
+            "barbarian_to_player": [
+                {"defense_upgrade": level,
+                 **microprobe_six_hits(net_damage_math(level)["barbarian_net_hit"])}
+                for level in variants
+            ],
+            "player_attack20_to_barbarian": microprobe_six_hits(1715),
+        },
         "current_model": [
             model_one_controlled_round(level) for level in variants
         ],
@@ -158,11 +219,20 @@ def main() -> None:
             f"single-hit remaining%={math['player_hp_pct_after_one_independent_hit']:.3f}, "
             f"model status={model['status']}"
         )
-        for side, sl in model.get("round1_flank_slots", {}).items():
-            print(f"  {side} physical-slot casualties/remaining damage: " + str([
+        for side, sl in model.get("round1_unit_slots_all_lines", {}).items():
+            print(f"  {side} all-lines physical-slot casualties/remaining damage: " + str([
                 (x["physical_position"], x["casualties"], x["units"], x["damage"])
                 for x in sl
             ]))
+    print("Exact current six-hit Accuracy/overkill microprobe:")
+    for x in report["microprobe_current_accuracy_and_overkill"]["barbarian_to_player"]:
+        print(f"  DEF{x['defense_upgrade']} barbarian→player: "
+              f"deaths={x['deaths']}, survivorHP={x['survivor_average_hp_pct']:.3f}%, "
+              f"overkill_lost={x['overkill_discarded']}")
+    x = report["microprobe_current_accuracy_and_overkill"]["player_attack20_to_barbarian"]
+    print(f"  player ATT20→barbarian: deaths={x['deaths']}, "
+          f"survivorHP={x['survivor_average_hp_pct']:.3f}%, "
+          f"overkill_lost={x['overkill_discarded']}")
     print(f"JSON probe: {args.output}")
 
 
