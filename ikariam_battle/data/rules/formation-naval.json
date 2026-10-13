@@ -3,7 +3,7 @@
     "profile": "formation-naval",
     "version": 1,
     "domain": "naval",
-    "implementation_status": "NAVAL_MAX_OFFICIAL_HELP_FORMATION_EXECUTABLE_WITH_FALLBACK_GUARD",
+    "implementation_status": "FIVE_NAVAL_HELP_GEOMETRIES_EXECUTABLE_WITH_FALLBACK_GUARD",
     "sources": [
       {
         "source_type": "GAMEFORGE_IN_GAME_HELP",
