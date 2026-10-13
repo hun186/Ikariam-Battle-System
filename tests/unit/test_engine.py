@@ -1454,8 +1454,8 @@ def test_support_only_state_is_not_cross_wave_rebuild_candidate():
 def test_domain_and_unsupported_geometry_rejections():
  s=scenario(); s['attacker']['units']=[{'unit_id':'rocket_ship','quantity':1}]
  with pytest.raises(ScenarioError): simulate(s)
- s=scenario(); s['battlefield']='naval-mini'
- with pytest.raises(ScenarioError,match='reserved'): simulate(s)
+ s=scenario(); s['battlefield']='naval-unrecognized'
+ with pytest.raises(ScenarioError,match='unsupported battlefield id'): simulate(s)
 
 
 def test_land_medium_homogeneous_combat_uses_seven_front_slots_and_fires():

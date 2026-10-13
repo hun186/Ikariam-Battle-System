@@ -47,8 +47,8 @@ def test_barbarian_metadata_contract_is_documented():
  assert 'remain outside the player `units` collection' in contract
  assert 'army_kind = player|barbarian' in contract
  assert 'no mixing with player unit IDs on the same side' in contract
- assert '`naval-max` allows the same package pairings' in contract
- assert 'the smaller/reserved `naval-mini` geometry remains unsupported' in contract
+ assert 'all five supported naval battlefield IDs allow the same package pairings' in contract
+ assert 'the smaller/reserved `naval-mini` geometry remains unsupported' not in contract
  assert 'naval battlefield geometry remain outside the executable contract' not in contract
 
 def test_get_metadata_drives_complete_land_ui_and_profiles():
@@ -66,8 +66,11 @@ def test_get_metadata_drives_complete_land_ui_and_profiles():
   ('land-medium','land','Land medium / Town Hall 10–16',True),
   ('land-large','land','Land large / Town Hall 17–24',True),
   ('land-max','land','Land max / Town Hall 25+',True),
-  ('naval-max','naval','Naval max / current community geometry',True),
-  ('naval-mini','naval','Naval mini / geometry pending',False),
+  ('naval-mini','naval','Naval Help Level 0+',True),
+  ('naval-small','naval','Naval Help Level 8+',True),
+  ('naval-medium','naval','Naval Help Level 15+',True),
+  ('naval-large','naval','Naval Help Level 22+',True),
+  ('naval-max','naval','Naval Help Level 29+',True),
  ]
  medium=next(f for f in data['battlefields'] if f['id']=='land-medium')
  assert {line:len(spec['physical_order']) for line,spec in medium['lines'].items()}=={

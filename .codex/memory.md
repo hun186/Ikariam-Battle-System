@@ -1,6 +1,7 @@
 # Project Memory
 
 ## Current Focus
+- Naval battlefield geometry corrected against five user-provided Gameforge Help screenshots (Level 0+/8+/15+/22+/29+): all five explicit geometry IDs now supported; max Second slot space 25 (was 24), max Flank 20 (was 18). Help does not prove AM damage-position order or level selector. Ram-only 36-vs-36 still fills First via Light fallback, not six Flank slots; keep that condition separate from geometry mismatch.
 - PR #21 is merged; General Score / gross-damage reporting is now part of the current baseline on top of the PR #20 game-like workbench.
 - Workshop upgrades are per unit type; Forge is side-wide.
 - All five land IDs use evidence-backed slot geometry and slot-space/unit-size capacity; selection remains explicit.
@@ -13,7 +14,7 @@
 - Entry-batch ammo ownership and additive UI-derived HP/munition state are contracted; mixed source unit types share one row-major Attacking Matrix while preserving per-wave weapon/ammo state. Exhausted Long-Range First fallback is executable with RR-before-deployment-selection; reactive secondary counterattack and geometry-changing initial-garrison retreat/rejoin remain unresolved.
 
 ## Open Handoffs
-Smaller naval geometries beyond `naval-max`, calibrated garrison-driven cross-geometry transitions, calibration/replacement of Experimental wall section-order/successful-hit assumptions, wall offensive Accuracy, non-divisible wall redistribution, further Barbarian garrison calibration, calibration/replacement of the experimental Accuracy concentration hypothesis, the actual healing/morale algorithms, kill-type selectors, rounding selector, SR/IR triggers and secondary-weapon triggers require future work.
+Independent calibration of all five supported naval geometries (especially AM damage-position order and level-selection behavior), calibrated garrison-driven cross-geometry transitions, calibration/replacement of Experimental wall section-order/successful-hit assumptions, wall offensive Accuracy, non-divisible wall redistribution, further Barbarian garrison calibration, calibration/replacement of the experimental Accuracy concentration hypothesis, the actual healing/morale algorithms, kill-type selectors, rounding selector, SR/IR triggers and secondary-weapon triggers require future work.
 
 ## Recent Outcomes
 - Formation selection for native Long-range and Artillery now re-evaluates the strongest concrete slot group instead of inheriting `unit_id` alphabetical order: score = units that can actually enter the slot × primary weapon Damage, covering Sulphur-before-Archer, Mortar-before-Catapult, and observed partial-group reversals.
