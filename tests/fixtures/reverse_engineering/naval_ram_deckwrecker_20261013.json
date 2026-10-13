@@ -5,12 +5,14 @@
   "source": {
     "workbook": "野蠻人.xlsx",
     "worksheet": "野撞打開爐衝撞",
-    "actual_series_range": "C4:F19",
+    "actual_series_range": "F4:F19",
     "provenance": "User-attached workbook snapshot 2026-10-13; separate conversation observation at defense19, attack20",
     "cautions": [
+      "F4:F19 records TOTAL casualties by armor grade 3–18 only; defense grade 19 is an independent chat observation, not an Excel row",
       "Excel column F contains actual recorded casualties; columns D/E/H/J are mathematical calculations not gameplay measurements",
       "User did not attach original combat screenshots or a simulator debug JSON for these specific battles",
-      "A controlled 36 vs 36 pure-Ram simulation cannot be assumed to reproduce the entire original battle setup"
+      "A controlled 36 vs 36 pure-Ram simulation cannot be assumed to reproduce the entire original battle setup",
+      "The per-slot one-death distribution for grades 3–14 was stated by the user in chat; the spreadsheet column F supplies totals only, not physical-slot addresses"
     ]
   },
   "observed": {
@@ -35,8 +37,7 @@
       "15": 0,
       "16": 0,
       "17": 0,
-      "18": 0,
-      "19": 0
+      "18": 0
     },
     "direct_conversation_case": {
       "player_attack_upgrade": 20,
@@ -45,7 +46,15 @@
       "player_remaining_hp_bar_percent": 63,
       "barbarian_deaths_per_flank_position": 3,
       "barbarian_remaining_hp_bar_percent": 88,
-      "note": "Level-19 death and both health bars explicitly stated in chat, not entered in Excel sheet F20"
+      "note": "Defense Lv19 deaths and both 63%/88% bars are reported in chat, not in Excel F4:F19; no original per-shot/slot debug trace",
+      "source": "USER_CONVERSATION_2026_10_13_NOT_WORKBOOK"
+    },
+    "direct_chat_position_claims": {
+      "source": "USER_CONVERSATION_2026_10_13_NOT_WORKBOOK_CELLS",
+      "scope": "User stated player Forge Lv5, six physical slots, six Ram ships per slot, with one loss in each slot for defense upgrades 3–14; all ships damaged with no loss at defense 15; not supported by per-slot battle images.",
+      "defense_upgrades_3_to_14_each_slot_deaths": 1,
+      "defense_15_each_slot_deaths": 0,
+      "independently_telemetry_verified": false
     }
   },
   "controlled_scenario_assumptions": {
