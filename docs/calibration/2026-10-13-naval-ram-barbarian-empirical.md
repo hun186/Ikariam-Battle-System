@@ -1,65 +1,56 @@
-# Naval Ram Ship vs Barbarian Deckwrecker — first empirical evidence (2026-10-13)
+# Naval Ram Ship vs Barbarian Deckwrecker — evidence-first calibration (2026-10-13)
 
-## Source classification
+## Primary sources and strict provenance
 
-1. **Observed game measurements**: user-attached Google Drive workbook `野蠻人.xlsx`, worksheet `野撞打開爐衝撞`, observed casualty values **F4:F19**; separately, user's chat statements for player defense Lv19 / attack Lv20 / status bars 63% and 88%. The original workbook is **not committed**.
-2. **Current numeric definitions**: hosted `main` at `0887bea9137c070658282c63d91ac1395e31fefa`, player `ram_ship` and `barbarian_deckwrecker`, current Workshop/Forge calculation.
-3. **Conditional arithmetic**: six full-health source ships addressing six full-health target ships in one Flank slot; this allocation is an experiment, not observed per-shot telemetry.
-4. **Current simulator source**: `ikariam_battle/accuracy.py` `select_accuracy_target` and `ikariam_battle/engine.py` `_apply_sequential_hit`; their results are a **model** and not game facts.
-5. **Community theories**: [2020 Battle System](https://www.scribd.com/document/638484147/ikariam) and [2026 Gameforge forum guide](https://forum.ikariam.gameforge.com/forum/thread/114964-tutorial-sistema-de-batalha-do-ikariam-3/) discuss D/P/I/IR kills, attack matrix, surplus damage and redistribution but explicitly are not infallible modern official engine code.
+1. **Workbook observations**: the user's Google Drive `野蠻人.xlsx`, sheet `野撞打開爐衝撞`, gameplay casualties in `F4:F19`. These cells describe **total** player casualties for **defense upgrades 3–18 only**. The original private workbook is not committed; other worksheet columns include theoretical formulas and are not themselves observed battle outcomes.
+2. **Separate chat observations**: the user explicitly stated that with player Forge Lv5, defense upgrades 3–14 cause a total loss of six Rams, described as **one dead in each of six Flank slots** (five remaining per slot); upgrade 15 causes **zero dead, all damaged**. This finer slot-level description is **reported by the user in chat, not independently recorded as per-position measurements in the workbook F cells**.
+3. **Another separate user-chat case**: player defense **Lv19**, attack **Lv20**, Forge Lv5: player deaths 0 and displayed bar **63%** per reported slot; barbarian Deckwrecker deaths **3 per reported slot**, bar **88%**. **Defense Lv19 is not in workbook F4:F19**; no per-shot traces or original battle screenshots have been supplied.
+4. **Current model**: packaged `UnitRegistry.load(include_barbarians=True)`, `WorkshopProfile.load()`, `ForgeProfile.load()`, production `calculate_damage(..., rounding=FLOOR)`, `select_accuracy_target`, `_apply_sequential_hit`, and `simulate`. These define *model predictions*, not observed game algorithms.
+5. **Independent geometry**: user-provided Gameforge Sea Fight Help diagrams now merged into `main` by PR #70, merge SHA `f170726121990d28dde10d736ba9c03c49a08800`. Five supported naval tier IDs are selectable; max First=7×25, Second=7×25, Third=5×15, Flank=6×20. Help does **not** prove Attack Matrix physical priority or source-level auto-selection.
 
-## Empirical fixture
+## Current conditional arithmetic
 
-Both Ram types have HP=3080, attack=1500, Accuracy=80; player armor=180, barbarian armor=240, six full Flank slots of six ships each (36 total). User player has Forge Lv5; opponent Barbarian has no Forge/Workshop upgrades. The latter is a different `army_kind`, not the player's base Ram stats.
+Current profiles define both ships with HP 3,080, base weapon damage 1,500 and Accuracy 80; the player's base armor is 180 versus barbarian Deckwrecker armor 240. Workshop naval increment, Forge multipliers and bonuses must be read from the packaged profiles. The probe now calls `calculate_damage` rather than hard-coding those values.
 
-| Player defense upgrade | Observed player deaths, all six slots | Per-slot deaths | Derived enemy net hit | HP remaining if one hit on one fresh ship |
+| Defense upgrade | Workbook **total** player deaths | Separate chat per-slot claim | Derived enemy net hit | Remaining HP from ONE independent hit |
 |---:|---:|---:|---:|---:|
-| 3–13 | 6 | 1 | varies by 10 each | not individually recorded |
-| **14** | **6** | **1** | **1160** | 62.338% |
-| **15** | **0** | **0** | **1150** | 62.662% |
-| 16–18 | 0 | 0 | 1140,1130,1120 | not recorded |
-| **19** | **0** | **0** | **1110** | **63.961%** (user saw 63%) |
+| 3–13 | 6 | 1 in each of six Flank slots | decreases 10 / upgrade | not individually recorded |
+| **14** | **6** | **1 in each slot** | **1,160** | 62.338% |
+| **15** | **0** | **0 in each slot** | **1,150** | 62.662% |
+| 16–18 | 0 | no individual position breakdown independently captured | 1,140 / 1,130 / 1,120 | not recorded |
+| **19 (chat, not workbook)** | **not in F4:F19** | **0 per reported slot** | **1,110** | **63.961%** (reported bar 63%) |
 
-Forge armor +20, current net hit formula `1500−(180+10*defense_level+20)`.
+**Important threshold observation:** `ceil(3080/1160) = ceil(3080/1150) = 3`. A ten-point reduction in net hit damage at defense 14→15 does not by itself cross an integer 3-to-4-hit-to-kill threshold, even though the total observed deaths change from 6 to 0. The difference needs a targeting, redistribution/rounding or actual context explanation; it does **not** prove any particular Accuracy mechanism.
 
-**Critical discontinuity:** 14→15 decreases net hit by 10, while **both** remain three hits to kill 3080 HP (`ceil(3080/1160)=ceil(3080/1150)=3`). This step-function in deaths must arise from a selector, allocation, redistribution, discrete boundary or different original battle conditions — not merely a change to the number of hits per kill.
+At player attack upgrade 20, Forge Lv5 against enemy armor 240, net damage derived from production profiles is **1,715**. In a hypothetical six-hit *single-slot* model: six successful hits give 10,290 damage; three enemy kills would account for 9,240 HP. **If** the remaining 1,050 were retained as damage on exactly three survivors, their average remaining HP would be **88.636%**, consistent with reported 88% if UI truncates. This is a **conditional equivalence only**: neither six successful strikes/address selection nor excess-damage transfer nor UI rounding has been verified from the user's game trace. It must **not** be promoted to an implemented global Overkill rule from this one numeric match.
 
-The user's separate Lv20 attack case gives **1715 net damage** to barbarian 240 armor (`(1500+20×10)×1.15−240`). Conditional on six hits to one 6-ship slot: 6×1715 = **10290**, which equals HP of 3 sunk ships (3×3080=**9240**) + **1050**. If those 1050 are retained among 3 surviving ships, survivor remaining health would be **88.636%**, close to user's observed **88%** (consistent with truncation). With six shots alternating as pairs that each kill a ship, excess damage would be 3×(2×1715−3080)=**1050**.
+## Two deliberately different current-engine experiments
 
-## Actual exact-head machine experiments
+### A. Synthetic whole battle (36 Barbarian Deckwreckers vs 36 player Rams)
 
-Pinned read-only probe `tools/research/naval_ram_empirical_probe.py` yields two **distinct** experiments.
+Player Forge Lv5, attack upgrade 20, defender armor upgrades 14/15/19, naval-max, one round. In this **pure Ram-only** scenario, the current formation rules allocate the 36 Light/Flank-native Rams to **First** fallback slots, yielding **8+8+8+8+4**, not six full Flank slots of six units. The documented initial model comparison before main's Help geometry correction produced player losses 11, barbarian losses 16 and an inconclusive battle-end outcome, not an observed user's deployment. The probe now emits the **actual current main-derived initial layout** for every run; refresh all synthetic counts using the hosted exact-head Actions artifact.
 
-### A. Current pure 36-vs-36 full-engine simulation — *not the real battlefield*
+**Do not compare whole-battle totals with real Flank deaths as if deployment were equal.** The user's original opposing First/other naval forces, wave IDs and battle screenshots are not in the fixture. Also `inconclusive` after `max_rounds=1` is not necessarily a simulator error: both sides can still have surviving forces.
 
-Only player 36 Rams and barbarian 36 Deckwreckers were provided. At defense 14/15/19, player attack20 held constant. Initial naive expectation was six full Flank slots of six ships. Actual simulator did **not** preserve that formation: it produced **five populated slots** in other runtime lines and **inconclusive** status, reflecting incomplete front-line formation dependencies. Initial model totals:
-- player Ram deaths **11** for all three defense grades;
-- barbarian Deckwrecker deaths **16** for all three grades.
+### B. Isolated six-hit target-selection microprobe
 
-**These numbers MUST NOT be labeled exact expected deaths for the user's actual fleet battle.** They reflect a different deployment/formation. They are useful to show why exact whole-fleet composition, wave/reserve and per-slot snapshots are necessary.
+Six consecutive net hits are artificially directed into one full-health slot of six targets. **Hit damage, HP and weapon Accuracy are derived from the live packaged units, Workshop and Forge via `calculate_damage`**. The routine calls the exact current `select_accuracy_target` and `_apply_sequential_hit`, but does **not** use actual game firing counts, AM addresses or a complete mixed-ship battle.
 
-### B. Exact current single-slot six-hit microprobe — isolates selector mechanics
+| Incoming direction | Net hit | Model deaths in six hits | Survivors' average HP | Model overkill discarded |
+|---|---:|---:|---:|---:|
+| Barbarian → player DEF14 | 1,160 | 2 | 100% | 800 |
+| Barbarian → player DEF15 | 1,150 | 2 | 100% | 740 |
+| Barbarian → player DEF19 | 1,110 | 2 | 100% | 500 |
+| Player ATT20 → barbarian | 1,715 | 3 | 100% | 1,050 |
 
-Directly calls production `select_accuracy_target` and `_apply_sequential_hit` six times on one starting slot of six 3080-HP units with weapon Accuracy=80. There is no AM mapping, external formation, reserves, same-round cross-class fire or healing.
+The current Experimental concentration hypothesis focuses the same damaged unit when remaining HP% drops below Accuracy (80); the current sequential hit resolver discards lethal excess. Those behaviors, **if** six hits really reach each real game Flank slot, contradict the user's reported no-death 63% bar and opponent 88% surviving bar. The counterfactuals provide testable mechanism candidates, not proof of how the official game computes hit selection or HP bars.
 
-| Incoming direction | Net hit | Six-hit current model deaths | Survivors | Remaining HP bar in current micro-model | Overkill discarded |
-|---|---:|---:|---:|---:|---:|
-| Barbarian → player DEF14 | 1160 | **2** | 4 | **100%** | 800 |
-| Barbarian → player DEF15 | 1150 | **2** | 4 | **100%** | 740 |
-| Barbarian → player DEF19 | 1110 | **2** | 4 | **100%** | 500 |
-| Player ATT20 → barbarian | 1715 | **3** | 3 | **100%** | 1050 |
+## Research gaps and validation plan
 
-The real game instead records **one/player-slot at DEF14, zero/player-slot at DEF15/19 and 63% bar at DEF19; three/barbarian-slot and 88% bar at ATT20**. This controlled comparison gives direct reasons to challenge the current **within-slot focus threshold** and **discard-overkill accounting**, but is not proof of which new formulas to implement.
+- Need full original battle input, per-round actual screenshots and corresponding simulator Debug JSON to confirm battlefield tier, **all** deployed First/Second/Flank ships, arrivals/reinforcements, player Workshop and Forge levels, selected wave ownership and simultaneous phases.
+- Keep user-reported per-slot Flank assertions in a **separate chat evidence field** from workbook totals. If screenshots do not corroborate positions, retain the stronger source distinction.
+- Before any code changes to general Accuracy, D/P/IR/SR/RR/Overkill, reproduce a true six-Flank-slot formation plus unrelated first-line participants in both the current model and a held-out independent battle.
+- UI bar meaning (averaged only over surviving ships, rounding/truncation, redistributed slot-damage display) is not proven; test separately.
+- An independent second scenario varying unit count, weapon damage or upgrade level is needed to discriminate selector rules rather than fitting a fixed casualty lookup.
 
-**What remains unverified:**
-- Whether all 6 source attacks were addressed to each slot, whether the game uses per-hit misses or target selection, and whether initial formations included other ships.
-- Whether the game UI shows average current HP of only survivors, percent of original maximum total HP, a rounded floor, or another state.
-- Whether the 1050 remainder actually comes from overkill or from different hit allocation/redistribution phases (P-kill, SR, IR, RR).
-- Whether defense 14→15 triggers an accuracy/rounding selector boundary, a formation change, or some other condition. No fixed 1155-damage cutoff may be inferred as a global rule from one transition.
-- The independent case at a different attacking ship count / HP / defender ratio necessary to falsify a candidate.
-
-## Next empirical collection and safety gate
-
-Need original actual battle report and exact simulator input/debug for the **same** battle to confirm all ships, round, each physical Flank slot, any Steam Rams or other formation, wave IDs, arrival, reserve and player armor/attack upgrades. If initial deployed slots are not 6×6 on both sides, reconstruct the exact formation before comparing hit-selection rules. Run model trace against the real fixture with independent observed and simulated fields. Do not merge this research PR or alter any combat/Accuracy formula absent exact-head CI, Codex Review and owner authorization.
-
-**This is a research baseline, not a successful combat-mechanics calibration.**
+**State:** research, not engine calibration. No official formula has been verified or modified. Leave Draft PR #69 unmerged until its own exact-head CI and fresh Codex Review are complete and the owner explicitly authorizes merge.
