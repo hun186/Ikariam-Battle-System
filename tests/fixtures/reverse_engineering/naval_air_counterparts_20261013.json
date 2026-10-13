@@ -6,7 +6,7 @@
     "medium": "User-reported game observations in ChatGPT conversation 2026-10-13",
     "original_battle_reports_attached": false,
     "raw_game_individual_shot_trace_available": false,
-    "note": "Official battle reports do not reveal individual target-hit sequences; infer from visible casualties and remaining formation health bars. Follow-up chat confirmed the reverse player's 30 speedboats (2x15) attacked six Barbarian carriers (2x3), with 53%/65% shown after round one; this is not a shot-by-shot trace."
+    "note": "Official battle reports do not reveal individual target-hit sequences; infer from visible casualties and remaining formation health bars. Follow-up chat confirmed the reverse player's 30 speedboats (2x15) attacked six Barbarian carriers (2x3), with 53%/65% shown after round one; this is not a shot-by-shot trace. Separate no-Forge defender Lv3 case's 30-vs-6 / two-slot formation and two first-round carrier deaths were confirmed in a later chat; the slot distribution of the two deaths and exact unseen fleet remain unknown."
   },
   "candidate_unit_mapping": {
     "barbarian_speedboat": "barbarian_dirigible_igniter",
@@ -117,7 +117,18 @@
     "prefer_actual_simulator_AM_trace": true,
     "never_hardcode_observed_casualties_into_combat_logic": true,
     "reverse_army_counts_are_provisional": false,
-    "reverse_bar_snapshot_round_confirmed": 1
+    "reverse_bar_snapshot_round_confirmed": 1,
+    "forge_direct_numeric_only_hypothesis": {
+      "classification": "USER_SUGGESTED_PARSIMONIOUS_RESEARCH_HYPOTHESIS_NOT_GAME_RULE",
+      "statement": "Treat Forge effects as attack-damage or defense/armor adjustments only; do not let Forge separately alter Accuracy, target-selector, AM address order, or firing order absent new independent evidence",
+      "current_profile_defense_forge5_flat_armor_bonus": 20,
+      "current_profile_attacker_forge5_attack_multiplier": 1.15,
+      "controlled_parameter_axes": [
+        "attack_damage",
+        "defense_armor"
+      ],
+      "verification": "Compare on/off Forge cases at equal effective net damage to distinguish numeric-only effects from other mechanics"
+    }
   },
   "additional_observations": [
     {
@@ -129,8 +140,8 @@
       "observed_total_player_carrier_deaths": 2,
       "known_per_slot_deaths": false,
       "observed_bars_percent": null,
-      "round_number_verified": false,
-      "attacker_and_target_counts_verified_for_this_case": false,
+      "round_number_verified": true,
+      "attacker_and_target_counts_verified_for_this_case": true,
       "aircraft_unit_id_mapping_verified": false,
       "conditional_compare_to_forward_battles": {
         "hypothetical_attacker_count": 30,
@@ -144,8 +155,20 @@
           3
         ],
         "hypothetical_battlefield": "naval-max",
-        "note": "Same 30 fast boats / six carriers / two slots and round-one loss are intentionally UNCONFIRMED for this distinct no-Forge defense3 observation; numbers are reused only as a comparison hypothesis."
-      }
+        "note": "Fleet counts and 2x15/2x3 distribution, and Round 1 total losses are now user-confirmed for this case. The split of TWO casualties among the slots and entire other-fleet composition remain unknown. AM 16/14 shots are the model's conditional calculation, not observed individual hits."
+      },
+      "observed_round_number": 1,
+      "confirmed_attacker_count": 30,
+      "confirmed_target_count": 6,
+      "confirmed_attacker_slot_counts": [
+        15,
+        15
+      ],
+      "confirmed_target_slot_counts": [
+        3,
+        3
+      ],
+      "confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_CONFIRMED_SAME_30_FAST_BOATS_VS_6_CARRIERS_AND_TWO_DEATHS_ROUND1"
     }
   ]
 }
