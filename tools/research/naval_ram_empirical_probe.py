@@ -9,48 +9,130 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from functools import lru_cache
+from types import SimpleNamespace
 
 from ikariam_battle import simulate
+from ikariam_battle.damage import RoundingPolicy, calculate_damage
+from ikariam_battle.profiles import ForgeProfile, WorkshopProfile
+from ikariam_battle.units import UnitRegistry
 from ikariam_battle.accuracy import select_accuracy_target
 from ikariam_battle.engine import _apply_sequential_hit
-from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[2]
 CASE = ROOT / "tests/fixtures/reverse_engineering/naval_ram_deckwrecker_20261013.json"
 
 
-def net_damage_math(armor_upgrade: int) -> dict:
-    """Current public profile arithmetic; not a claim about actual target selection."""
-    hp = 3080
-    barbarian_hit = 1500 - (180 + 10 * armor_upgrade + 20)
-    player_hit = int((1500 + 20 * 10) * 115 / 100) - 240
+@lru_cache(maxsize=1)
+def _profiles():
+    """Load same packaged numeric unit/workshop/Forge data used by simulate."""
+    return (
+        UnitRegistry.load(include_barbarians=True),
+        WorkshopProfile.load(),
+        ForgeProfile.load(),
+    )
+
+
+def _damage_trace(
+    attacker_unit_id: str,
+    target_unit_id: str,
+    *,
+    attack_upgrade: int = 0,
+    armor_upgrade: int = 0,
+    attacker_forge: int = 0,
+    target_forge: int = 0,
+):
+    registry, workshop, forge = _profiles()
+    attacker, target = registry.get(attacker_unit_id), registry.get(target_unit_id)
+    result = calculate_damage(
+        attacker, target,
+        attack_level=attack_upgrade,
+        armor_level=armor_upgrade,
+        attacker_forge=attacker_forge,
+        defender_forge=target_forge,
+        workshop=workshop,
+        forge=forge,
+        rounding=RoundingPolicy.FLOOR,
+    )
+    return attacker, target, result
+
+
+def net_damage_math(armor_upgrade: int, attack_upgrade: int = 20) -> dict:
+    """Conditional arithmetic derived from current packaged combat profiles."""
+    enemy, player, incoming = _damage_trace(
+        "barbarian_deckwrecker", "ram_ship",
+        armor_upgrade=armor_upgrade, target_forge=5,
+    )
+    _, _, outgoing = _damage_trace(
+        "ram_ship", "barbarian_deckwrecker",
+        attack_upgrade=attack_upgrade, attacker_forge=5,
+    )
+    player_hp, enemy_hp = player.hit_points, enemy.hit_points
+    assert player_hp is not None and enemy_hp is not None
+    barbarian_hit, player_hit = incoming.final_damage, outgoing.final_damage
+    if barbarian_hit <= 0:
+        raise ValueError("Current profile has no penetrative Barbarian Ram damage")
+    theoretical_remainder = 6 * player_hit - 3 * enemy_hp
     return {
         "player_armor_upgrade": armor_upgrade,
-        "player_hp": hp,
+        "player_attack_upgrade": attack_upgrade,
+        "player_hp": player_hp,
+        "barbarian_hp": enemy_hp,
+        "barbarian_accuracy": enemy.primary_weapon.accuracy,
+        "player_accuracy": player.primary_weapon.accuracy,
         "barbarian_net_hit": barbarian_hit,
-        "hits_to_kill_player": (hp + barbarian_hit - 1) // barbarian_hit,
-        "player_hp_pct_after_one_independent_hit": 100 * (hp - barbarian_hit) / hp,
+        "hits_to_kill_player": (player_hp + barbarian_hit - 1) // barbarian_hit,
+        "player_hp_pct_after_one_independent_hit": (
+            100 * (player_hp - barbarian_hit) / player_hp
+        ),
         "player_net_hit_attack_20": player_hit,
         "barbarian_hp_pct_if_three_die_and_all_six_hits_conserved": (
-            100 * (3 * hp - (6 * player_hit - 3 * hp)) / (3 * hp)
+            100 * (3 * enemy_hp - theoretical_remainder) / (3 * enemy_hp)
+        ),
+        "source_profile_incoming": incoming.as_dict(),
+        "source_profile_outgoing": outgoing.as_dict(),
+        "hypothesis_not_established": (
+            "Six actual hits per slot and transfer of excess damage to survivors "
+            "have not been verified in real-game telemetry"
         ),
     }
 
 
+def microprobe_six_hits(
+    attacker_unit_id: str,
+    target_unit_id: str,
+    *,
+    attack_upgrade: int = 0,
+    armor_upgrade: int = 0,
+    attacker_forge: int = 0,
+    target_forge: int = 0,
+) -> dict:
+    """Actual current experimental selector, six hits on a synthetic six-unit slot.
 
-def microprobe_six_hits(net_damage: int, weapon_accuracy: int = 80) -> dict:
-    """Actual current experimental selection and sequential hit for six shots.
-
-    Exact code path, but one synthetic target slot: not a full historical battle.
+    HP, Accuracy and damage (including Forge/Workshop) come from production
+    registries and calculate_damage. This is NOT a full battle/observed AM trace.
     """
-    hp = 3080
+    attacker, target, trace = _damage_trace(
+        attacker_unit_id, target_unit_id,
+        attack_upgrade=attack_upgrade,
+        armor_upgrade=armor_upgrade,
+        attacker_forge=attacker_forge,
+        target_forge=target_forge,
+    )
+    hp, accuracy, net_damage = (
+        target.hit_points,
+        attacker.primary_weapon.accuracy,
+        trace.final_damage,
+    )
+    if hp is None or accuracy is None:
+        raise ValueError("Unit HP and weapon Accuracy must be verified")
     queue = [0] * 6
     slot = SimpleNamespace(units=6, damage=0)
     history = []
     deaths = 0
     overkill = 0
     for shot in range(1, 7):
-        selected = select_accuracy_target(queue, hp, net_damage, weapon_accuracy)
+        selected = select_accuracy_target(queue, hp, net_damage, accuracy)
         prior, killed, discarded = _apply_sequential_hit(
             slot, queue, hp, net_damage, selected.target_index
         )
@@ -67,10 +149,14 @@ def microprobe_six_hits(net_damage: int, weapon_accuracy: int = 80) -> dict:
         })
     return {
         "evidence_class": "CONTROLLED_CURRENT_ENGINE_MICROPROBE",
+        "attacker_unit_id": attacker.id,
+        "target_unit_id": target.id,
+        "damage_source": trace.as_dict(),
         "starting_units": 6,
         "hit_count": 6,
         "net_damage_per_hit": net_damage,
-        "accuracy": weapon_accuracy,
+        "unit_hp": hp,
+        "accuracy": accuracy,
         "deaths": deaths,
         "surviving_units": slot.units,
         "persistent_damage": slot.damage,
@@ -84,7 +170,11 @@ def microprobe_six_hits(net_damage: int, weapon_accuracy: int = 80) -> dict:
 
 
 def model_one_controlled_round(armor_upgrade: int, attack_upgrade: int = 20) -> dict:
-    """Barbarian attacker vs player defender, six 6-ship Flank slots each."""
+    """Controlled Ram-only battle, NOT six full user-observed Flank slots.
+
+    Ram-only deployments can fill First by fallback, which is not equivalent
+    to the user-reported real battle with six Flank slots.
+    """
     scenario = {
         "policy": "experimental",
         "battlefield": "naval-max",
@@ -153,6 +243,13 @@ def model_one_controlled_round(armor_upgrade: int, attack_upgrade: int = 20) -> 
         "attack_upgrade": attack_upgrade,
         "status": result.get("status"),
         "rounds_completed": result.get("rounds_completed"),
+        "initial_layout_by_side": {
+            side: [
+                {"line": slot.get("line"), "physical_position": slot.get("physical_position"),
+                 "units": slot.get("units"), "unit_id": slot.get("unit_id")}
+                for slot in result.get("initial_state", {}).get(side, {}).get("slots", [])
+            ] for side in ("attacker", "defender")
+        },
         "attacker_barbarian_deaths": round1["casualties"]["attacker"].get(
             "barbarian_deckwrecker", 0
         ),
@@ -181,10 +278,10 @@ def build_report() -> dict:
         "microprobe_current_accuracy_and_overkill": {
             "barbarian_to_player": [
                 {"defense_upgrade": level,
-                 **microprobe_six_hits(net_damage_math(level)["barbarian_net_hit"])}
+                 **microprobe_six_hits("barbarian_deckwrecker", "ram_ship", armor_upgrade=level, target_forge=5)}
                 for level in variants
             ],
-            "player_attack20_to_barbarian": microprobe_six_hits(1715),
+            "player_attack20_to_barbarian": microprobe_six_hits("ram_ship", "barbarian_deckwrecker", attack_upgrade=20, attacker_forge=5),
         },
         "current_model": [
             model_one_controlled_round(level) for level in variants
@@ -211,6 +308,8 @@ def main() -> None:
     for math, model in zip(report["independent_arithmetic"], report["current_model"]):
         level = math["player_armor_upgrade"]
         observed = report["observed"]["player_deaths_total_by_defense_upgrade"].get(str(level))
+        if observed is None:
+            observed = report["observed"]["direct_conversation_case"]["player_total_deaths"]
         print(
             f"DEF {level}: observed player deaths={observed}, "
             f"controlled model player deaths={model.get('defender_player_deaths')}, "
