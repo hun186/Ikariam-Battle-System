@@ -169,3 +169,24 @@ def test_focus_interval_is_straddled_by_three_hit_hp_250_versus_240():
     bounds = report()["fitting_percentage_point_interval_grid_0_01"]
     assert bounds == [73.22, 74.28]
     assert after_three_250 < bounds[0] < 74 < bounds[1] < after_three_240
+
+
+def test_new_unseen_first_round_pvp_17_18_slot_health_predictions_are_explicitly_model_only():
+    """Proposed falsification uses VISIBLE future bars, not hidden hit traces."""
+    r = report()
+    forecasts = {
+        x["case_id"]: x for x in r[
+            "unobserved_round1_slot_bar_predictions_research_only"
+        ]
+    }
+    p = forecasts["pvp_fast_att17_carrier_def18"]
+    assert p["predicted_slot_deaths_not_verified_by_game"] == [1, 0]
+    assert p["predicted_floor_survivor_slot_bars_not_observed"] == [75, 54]
+    assert p["predicted_surviving_individual_HP_not_game_shot_trace"] == [
+        [2258, 1987], [2258, 2258, 90]
+    ]
+    assert "Source did not provide actual" in p["research_warning"]
+    # The only carrier case with actual two-slot bars has its own
+    # observed_bars source field and must NOT appear in unseen predictions.
+    assert "barbarian_fast_vs_player_carrier_def14" not in forecasts
+    assert len(forecasts) == 6
