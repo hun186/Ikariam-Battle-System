@@ -88,3 +88,21 @@ def test_max_help_flank_slot_space_is_20_but_still_six_ram_ships():
     assert field.lines["flank"].slot_space == 20
     assert field.lines["flank"].slot_space // UnitRegistry.load().get("ram_ship").size == 6
     assert field.lines["second"].slot_space == 25
+
+
+@pytest.mark.parametrize("tier", TIERS, ids=lambda v: v["id"])
+def test_each_help_geometry_can_execute_one_complete_naval_round(tier):
+    """Supported means executable by the actual shared engine, not metadata-only."""
+    from ikariam_battle.engine import simulate
+
+    result = simulate({
+        "policy": "experimental",
+        "battlefield": tier["id"],
+        "max_rounds": 1,
+        "attacker": {"units": [{"unit_id": "steam_ram", "quantity": 35}]},
+        "defender": {"units": [{"unit_id": "steam_ram", "quantity": 35}]},
+    })
+    assert result["profiles"]["formation"] == "formation-naval"
+    assert result["rounds_completed"] == 1
+    assert any(e["type"] == "attacking_matrix" for e in result["events"])
+    assert any(s["line"] == "first" for s in result["initial_state"]["attacker"]["slots"])
