@@ -46,3 +46,30 @@ def test_observation_source_warns_controlled_simulation_is_not_same_battle():
     assert case["source"]["worksheet"] == "野撞打開爐衝撞"
     assert case["observed"]["player_forge_level"] == 5
     assert case["observed"]["barbarian_forge_level"] == 0
+
+
+def test_exact_current_microprobe_exposes_defense_14_to_15_targeting_mismatch():
+    from tools.research.naval_ram_empirical_probe import microprobe_six_hits
+    # Six addressed full-damage shots and six starting units in ONE slot;
+    # this is the *current model* behavior, not an observed game hit log.
+    a = microprobe_six_hits(1160)
+    b = microprobe_six_hits(1150)
+    c = microprobe_six_hits(1110)
+    assert [x["deaths"] for x in (a, b, c)] == [2, 2, 2]
+    assert [x["surviving_units"] for x in (a, b, c)] == [4, 4, 4]
+    assert [x["overkill_discarded"] for x in (a, b, c)] == [800, 740, 500]
+    assert all(x["survivor_average_hp_pct"] == 100 for x in (a, b, c))
+
+
+def test_current_player_attack20_microprobe_discards_overkill_vs_bar_88_hypothesis():
+    from tools.research.naval_ram_empirical_probe import microprobe_six_hits
+    x = microprobe_six_hits(1715)
+    assert x["deaths"] == 3
+    assert x["surviving_units"] == 3
+    assert x["overkill_discarded"] == 1050
+    assert x["persistent_damage"] == 0
+    assert x["survivor_average_hp_pct"] == 100
+    # *If* those 1050 were retained on three survivors, their bar would be 88.636%.
+    hp = 3080
+    conserved_pct = 100 * (3 * hp - x["overkill_discarded"]) / (3 * hp)
+    assert 88 < conserved_pct < 89
