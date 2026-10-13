@@ -170,7 +170,7 @@ def test_air_artifact_preserves_full_synthetic_round1_damage_and_assumptions():
 
 
 def test_no_forge_defense3_two_deaths_are_chat_only_not_full_battle_assumptions():
-    """Conditional 30-v-6 is not yet confirmed for this distinct no-Forge case."""
+    """Confirmed Round 1 and fleet counts, but not where the two sinks occurred."""
     evidence = json.loads(FIXTURE.read_text(encoding="utf-8"))
     cases = evidence["additional_observations"]
     assert len(cases) == 1
@@ -180,8 +180,14 @@ def test_no_forge_defense3_two_deaths_are_chat_only_not_full_battle_assumptions(
     assert item["observed_player_forge_level"] == 0
     assert item["observed_total_player_carrier_deaths"] == 2
     assert item["source"] == "USER_CHAT_2026_10_13_NEW_OBSERVATION"
-    assert not item["attacker_and_target_counts_verified_for_this_case"]
-    assert not item["round_number_verified"]
+    assert item["attacker_and_target_counts_verified_for_this_case"]
+    assert item["round_number_verified"]
+    assert item["observed_round_number"] == 1
+    assert item["confirmed_attacker_count"] == 30
+    assert item["confirmed_target_count"] == 6
+    assert item["confirmed_attacker_slot_counts"] == [15, 15]
+    assert item["confirmed_target_slot_counts"] == [3, 3]
+    assert item["confirmation_source"].startswith("USER_FOLLOWUP_CHAT")
     assert not item["known_per_slot_deaths"]
     assert not item["aircraft_unit_id_mapping_verified"]
     assert item["observed_bars_percent"] is None
@@ -219,3 +225,23 @@ def test_no_forge_defense3_is_consistent_but_does_not_shrink_focus_interval():
         assert 16*310*ratio >= hp
         assert 14*310*ratio >= hp
     # No fixed targeting, Accuracy or overflow behavior established.
+
+
+def test_no_forge_observation_is_in_exported_artifact_without_fake_shot_trace():
+    """Codex P2: the uploaded report must contain independently sourced raw cases."""
+    fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    artifact = report()
+    assert artifact["additional_observations"] == fixture["additional_observations"]
+    assert len(artifact["cases"]) == 4
+    observation = artifact["additional_observations"][0]
+    assert observation["observed_total_player_carrier_deaths"] == 2
+    assert observation["observed_round_number"] == 1
+    assert observation["confirmed_attacker_slot_counts"] == [15, 15]
+    assert observation["confirmed_target_slot_counts"] == [3, 3]
+    assert observation["observed_bars_percent"] is None
+    assert not observation["known_per_slot_deaths"]
+    assert not observation["aircraft_unit_id_mapping_verified"]
+    assert "synthetic_round1_model_events" not in observation
+    assert artifact["conditions"]["forge_direct_numeric_only_hypothesis"][
+        "classification"
+    ].startswith("USER_SUGGESTED_")
