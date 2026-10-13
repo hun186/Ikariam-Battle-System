@@ -15,14 +15,14 @@ def test_naval_max_geometry_matches_current_full_formation_capacities():
     assert len(field.lines["balloon"].physical_order) == 2
     assert len(field.lines["anti-balloon"].physical_order) == 2
     assert field.lines["first"].slot_space == 25
-    assert field.lines["flank"].slot_space == 18
-    assert field.lines["second"].slot_space == 24
+    assert field.lines["flank"].slot_space == 20
+    assert field.lines["second"].slot_space == 25
     assert field.lines["third"].slot_space == 15
     assert field.lines["balloon"].slot_space == 15
     assert field.lines["anti-balloon"].slot_space == 15
     meta = {row["id"]: row for row in battlefield_metadata()}
     assert meta["naval-max"]["supported"] is True
-    assert meta["naval-mini"]["supported"] is False
+    assert meta["naval-mini"]["supported"] is True
 
 
 def test_naval_runtime_line_classification_matches_current_roles():
