@@ -245,3 +245,30 @@ def test_no_forge_observation_is_in_exported_artifact_without_fake_shot_trace():
     assert artifact["conditions"]["forge_direct_numeric_only_hypothesis"][
         "classification"
     ].startswith("USER_SUGGESTED_")
+
+
+def test_inverse_research_agent_handoff_routes_to_live_provenance():
+    """A future agent must discover case fixtures and unresolved hypotheses."""
+    from pathlib import Path
+
+    root = FIXTURE.parents[3]
+    handoff_path = root / "docs/calibration/naval-inverse-engineering-handoff.md"
+    guide = handoff_path.read_text(encoding="utf-8")
+    agents = (root / "AGENTS.md").read_text(encoding="utf-8")
+    memory = (root / ".codex/memory.md").read_text(encoding="utf-8")
+    backlog = (root / ".codex/backlog.md").read_text(encoding="utf-8")
+    assert str(handoff_path.name) in agents
+    assert str(handoff_path.name) in memory
+    assert str(handoff_path.name) in backlog
+    assert "AIR-BARB-DEF3-NOFORGE" in guide
+    assert "Round 1" in guide
+    assert "Forge" in guide
+    assert "30" in guide and "6" in guide
+    assert "unknown" in guide.lower() and "UNKNOWN" in guide
+    for fixture in (
+        "naval_air_counterparts_20261013.json",
+        "naval_ram_deckwrecker_20261013.json",
+    ):
+        assert fixture in guide
+    assert "don't merge" in guide.lower() or "do **not** merge" in guide.lower()
+    assert "falsif" in guide.lower() or "falsifiable" in guide.lower()
