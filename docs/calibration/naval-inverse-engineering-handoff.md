@@ -10,6 +10,7 @@
 3. Read input fixtures *before* writing formulas:
    - `tests/fixtures/reverse_engineering/naval_ram_deckwrecker_20261013.json`
    - `tests/fixtures/reverse_engineering/naval_air_counterparts_20261013.json`
+   - `tests/fixtures/reverse_engineering/naval_pvp_fast_boat_carrier_20261013.json`
    Treat separately (A) Excel observed aggregate, (B) user chat-reported observations and later clarifications, (C) current production-profile calculations, (D) synthetic simulator outputs, (E) speculative hypotheses. A verified geometry is not a verified target allocator.
 4. Review code:
    - `tools/research/naval_ram_empirical_probe.py`
@@ -97,7 +98,7 @@ Strict mode continues to mark the unknown Accuracy algorithm as unresolved. Expe
 - The first unmerged air-HP holdout comparison had CI **466 passed/3 xfailed**. Subsequent user-confirmed reverse data and full round-event trace reached **467 passed/3 xfailed**; after the additional no-Forge observation, CI reached **469 passed/3 xfailed** on then-current head. These are *historical verified runs*, not an assertion about a newer, untested head. New commits require a new run and a new exact-head Codex Review.
 - Latest known Codex feedback on previous head requested preservation of `additional_observations` in the uploaded report. It must remain a **separate raw evidence field**, without fabricating a synthetic simulator trace for any case lacking inputs. Check that the current test explicitly protects this field and whether the thread was resolved.
 
-**Work handoff promise:** A new AI agent should be able to read this one note and the two fixtures and state exactly which empirical outcomes are confirmed, which numbers are conditional current-model predictions, which hypotheses remain competitive, what Forge's working hypothesis is, and which GitHub checks are outstanding—*before* proposing changes to battle rules.
+**Work handoff promise:** A new AI agent should be able to read this one note and all three fixtures and state exactly which empirical outcomes are confirmed, which numbers are conditional current-model predictions, which hypotheses remain competitive, what Forge's working hypothesis is, and which GitHub checks are outstanding—*before* proposing changes to battle rules.
 
 ## 7. New player-vs-player fast boat versus carrier held-out cases (2026-10-13)
 
