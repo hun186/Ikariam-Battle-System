@@ -27,7 +27,7 @@ Thus speedboats fire **before** carriers in this engine; carriers still fire bef
 | Same count/setup, player defense Lv14, Forge5 | 0 player carriers | 65%, 70% across two slots |
 | Player Forge5 fast boats with attack Lv14 vs Barbarian carriers | 1 Barbarian carrier **in each slot** | 53%, 65% among reported surviving carriers |
 
-In the reverse last case, **30 player fast boats / six Barbarian carriers is provisionally assumed** from the immediately preceding comparison; request confirmation before promoting this count to a verified game fact. No information about any other active First/Second/Third ships is available.
+**Follow-up confirmation from the user:** the reverse last case is indeed **30 player fast boats (two slots × 15) attacking six Barbarian carriers (two slots × 3)**, and the **53% / 65% bars are the first-round end-of-round display**. Counts and timing are therefore user-confirmed observations, **not** extrapolations from the forward case. No information about other active First/Second/Third ships or the unavailable per-individual target hit sequence was provided.
 
 ## Why 16 and 14 shots, rather than 15 and 15?
 
@@ -88,5 +88,5 @@ Use **observable constraints** rather than pretending a hidden target sequence i
 - User-observed fixture: `tests/fixtures/reverse_engineering/naval_air_counterparts_20261013.json`.
 - Read-only model: `tools/research/naval_air_counterpart_probe.py`.
 - Regression: `tests/unit/test_naval_air_counterpart_probe.py`.
-- Hosted Actions runs same full pytest plus both air and Ram comparison scripts, uploads machine-readable JSON artifacts.
+- Hosted Actions runs same full pytest plus both air and Ram comparison scripts, uploads machine-readable JSON artifacts. The air artifact exports the **entire synthetic round-one engine event stream** (including `damage`, `damage_calculation`, `attacking_matrix`, Accuracy/overkill/assumption details) and the complete model assumption list, so that its 57%/69% prediction can be independently audited without access to unseen game shot traces.
 - [Issue #68](https://github.com/hun186/Ikariam-Battle-System/issues/68) tracks both inverse studies; [Draft PR #69](https://github.com/hun186/Ikariam-Battle-System/pull/69) is strictly research and remains unmerged.
