@@ -20,8 +20,11 @@ def test_user_pvp_holdout_fixture_preserves_3_cases_and_uncertainties():
     assert len(raw["observed"]) == 3
     assert all(x["attacker_count"] == 30 and x["defender_count"] == 6
                for x in raw["observed"])
-    assert all(x["death_slots_unknown"] and x["observed_round_unknown"]
-               for x in raw["observed"])
+    assert all(x["death_slots_unknown"] and x["observed_round_number"] == 1
+               and x["round_one_confirmed_by_user"] for x in raw["observed"])
+    assert raw["source"]["round_confirmation_source"].startswith("USER_FOLLOWUP_CHAT")
+    assert raw["model_controls"]["actual_game_observed_round"] == 1
+    assert raw["model_controls"]["round_one_confirmed_by_user"]
     assert raw["source"]["forge_confirmation_source"].startswith("USER_FOLLOWUP_CHAT")
     assert all(
         x["attacker_forge_level"] == x["defender_forge_level"] == 5
@@ -67,6 +70,8 @@ def test_all_three_current_engine_casualty_outcomes_and_holdout_mismatch():
     attacker_only=[m for m in r["comparisons"]
                    if m["forge_config"]=={"attacker":5,"defender":0}]
     assert [m["reported_total_deaths"] for m in both] == [2,2,1]
+    assert all(m["observed_game_round"] == 1 and m["model_rounds_completed"] == 1
+               and m["model_round_matches_confirmed_game_round"] for m in both)
     assert all(m["matches_user_confirmed_forge_scope"] for m in both)
     assert all(
         m["forge_scope_evidence_class"] ==
@@ -135,7 +140,9 @@ def test_pvp_artifact_preserves_user_evidence_source_and_all_forge_caveats():
     assert not result["source"]["original_battle_reports_attached"]
     assert result["source"]["forge_confirmation_source"].startswith("USER_FOLLOWUP_CHAT")
     assert "round" in result["source"]["comment"].lower()
-    assert result["raw_observations"][-1]["observed_round_unknown"]
+    assert all(x["observed_round_number"] == 1 and x["round_one_confirmed_by_user"]
+               for x in result["raw_observations"])
+    assert result["source"]["round_confirmation_source"] == fixture["source"]["round_confirmation_source"]
     assert any(
         c["forge_scope_evidence_class"] == "COUNTERFACTUAL_FORGE_SENSITIVITY_NOT_USER_OBSERVED"
         for c in result["comparisons"]
@@ -154,3 +161,11 @@ def test_future_agent_is_routed_to_all_three_naval_evidence_fixtures():
         assert stem in agent
         assert stem in handoff
     assert "three" in handoff.lower() or "三份" in handoff
+
+
+def test_game_confirmed_round_one_does_not_imply_slot_or_fleet_identity():
+    evidence = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    assert all(case["observed_round_number"] == 1 for case in evidence["observed"])
+    assert all(case["death_slots_unknown"] for case in evidence["observed"])
+    assert evidence["model_controls"]["invented_both_sides_front_fillers_not_observed"]
+    assert evidence["source"]["original_battle_reports_attached"] is False
