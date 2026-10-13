@@ -125,6 +125,7 @@ def report() -> dict:
     return {
         "case_id": source["case_id"],
         "evidence_class": source["evidence_class"],
+        "source": source["source"],
         "raw_observations": source["observed"],
         "model_controls": source["model_controls"],
         "comparisons": [
