@@ -60,3 +60,41 @@ This corresponds to the historical `20 Mortar + 30 Carabineer + 2 Wall` hypothes
 5. `tests/unit/test_crispi_round1_position_matrix.py` pins the current signed residual vector `[-1,2,2,2,2,2,-1]` as an **explicit model baseline**, not a permanent requirement to keep the engine wrong. Replace that diagnostic expectation only alongside a justified calibration, revised evidence report, unchanged independent regressions and new exact-head CI/Codex review.
 
 **Conclusion:** The eight-death *net* discrepancy is a position-specific redistribution/target-selection and possibly wall-offense problem; it cannot be fixed by a flat +8 wall kill patch without worsening already-overcounted outer slots. The actual game's precise Carabineer and wall source allocation remains **unknown**.
+
+
+## Follow-up: isolate surviving Town Wall fire as a *conditional* one-kill source
+
+The user proposed treating sufficiently high-level wall attacks as one-shot kills, occurring **after Artillery and Long-range firing** because the Town Wall is the defender's First-line formation. This is a strong, **testable** simplification, but not yet a verified statement of modern game's wall target selection or Accuracy.
+
+**Source strength/qualification:**
+
+- [Gameforge: battlefield and firing order](https://gameforge.com/en-GB/games/ikariam-battlefield.html) lists Artillery → Long-range → Main battle line (City Wall) → Flank. Crispi's Flank remains locked, so the Wall would be the **last active ground firing phase**, not the globally last formation in every possible battle.
+- [Gameforge forum, April 2024](https://forum.ikariam.gameforge.com/forum/thread/99653-how-exactly-do-artillery-and-heavy-light-infantry-work/) states Lv16+ wall bombs can kill Hoplites; player explanation highlights destroying walls early to avoid their attack.
+- [Older PTT independent mechanical experiments (2009, game v0.3.2)](https://www.ptt.cc/bbs/Ikariam/M.1254829839.A.96A.html) describe **one kill maximum per wall section per round**, **only its physically facing attacker First slot**, and artillery-destroyed walls no longer firing in the later phase. These are *historical observations*, not confirmation that v13+ targets use exactly the same address method.
+- Current project's v13+ wall profile at **Lv24** has gross damage `(50 + 10×24)×18 = 5220`. Documented Crispi attacking Hoplite has **1120 HP** and **100 DEF**; `5220−100=5120≥1120`. Thus a successful direct hit is clearly **one-shot-capable**. This calculation does **not** prove the game's Accuracy, hit count, per-section attack count, or which slot receives each bomb.
+
+Under the **explicit HYP-WALL-SURVIVING-FACING-ONE-KILL-001** conditions:
+
+1. First-phase wall fire occurs after the already-modeled 30 attacker Mortar wall shots breached five middle sections in the earlier Third phase.
+2. Only physical wall positions **1 and 7 survive to fire**.
+3. Each surviving wall section shoots **exactly once, successfully, at the directly opposite physical attacker First slot**, yielding hypothetical wall kills `[1,0,0,0,0,0,1]`.
+4. For *only this subtraction*, retain the simulator's current per-position defender Mortar kills `[0,5,5,5,5,0,0]`. The observed screenshot **does not independently attribute those Mortar shots or wall shots**.
+
+Then the **residual required** for other First-targeting sources, attributed here to Carabineers *conditionally*, is:
+
+| Physical slot | Observed all-source deaths | Conditional Wall | Assumed Mortar | **Required Carabineer** | Current modeled Carabineer |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 1 | 1 | 0 | **0** | 2 |
+| 2 | 11 | 0 | 5 | **6** | 4 |
+| 3 | 11 | 0 | 5 | **6** | 4 |
+| 4 | 11 | 0 | 5 | **6** | 4 |
+| 5 | 11 | 0 | 5 | **6** | 4 |
+| 6 | 6 | 0 | 0 | **6** | 4 |
+| 7 | 1 | 1 | 0 | **0** | 2 |
+| **Total** | **52** | **2** | **20** | **30** | **24** |
+
+This conditional decomposition removes the wall component **without changing the main simulator**, narrowing the proposed firearm calibration target to `[0,6,6,6,6,6,0]`, **not** merely `24+6` firearm kills arbitrarily distributed. The scenario's simulated 84 Carabineer shots still address positions `[7,14,14,14,14,14,7]`; the inner groups have six-kill aggregate *potential*, but outer groups would need an independently justified dispersion/Accuracy mechanism that produces zero kills. That is the next mechanism to investigate.
+
+**Important distinction:** "first-line firing comes later" is better supported than "wall targeting follows the same generic row-major Attacking Matrix as ordinary units". Historic direct-opposite wall targeting and a modern generic-AM rule are competing hypotheses unless independently established. The actual engine currently applies `EXP-WALL-OFFENSE-NONE-001`: `conditional_wall_fire_hypothesis` is a clearly labeled analytical JSON report, **not actual simulated wall damage**. A modern game battle with one or two intact walls in non-edge positions, plus visible first-line deaths, would distinguish target-selection rules.
+
+The `tests/unit/test_crispi_round1_wall_fire_hypothesis.py` regression pins Lv24 one-shot-capability, conditional accounting, exact per-position residual, and response to a modified wall survivor mask without hardcoding the two-kill answer. **Do not merge on this hypothesis alone.**
