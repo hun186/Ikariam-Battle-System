@@ -33,6 +33,9 @@ jobs:
       - name: Evaluate visible carrier HP against naval AM
         run: |
           PYTHONPATH=. python tools/research/naval_air_counterpart_probe.py --output research-output/naval_air_counterpart_probe.json
+      - name: Compare PvP player speedboats against player carriers
+        run: |
+          PYTHONPATH=. python tools/research/naval_pvp_fast_carrier_probe.py --output research-output/naval_pvp_fast_carrier_probe.json
       - name: Preserve model event trace for review
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -40,4 +43,5 @@ jobs:
           path: |
             research-output/naval_ram_empirical_probe.json
             research-output/naval_air_counterpart_probe.json
+            research-output/naval_pvp_fast_carrier_probe.json
           if-no-files-found: error
