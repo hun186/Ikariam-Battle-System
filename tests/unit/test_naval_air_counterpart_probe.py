@@ -81,3 +81,44 @@ def test_full_simulator_control_is_a_different_evidence_class():
     assert all(x["current_engine_control"]["evidence_class"].startswith("CONTROLLED_") for x in r["cases"])
     assert all(x["case"]["source"] == "USER_CHAT" for x in r["cases"])
     assert all("source" not in y["current_engine_control"] for y in r["cases"])
+
+
+def test_actual_engine_am_addresses_same_16_14_target_slots():
+    cases = report()["cases"]
+    expected_model_losses = [2, 2, 1, 2]
+    for test, expected_deaths in zip(cases, expected_model_losses):
+        control = test["current_engine_control"]
+        assert control["rounds_completed"] == 1
+        assert control["invented_first_line_filler_not_observed"] is True
+        assert control["model_target_units_lost"] == expected_deaths
+        target_slots = control["target_slots"]
+        assert len(target_slots) == 2
+        assert {s["line"] for s in target_slots} == {"balloon"}
+        target_matrix = [
+            e["details"].get("trace", {}).get("hits_by_damage_position", {})
+            for e in control["attacking_matrix_events"]
+            if e.get("side") == "attacker"
+            and e["details"].get("unit_id") == test["case"]["attacker"]
+        ]
+        assert target_matrix, "Production attacking matrix should fire fast boats"
+        assert any(
+            sorted(v.values()) == [14, 16] for v in target_matrix
+        ), target_matrix
+
+
+def test_actual_current_model_vs_user_report_are_not_assumed_equal():
+    cases = report()["cases"]
+    assert [x["current_engine_control"]["model_target_units_lost"] for x in cases] == [
+        2, 2, 1, 2
+    ]
+    # 7/8/14 defenses differ in REAL battle from model's 2/2/1 kills.
+    assert [c["case"]["reported_player_total_deaths"] for c in cases[:3]] == [1,0,0]
+    reverse = cases[3]
+    assert reverse["case"]["reported_barbarian_deaths_per_position"] == 1
+    assert [x["casualties"] for x in reverse["current_engine_control"]["target_slots"]] == [1,1]
+    # In the reverse case, the engine discards lethal overkill: source 337
+    # requires nine hits to sink a 2,800-HP carrier; 9*337-2800=233 lost.
+    assert 9*337-2800 == 233
+    assert [int(100*(s["units"]*2800-s["damage"])/(s["units"]*2800))
+            for s in reverse["current_engine_control"]["target_slots"]] == [57,69]
+    assert reverse["conditional_arithmetic"]["hypothetical_all_damage_retained_bars_truncated"] == [53,65]
