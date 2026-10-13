@@ -85,7 +85,7 @@
 | API、CLI、schema、檔案格式、事件、外部整合 | `.codex/contracts.md` |
 | 技術選型、相容性取捨、重大設計變更 | `.codex/decisions.md` |
 | 除錯、環境限制、已知失敗 | `.codex/known_issues.md` |
-| 海軍 Accuracy／集火／溢傷逆向研究（含 PR #69 新對話接續） | `docs/calibration/naval-inverse-engineering-handoff.md`，並核對兩份 reverse-engineering JSON fixtures；工作分支的研究事實不可直接當成已 merge 的 `main` 事實 |
+| 海軍 Accuracy／集火／溢傷逆向研究（含 PR #69 新對話接續） | `docs/calibration/naval-inverse-engineering-handoff.md`，並核對三份 reverse-engineering JSON fixtures：`naval_ram_deckwrecker_20261013.json`、`naval_air_counterparts_20261013.json`、`naval_pvp_fast_boat_carrier_20261013.json`；工作分支的研究事實不可直接當成已 merge 的 `main` 事實 |
 | 排程、優先度、延後工作、技術債 | `.codex/backlog.md` |
 
 若文件不存在，只有在使用者要求的變更需要它，或使用者明確要求初始化記憶機制時才建立；不要為湊齊格式新增無內容文件。
