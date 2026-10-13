@@ -119,7 +119,7 @@ def test_active_project_state_does_not_reserve_supported_smaller_naval_fields():
     assert "Smaller naval geometries beyond `naval-max`" not in memory
     assert "reject unsupported smaller naval IDs" not in issues
     assert "battlefield execution remains reserved" not in backlog
-    assert "all five supported" in issues
+    assert "All five explicit Gameforge Help naval geometries" in issues
     assert "Geometry implemented; calibration ongoing" in backlog
     # Enabling geometries does not assert any unverified AM or Accuracy formula.
     assert "AM damage-position" in memory
