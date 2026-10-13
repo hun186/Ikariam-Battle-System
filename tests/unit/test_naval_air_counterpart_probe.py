@@ -25,7 +25,14 @@ def test_observed_battle_reports_preserve_source_and_outcome_shapes():
     reverse = values["player_fast_att14_vs_barbarian_carrier"]
     assert reverse["reported_barbarian_deaths_per_position"] == 1
     assert reverse["reported_survivor_slot_bars_percent"] == [53,65]
-    assert reverse["count_is_assumed_from_previous_comparison"]
+    assert reverse["counts_and_layout_confirmed_by_user"] is True
+    assert reverse["health_bars_observed_after_round"] == 1
+    assert reverse["confirmation_source"] == "USER_FOLLOWUP_CHAT_2026_10_13_CONFIRMED_BOTH_30_VS_6_AND_END_OF_ROUND_1"
+    assert reverse["attacker_count"] == 30
+    assert reverse["target_count"] == 6
+    assert [reverse["attacker_positions"], reverse["attacker_units_per_position"]] == [2, 15]
+    assert [reverse["target_positions"], reverse["target_units_per_position"]] == [2, 3]
+    assert not evidence["model_assumptions"]["reverse_army_counts_are_provisional"]
 
 
 def test_two_15_ship_source_columns_yield_16_14_row_major_slot_shots():
@@ -122,3 +129,40 @@ def test_actual_current_model_vs_user_report_are_not_assumed_equal():
     assert [int(100*(s["units"]*2800-s["damage"])/(s["units"]*2800))
             for s in reverse["current_engine_control"]["target_slots"]] == [57,69]
     assert reverse["conditional_arithmetic"]["hypothetical_all_damage_retained_bars_truncated"] == [53,65]
+
+
+def test_air_artifact_preserves_full_synthetic_round1_damage_and_assumptions():
+    """Codex P2: exported JSON must audit Accuracy and overkill, not just AM."""
+    experiments = report()["cases"]
+    for item in experiments:
+        control = item["current_engine_control"]
+        events = control["synthetic_round1_model_events"]
+        kinds = {x["type"] for x in events}
+        assert {"attacking_matrix", "damage", "damage_calculation"}.issubset(kinds)
+        assert all(x["round"] == 1 for x in events)
+        assert control["model_applied_assumptions"]
+        assumptions = {x["id"] for x in control["model_applied_assumptions"]}
+        assert "EXP-ACCURACY-CONCENTRATION-001" in assumptions
+        assert "EXP-D-KILL-SEQUENTIAL-001" in assumptions
+        damage_events = [
+            x for x in events
+            if x["type"] == "damage"
+            and (x.get("details") or {}).get("source_unit_id") == item["case"]["attacker"]
+            and (x.get("details") or {}).get("target_unit_id") == item["case"]["target"]
+        ]
+        assert damage_events
+        assert sum(
+            (x["details"].get("firing_units") or 0)
+            for x in damage_events
+        ) == 30
+        assert all("overkill_discarded" in x["details"] for x in damage_events)
+        assert all("accuracy_decisions" in x["details"] for x in damage_events)
+    reverse = experiments[-1]["current_engine_control"]
+    speedboat_damage = [
+        e for e in reverse["synthetic_round1_model_events"]
+        if e["type"] == "damage"
+        and e["details"].get("source_unit_id") == "paddle_speedboat"
+        and e["details"].get("target_unit_id") == "barbarian_nest"
+    ]
+    assert sum(e["details"]["overkill_discarded"] for e in speedboat_damage) == 466
+    assert all(e["details"]["resolution"] == "sequential_d_kill_baseline" for e in speedboat_damage)
