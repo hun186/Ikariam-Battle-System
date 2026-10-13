@@ -36,6 +36,9 @@ jobs:
       - name: Compare PvP player speedboats against player carriers
         run: |
           PYTHONPATH=. python tools/research/naval_pvp_fast_carrier_probe.py --output research-output/naval_pvp_fast_carrier_probe.json
+      - name: Invert executable individual-target focus thresholds
+        run: |
+          PYTHONPATH=. python tools/research/naval_accuracy_inverse_candidates.py --output research-output/naval_accuracy_inverse_candidates.json
       - name: Preserve model event trace for review
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -44,4 +47,5 @@ jobs:
             research-output/naval_ram_empirical_probe.json
             research-output/naval_air_counterpart_probe.json
             research-output/naval_pvp_fast_carrier_probe.json
+            research-output/naval_accuracy_inverse_candidates.json
           if-no-files-found: error
