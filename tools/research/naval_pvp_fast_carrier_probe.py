@@ -79,9 +79,22 @@ def control_case(case: dict, *, attacker_forge: int, defender_forge: int) -> dic
         and (e.get("details") or {}).get("source_unit_id") == attacker.id
         and (e.get("details") or {}).get("target_unit_id") == defender.id
     ]
+    if "attacker_forge_level" in case and "defender_forge_level" in case:
+        is_observed_forge_scope = (
+            attacker_forge == case["attacker_forge_level"]
+            and defender_forge == case["defender_forge_level"]
+        )
+    else:
+        raise ValueError("PvP observed case must record both user-confirmed Forge levels")
     return {
         "case": case["case"],
         "evidence_class": "CONTROLLED_SYNTHETIC_CURRENT_ENGINE_NOT_HISTORICAL",
+        "forge_scope_evidence_class": (
+            "USER_CONFIRMED_GAME_FORGE_SCOPE_WITH_SYNTHETIC_ENGINE"
+            if is_observed_forge_scope else
+            "COUNTERFACTUAL_FORGE_SENSITIVITY_NOT_USER_OBSERVED"
+        ),
+        "matches_user_confirmed_forge_scope": is_observed_forge_scope,
         "original_observation": case,
         "forge_config": {"attacker": attacker_forge, "defender": defender_forge},
         "damage_trace_from_production": damage.as_dict(),
@@ -103,7 +116,7 @@ def control_case(case: dict, *, attacker_forge: int, defender_forge: int) -> dic
         "model_applied_assumptions": result.get("assumptions", []),
         "synthetic_frontline_warning": "Invented 35 player Steam Rams per side, not evidence of real historical fleet",
         "round_warning": "Comparison uses first round as a model control; user has not yet confirmed source records refer to end of first round",
-        "forge_scope_warning": "User stated Forge5, not independently confirmed on both vs only attacker side",
+        "forge_scope_warning": "Both player sides Forge5 is user-confirmed; attacker-only variant is explicitly counterfactual",
     }
 
 
