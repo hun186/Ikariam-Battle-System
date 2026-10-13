@@ -1,6 +1,7 @@
 # Project Memory
 
 ## Current Focus
+- Naval battlefield geometry corrected against five user-provided Gameforge Help screenshots (Level 0+/8+/15+/22+/29+): all five explicit geometry IDs now supported; max Second slot space 25 (was 24), max Flank 20 (was 18). Help does not prove AM damage-position order or level selector. Ram-only 36-vs-36 still fills First via Light fallback, not six Flank slots; keep that condition separate from geometry mismatch.
 - PR #21 is merged; General Score / gross-damage reporting is now part of the current baseline on top of the PR #20 game-like workbench.
 - Workshop upgrades are per unit type; Forge is side-wide.
 - All five land IDs use evidence-backed slot geometry and slot-space/unit-size capacity; selection remains explicit.
