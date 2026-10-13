@@ -93,7 +93,7 @@ Use **observable constraints** rather than pretending a hidden target sequence i
 2. Candidate individual damage allocation must produce the same deaths **and** reported floor-display survivor HP across both symmetric slots with one shared rule and the same unit profiles.
 3. Benchmark at **defense 7/8/14** and the **reverse attack14** case simultaneously. Reject a rule that reproduces only the 65/70 bars but kills a carrier at DEF14, or matches reverse kills but discards the 233 overkill that would explain 53/65.
 4. Keep Accuracy selection and overkill/pooled damage as **separate latent model dimensions**, compare against the original Ram 14/15 cliff as held-out evidence. Do not hard-code observed casualties into the engine.
-5. If possible collect first/second round *slot-level deaths and bars* with fully described battle context, not impossible per-ship shot counts. Exact labels for Barbarian counterpart units, the full original supporting fleet, and the round/timing/30-vs-6 layout of the **new no-Forge defense3 case** remain to be independently verified; the reverse attack14 counts and round-one bars have already been confirmed by the user.
+5. If possible collect first/second round *slot-level deaths and bars* with fully described battle context, not impossible per-ship shot counts. Exact labels for Barbarian counterpart units, the full original supporting fleet, and the **physical slot(s) of the two losses and HP bars** of the no-Forge DEF3 case remain to be determined; **its 30-vs-6 two-slot configuration AND end-of-Round-1 timing have already been explicitly confirmed**. The reverse attack14 counts and round-one bars have also been confirmed by the user.
 
 ## File locations and status
 
