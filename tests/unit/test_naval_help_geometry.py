@@ -108,3 +108,19 @@ def test_each_help_geometry_can_execute_one_complete_naval_round(tier):
     assert result["rounds_completed"] == 1
     assert any(e["type"] == "attacking_matrix" for e in result["events"])
     assert any(s["line"] == "first" for s in result["initial_state"]["attacker"]["slots"])
+
+
+def test_active_project_state_does_not_reserve_supported_smaller_naval_fields():
+    """A regression in the agent handoff is a runtime contract regression."""
+    root = Path(__file__).resolve().parents[2]
+    memory = (root / ".codex/memory.md").read_text(encoding="utf-8")
+    issues = (root / ".codex/known_issues.md").read_text(encoding="utf-8")
+    backlog = (root / ".codex/backlog.md").read_text(encoding="utf-8")
+    assert "Smaller naval geometries beyond `naval-max`" not in memory
+    assert "reject unsupported smaller naval IDs" not in issues
+    assert "battlefield execution remains reserved" not in backlog
+    assert "all five supported" in issues
+    assert "Geometry implemented; calibration ongoing" in backlog
+    # Enabling geometries does not assert any unverified AM or Accuracy formula.
+    assert "AM damage-position" in memory
+    assert "Accuracy" in issues and "Accuracy" in backlog
