@@ -74,6 +74,16 @@ The existing Experimental Accuracy concentration (source speedboat Accuracy **95
 
 These mismatch results are from a **synthetic First-fill experiment**, not the user's actual complete fleet. The first lines are intentionally created by inserting 35 player Steam Rams and 42 Barbarian Wedge Paddlers as appropriate. They merely allow the production one-round engine to execute; do not assert such front ships appeared in the real battle.
 
+## Additional user observation: no Forge, player carrier Defense Lv3, two deaths
+
+**New user report:** with **no player Forge** and carrier armor upgrade **Lv3**, **two player carriers are lost**. This is recorded independently from the three Forge5 scenarios and the confirmed reverse attack14 case.
+
+**Limits of the newly supplied detail:** The user has **not yet explicitly confirmed for this separate Lv3 case** that the same 30 Barbarian fast boats hit the same six player carriers in the same two-by-two slots, that both kills occur in round one, or where the two kills occurred. These details must remain conditional rather than converting the report into fabricated complete game telemetry.
+
+If we hold the forward scenario's fleet and round fixed *hypothetically*, the production damage profile predicts `d=340-(3×10)=310` net hit (no +20 Forge armor). Model AM distribution remains 16 and 14 shots, with 4,960 / 4,340 gross damage per slot. Under an **effective focus budget** abstraction `f`, both slots have capacity to concentrate at least one 2,800-HP carrier kill only if `f ≥ 2800/(14×310)=64.516%`. The previous independently reported Forge5 defense7/8 cliff already requires `70% ≤ f < 72.917%` under this same abstraction; hence the new death count is *consistent* with the interval but does **not** narrow its boundaries. Fixed `f` is not yet an officially verified Accuracy rule, and the model must still specify how surplus damage behaves after each kill.
+
+This observation therefore supplies **a different Forge state** for an out-of-sample check and offers a concrete falsification target. Matching two deaths alone cannot prove whether Accuracy is deterministic, a Bernoulli hit chance, an aggregate focus coefficient, or tied to another combat phase. At most, a conditional one-round 30-v-6 control may verify that *a chosen model can accommodate the new evidence*.
+
 ## Inverse simulation strategy without game shot logs
 
 Use **observable constraints** rather than pretending a hidden target sequence is known:
@@ -81,7 +91,7 @@ Use **observable constraints** rather than pretending a hidden target sequence i
 2. Candidate individual damage allocation must produce the same deaths **and** reported floor-display survivor HP across both symmetric slots with one shared rule and the same unit profiles.
 3. Benchmark at **defense 7/8/14** and the **reverse attack14** case simultaneously. Reject a rule that reproduces only the 65/70 bars but kills a carrier at DEF14, or matches reverse kills but discards the 233 overkill that would explain 53/65.
 4. Keep Accuracy selection and overkill/pooled damage as **separate latent model dimensions**, compare against the original Ram 14/15 cliff as held-out evidence. Do not hard-code observed casualties into the engine.
-5. If possible collect first/second round *slot-level deaths and bars* with fully described battle context, not impossible per-ship shot counts. Exact labels for Barbarian counterpart units and the reverse-side deployed counts are the first facts to reconfirm.
+5. If possible collect first/second round *slot-level deaths and bars* with fully described battle context, not impossible per-ship shot counts. Exact labels for Barbarian counterpart units, the full original supporting fleet, and the round/timing/30-vs-6 layout of the **new no-Forge defense3 case** remain to be independently verified; the reverse attack14 counts and round-one bars have already been confirmed by the user.
 
 ## File locations and status
 
