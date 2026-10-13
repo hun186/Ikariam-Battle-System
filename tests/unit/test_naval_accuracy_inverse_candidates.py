@@ -123,3 +123,49 @@ def test_spread_only_and_focus_only_do_not_jointly_match_all_air_cases():
     probe = simulate_slot(2800, 3, 16, 271, 74)
     assert probe["deaths"] == 1
     assert probe["overkill_discarded"] >= 0
+
+
+def test_leave_one_case_out_exposes_which_battles_actually_identify_threshold():
+    """No LOO test may be mistaken for new independent game observations."""
+    result = report()
+    loo = result["leave_one_reported_case_out"]
+    assert len(loo) == 7
+    assert result["leave_one_out_is_NOT_fully_independent_validation"]
+    rows = {r["held_out_case"]: r for r in loo}
+    defense7 = rows["barbarian_fast_vs_player_carrier_def7"]
+    assert defense7["training_threshold_grid_range"] == [70.97, 74.28]
+    assert defense7["held_out_candidate_deaths_possible"] == [0, 1]
+    assert defense7["candidate_threshold_counts_by_held_out_prediction"] == {
+        "0": 225, "1": 107
+    }
+    assert not defense7["all_training_fits_predict_correct_held_out"]
+    defense8 = rows["barbarian_fast_vs_player_carrier_def8"]
+    assert defense8["training_threshold_grid_range"] == [73.22, 80.64]
+    assert defense8["held_out_candidate_deaths_possible"] == [0, 1]
+    assert defense8["candidate_threshold_counts_by_held_out_prediction"] == {
+        "0": 107, "1": 636
+    }
+    assert not defense8["all_training_fits_predict_correct_held_out"]
+    for case in loo:
+        assert case["evidence_class"] == (
+            "RESEARCH_ONLY_LEAVE_ONE_CASE_OUT_NOT_INDEPENDENT_FIELD_TRIAL"
+        )
+        assert len(case["training_cases"]) == 6
+        assert "NOT likelihoods" in case["important_caveat"]
+    assert all(r["all_training_fits_predict_correct_held_out"]
+               for r in loo if r["held_out_case"] not in (
+                   "barbarian_fast_vs_player_carrier_def7",
+                   "barbarian_fast_vs_player_carrier_def8",
+               ))
+
+
+def test_focus_interval_is_straddled_by_three_hit_hp_250_versus_240():
+    """Parameter window is chiefly the observed Barbarian DEF7/8 cliff."""
+    hp = 2800
+    after_three_250 = 100 * (hp - 3 * 250) / hp
+    after_three_240 = 100 * (hp - 3 * 240) / hp
+    assert round(after_three_250, 4) == 73.2143
+    assert round(after_three_240, 4) == 74.2857
+    bounds = report()["fitting_percentage_point_interval_grid_0_01"]
+    assert bounds == [73.22, 74.28]
+    assert after_three_250 < bounds[0] < 74 < bounds[1] < after_three_240
