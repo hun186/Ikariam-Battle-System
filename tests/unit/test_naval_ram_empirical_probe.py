@@ -29,7 +29,7 @@ def test_workbook_defense_series_and_chat_observations_are_distinct():
     assert slot_claims["defense_upgrades_3_to_14_each_slot_deaths"] == 1
     assert slot_claims["defense_15_each_slot_deaths"] == 0
     assert not slot_claims["independently_telemetry_verified"]
-    assert "not Excel" in observed["direct_conversation_case"]["note"]
+    assert "not in Excel" in observed["direct_conversation_case"]["note"]
 
 
 def test_three_hits_to_kill_is_constant_at_observed_defense_jump():
