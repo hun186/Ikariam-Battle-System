@@ -106,7 +106,10 @@ def control_case(case: dict, *, attacker_forge: int, defender_forge: int) -> dic
         "gross_damage_per_slot": [n*damage.final_damage for n in hit_counts],
         "reported_total_deaths": case["reported_carrier_total_deaths"],
         "observed_game_round": case["observed_round_number"],
-        "model_round_matches_confirmed_game_round": (case["observed_round_number"] == 1),
+        "model_round_matches_confirmed_game_round": (
+            result.get("rounds_completed") == case["observed_round_number"]
+            and round1 is not None
+        ),
         "model_rounds_completed": result.get("rounds_completed"),
         "model_total_carrier_deaths": (
             round1["casualties"]["defender"].get(defender.id, 0)
