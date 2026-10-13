@@ -221,7 +221,7 @@ class Scenario:
         battlefield = data.get("battlefield", "land-mini")
         if not isinstance(battlefield, str) or battlefield not in {
             "land-mini", "land-small", "land-medium", "land-large", "land-max",
-            "naval-mini", "naval-max",
+            "naval-mini", "naval-small", "naval-medium", "naval-large", "naval-max",
         }:
             raise ScenarioError("unsupported battlefield id")
         town_hall_raw = data.get("town_hall_level")

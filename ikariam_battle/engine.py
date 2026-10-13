@@ -3142,7 +3142,7 @@ def _simulate_core(scenario: Scenario | dict[str, Any]) -> dict[str, Any]:
     warnings = ["Legacy empirical mechanics are being applied to review-supplied current numeric profiles; calibration is required."]
     if field.domain == "naval":
         warnings.append(
-            "Naval-max formation fill order, target priorities, firing order, and exhausted Long-range -> Front fallback follow official in-game Help/current calibration. Remaining naval boundaries include smaller geometries, Tender partial allocation, reactive secondary-weapon triggers, and kill/redistribution selectors."
+            "Naval formations use the five Level 0+/8+/15+/22+/29+ Gameforge Help slot geometries, with existing empirical AM damage-position labels; formation fill order, target priorities, firing order, and exhausted Long-range -> Front fallback follow Help/current calibration. Remaining naval boundaries include Tender partial allocation, reactive secondary-weapon triggers, and kill/redistribution selectors."
         )
     if open_field_active:
         warnings.append(

@@ -81,20 +81,50 @@ LAND_BATTLEFIELDS: Mapping[str, Battlefield] = MappingProxyType({
 })
 LAND_MINI = LAND_BATTLEFIELDS["land-mini"]
 
-# 2026 Gameforge-hosted community tutorial, max naval battlefield:
-# 35 Steam Rams / 84 Fire Ships across 7 First slots -> 25 space each;
-# 36 Ram Ships across 6 Flank slots -> 18 space each;
-# 42 Mortar / 56 Catapult / 84 Ballista across 7 Second slots -> 24 space;
-# 25 Diving Boats / 15 Rocket Ships across 5 Third slots -> 15 space;
-# 6 Balloon Carriers / 30 Paddle Speedboats across 2 Air slots -> 15 space.
-# Damage-position labels reuse the empirical AM geometry; only the max naval
-# field is executable until smaller naval geometries are independently verified.
+# Gameforge IN-GAME Help images supplied by the user on 2026-10-13:
+# five distinct Sea Fight battlefields, with visible minimum "Level N +" labels.
+# Values below are *slot-space*, not ships-per-slot or damage points.
+# The screenshots verify LINE GEOMETRY ONLY. Damage address labels below come
+# from the existing 2020 empirical mechanics reference (not from Help images).
+# The game's choice of size from the listed Level is not inferred here:
+# scenario.battlefield remains the authoritative explicit selection.
 _NAVAL_SPECS = {
-    "naval-max": ("Naval max / current community geometry", {
+    "naval-mini": ("Naval Help Level 0+", {
+        "first": ((2, 1, 3), 15),
+        "second": ((2, 1, 3), 15),
+        "third": ((1,), 15),
+        "anti-balloon": ((1,), 10),
+        "balloon": ((1,), 10),
+    }),
+    "naval-small": ("Naval Help Level 8+", {
+        "first": ((4, 2, 1, 3, 5), 15),
+        "second": ((4, 2, 1, 3, 5), 15),
+        "third": ((1, 2), 15),
+        "flank": ((2, 1), 15),
+        "anti-balloon": ((1,), 10),
+        "balloon": ((1,), 10),
+    }),
+    "naval-medium": ("Naval Help Level 15+", {
+        "first": (_PHYSICAL["first"], 15),
+        "second": (_PHYSICAL["second"], 15),
+        "third": ((3, 1, 2), 15),
+        "flank": ((4, 2, 1, 3), 15),
+        "anti-balloon": ((1,), 15),
+        "balloon": ((1,), 15),
+    }),
+    "naval-large": ("Naval Help Level 22+", {
+        "first": (_PHYSICAL["first"], 20),
+        "second": (_PHYSICAL["second"], 20),
+        "third": ((3, 1, 2, 4), 15),
+        "flank": ((6, 4, 2, 1, 3, 5), 15),
+        "anti-balloon": (_PHYSICAL["anti-balloon"], 10),
+        "balloon": (_PHYSICAL["balloon"], 10),
+    }),
+    "naval-max": ("Naval Help Level 29+", {
         "first": (_PHYSICAL["first"], 25),
-        "second": (_PHYSICAL["second"], 24),
+        "second": (_PHYSICAL["second"], 25),
         "third": (_PHYSICAL["third"], 15),
-        "flank": ((6, 4, 2, 1, 3, 5), 18),
+        "flank": ((6, 4, 2, 1, 3, 5), 20),
         "anti-balloon": (_PHYSICAL["anti-balloon"], 15),
         "balloon": (_PHYSICAL["balloon"], 15),
     }),
@@ -112,7 +142,7 @@ def _naval_battlefield(
         field_id,
         "naval",
         MappingProxyType(geometry),
-        "GAMEFORGE_FORUM_2026_MAX_NAVAL_GEOMETRY_WITH_EMPIRICAL_AM_POSITIONS",
+        "USER_SUPPLIED_GAMEFORGE_HELP_FIVE_NAVAL_GEOMETRIES_WITH_EMPIRICAL_AM_POSITIONS",
     )
 
 
@@ -156,13 +186,6 @@ def battlefield_metadata() -> list[dict[str, object]]:
         }
         for field_id, (display_name, _) in _NAVAL_SPECS.items()
     )
-    result.append({
-        "id": "naval-mini",
-        "display_name": "Naval mini / geometry pending",
-        "domain": "naval",
-        "supported": False,
-        "lines": {},
-    })
     return result
 
 
