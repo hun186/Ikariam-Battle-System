@@ -22,6 +22,18 @@ def test_user_pvp_holdout_fixture_preserves_3_cases_and_uncertainties():
                for x in raw["observed"])
     assert all(x["death_slots_unknown"] and x["observed_round_unknown"]
                for x in raw["observed"])
+    assert raw["source"]["forge_confirmation_source"].startswith("USER_FOLLOWUP_CHAT")
+    assert all(
+        x["attacker_forge_level"] == x["defender_forge_level"] == 5
+        and x["both_forge5_confirmed_by_user"]
+        for x in raw["observed"]
+    )
+    assert raw["model_controls"]["actual_game_forge_configuration"] == {
+        "attacker_forge": 5, "defender_forge": 5, "confirmed_by_user": True
+    }
+    assert [x["evidence_class"] for x in raw["model_controls"]["conditional_forge_configs"]] == [
+        "USER_CONFIRMED_FORGE_SCOPE", "COUNTERFACTUAL_SENSITIVITY_NOT_OBSERVED"
+    ]
     assert raw["model_controls"]["invented_both_sides_front_fillers_not_observed"]
     assert raw["model_controls"]["slots_derived_from_official_help_not_explicitly_reconfirmed_for_these_three_battles"]
 
@@ -55,6 +67,18 @@ def test_all_three_current_engine_casualty_outcomes_and_holdout_mismatch():
     attacker_only=[m for m in r["comparisons"]
                    if m["forge_config"]=={"attacker":5,"defender":0}]
     assert [m["reported_total_deaths"] for m in both] == [2,2,1]
+    assert all(m["matches_user_confirmed_forge_scope"] for m in both)
+    assert all(
+        m["forge_scope_evidence_class"] ==
+        "USER_CONFIRMED_GAME_FORGE_SCOPE_WITH_SYNTHETIC_ENGINE"
+        for m in both
+    )
+    assert all(not m["matches_user_confirmed_forge_scope"] for m in attacker_only)
+    assert all(
+        m["forge_scope_evidence_class"] ==
+        "COUNTERFACTUAL_FORGE_SENSITIVITY_NOT_USER_OBSERVED"
+        for m in attacker_only
+    )
     assert [m["model_total_carrier_deaths"] for m in both] == [2,2,2]
     assert [m["model_total_carrier_deaths"] for m in attacker_only] == [2,2,2]
     assert [m["net_hit"] for m in both] == [314,326,271]
