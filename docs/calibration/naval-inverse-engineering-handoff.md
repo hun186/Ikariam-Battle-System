@@ -86,7 +86,7 @@ Strict mode continues to mark the unknown Accuracy algorithm as unresolved. Expe
 2. Build independent candidate selector implementations around a fixed source AM with **row-major 16/14**, phase order, and a target multiset of individual HP; compare (a) spread healthy, (b) focus wounded, (c) damage-dependent threshold, (d) pooled slot damage, (e) hit success/miss variants. Avoid fixed `f` as an executable physical targeting strategy unless one can define its shot-level/aggregate realization.
 3. Vary excess handling **orthogonally**: discard lethal overkill; retain surplus into a slot pool; distribute after kill; or calculate aggregate D/P/IR/SR/RR. Tests must demand *both* correct casualties and floor HP-bar percentages, with explicit UI denominator alternatives.
 4. Score all supplied cases **jointly**; hold out at least one player-vs-Barbarian air case, Forge-on/off case, Ram DEF14/15 case, or follow-up round. Find parameter-identifiable ranges or label **UNDERDETERMINED** instead of choosing a single appealing formula.
-5. Collect only **observable** game data: first/second-round per-slot casualties and bars, available ship counts, Workshop/Forge, supporting fleet, ammo and arrival stage. No impossible real per-ship shot record is required. Still needed: which slot(s) lost the **two carriers** at no-Forge DEF3; whether bars are truncated; true original non-air fleet composition; and the source round, side-specific Forge5 activation and slot split for the new player-vs-player speedboat/carrier three-case holdout. **The DEF3 30-vs-6 layout and Round 1 timing are already user-confirmed and must not be requested again.**
+5. Collect only **observable** game data: first/second-round per-slot casualties and bars, available ship counts, Workshop/Forge, supporting fleet, ammo and arrival stage. No impossible real per-ship shot record is required. Still needed: which slot(s) lost the **two carriers** at no-Forge DEF3; whether bars are truncated; true original non-air fleet composition; and the source round and slot split for the new player-vs-player speedboat/carrier three-case holdout. **Both player sides' Forge5 status is confirmed and must not be re-requested.** **The DEF3 30-vs-6 layout and Round 1 timing are already user-confirmed and must not be requested again.**
 6. Preserve every meaningful new source/derivation and each falsification result in this document and the source-specific fixtures, update `.codex/memory.md` and `.codex/backlog.md`; keep **proposed formula**, **current simulator behavior**, and **Gameforge-confirmed behavior** clearly distinguished. Request fresh exact-head CI/Codex Review and never merge without explicit owner command.
 
 ## 6. Continuous audit trail / current gates
@@ -101,7 +101,7 @@ Strict mode continues to mark the unknown Accuracy algorithm as unresolved. Expe
 
 ## 7. New player-vs-player fast boat versus carrier held-out cases (2026-10-13)
 
-**User's NEW game evidence:** 30 player Paddle Speedboats attacked six **player** Balloon Carriers; the user stated Forge Level 5, but did **not explicitly clarify whether both player sides or only the attacking player used Forge 5**. Exact round number, casualty split by slot and remaining original fleet are not yet confirmed. Preserve game-reported **total** carrier deaths as follows:
+**User's NEW game evidence, with subsequent explicit confirmation:** 30 player Paddle Speedboats attacked six **player** Balloon Carriers, and **BOTH players had Level 5 Forge active**. Exact real-game round number, casualty split by slot and remaining original fleet are not yet confirmed. The live comparison should use BOTH-FORGE5, not an unverified side selection. Preserve game-reported **total** carrier deaths as follows:
 
 | Player speedboat Attack | Player carrier Armor upgrade | Observed TOTAL player-carrier losses | Two-sided Forge5 production net hit | Model hits to kill 2800 HP carrier |
 |---:|---:|---:|---:|---:|
@@ -109,13 +109,15 @@ Strict mode continues to mark the unknown Accuracy algorithm as unresolved. Expe
 | 20 | 16 | **2** | 326 | 9 |
 | 17 | 18 | **1** | 271 | 11 |
 
-**New data fixture:** `tests/fixtures/reverse_engineering/naval_pvp_fast_boat_carrier_20261013.json` (separate from Barbarian targets and from Ram workbook). **Executable exact-engine control:** `tools/research/naval_pvp_fast_carrier_probe.py` with regression `tests/unit/test_naval_pvp_fast_carrier_probe.py`. To execute a full first-round engine test, it adds **invented 35 Steam Rams per side** and selects `naval-max`; those frontlines are NOT asserted to have existed in the user's battle. Two explicit Forge scopes are compared to avoid silently inventing the defender's Forge setting:
+**New data fixture:** `tests/fixtures/reverse_engineering/naval_pvp_fast_boat_carrier_20261013.json` (separate from Barbarian targets and from Ram workbook). **Executable exact-engine control:** `tools/research/naval_pvp_fast_carrier_probe.py` with regression `tests/unit/test_naval_pvp_fast_carrier_probe.py`. To execute a full first-round engine test, it adds **invented 35 Steam Rams per side** and selects `naval-max`; those frontlines are NOT asserted to have existed in the user's battle. Two Forge scopes remain in the research tool, but **only both-sides Forge5 is the user-confirmed real-game setting**. The attacker-only Forge5 row is retained explicitly as an **unobserved counterfactual sensitivity analysis**, never another plausible description of these three battles:
 
 | PvP ATT/DEF | Observed total | CURRENT synthetic engine **both sides Forge5** | CURRENT synthetic engine **attacker-only Forge5** |
 | --- | ---: | ---: | ---: |
 | 12 / 8 | 2 | **2** (slots 1+1) | **2** (slots 1+1) |
 | 20 / 16 | 2 | **2** (slots 1+1) | **2** (slots 1+1) |
 | **17 / 18** | **1** | **2** (slots 1+1) — **FAIL** | **2** (slots 1+1) — **FAIL** |
+
+**Confirmation note:** The user explicitly stated on 2026-10-13 that **both players in all three holdout observations had Forge5**. Source fixture and model artifact mark the both-on condition observed and attacker-only as counterfactual. The reported death totals' **game round remains unknown**.
 
 **Conditional source AM:** with two full 15-ship source slots and two target slots, current row-major `_shot_rows` and actual simulator AM events both produce **16 / 14** shots. Current Experimental Accuracy90 concentrates both sufficiently to kill one in each slot, even at net damage 271 (eleven shots needed on a fresh target). Thus the **ATT17/DEF18 observation is a held-out falsifier** for the current 90%-based within-slot wounded-focus rule under those controls, and remains a mismatch if only attacker Forge5.
 
