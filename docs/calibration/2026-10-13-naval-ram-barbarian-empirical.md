@@ -45,6 +45,23 @@ Six consecutive net hits are artificially directed into one full-health slot of 
 
 The current Experimental concentration hypothesis focuses the same damaged unit when remaining HP% drops below Accuracy (80); the current sequential hit resolver discards lethal excess. Those behaviors, **if** six hits really reach each real game Flank slot, contradict the user's reported no-death 63% bar and opponent 88% surviving bar. The counterfactuals provide testable mechanism candidates, not proof of how the official game computes hit selection or HP bars.
 
+### C. Synthetic six-Flank-slot formation with *invented* heavy front fillers
+
+For a stronger geometry-control experiment (not a historical reconstruction), place:
+- **Player defender:** 35 `steam_ram` at First (7 slots × 5 ships) plus 36 `ram_ship` at Flank (6 slots × 6).
+- **Barbarian attacker:** 42 `barbarian_wedge_paddler` at First (7 slots × 6 ships) plus 36 `barbarian_deckwrecker` at Flank (6 slots × 6).
+- Invented filler units' levels are fixed at zero; actual player Ram Workshop/Forge settings follow the controlled input, and Barbarian Forge/Workshop remain zero.
+
+These ships were **not observed in the user's battle**. Their sole purpose is to satisfy the currently executable First→Flank placement mechanics and avoid misreading First fallback as Flank combat. The hosted synthetic probe now confirms **six genuinely populated Flank slots, six Rams per position on each side**. At player defense 14/15/19 and fixed player attack 20/Forge 5, the *current model* reports:
+
+| Synthetic player DEF level | User-observed player total deaths (Excel 3–18; chat 19) | **Synthetic model** player deaths | **Synthetic model** Barbarian deaths |
+|---:|---:|---:|---:|
+| 14 | 6 | **12** | **18** |
+| 15 | 0 | **12** | **18** |
+| 19 | 0 (chat) | **12** | **18** |
+
+This is a more useful **controlled geometry** result than the Ram-only First fallback. It still cannot prove that the difference comes from Accuracy alone: the fabricated heavy front lines affect other attack phases, and original screenshots, round state and combat sequencing are missing. Its Barbarian total of 18 equals 3 per six hypothetical Flank slots, but the source-slot kill assignment and user 88% display remain independently unverified. Do not use a numeric match to force overkill redistribution into the production engine.
+
 ## Research gaps and validation plan
 
 - Need full original battle input, per-round actual screenshots and corresponding simulator Debug JSON to confirm battlefield tier, **all** deployed First/Second/Flank ships, arrivals/reinforcements, player Workshop and Forge levels, selected wave ownership and simultaneous phases.
