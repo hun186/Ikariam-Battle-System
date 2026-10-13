@@ -123,3 +123,34 @@ def test_realized_focus_fraction_remains_hypothesis_not_official_accuracy():
     assert predicted==[2,2,1]
     # This is not a legal discrete shot selector. It must NEVER be treated
     # as confirmed Accuracy=90 meaning f=0.70.
+
+
+def test_pvp_artifact_preserves_user_evidence_source_and_all_forge_caveats():
+    """Uploaded JSON must be self-auditing, not only predictions."""
+    fixture = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    result = report()
+    assert result["source"] == fixture["source"]
+    assert result["raw_observations"] == fixture["observed"]
+    assert result["model_controls"] == fixture["model_controls"]
+    assert not result["source"]["original_battle_reports_attached"]
+    assert result["source"]["forge_confirmation_source"].startswith("USER_FOLLOWUP_CHAT")
+    assert "round" in result["source"]["comment"].lower()
+    assert result["raw_observations"][-1]["observed_round_unknown"]
+    assert any(
+        c["forge_scope_evidence_class"] == "COUNTERFACTUAL_FORGE_SENSITIVITY_NOT_USER_OBSERVED"
+        for c in result["comparisons"]
+    )
+
+
+def test_future_agent_is_routed_to_all_three_naval_evidence_fixtures():
+    root = FIXTURE.parents[3]
+    agent = (root / "AGENTS.md").read_text(encoding="utf-8")
+    handoff = (root / "docs/calibration/naval-inverse-engineering-handoff.md").read_text(encoding="utf-8")
+    for stem in (
+        "naval_ram_deckwrecker_20261013.json",
+        "naval_air_counterparts_20261013.json",
+        "naval_pvp_fast_boat_carrier_20261013.json",
+    ):
+        assert stem in agent
+        assert stem in handoff
+    assert "three" in handoff.lower() or "三份" in handoff
