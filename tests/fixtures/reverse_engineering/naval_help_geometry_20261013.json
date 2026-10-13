@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "evidence_type": "GAMEFORGE_IN_GAME_HELP_USER_SUPPLIED_SCREENSHOTS",
+  "captured_by_user": "2026-10-13",
+  "notes": [
+    "Slot labels are capacity/space, not number of ships or damage units.",
+    "User Help captions are 'Level N+'; which game building/commander level controls this selector is not proved by the cropped images. Caller must continue using an explicit battlefield ID.",
+    "Physical-position priorities are separately inferred from the existing battle-system-paper-2020 data; screenshots only verify occupied physical column counts, not Attack Matrix numbering.",
+    "Air formations appear as two separate outer groups, one on each side, with mirrored attacker/defender layouts."
+  ],
+  "tiers": [
+    {
+      "id": "naval-mini",
+      "help_min_level": 0,
+      "image": "image(20261013-034255).png",
+      "lines": {
+        "first": [
+          3,
+          15
+        ],
+        "second": [
+          3,
+          15
+        ],
+        "third": [
+          1,
+          15
+        ],
+        "flank": [
+          0,
+          0
+        ],
+        "balloon": [
+          1,
+          10
+        ],
+        "anti-balloon": [
+          1,
+          10
+        ]
+      }
+    },
+    {
+      "id": "naval-small",
+      "help_min_level": 8,
+      "image": "image(20261013-034247).png",
+      "lines": {
+        "first": [
+          5,
+          15
+        ],
+        "second": [
+          5,
+          15
+        ],
+        "third": [
+          2,
+          15
+        ],
+        "flank": [
+          2,
+          15
+        ],
+        "balloon": [
+          1,
+          10
+        ],
+        "anti-balloon": [
+          1,
+          10
+        ]
+      }
+    },
+    {
+      "id": "naval-medium",
+      "help_min_level": 15,
+      "image": "image(20261013-034230).png",
+      "lines": {
+        "first": [
+          7,
+          15
+        ],
+        "second": [
+          7,
+          15
+        ],
+        "third": [
+          3,
+          15
+        ],
+        "flank": [
+          4,
+          15
+        ],
+        "balloon": [
+          1,
+          15
+        ],
+        "anti-balloon": [
+          1,
+          15
+        ]
+      }
+    },
+    {
+      "id": "naval-large",
+      "help_min_level": 22,
+      "image": "image(20261013-034219).png",
+      "lines": {
+        "first": [
+          7,
+          20
+        ],
+        "second": [
+          7,
+          20
+        ],
+        "third": [
+          4,
+          15
+        ],
+        "flank": [
+          6,
+          15
+        ],
+        "balloon": [
+          2,
+          10
+        ],
+        "anti-balloon": [
+          2,
+          10
+        ]
+      }
+    },
+    {
+      "id": "naval-max",
+      "help_min_level": 29,
+      "image": "image(20261013-034214).png",
+      "lines": {
+        "first": [
+          7,
+          25
+        ],
+        "second": [
+          7,
+          25
+        ],
+        "third": [
+          5,
+          15
+        ],
+        "flank": [
+          6,
+          20
+        ],
+        "balloon": [
+          2,
+          15
+        ],
+        "anti-balloon": [
+          2,
+          15
+        ]
+      }
+    }
+  ]
+}
