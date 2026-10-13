@@ -5,7 +5,8 @@
   "source": {
     "medium": "User ChatGPT conversation 2026-10-13",
     "original_battle_reports_attached": false,
-    "comment": "User provided three cases: 30 player fast boats against six player carriers and Forge level five. Which side(s) had Forge active, exact game round, other fleet units, and casualty split by physical slot were NOT specified. Preserve these as unknown until user confirms."
+    "comment": "User supplied three cases: 30 player fast boats against six player carriers; in a subsequent reply explicitly confirmed BOTH attacking and defending player sides use Forge Level 5. Exact real-game round, other fleet units, ship identity and casualty split per physical slot remain unknown.",
+    "forge_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_BOTH_PLAYERS_FORGE5"
   },
   "observed": [
     {
@@ -19,7 +20,11 @@
       "reported_forge_level": 5,
       "reported_carrier_total_deaths": 2,
       "death_slots_unknown": true,
-      "observed_round_unknown": true
+      "observed_round_unknown": true,
+      "attacker_forge_level": 5,
+      "defender_forge_level": 5,
+      "both_forge5_confirmed_by_user": true,
+      "forge_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_BOTH_PLAYERS_FORGE5"
     },
     {
       "case": "pvp_fast_att20_carrier_def16",
@@ -32,7 +37,11 @@
       "reported_forge_level": 5,
       "reported_carrier_total_deaths": 2,
       "death_slots_unknown": true,
-      "observed_round_unknown": true
+      "observed_round_unknown": true,
+      "attacker_forge_level": 5,
+      "defender_forge_level": 5,
+      "both_forge5_confirmed_by_user": true,
+      "forge_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_BOTH_PLAYERS_FORGE5"
     },
     {
       "case": "pvp_fast_att17_carrier_def18",
@@ -45,7 +54,11 @@
       "reported_forge_level": 5,
       "reported_carrier_total_deaths": 1,
       "death_slots_unknown": true,
-      "observed_round_unknown": true
+      "observed_round_unknown": true,
+      "attacker_forge_level": 5,
+      "defender_forge_level": 5,
+      "both_forge5_confirmed_by_user": true,
+      "forge_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_BOTH_PLAYERS_FORGE5"
     }
   ],
   "model_controls": {
@@ -66,21 +79,28 @@
       {
         "attacker_forge": 5,
         "defender_forge": 5,
-        "label": "both_players_forge5"
+        "label": "observed_both_players_forge5",
+        "evidence_class": "USER_CONFIRMED_FORGE_SCOPE"
       },
       {
         "attacker_forge": 5,
         "defender_forge": 0,
-        "label": "attacker_only_forge5"
+        "label": "counterfactual_attacker_only_forge5",
+        "evidence_class": "COUNTERFACTUAL_SENSITIVITY_NOT_OBSERVED"
       }
     ],
     "assumptions_not_gamefacts": [
       "Original game round unknown",
       "Actual full fleet including front line unknown",
-      "Forge5 stated without explicit confirmation that both players ran it",
       "AM 16/14 is model allocation",
       "Official individual target allocation unknown",
-      "Real game ship-by-ship target traces unavailable"
-    ]
+      "Real game ship-by-ship target traces unavailable",
+      "Attacker-only Forge5 is a counterfactual sensitivity experiment, not the user's observed game configuration"
+    ],
+    "actual_game_forge_configuration": {
+      "attacker_forge": 5,
+      "defender_forge": 5,
+      "confirmed_by_user": true
+    }
   }
 }
