@@ -39,6 +39,43 @@ Under T=74, the *model-predicted* two slot kills for these cases (in the above o
 
 The previous `f≈70%` maximum/realized focused-gross-damage fraction is **another mathematical surrogate**, not a discrete shot allocation algorithm. This T-sweep replaces it as a *more operationally testable candidate*, but does not validate either proxy. It is possible for several unrelated selectors to give the same visible totals. A fixed shot-target assignment completely independent of hit damage cannot by itself explain the Barbarian DEF7→8 cliff since `ceil(2800/250)=ceil(2800/240)=12`: to obtain different kills in otherwise identical initial conditions, **some allocation, shot eligibility/count, or other mechanism must depend on changed numeric combat state**, or original full battle inputs differ.
 
+## Parameter identifiability — leave-one-case-out audit
+
+**Important correction to interpretation:** 7/7 matches do **not** provide seven independent constraints on the threshold. The critical boundaries are close to the candidate survivor's HP after **three modeled hits** by the Barbarian 95-Accuracy speedboat:
+
+- DEF7 + Forge5: `d=250`; after three hits, `(2800−3×250)/2800×100 = 73.2142857%` HP.
+- DEF8 + Forge5: `d=240`; after three hits, `(2800−3×240)/2800×100 = 74.2857143%` HP.
+- A conditional focus threshold between these two survivor-health states can change whether follow-on modeled hits finish the same carrier. The brute-force exact integer-selector fit `73.22–74.28%` is essentially this **DEF7→DEF8 observed cliff**, not an independently observed 74% rule.
+
+New `leave_one_reported_case_out` code **fits the threshold only to the OTHER SIX cases**, then checks all candidate threshold outputs for the omitted case:
+
+| Omitted game record | Thresholds fitting other six, scanned at 0.01pp | Possible prediction for omitted record | Fully determined by the other six? |
+| --- | --- | --- | --- |
+| Barbarian DEF7 (game: 1 dead) | **70.97–74.28%** (332 candidate values) | **0 or 1 dead** | **No** |
+| Barbarian DEF8 (game: 0 dead) | **73.22–80.64%** (743 values) | **0 or 1 dead** | **No** |
+| Barbarian DEF14 (game: 0) | 73.22–74.28% | 0 | Yes, *within candidate family* |
+| Barbarian DEF3 no-Forge (game: 2) | 73.22–74.28% | 2 | Yes, *within candidate family* |
+| PvP ATT12/DEF8 (game: 2) | 73.22–74.28% | 2 | Yes, *within candidate family* |
+| PvP ATT20/DEF16 (game: 2) | 73.22–74.28% | 2 | Yes, *within candidate family* |
+| PvP ATT17/DEF18 (game: 1) | 73.22–74.28% | 1 | Yes, *within candidate family* |
+
+This is *sensitivity analysis using known case outcomes* (the family, 16/14 input, and fitting range were designed after reviewing the same source records), **NOT genuinely prospective independent field validation**. A count of fitting grid points is NOT a probability of success. If DEF7 or DEF8 were unknown, other observations would admit conflicting guesses. Do not choose T=74 by a post-hoc likelihood claim.
+
+## Concrete NEXT game-visible falsification: PvP ATT17/DEF18 end-of-Round-1 bars
+
+The user has independently verified that **both players had Forge5, 30 speedboats (two 15-ship source slots) vs six carriers (two 3-carrier target slots), and observed one TOTAL carrier sunk by end of Round 1**. They have **not** supplied the physical slot where that one carrier sunk or the two surviving-slot HP bars.
+
+The candidate **T=74%** and modeled 16/14 all-hit address allocation predict this specific **previously unmeasured output**:
+
+| Slot in **model** | Source AM hits in model | Candidate number sunk | Candidate round-one survivor HP bar (floor) | Model individual survivors (NOT visible in game) |
+| --- | ---: | ---: | ---: | --- |
+| 16-address-hit target slot | 16 × 271 | **1** | **75%** (actual 75.80%) | 2,258 HP; 1,987 HP |
+| 14-address-hit target slot | 14 × 271 | **0** | **54%** (actual 54.83%) | 2,258 HP; 2,258 HP; **90 HP** |
+
+**The bars 75%/54% are prospective test predictions, not user-reported facts.** If the actual one sink is in the 14-address-hit slot rather than the 16, or observed bars differ materially after establishing game UI rounding and other fleet effects, the combined 74%-focus/16+14-all-hit/discard-overkill explanation is **falsified for that game setting**. A mismatch by itself does not say which component—AM addressing, successful hit count, selector, support fleet, damage accounting or bar denominator—is responsible. No impossible per-individual target-hit record is required; Round1 per-slot deaths and displayed HP bars suffice.
+
+For other source cases without reported bars, the JSON artifact similarly lists separately labeled, **unobserved model-only** first-round slot-health predictions. Keep that section distinct from the confirmed DEF14 65%/70% real-game bars.
+
 ## Mandatory falsification — other units and health bars
 
 **Ram ships reject treating T≈74% as a universal rule.** With an isolated six successful-hit model in each synthetic six-ship Flank slot, Barbarian 1160/1150/1110 damage into HP3080 at player DEF14/15/19 yields **2/2/2 deaths** under T=74. The separate user game reports **1/0/0 per stated slot** (DEF19 from a separate chat case, not the Excel F4:F19 series). Even an exhaustive scan over fixed T=0–100 on this exact six-hit model gives **no threshold** that reproduces the 14→15 transition. However, these six shots per slot, complete First-line context, and original attack eligibility are NOT game-proven. The failure narrows the supported explanatory scope, not an official game rule.
