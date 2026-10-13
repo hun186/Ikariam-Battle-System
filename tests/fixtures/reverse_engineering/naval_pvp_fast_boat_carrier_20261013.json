@@ -5,8 +5,9 @@
   "source": {
     "medium": "User ChatGPT conversation 2026-10-13",
     "original_battle_reports_attached": false,
-    "comment": "User supplied three cases: 30 player fast boats against six player carriers; in a subsequent reply explicitly confirmed BOTH attacking and defending player sides use Forge Level 5. Exact real-game round, other fleet units, ship identity and casualty split per physical slot remain unknown.",
-    "forge_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_BOTH_PLAYERS_FORGE5"
+    "comment": "User supplied three player speedboat (30) versus player carrier (6) cases; later explicitly confirmed BOTH attacking and defending players use Forge Level 5 AND that the casualty totals (2/2/1) were measured at the END OF ROUND ONE. Original battle-report files, full supporting fleets and physical-slot casualty split remain unavailable.",
+    "forge_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_BOTH_PLAYERS_FORGE5",
+    "round_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_ALL_THREE_PVP_RESULTS_END_OF_ROUND_ONE"
   },
   "observed": [
     {
@@ -20,11 +21,13 @@
       "reported_forge_level": 5,
       "reported_carrier_total_deaths": 2,
       "death_slots_unknown": true,
-      "observed_round_unknown": true,
       "attacker_forge_level": 5,
       "defender_forge_level": 5,
       "both_forge5_confirmed_by_user": true,
-      "forge_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_BOTH_PLAYERS_FORGE5"
+      "forge_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_BOTH_PLAYERS_FORGE5",
+      "observed_round_number": 1,
+      "round_one_confirmed_by_user": true,
+      "round_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_ALL_THREE_PVP_RESULTS_END_OF_ROUND_ONE"
     },
     {
       "case": "pvp_fast_att20_carrier_def16",
@@ -37,11 +40,13 @@
       "reported_forge_level": 5,
       "reported_carrier_total_deaths": 2,
       "death_slots_unknown": true,
-      "observed_round_unknown": true,
       "attacker_forge_level": 5,
       "defender_forge_level": 5,
       "both_forge5_confirmed_by_user": true,
-      "forge_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_BOTH_PLAYERS_FORGE5"
+      "forge_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_BOTH_PLAYERS_FORGE5",
+      "observed_round_number": 1,
+      "round_one_confirmed_by_user": true,
+      "round_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_ALL_THREE_PVP_RESULTS_END_OF_ROUND_ONE"
     },
     {
       "case": "pvp_fast_att17_carrier_def18",
@@ -54,11 +59,13 @@
       "reported_forge_level": 5,
       "reported_carrier_total_deaths": 1,
       "death_slots_unknown": true,
-      "observed_round_unknown": true,
       "attacker_forge_level": 5,
       "defender_forge_level": 5,
       "both_forge5_confirmed_by_user": true,
-      "forge_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_BOTH_PLAYERS_FORGE5"
+      "forge_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_BOTH_PLAYERS_FORGE5",
+      "observed_round_number": 1,
+      "round_one_confirmed_by_user": true,
+      "round_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_ALL_THREE_PVP_RESULTS_END_OF_ROUND_ONE"
     }
   ],
   "model_controls": {
@@ -90,17 +97,19 @@
       }
     ],
     "assumptions_not_gamefacts": [
-      "Original game round unknown",
       "Actual full fleet including front line unknown",
       "AM 16/14 is model allocation",
       "Official individual target allocation unknown",
       "Real game ship-by-ship target traces unavailable",
-      "Attacker-only Forge5 is a counterfactual sensitivity experiment, not the user's observed game configuration"
+      "Attacker-only Forge5 is a counterfactual sensitivity experiment, not the user's observed game configuration",
+      "Round 1 is user-confirmed, but the synthetic model's invented First-line fleets are NOT the real complete opposing formations"
     ],
     "actual_game_forge_configuration": {
       "attacker_forge": 5,
       "defender_forge": 5,
       "confirmed_by_user": true
-    }
+    },
+    "actual_game_observed_round": 1,
+    "round_one_confirmed_by_user": true
   }
 }
