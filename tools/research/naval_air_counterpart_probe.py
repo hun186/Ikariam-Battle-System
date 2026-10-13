@@ -158,6 +158,7 @@ def report() -> dict:
         "schema_version": 1,
         "case_id": evidence["case_id"],
         "source": evidence["source"],
+        "additional_observations": evidence.get("additional_observations", []),
         "candidate_unit_mapping": evidence["candidate_unit_mapping"],
         "conditions": evidence["model_assumptions"],
         "cases": [
