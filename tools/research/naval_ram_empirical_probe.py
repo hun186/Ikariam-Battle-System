@@ -169,11 +169,12 @@ def microprobe_six_hits(
     }
 
 
-def model_one_controlled_round(armor_upgrade: int, attack_upgrade: int = 20) -> dict:
-    """Controlled Ram-only battle, NOT six full user-observed Flank slots.
+def model_one_controlled_round(armor_upgrade: int, attack_upgrade: int = 20, *, fill_front: bool = False) -> dict:
+    """Two synthetic scenarios; neither is the unprovided real mixed-fleet input.
 
-    Ram-only deployments can fill First by fallback, which is not equivalent
-    to the user-reported real battle with six Flank slots.
+    Without front-fill, Rams fill First. With front-fill, invented heavy front
+    units occupy all seven First slots so the Rams can occupy six Flank slots.
+    Those invented units must never be attributed to the historical battle.
     """
     scenario = {
         "policy": "experimental",
@@ -198,11 +199,24 @@ def model_one_controlled_round(armor_upgrade: int, attack_upgrade: int = 20) -> 
             ],
         },
     }
+    if fill_front:
+        # Only a controlled geometry-valid comparison. These heavy first-line
+        # fillers are NOT documented as present in the user's game report.
+        scenario["attacker"]["units"].insert(0, {
+            "unit_id": "barbarian_wedge_paddler", "quantity": 42,
+            "entry_batch_id": "barb-first", "wave_id": "barb-first::wedge",
+        })
+        scenario["defender"]["units"].insert(0, {
+            "unit_id": "steam_ram", "quantity": 35,
+            "attack_upgrade": 0, "armor_upgrade": 0,
+            "entry_batch_id": "player-first", "wave_id": "player-first::steam",
+        })
     result = simulate(scenario)
     if not result.get("rounds") or len(result["rounds"]) < 2:
         return {
             "defense_upgrade": armor_upgrade,
             "attack_upgrade": attack_upgrade,
+            "synthetic_front_filled": fill_front,
             "status": result.get("status"),
             "rounds_completed": result.get("rounds_completed"),
             "warning": "No Round-1 snapshot; cannot interpret casualties",
@@ -241,6 +255,7 @@ def model_one_controlled_round(armor_upgrade: int, attack_upgrade: int = 20) -> 
     return {
         "defense_upgrade": armor_upgrade,
         "attack_upgrade": attack_upgrade,
+        "synthetic_front_filled": fill_front,
         "status": result.get("status"),
         "rounds_completed": result.get("rounds_completed"),
         "initial_layout_by_side": {
@@ -286,6 +301,9 @@ def build_report() -> dict:
         "current_model": [
             model_one_controlled_round(level) for level in variants
         ],
+        "controlled_front_filled_model_not_real_battle": [
+            model_one_controlled_round(level, fill_front=True) for level in variants
+        ],
         "research_warnings": [
             "Observed HP bars may represent something other than survivor-average remaining HP",
             "80 Accuracy does not imply 80% independent chance to hit; check the current EXP accuracy selector",
@@ -323,6 +341,21 @@ def main() -> None:
                 (x["physical_position"], x["casualties"], x["units"], x["damage"])
                 for x in sl
             ]))
+    print("Independent synthetic first-line-filled geometry validation (NOT real-game fleet):")
+    for model in report["controlled_front_filled_model_not_real_battle"]:
+        flank = {
+            side: [
+                (s["physical_position"], s["units"])
+                for s in model.get("initial_layout_by_side", {}).get(side, [])
+                if s["line"] == "flank"
+            ] for side in ("attacker", "defender")
+        }
+        print(
+            f"  DEF {model['defense_upgrade']}: "
+            f"model player losses={model.get('defender_player_deaths')}, "
+            f"barbarian losses={model.get('attacker_barbarian_deaths')}, "
+            f"flank layout={flank}, status={model['status']}"
+        )
     print("Exact current six-hit Accuracy/overkill microprobe:")
     for x in report["microprobe_current_accuracy_and_overkill"]["barbarian_to_player"]:
         print(f"  DEF{x['defense_upgrade']} barbarian→player: "
