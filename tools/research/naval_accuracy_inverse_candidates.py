@@ -301,6 +301,32 @@ def report() -> dict:
         })
     baseline = [predicted(c, c["weapon_accuracy"]) for c in cases]
     t74 = [predicted(c, 74.0) for c in cases]
+    # Genuine NEW game observations could test these currently-unobserved
+    # Round-1 slot bars. They are candidate PREDICTIONS, not game measurements.
+    unobserved_bar_predictions = [
+        {
+            "case_id": item["case_id"],
+            "predicted_slot_deaths_not_verified_by_game": [
+                s["deaths"] for s in item["model_slot_results"]
+            ],
+            "predicted_floor_survivor_slot_bars_not_observed": [
+                int(s["surviving_hp_percent_no_carry"])
+                if s["surviving_hp_percent_no_carry"] is not None else None
+                for s in item["model_slot_results"]
+            ],
+            "predicted_surviving_individual_HP_not_game_shot_trace": [
+                [cases[0]["hp"] - d for d in s["per_survivor_damage"]]
+                for s in item["model_slot_results"]
+            ],
+            "research_warning": (
+                "These numbers are a prospective candidate outcome only. "
+                "Source did not provide actual remaining-slot bars. "
+                "Per-slot kills and all successful 16/14 AM hits are model "
+                "assumptions; do not label any as original battle facts."
+            ),
+        }
+        for item in t74 if item["observed_bars"] is None
+    ]
     bars = _reverse_bars(74.0)
     ram = _ram_holdout(74.0)
     return {
@@ -318,6 +344,7 @@ def report() -> dict:
         "seven_observed_air_cases": cases,
         "current_accuracy_percentage_used_as_focus_threshold": baseline,
         "candidate_74_percent_focus_threshold": t74,
+        "unobserved_round1_slot_bar_predictions_research_only": unobserved_bar_predictions,
         "fitting_percentage_point_interval_grid_0_01": best,
         "fitting_threshold_count_in_grid": len(by_t),
         "leave_one_reported_case_out": left_out,
@@ -356,6 +383,12 @@ def main() -> None:
         print(f"{case['case_id']}: user={case['observed_total_deaths']}, "
               f"candidate={case['candidate_deaths']}, "
               f"candidate_slot_deaths={[s['deaths'] for s in case['model_slot_results']]}")
+    for x in data["unobserved_round1_slot_bar_predictions_research_only"]:
+        if x["case_id"] == "pvp_fast_att17_carrier_def18":
+            print(f"NEW DISCRIMINATOR {x['case_id']}: model_slot_deaths="
+                  f"{x['predicted_slot_deaths_not_verified_by_game']}, "
+                  f"predicted_floor_bars="
+                  f"{x['predicted_floor_survivor_slot_bars_not_observed']}")
     for case in data["out_of_family_ram_six_hit_holdouts"]:
         print(f"{case['case_id']}: user-per-slot="
               f"{case['observed_player_deaths_per_reported_slot']}, "
