@@ -123,6 +123,58 @@ def compare_hoplite_physical_positions(case: dict, round1: dict, damage_events: 
     }
 
 
+
+def evaluate_surviving_wall_one_kill_hypothesis(case: dict, matrix: dict) -> dict:
+    """Conditional wall/firearm attribution, not observed game shot telemetry.
+
+    Assume destroyed sections cannot shoot after artillery, surviving walls
+    fire once at the directly facing physical First slot and kill one there,
+    and current modeled Mortar kills match real Mortar kills. Do not modify
+    engine casualties using this analytical counterfactual.
+    """
+    wall_alive = case["observed"]["wall_alive_physical"]
+    rows = matrix["positions"]
+    if len(wall_alive) != len(rows):
+        raise ValueError("Observed wall mask must match physical First positions")
+    inferred = []
+    for index, (alive, row) in enumerate(zip(wall_alive, rows), 1):
+        if row["physical_position"] != index or alive not in (0, 1):
+            raise ValueError("Wall hypothesis requires ordered physical slots and 0/1 mask")
+        mortar = row["modeled_defender_sources"].get("mortar", {}).get("casualties", 0)
+        carabineer = row["modeled_defender_sources"].get(
+            "sulphur_carabineer", {}
+        ).get("casualties", 0)
+        firearm_needed = row["observed_hoplite_losses"] - mortar - alive
+        inferred.append({
+            "physical_position": index,
+            "observed_hoplite_losses": row["observed_hoplite_losses"],
+            "wall_survives_observed": bool(alive),
+            "hypothesized_wall_kills": alive,
+            "assumed_mortar_kills": mortar,
+            "inferred_carabineer_kills": firearm_needed,
+            "modeled_carabineer_kills": carabineer,
+            "inferred_minus_modeled_carabineer_kills": firearm_needed - carabineer,
+        })
+    return {
+        "status": "UNVERIFIED_CONDITIONAL_DECOMPOSITION",
+        "hypothesis_id": "HYP-WALL-SURVIVING-FACING-ONE-KILL-001",
+        "assumptions": [
+            "Breached wall sections cannot fire in the later First firing phase",
+            "Each surviving wall section targets its directly facing physical First slot",
+            "Each surviving wall section fires successfully and kills one attacker Hoplite",
+            "Actual Mortar kills per physical slot match current simulator Mortar events",
+            "No further sources change the counted First-line deaths",
+        ],
+        "rows": inferred,
+        "wall_kills_total": sum(r["hypothesized_wall_kills"] for r in inferred),
+        "assumed_mortar_kills_total": sum(r["assumed_mortar_kills"] for r in inferred),
+        "inferred_carabineer_kills_total": sum(r["inferred_carabineer_kills"] for r in inferred),
+        "all_inferred_carabineer_counts_nonnegative": all(
+            r["inferred_carabineer_kills"] >= 0 for r in inferred
+        ),
+    }
+
+
 def build_report(source_commit_sha: str | None = None) -> dict:
     case = json.loads(CASE_PATH.read_text(encoding="utf-8"))
     scenario = json.loads(json.dumps(case["scenario"]))
@@ -228,6 +280,9 @@ def build_report(source_commit_sha: str | None = None) -> dict:
     attribution_sum = sum(entry["casualties"] for entry in grouped.values())
     legacy = case["legacy_model"]["casualties"]["attacker"]["hoplite"]
     position_comparison = compare_hoplite_physical_positions(case, round1, damage_events)
+    wall_fire_hypothesis = evaluate_surviving_wall_one_kill_hypothesis(
+        case, position_comparison,
+    )
 
     return {
         "schema_version": 1,
@@ -246,6 +301,7 @@ def build_report(source_commit_sha: str | None = None) -> dict:
         },
         "legacy_model": {"attacker_hoplite_casualties": legacy},
         "physical_hoplite_comparison": position_comparison,
+        "conditional_wall_fire_hypothesis": wall_fire_hypothesis,
         "current_model": {
             "status": result.get("status"),
             "rounds_completed": result.get("rounds_completed"),
