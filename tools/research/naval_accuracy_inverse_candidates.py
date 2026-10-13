@@ -250,15 +250,55 @@ def _reverse_bars(threshold: float | None) -> dict:
 @lru_cache(maxsize=1)
 def report() -> dict:
     cases = _air_cases()
-    by_t = []
-    # 0.01 percentage-point grid, including both endpoints. Identifies a
-    # candidate interval on THESE seven fitting cases only; never calls
-    # an observed casualty a computed input to the forward selector.
-    for p in range(0, 10001):
-        threshold = p / 100
-        if all(predicted(c, threshold)["matches_reported_total"] for c in cases):
-            by_t.append(p)
+    # Evaluate each threshold/case exactly once and REUSE the forward
+    # predictions for both full-data and leave-one-source-out analysis.
+    # Thresholds are fitted on death counts, not on hidden shot histories.
+    grid_predictions = [
+        (p, tuple(predicted(c, p / 100)["candidate_deaths"] for c in cases))
+        for p in range(0, 10001)
+    ]
+    by_t = [
+        p for p, values in grid_predictions
+        if all(value == case["observed_total_deaths"]
+               for value, case in zip(values, cases))
+    ]
     best = [by_t[0] / 100, by_t[-1] / 100] if by_t else None
+    left_out = []
+    for omitted, heldout in enumerate(cases):
+        training_fits = [
+            (p, outcomes[omitted])
+            for p, outcomes in grid_predictions
+            if all(actual == case["observed_total_deaths"]
+                   for j, (actual, case) in enumerate(zip(outcomes, cases))
+                   if j != omitted)
+        ]
+        possible = sorted(set(observed for _, observed in training_fits))
+        counts = {
+            str(deaths): sum(predict == deaths for _, predict in training_fits)
+            for deaths in possible
+        }
+        left_out.append({
+            "held_out_case": heldout["id"],
+            "evidence_class": "RESEARCH_ONLY_LEAVE_ONE_CASE_OUT_NOT_INDEPENDENT_FIELD_TRIAL",
+            "training_cases": [c["id"] for j, c in enumerate(cases) if j != omitted],
+            "training_matching_threshold_count": len(training_fits),
+            "training_threshold_grid_range": (
+                [training_fits[0][0] / 100, training_fits[-1][0] / 100]
+                if training_fits else None
+            ),
+            "held_out_user_reported_deaths": heldout["observed_total_deaths"],
+            "held_out_candidate_deaths_possible": possible,
+            "candidate_threshold_counts_by_held_out_prediction": counts,
+            "all_training_fits_predict_correct_held_out": (
+                bool(training_fits)
+                and possible == [heldout["observed_total_deaths"]]
+            ),
+            "important_caveat": (
+                "Counts are uniform grid tallies, NOT likelihoods, probabilities "
+                "or independent clinical/statistical validation. The selector "
+                "family and AM assumptions were chosen after seeing the data."
+            ),
+        })
     baseline = [predicted(c, c["weapon_accuracy"]) for c in cases]
     t74 = [predicted(c, 74.0) for c in cases]
     bars = _reverse_bars(74.0)
@@ -280,10 +320,13 @@ def report() -> dict:
         "candidate_74_percent_focus_threshold": t74,
         "fitting_percentage_point_interval_grid_0_01": best,
         "fitting_threshold_count_in_grid": len(by_t),
+        "leave_one_reported_case_out": left_out,
+        "leave_one_out_is_NOT_fully_independent_validation": True,
         "out_of_family_ram_six_hit_holdouts": ram,
         "reverse_player_fast_to_barbarian_carrier_bars": bars,
         "guardrails": [
             "7/7 matching is IN-SAMPLE, not evidence of official formula, independent hit success or correct mixed-fleet setup.",
+            "Leaving out the critical Barbarian DEF7 or DEF8 case yields ambiguous predictions; other five cases do not uniquely fix T.",
             "Source Accuracy 90 and 95 are NOT proven to be percentages for focus.",
             "The same threshold is INVALID for Ram 14->15 drop; do not patch global accuracy.py.",
             "Reverse residual 53/65 bars cannot be explained by discarded-overkill at a candidate threshold.",
@@ -304,6 +347,11 @@ def main() -> None:
     print(f"Candidate focus threshold window (0.01pp grid): "
           f"{data['fitting_percentage_point_interval_grid_0_01']}; "
           f"count={data['fitting_threshold_count_in_grid']}")
+    for heldout in data["leave_one_reported_case_out"]:
+        print(f"LOOCV {heldout['held_out_case']}: training_range="
+              f"{heldout['training_threshold_grid_range']}, "
+              f"heldout_deaths_options={heldout['held_out_candidate_deaths_possible']}, "
+              f"all_fits_correct={heldout['all_training_fits_predict_correct_held_out']}")
     for case in data["candidate_74_percent_focus_threshold"]:
         print(f"{case['case_id']}: user={case['observed_total_deaths']}, "
               f"candidate={case['candidate_deaths']}, "
