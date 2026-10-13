@@ -102,3 +102,21 @@ def test_current_max_help_geometry_and_controlled_formation_provenance():
     )
     # Actual user-described six flank positions were NOT reproduced by this
     # pure-Ram-only first-line fallback controlled model.
+    # A separate synthetic 35 Steam Rams + 42 Barbarian Wedge Paddlers
+    # fills both First formations while keeping 36 native Flank ships per side.
+    # These front ships were NEVER identified as present in the real battle.
+    matched = report["controlled_front_filled_model_not_real_battle"]
+    assert len(matched) == 3
+    for model in matched:
+        assert model["synthetic_front_filled"]
+        for side in ("attacker", "defender"):
+            layout = model["initial_layout_by_side"][side]
+            flank = [s for s in layout if s["line"] == "flank"]
+            assert len(flank) == 6
+            assert sorted(x["physical_position"] for x in flank) == [1, 2, 3, 4, 5, 6]
+            assert [x["units"] for x in flank] == [6] * 6
+        assert model["defender_player_deaths"] == 12
+        assert model["attacker_barbarian_deaths"] == 18
+    assert case["controlled_scenario_assumptions"][
+        "synthetic_geometry_valid_front_fillers"
+    ]["do_not_calibrate_casualties_as_real_battle"]
