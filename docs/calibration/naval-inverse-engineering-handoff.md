@@ -12,14 +12,15 @@
    - `tests/fixtures/reverse_engineering/naval_air_counterparts_20261013.json`
    - `tests/fixtures/reverse_engineering/naval_pvp_fast_boat_carrier_20261013.json`
    Treat separately (A) Excel observed aggregate, (B) user chat-reported observations and later clarifications, (C) current production-profile calculations, (D) synthetic simulator outputs, (E) speculative hypotheses. A verified geometry is not a verified target allocator.
-4. Review code:
+4. **New candidate/falsification study:** read `docs/calibration/2026-10-14-naval-accuracy-inverse-candidates.md` and `tools/research/naval_accuracy_inverse_candidates.py`. A shared ~74% *hypothetical remaining-HP focus threshold* fits seven **in-sample carrier death totals** using model AM hits, but **fails the Ram 14→15 cliff and reverse 53/65 HP bars**. This is neither weapon Accuracy nor a verified official mechanism. Do not replace production `accuracy.py` with it.
+5. Review code:
    - `tools/research/naval_ram_empirical_probe.py`
    - `tools/research/naval_air_counterpart_probe.py`
    - `tests/unit/test_naval_ram_empirical_probe.py`
    - `tests/unit/test_naval_air_counterpart_probe.py`
    - `ikariam_battle/accuracy.py`, `ikariam_battle/damage.py`, `ikariam_battle/engine.py`.
    The synthetic air report exports full **model-generated** round-one events and assumptions, **not real-game individual-shot logs**. CI `.github/workflows/naval-ram-empirical-probe.yml` runs full tests and uploads research JSON; recheck live run ID for current head.
-5. Continue **inverse model competition**, not an immediate global Accuracy rule replacement: run held-out predictions across both Ram and air fleets with the same model parameters, distinguish spread/focus, per-slot damage pools/overkill/redistribution, shot eligibility/chronology, and UI HP-bar aggregation; do not hardcode specific upgrade casualty outputs into the engine. Track rejected as well as surviving hypotheses. Add regression and refresh this record after each meaningful new case.
+6. Continue **inverse model competition**, not an immediate global Accuracy rule replacement: run held-out predictions across both Ram and air fleets with the same model parameters, distinguish spread/focus, per-slot damage pools/overkill/redistribution, shot eligibility/chronology, and UI HP-bar aggregation; do not hardcode specific upgrade casualty outputs into the engine. Track rejected as well as surviving hypotheses. Add regression and refresh this record after each meaningful new case.
 
 ## 1. Evidence ledger — what was actually supplied
 
@@ -136,3 +137,11 @@ A test `f=0.70` predicts totals 2/2/1, and ALSO falls in the *separate, more res
 
 **Reproducibility:** Source-only GitHub workflow `.github/workflows/naval-ram-empirical-probe.yml` uploads the new `naval_pvp_fast_carrier_probe.json` artifact alongside prior two JSON artifacts. Historical first execution on head `acd67d22dd74a5f79cc963b11924576de132cb98` [Actions #38421340989](https://github.com/hun186/Ikariam-Battle-System/actions/runs/38421340989) succeeded (471 tests passed / 3 expected xfailed, BEFORE new PvP regression tests), with six actual model-control outcomes. Verify exact-head CI anew after subsequent documentation and regression changes. **No actual game individual-shot data exists.**
 
+
+## 8. New executable inverse Accuracy candidate (2026-10-14 research extension)
+
+The independent script `tools/research/naval_accuracy_inverse_candidates.py` and regression `tests/unit/test_naval_accuracy_inverse_candidates.py` evaluate a *single shared damage-responsive within-slot remaining-HP threshold* after current 16/14 AM addresses are generated. Every individual shot and sinking/overkill event is modeled with integer ship HP. The threshold is swept between 0 and 100% in 0.01pp increments; the candidate range roughly **73.22–74.28%** reproduces **seven in-sample air-carrier casualty TOTALS**, including the user-confirmed both-Forge5 Round1 PvP 2/2/1 series, with T=74% one example.
+
+**This is emphatically not a discovered official Accuracy value or mechanism**: source weapons' actual Accuracy remain 90 and 95, original real individual hit sequences are inaccessible, and neither AM 16/14 successful shots nor full First support fleets were observed. Crucially the same rule **FAILS** the Ram DEF14/15/19 per-slot death data under six synthetic hits/slot (model 2/2/2 vs chat 1/0/0) and **FAILS** reverse player-fast-vs-Barbarian-carrier survivor HP bars with discarded lethal overkill (model 57/69 vs observed 53/65, despite correct one kill/slot). Only a numerical, unproven overkill conservation alternative would produce 53/65. Negative results and uncertainty MUST survive future agent handoffs. Read the dedicated living explanation `docs/calibration/2026-10-14-naval-accuracy-inverse-candidates.md` and exact-head CI JSON `naval_accuracy_inverse_candidates.json` before proposing any production formula changes.
+
+Research priority is to find **shared discrete target-allocator and damage-retention mechanisms** that simultaneously fit held-out Ram deaths, air carrier deaths AND surviving bars, without using a source case ID or armor grade as a special-case lookup. The new T-sweep is **in-sample fitting**, NOT held-out validation. A new independent real battle target type, per-slot death location in the PvP 17/18 case, or another effective damage boundary is needed to discriminate models.
