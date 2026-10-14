@@ -64,8 +64,13 @@ def build_report() -> dict:
             continue
 
         wall = hypothetical_wall_kills_by_slot(active)
+        # Competing UNSUPPORTED test: treat wall attacks as if they shared
+        # the existing LAND AM row-major source/target ordering.
+        wall_am = model_am_addressed_shots_by_physical_slot(active, [1]*7)
         gun = {p:source_deaths[p]-wall[p] for p in active}
         residual = {p:gun[p]-current_AM[p] for p in active}
+        gun_am_wall = {p:source_deaths[p]-wall_am[p] for p in active}
+        residual_am_wall = {p:gun_am_wall[p]-current_AM[p] for p in active}
         result.append({
             "round": game["round"],
             "source": "USER_CONFIRMED_ROUND_DEATHS_PLUS_CONDITIONAL_WALL_HYPOTHESIS",
@@ -76,6 +81,9 @@ def build_report() -> dict:
             "hypothetical_wall_source_sections": 7,
             "hypothetical_wall_one_shot_one_kill": True,
             "hypothetical_wall_slot_kills_NOT_OBSERVED": wall,
+            "alternate_wall_same_AM_target_policy_NOT_OFFICIAL": wall_am,
+            "alternate_wall_AM_derived_gun_kills": gun_am_wall,
+            "alternate_wall_AM_derived_gun_kills_minus_musket_AM": residual_am_wall,
             "wall_total_kills_IF_ALL_SEVEN_FIRE": sum(wall.values()),
             "derived_musket_kills_after_subtracting_wall_NOT_OBSERVED": gun,
             "derived_musket_kill_total": sum(gun.values()),
@@ -115,7 +123,7 @@ def build_report() -> dict:
         "central_treatment_findings": {
             "rounds_81_83": "AM center14, wall hypothesis1, user center deaths8 => modeled gun kills7; remaining seven addresses need not cause a death",
             "rounds_84_87": "outer left slot user15 versus hypothetical 7 AM+1 wall => +7 extra kills; fixed AM and one-per-slot wall cannot explain without additional redistribution/sources",
-            "rounds_88_89": "both have 91 source deaths, and one 7-wall-shot distribution gives EXACT 84 modeled gun killings; wall target priority STILL unknown",
+            "rounds_88_89": "both have 91 source deaths; the post-hoc leftmost-extra wall distribution gives EXACT 84 modeled musket one-kill-per-shot allocation; this is NOT proof of wall target priority, while a competing row-major wall AM produces nonzero per-slot residuals",
         },
         "official_wall_target_selection_algorithm_verified": False,
     }
