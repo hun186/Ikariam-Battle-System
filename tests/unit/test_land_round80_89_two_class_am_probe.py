@@ -95,3 +95,23 @@ def test_model_no_fabricated_wall_game_trace_or_forge_claims():
     assert "84 source musketeers" in data["conditional_assumptions"][1]
     assert any("ammunition" in x.lower() for x in data["falsification_guide"])
     assert data["rounds"][0]["excluded_from_wall_controls"]
+
+
+def test_owner_forge_and_pdf_spread_corrections_are_in_persistent_report():
+    data = report()
+    assert data["actual_game_forge_record"]["active"] is True
+    assert data["actual_game_forge_record"]["level"] is None
+    assert data["actual_game_forge_record"]["prior_no_forge_controls"].startswith(
+        "COUNTERFACTUAL_ONLY"
+    )
+    assert data["forge0_damage_report_is_counterfactual_only"] is True
+    assert data["seven_exclusive_center_hits_is_not_confirmed"] is True
+    assert data["prewounded_axe_count_is_conditional_not_observed"] is True
+    correction = data["user_distributed_damage_correction"]
+    assert "Battle System PDF" in correction["owner_interpretation"]
+    assert correction["center_hp_bar_sequence_r80_r87"] == [
+        99, 99, 99, 99, 97, 92, 96, 0
+    ]
+    assert correction["center_remaining_r80_r87"] == [
+        45, 37, 29, 21, 16, 11, 5, 0
+    ]
