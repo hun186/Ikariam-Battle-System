@@ -2,6 +2,38 @@
 
 > **Research-only, source-grounded, not a Gameforge combat-rule specification.** Created 2026-10-14 for [Issue #71](https://github.com/hun186/Ikariam-Battle-System/issues/71). Keep independent of NAVAL Draft PR #69 and its Accuracy/overkill calibration. Do not merge or change the production battle engine without explicit authorization.
 
+## OWNER TWO-PART CORRECTION — MORTAR→GUN→WALL AND INDEPENDENT TARGET REROUTE / KILL ACCOUNTING (2026-10-14)
+
+### Part 1. New independent FULL-Axe first-round battle: WALL LAST, it DOES consume previous gun wounds on the killed Axe
+
+Owner explicitly gives the proposed **phase order: mortar first, then muskets, then wall**. The older joint model's phrase "same 490 surviving wounds on both edges after the wall" is **incorrect as stated**: **490 is the gun-phase residual BEFORE the wall attacks**. Mortars direct 1-kill five fresh Axes in physical1, zero in physical7, so they cannot consume wounds from a gun phase that has not yet run. Gun group7 into each edge at confirmed Forge5 yields `7×710=4970=4×1120+490`, retaining 490 wounds across **41 left / 46 right** survivors AFTER guns. If a near-uniform integer per-Axe redistribution occurs before wall (UNVERIFIED), a wall one-shot direct-killing a left Axe removes `floor(490/41)=11` OLD gun wounds; on right removes `floor(490/46)=10`. Then:
+
+| Phase/item | Left physical1 | Right physical7 |
+|---|---:|---:|
+| start Axe | 50 | 50 |
+| mortar effective one-shot casualties (HYPOTHESIS) | 5 | 0 |
+| guns: 7 complete hits, pooled kills | 4 | 4 |
+| gun-phase living Axe before wall | **41** | **46** |
+| gun-phase total residual wounds BEFORE wall | 490 | 490 |
+| wall final 1-kill removes OLD gun wounds (near-equal share) | **11** | **10** |
+| end survivors | **40** | **45** |
+| end living wound totals AFTER wall | **479** | **480** |
+| display if floor-survivor-mean HP (UNVERIFIED) | **98%** | **99%** |
+
+Compute `floor(100×(1−479/(40×1120)))=98%`, `floor(100×(1−480/(45×1120)))=99%`. If the wall instead kills a near-equal-share victim carrying **one extra** wound, end totals478/479 would still show98/99. This is consistent with all source data while respecting the owner's firing order. Do **not** confuse removing a wall victim's prior ~11/10 injuries with adding the wall's huge raw damage to guns; wall damage is discarded after a one-shot kill. The earlier zero-adjustment model happened to predict the same displayed bars because percentages are coarse, but its post-wall damage **state** was wrong. Whether the real engine near-equalizes individual wounds and which target wall picks remain UNKNOWN.
+
+### Part 2. Original R81–R87 mixed Knife / Axe battle: split AM reroute from post-reroute gun damage mode
+
+The owner identifies two SEPARATE candidate mechanisms rather than a single "below25→non-D kill" switch:
+
+**Stage A, conditional Attack Matrix target change.** In original R81–R83, physical center4 Axe receives 14 modeled musket AM **addresses**; leftmost Knife receives7. Before R84 the center Axe count drops from29 at start R83 to21 at start R84, so some unknown trigger might route ONE seven-shot source group from physical center4 to physical left1. Post-route candidate address vector becomes **[14,14,14,7,14,14,7]** instead of the baseline **[7,14,14,14,14,14,7]**. If those extra seven delivered complete Forge5 hits to Knife HP360, that is exactly seven additional one-shot Knife gun deaths (and one wall direct Knife kill still hypothetical), accounting for leftmost increase8→15. A population threshold **25** is illustrative only: with a predicate `before_center_population < threshold`, **every integer threshold22–29** would cause the SAME transition between start R83=29 and start R84=21. Therefore current observations CANNOT identify25, nor even establish that occupancy drives rerouting. Ammo, target priority, AM spill and source grouping all unverified.
+
+**Stage B, gun damage accounting AFTER stage A.** Under Forge5, HP1120, Axe armor20, complete gun damage710, healthy Axe takes TWO full hits. At14 center addresses, attacks may pair `14/2=7` fresh Axe kills (D-concentration, 300 overkill discarded per two shots). At seven actual full center hits, this division is INCOMPLETE (`7%2=1`). The independent first-round full-Axe screenshot ALREADY exhibits clean14-address inner cells and gun aggregate-remainder-consistent7-address edge cells, even though all enemy cells initially have50 units. Thus **partial hit groups** may be enough to alter observed kill/wound results without requiring a separate low-population Kill Type trigger. If using the currently proposed retained Slot wound-pool candidate after stage A, gun center damage `7×710=4970` plus previous living aggregate wounds `W`, so `gun_kills=floor((W+4970)/1120)`, with `rem=(W+4970)%1120`; divide rem near-equally among post-gun surviving Axes and finally one wall 1-kills a wounded Axe, removing that individual's injury from the living pool. Earlier R83 end21 Axe/99% hypothetical `W=25` predicts R84–R87 gun kills **4,4,5,4**, walls1 each; center end count **16,11,5,0** and bars **97,92,96,0**. This is a math witness, NOT verified Gameforge attack chronology/selector.
+
+With illustrative threshold25 and separately the parity/complete-pair group-accounting candidate, an independent research probe `tools/research/land_two_stage_attack_hypothesis_probe.py` compares all original R81–R87 seven-slot death vectors and the already tested R84–R87 aggregate HP witnesses, without changing the engine. It intentionally **does NOT** reconstruct early R81–R83 99% center HP bars: D-kill from concentrated full hits could coexist with PREEXISTING survivor wounds from R80, but actual individual state/history is unknown.
+
+**Falsification priority:** Seek a controlled battle with exactly7 or14 center gun attacks, *same* Axe HP, Forge/Workshop, and varied Axe occupancy, with fixed mortar+wall source accounting. If odd/even address count alone predicts pooled-vs-D residuals at both high and low occupancy, Stage B need not be directly controlled by population. Vary occupancy while leaving group lengths unchanged to isolate Stage A trigger. Neither stage is proven, and matching two battles still allows competing damage allocators (P/IR/RR, attack overflow, ammo/Accuracy). No production combat code change / NAVAL change / merge authorized.
+
 ## OWNER CORRECTION — MORTAR AM FIRST SIX + WALL + GUN EXPLAINS R1 SEVEN SLOT HP (2026-10-14)
 
 **Read this before the older "NEW INDEPENDENT SOURCE" section immediately below.** Owner pointed out the 5×6 mortar groups already on screenshot: the current project AM `_shot_rows([6]*5)` places **five attacks into each of first six physical Axe slots**, NONE into rightmost7: mortar-address histogram `[5,5,5,5,5,5,0]`. This follows source six attack rows each of five; land-max physical L→R priority labels `[6,4,2,1,3,5,7]`, so priorities1–6 correspond to ALL physical slots1–6. If EVERY mortar attack directly one-shot-kills one Axe and all seven corresponding wall sections each kill one, subtract mortar+wall deaths from the observed `[10,13,13,13,13,13,5]`: the required **gun death vector** is exactly **[4,7,7,7,7,7,4]**; current-project 7×12 musket AM addresses are `[7,14,14,14,14,14,7]`.
