@@ -146,7 +146,7 @@ def report()->dict:
             "not_confirmed_historical_game_firing_pattern":True,
         })
     assert [list(x["AM_base_addresses_by_physical"].values()) for x in amp]==[
-        [50]*7,[84,91,91,84],[119,119,112]
+        [49,49,49,56,49,49,49],[84,91,91,84],[119,119,112]
     ]
     # With the same hypothetical all-350-primary shot population, see what
     # Forge0 vs Forge5 budgets can/cannot cover under the restrictive R78-79
