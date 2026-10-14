@@ -37,6 +37,24 @@ For **seven occupied target cells**, try an illustrative wall assumption of **on
 
 This is an **exact arithmetic fit** with all six non-center cells; the center's seven non-kill gun addresses may represent surplus/nonlethal damage, overkill, other targeting, or incorrect assumptions. Central HP displayed 99% does not identify where seven actual musket bullets landed. The wall section target mapping `one each` is **not independently observed**.
 
+### Wall-target-distribution-INDEPENDENT lower bound (stronger than illustrative one-per-slot)
+
+The above `one wall kill in each position` decomposition is only a convenient accounting scenario. We can also derive a **rigorous conditional impossibility** without assuming **where** the seven wall attacks land.
+
+For physical position `i`, define its *shortfall relative to the FIXED proposed 84 musket AM addresses* as `s_i = max(0, observed_deaths_i - modeled_gun_addresses_i)`. If each gun attack can kill **at most one** and is held to its modeled position, the sum of all positive shortfalls must be covered by wall kills or other attacks:
+
+| Round(s) | Observed source deaths | Positive deficits vs fixed musket AM, L→R, before adding walls | Required additional one-kill events | Hypothetical wall kill budget | Still unexplained with ANY wall positioning |
+|---|---:|---|---:|---:|---:|
+| 81–83 | 84 | `1,1,1,0,1,1,1` | **6** | ≤7 | **0 minimum** |
+| **84–85, 87** | **88** | `8,1,1,0,1,1,1` | **13** | ≤7 | **≥6** |
+| **86** | **89** | `8,1,1,0,1,1,1` | **13** | ≤7 | **≥6** |
+| 88 | 91 | `2,1,1,1,1,1` | **7** | ≤7 | **0 minimum** |
+| 89 | 91 | `4,1,1,1` | **7** | ≤7 | **0 minimum** |
+
+For R84–87, the leftmost **15 deaths** alone exceed its proposed **seven musket address opportunities + all seven hypothetical wall hits = 14**, hence even giving all wall attacks to that one target still leaves at least one unexplained death. Across ALL cells the stricter lower bound is **13 − 7 = 6**. The conclusion is not “six gun hits definitely changed position”; alternatives include extra source waves, more than one lethal target per modeled shot, omitted fire phases or an incorrect 84-address assumption. But **the combined restrictive model (fixed 84 gun AM, ≤7 one-kill wall attacks, one gun hit kills at most one)** is falsified for R84–87 under the owner's visual death data. This is independent of any particular proposed wall target-priority distribution.
+
+At R88 and R89 the positive shortfalls add to exactly seven, so **IF** the muskets have exactly 84 addresses each causing one kill and walls have exactly seven kills, the wall slot distribution would have to be `2,1,1,1,1,1` and `4,1,1,1` respectively; this is an **inverse requirement conditional on that highly restrictive model**, not an official wall attack priority.
+
 ### R84–87 and after reserve/axe depletion
 
 With the **same hypothetical one-wall-kill-per-cell** distribution:
