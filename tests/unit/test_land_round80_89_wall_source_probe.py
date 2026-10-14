@@ -97,7 +97,7 @@ def test_wall_sensitivity_is_experimental_not_misreported_as_game_trace():
     assert r["source_count_assumptions_not_game_shot_log"]["musket_model_shots_total"] == 84
     assert r["source_count_assumptions_not_game_shot_log"]["wall_sections_visible_in_walled_rounds"] == 7
     assert r["source_count_assumptions_not_game_shot_log"]["wall_target_distribution_is_UNOBSERVED"]
-    assert "source" in r["owner_verified_source"]
+    assert r["owner_verified_source"]["user_confirmed_at_followup"]
     assert all(
         "Wall single-hit lethal effect is user stated" in x["evidence_limits"]
         for x in r["rounds"] if x["round"] != 80
