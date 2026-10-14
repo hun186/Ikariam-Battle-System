@@ -3,6 +3,7 @@ from math import ceil
 
 from tools.research.naval_accuracy_inverse_candidates import (
     _air_cases,
+    effective_focus_share_surrogate,
     predicted,
     report,
     select_target,
@@ -190,3 +191,54 @@ def test_new_unseen_first_round_pvp_17_18_slot_health_predictions_are_explicitly
     # observed_bars source field and must NOT appear in unseen predictions.
     assert "barbarian_fast_vs_player_carrier_def14" not in forecasts
     assert len(forecasts) == 6
+
+
+def test_old_A_N_focus_share_surrogate_crosses_all_known_first_kill_boundaries():
+    """Cross-family numerical fit DOES NOT establish individual-hit targeting."""
+    f95 = effective_focus_share_surrogate(95, 3)
+    f90 = effective_focus_share_surrogate(90, 3)
+    f80 = effective_focus_share_surrogate(80, 6)
+    assert abs(f95 - 13 / 18) < 1e-12
+    assert abs(f90 - 2 / 3) < 1e-12
+    assert abs(f80 - 4 / 9) < 1e-12
+    assert 2800 / (16*250) <= f95 < 2800 / (16*240)
+    assert 3080 / (6*1160) <= f80 < 3080 / (6*1150)
+    trials = report()["speculative_aggregate_F_surrogate_NOT_same_as_T"]
+    assert trials["all_air_binary_totals_match"]
+    assert trials["all_ram_binary_first_kills_match"]
+    assert trials["speculative_intercept_60_not_verified"] is True
+    assert trials["cannot_apply_fractional_budget_to_undivided_integer_shots"]
+    assert len(trials["air_first_hull_binary_trials"]) == 7
+    assert [(x["player_defense_level"],
+             x["model_binary_first_kill_NOT_total_ship_losses"])
+            for x in trials["ram_first_hull_binary_trials"]] == [
+        (14,1),(15,0),(19,0)
+    ]
+    pvp = [
+        x["model_binary_first_kills_per_slot_NOT_full_casualty_sim"]
+        for x in trials["air_first_hull_binary_trials"]
+        if x["case_id"].startswith("pvp_")
+    ]
+    assert pvp == [[1,1],[1,1],[1,0]]
+
+
+def test_json_report_retains_all_fixture_provenance_not_just_user_chat_label():
+    provenance = report()["fixture_provenance_including_unverified_source_limitations"]
+    assert provenance["barbarian_and_reverse_air"]["source"][
+        "original_battle_reports_attached"
+    ] is False
+    assert provenance["barbarian_and_reverse_air"]["candidate_unit_mapping_provisional"][
+        "status"
+    ].startswith("provisional")
+    assert provenance["player_versus_player_air"]["source"][
+        "original_battle_reports_attached"
+    ] is False
+    assert provenance["player_versus_player_air"]["model_controls"][
+        "slots_derived_from_official_help_not_explicitly_reconfirmed_for_these_three_battles"
+    ] is True
+    assert provenance["player_versus_player_air"]["source"][
+        "round_confirmation_source"
+    ].startswith("USER_FOLLOWUP_CHAT")
+    assert provenance["ram_and_deckwrecker"]["source"]
+    assert provenance["ram_and_deckwrecker"]["controlled_scenario_assumptions"]
+    assert len(provenance["barbarian_and_reverse_air"]["separate_extra_observations"]) == 1
