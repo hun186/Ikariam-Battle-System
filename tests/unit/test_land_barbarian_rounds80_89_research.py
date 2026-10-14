@@ -134,3 +134,17 @@ def test_future_agents_can_recover_land_case_without_mixing_naval_studies():
     assert "Issue #71" in doc
     assert "NAVAL" in doc and "NOT" in doc
     assert not evidence()["source"]["screenshot_binary_present_in_repository"]
+
+
+def test_visible_seven_groups_of_twelve_do_not_suffice_under_naive_one_shot_one_kill():
+    """A deliberately narrow hypothetical, NOT the game's source shot log."""
+    observed = evidence()["observations"]
+    visible_player_units = 7 * 12
+    assert visible_player_units == 84
+    assert [r["attacker_barbarian_main_line_total_round_deaths"] for r in observed[1:4]] == [84]*3
+    assert [r["attacker_barbarian_main_line_total_round_deaths"] for r in observed[4:]] == [88, 88, 89, 88, 91, 91]
+    assert all(r["attacker_barbarian_main_line_total_round_deaths"] > visible_player_units
+               for r in observed[4:])
+    # The fixture never labels 84 units as the entire damage-dealing army:
+    # wall/other units, ammo phases and weapon identities remain unverified.
+    assert "Original complete player army including every source firing or using ammunition" in evidence()["source"]["importantly_not_confirmed"]
