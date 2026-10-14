@@ -161,6 +161,11 @@ def report() -> dict:
         "evidence_class":"RESEARCH_ONLY_CONDITIONAL_TWO_TARGET_CLASS_ONE_KILL_WALL_DECOMPOSITION",
         "source":source["source"],
         "user_confirmed_wall":source.get("wall_attack_followup"),
+        "actual_game_forge_record":source.get("player_forge"),
+        "user_distributed_damage_correction":source.get("single_shot_distribution_correction"),
+        "forge0_damage_report_is_counterfactual_only":True,
+        "seven_exclusive_center_hits_is_not_confirmed":True,
+        "prewounded_axe_count_is_conditional_not_observed":True,
         "unit_damage_from_current_profiles":p,
         "conditional_assumptions":[
             "The 7x12 lower formation is precisely the unit type sulphur_carabineer",
