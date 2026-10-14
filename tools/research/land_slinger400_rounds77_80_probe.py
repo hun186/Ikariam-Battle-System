@@ -148,6 +148,43 @@ def report()->dict:
     assert [list(x["AM_base_addresses_by_physical"].values()) for x in amp]==[
         [49,49,49,56,49,49,49],[84,91,91,84],[119,119,112]
     ]
+    # R77 FIRST two damage control examples with all Axe target HP initially
+    # full; this does NOT assert that all walls were active/hit this round.
+    # Axe physical5 50(-0) bar83: 49 AM addresses with Forge5 187 each.
+    # Axe physical4 49(-1) bar81: 56 addresses spread near-uniformly over
+    # 50 Axe, followed by ONE hypothetical wall one-kill that carries its old
+    # average 209 gun-wound points away.
+    r77_axe_center=rows[77]["barbarian_first_by_physical_slot"][3]
+    r77_axe_right=rows[77]["barbarian_first_by_physical_slot"][4]
+    assert (r77_axe_center["survivors"],r77_axe_center["round_deaths"],
+            r77_axe_center["hp_percent"])==(49,1,81)
+    assert (r77_axe_right["survivors"],r77_axe_right["round_deaths"],
+            r77_axe_right["hp_percent"])==(50,0,83)
+    r77_candidate=[]
+    for forge_level in (0,5):
+        dm=profiles[str(forge_level)]["barbarian_axe_swinger"]
+        center_gun_wounds=amp[0]["AM_base_addresses_by_physical"]["4"]*dm
+        right_gun_wounds=amp[0]["AM_base_addresses_by_physical"]["5"]*dm
+        center_wall_victim_old_wounds=center_gun_wounds//50
+        center_end=center_gun_wounds-center_wall_victim_old_wounds
+        center_bar=100*(49*hA-center_end)//(49*hA)
+        right_bar=100*(50*hA-right_gun_wounds)//(50*hA)
+        r77_candidate.append({
+            "forge_level_comparator":forge_level,
+            "physical4_addresses":56,
+            "physical5_addresses":49,
+            "hypothetical_gun_wounds_phys4":center_gun_wounds,
+            "hypothetical_gun_wounds_phys5":right_gun_wounds,
+            "phys4_wall_one_kill_and_removes_near_average_prior_wounds":center_wall_victim_old_wounds,
+            "phys4_end_wounds":center_end,
+            "phys4_floor_HP_bar":center_bar,
+            "phys5_floor_HP_bar_without_wall_kill":right_bar,
+            "phys4_and_phys5_match_owner_snapshot":center_bar==81 and right_bar==83,
+            "target_was_100pct_before_round_UNVERIFIED":True,
+            "no_gun_deaths_near_equal_damage_per_individual_UNVERIFIED":True,
+        })
+    assert [q["phys4_and_phys5_match_owner_snapshot"] for q in r77_candidate]==[False,True]
+
     # With the same hypothetical all-350-primary shot population, see what
     # Forge0 vs Forge5 budgets can/cannot cover under the restrictive R78-79
     # pure Axe-front-only + max seven independent wall one-shot caps.
@@ -214,6 +251,7 @@ def report()->dict:
                 [r80_net_lost_min,r80_net_lost_max],
         },
         "project_AM_7x50_control_by_occupied_physical_targets":amp,
+        "R77_physical4_and5_conditional_full_wound_spread_witness":r77_candidate,
         "per_hit_forge_comparison_PRIMARY_only":budget,
         "central_caveat":"R80 29 rear AxeThrower deaths and 65/61/61/65/61 HP while front Axe114 all die is consistent with shifting attack damage to rear after/beside frontline collapse; source-of-rear-hit timing and direct AM cross-line fallthrough UNVERIFIED.",
         "hypotheses_to_compare":[
