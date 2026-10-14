@@ -10,7 +10,9 @@ from __future__ import annotations
 import json
 from math import ceil
 
-from tools.research.land_round80_89_am_focus_probe import FIXTURE
+from tools.research.land_round80_89_am_focus_probe import (
+    FIXTURE, model_am_addressed_shots_by_physical_slot,
+)
 from tools.research.land_round80_89_hp_state_probe import (
     floor_survivor_hp_bar_damage_interval,
 )
@@ -112,8 +114,22 @@ def report() -> dict:
     assert (n,killed,survivors,before_bar,after_bar)==(11,6,5,92,96)
     before_range=floor_survivor_hp_bar_damage_interval(n,hp,before_bar)
     after_range=floor_survivor_hp_bar_damage_interval(survivors,hp,after_bar)
-    # Hypotheses: exactly 7 effective primary gun hits reach center, and
-    # walls independently cause 0..3 kills in that physical slot.
+    # CURRENT ENGINE AM baseline with 7 source cells x 12 shots and all seven
+    # target slots occupied is 14 ADDRESSES to the center, never 7.
+    baseline_am = model_am_addressed_shots_by_physical_slot(
+        list(range(1, 8)), [12] * 7
+    )
+    assert baseline_am == {1: 7, 2: 14, 3: 14, 4: 14, 5: 14, 6: 14, 7: 7}
+    # DISTINCT, UNPROVEN hypothetical source-row diversion: move one group
+    # of seven addresses from central Axe (physical4) to leftmost Knife (1).
+    diverted_am = dict(baseline_am)
+    diverted_am[4] -= 7
+    diverted_am[1] += 7
+    assert diverted_am == {1: 14, 2: 14, 3: 14, 4: 7, 5: 14, 6: 14, 7: 7}
+    # Only with that diversion AND full effective exclusive hits is the
+    # previous seven-center-shot pool witness even applicable. AM addresses
+    # are not automatically successful damaging hits or casualties.
+    # We independently vary assumed effective wall attacks to this slot.
     controls=[]
     for wall_kills in range(4):
         gun_kills=killed-wall_kills
@@ -136,6 +152,20 @@ def report() -> dict:
     )
     assert (witness["all_casualties"],witness["survivors"],
             witness["survivor_wounds"],witness["floor_survivor_mean_bar"]) == (6,5,200,96)
+    baseline_fourteen_full_hit_control = separated_wall_and_pooled_guns(
+        starting_units=11, unit_hp=hp, starting_wounds=900,
+        direct_wall_kills=1, wounds_removed_with_wall_victims=70,
+        gun_hits=baseline_am[4], gun_full_hit_damage=atk,
+    )
+    assert (
+        baseline_fourteen_full_hit_control["all_casualties"],
+        baseline_fourteen_full_hit_control["survivors"],
+        baseline_fourteen_full_hit_control["survivor_wounds"],
+        baseline_fourteen_full_hit_control["floor_survivor_mean_bar"],
+    ) == (10, 1, 690, 38)
+    # This rejects ONLY the hypothetical combination: baseline 14 addresses
+    # ALL succeed as full 710-point hits, same lossless pool and chosen old
+    # wounds/wall target. It does NOT disprove 14 AM addresses in the real game.
     # Fixed identical hypothetical 900/70 prior-wound state; sensitivity
     # only tests whether a new hit magnitude crosses an aggregate HP threshold.
     sensitivity=[]
@@ -164,11 +194,33 @@ def report() -> dict:
             "R86_bar":after_bar,
         },
         "current_packaged_effective_gun_damage_to_axe":atk,
+        "CURRENT_ENGINE_AM_7x12_all_seven_targets_baseline":{
+            "physical_slot_1_to_7_addresses":{
+                str(i):baseline_am[i] for i in range(1,8)
+            },
+            "center_physical_4_address_count":baseline_am[4],
+            "these_addresses_are_real_full_successful_hits_VERIFIED":False,
+        },
+        "HYPOTHETICAL_seven_address_diversion_center_to_leftmost":{
+            "physical_slot_1_to_7_addresses":{
+                str(i):diverted_am[i] for i in range(1,8)
+            },
+            "center_physical_4_address_count":diverted_am[4],
+            "leftmost_physical_1_added_addresses":7,
+            "actual_Gameforge_diversion_VERIFIED":False,
+        },
         "floor_survivor_mean_bar_UNVERIFIED":True,
         "hypothetical_R85_total_survivor_wounds_range":list(before_range),
         "hypothetical_R86_total_survivor_wounds_range":list(after_range),
         "individual_D_kill_with_seven_hits_wall_kill_controls":controls,
         "restricted_D_kill_one_wall_seven_guns_INCOMPATIBLE_with_92pct_IF_no_wound_inflow":True,
+        "baseline_14_addresses_AS_IF_14_full_hits_lossless_pool_CONTROL":{
+            "conditional_previous_total_wounds":900,
+            "conditional_wall_victim_old_wounds":70,
+            "result":baseline_fourteen_full_hit_control,
+            "matches_observed_R86_deaths6_remaining5_bar96":False,
+            "warning":"Disproves only the 14 FULL EFFECTIVE HITS + lossless gun pool + chosen wall/old wounds model, not 14 AM address count",
+        },
         "pool_model_one_wall_seven_guns_WITNESS":{
             "assumed_R85_wounds":900,
             "assumed_preexisting_wounds_on_wall_victim":70,
@@ -200,6 +252,7 @@ def report() -> dict:
             "wall_kill":"candidate one-shot 1-kill per EFFECTIVE wall hit as user-supported; owner called it D-kill informally, paper distinguishes from multi-hit D-kill; number of central wall hits not observed",
             "version":"2020 community paper pre-v13; 2025 followup says AM/redistribution ideas persist but old unit values changed",
         },
+        "AM_distinction":"Project baseline is 14 CENTER AM ADDRESSES. The seven-effective-hit witness requires unverified seven-address rerouting, or a separate reduction in effective damaging hits.",
         "unknowns":[
             "No verified wall central-slot target count or attack chronology",
             "No verified floor-average HP-bar rule or unchanged identity/wound transfer",
