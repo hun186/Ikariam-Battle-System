@@ -602,5 +602,39 @@
       "game_internal_numeric_id_verified": false
     },
     "caveat": "Original per-shot target IDs are not available; owner unit names and packaged model unit keys have distinct provenance."
+  },
+  "owner_two_stage_attack_hypothesis": {
+    "provenance": "USER_EXPLICIT_NEW_HYPOTHESIS_2026_10_14_LATE_FOLLOWUP",
+    "source_battle": "this original R80-R89 land Barbarian battle (NOT separate first round battle)",
+    "stage_A_conditional_address_diversion": {
+      "standard_project_AM_center_gun_addresses": 14,
+      "candidate_from_round84_center_diverted": 7,
+      "candidate_target_of_seven_diverted_attacks": "physically_leftmost_ordinary_barbarian_knifeman_slot",
+      "trigger": "UNKNOWN: central Axe occupancy below some threshold (25 is one unverified exploratory example) or other cause",
+      "central_start_axe_counts_by_round": {
+        "81": 45,
+        "82": 37,
+        "83": 29,
+        "84": 21,
+        "85": 16,
+        "86": 11,
+        "87": 5
+      },
+      "illustrative_25_only_not_verified": true
+    },
+    "stage_B_damage_accounting": {
+      "based_on_POST_ADDRESS_change_center_gun_group_size": true,
+      "candidate_condition": "shot count divisible by 2 full gun hits per fresh Axe (HP1120, gun710) vs remainder",
+      "full_14_gun_hits_early_candidate": "seven pairwise individual D kills; one wall adds one, earlier bar99 must retain unexplained injury state",
+      "full_7_gun_hits_late_candidate": "aggregated 4970 damage, conserved wound remainder plus carryover W and integer floor-to-deaths",
+      "wall_phase_last": "Owner explicitly states mortar, then gun, then wall order in separate first-round battle. Here independently hypothetical one wall 1-kill after gun, removing targeted soldier's old gun wounds",
+      "actual_selector_is_unknown": true
+    },
+    "boundary": "Source AM address count not direct evidence of successful full gun hits; do not label stage A/B official Gameforge behavior.",
+    "dependent_research": [
+      "tools/research/land_two_stage_attack_hypothesis_probe.py",
+      "tools/research/land_round84_87_integer_slot_pool_probe.py",
+      "tools/research/land_round1_mortar_wall_gun_decomposition_probe.py"
+    ]
   }
 }
