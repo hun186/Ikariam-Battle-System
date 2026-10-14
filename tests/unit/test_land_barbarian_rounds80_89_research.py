@@ -118,3 +118,19 @@ def test_empty_and_post_wall_formations_are_not_interpreted_as_zero_casualties()
     assert obs[6]["attacker_main_line_front_survivor_hp_percent_left_to_right"][3] == 96
     assert obs[5]["central_position_4_axe_bearer_remaining_units"] == 11
     assert obs[6]["central_position_4_axe_bearer_remaining_units"] == 5
+
+
+def test_future_agents_can_recover_land_case_without_mixing_naval_studies():
+    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    memory = (ROOT / ".codex/memory.md").read_text(encoding="utf-8")
+    backlog = (ROOT / ".codex/backlog.md").read_text(encoding="utf-8")
+    doc_path = ROOT / "docs/calibration/land-barbarian-rounds80-89-inverse-study.md"
+    doc = doc_path.read_text(encoding="utf-8")
+    for source in (agents, memory, backlog, doc):
+        assert "land-barbarian-rounds80-89-inverse-study.md" in source
+    assert "land_barbarian_rounds80_89_20261014.json" in agents
+    assert "land_barbarian_rounds80_89_20261014.json" in memory
+    assert "land_barbarian_rounds80_89_20261014.json" in doc
+    assert "Issue #71" in doc
+    assert "NAVAL" in doc and "NOT" in doc
+    assert not evidence()["source"]["screenshot_binary_present_in_repository"]
