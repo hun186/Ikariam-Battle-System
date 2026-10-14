@@ -102,6 +102,8 @@ def build_report() -> dict:
             "total_deaths_equals_84_plus_7": sum(source_deaths.values()) == 91,
             "required_kills_beyond_fixed_musket_AM_before_assigning_walls_by_position": deficits_if_fixed_gun_AM,
             "minimum_kills_requiring_other_gun_addresses_or_other_sources_even_if_seven_wall_kills": minimum_extra_gun_kills_or_other_source,
+            "single_musket_attack_at_most_one_casualty_is_a_REQUIRED_CONDITIONAL_PREMISE": True,
+            "if_musket_can_multi_kill_or_other_damage_model_changes_bound_is_invalid": True,
             "fixed_musket_AM_plus_any_seven_wall_kill_distribution_is_sufficient": (
                 minimum_extra_gun_kills_or_other_source == 0
             ),
@@ -113,7 +115,10 @@ def build_report() -> dict:
             "evidence_limits": (
                 "Wall single-hit lethal effect is user stated. Seven effective "
                 "wall attacks, targeting and 84 fully successful musket shots "
-                "are NOT measured. A musket AM address is not a lethal hit; "
+                "are NOT measured. The extra-address bound additionally assumes " 
+                "each nominal musket attack can cause AT MOST ONE casualty; " 
+                "multi-kill, pooled-damage or other semantics invalidate it. "
+                "A musket AM address is not a lethal hit; "
                 "positive slot residual requires reassignment/other sources/"
                 "wrong policy. Current engine wall offensive Accuracy unresolved."
             ),
@@ -127,6 +132,8 @@ def build_report() -> dict:
         "source_count_assumptions_not_game_shot_log": {
             "musket_source_counts_per_column": [12]*7,
             "musket_model_shots_total": 84,
+            "each_hypothetical_musket_shot_kills_AT_MOST_one_target": True,
+            "multiple_kills_per_attack_NOT_SUPPORTED_BY_THIS_BOUND": True,
             "wall_sections_visible_in_walled_rounds": 7,
             "wall_model_single_successful_kill_per_section": True,
             "wall_target_distribution_is_UNOBSERVED": True,
