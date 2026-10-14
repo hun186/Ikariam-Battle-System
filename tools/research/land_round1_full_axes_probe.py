@@ -1,4 +1,4 @@
-"""A distinct first-round FULL-Axe Land screenshot: compare D and pooled controls.
+"""First-round FULL-Axe source from SAME battle as R80-R89: D vs pooled controls.
 
 No source attribution is recovered. Conditional assumption of ONE wall 1-kill
 per physical target slot and 84 full Forge5 gun attacks; screenshot also has
@@ -80,8 +80,10 @@ def report() -> dict:
             ),
         })
     return {
-        "kind":"INDEPENDENT_FIRST_ROUND_FULL_AXE_SOURCE_VS_TWO_RESTRICTED_CONTROLS",
+        "kind":"SAME_BATTLE_ROUND1_SOURCE_VS_TWO_RESTRICTED_CONTROLS",
+        "battle_identity":f["battle_identity"],
         "fixture":f["case_id"],
+        "chronology":"R1 and R80-R89 are SAME battle, R2-R79 not supplied",
         "owner_confirmed_forge":5,
         "damage_into_axe_in_current_profile":damage,
         "axe_full_hp_in_current_profile":hp,
