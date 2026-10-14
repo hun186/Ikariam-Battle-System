@@ -13,7 +13,8 @@
       "Barbarian visible seven-position front rank HP bars supplied in text (not individually verified unit HP)",
       "User follow-up 2026-10-14: defending city's wall level was very high; each effective wall attack can kill one attacking Barbarian (one-shot lethal). This does NOT itself confirm wall fired seven times or how it chooses physical target slots.",
       "Owner correction 2026-10-14: this actual land battle had the PLAYER Forge ACTIVE; precise Forge level was NOT stated in that correction. All earlier Forge0 numerical examples are synthetic counterfactual controls, NOT game damage.",
-      "Owner correction 2026-10-14: seven AM-addressed gun shots seemingly diverted toward far-left Knifemen do NOT establish that seven whole-shot damage budgets all hit only the leftmost physical slot; inspect the repository's Battle System PDF distributed/multi-slot damage mechanism before deriving exclusive target or minimum prior Axe wounds."
+      "Owner correction 2026-10-14: seven AM-addressed gun shots seemingly diverted toward far-left Knifemen do NOT establish that seven whole-shot damage budgets all hit only the leftmost physical slot; inspect the repository's Battle System PDF distributed/multi-slot damage mechanism before deriving exclusive target or minimum prior Axe wounds.",
+      "Owner-confirmed descriptive units: ordinary outer Barbarian Knifemen and central Axe Swinger; mapped packaged registry names are model identity, not original per-hit Gameforge IDs."
     ],
     "battle_report_screenshot_filenames_in_chat": [
       "image(20261014-032022).png",
@@ -33,7 +34,7 @@
     "importantly_not_confirmed": [
       "Original complete player army including every source firing or using ammunition",
       "Actual individual target-unit attacks, Accuracy result, damage and ammo",
-      "Official unit IDs for the central axe unit or ordinary female Barbarian melee row",
+      "Exact internal Gameforge numeric IDs/per-shot unit target history, distinct from the owner-confirmed Knifeman and Axe Swinger names",
       "Reserve counts were separately confirmed by the user (currently screenshot transcriptions only)",
       "Exact order of pre-/post-round reserve snapshots and reinforcement/rebuild process",
       "Whether displayed 100% is aggregated surviving HP or an independently rounded full state"
@@ -581,6 +582,23 @@
       0
     ],
     "status": "CONFIRMED_CORRECTION_TO_PREVIOUS_MODEL_INTERPRETATION_NOT_VERIFIED_UNIQUE_GAME_ALGORITHM",
-    "next_task": "Re-read authoritative Battle System PDF for formal distributed-damage rules; reconstruct source numeric attack with actual Forge level if verified; bound center Axe damage and casualty evolution against displayed HP bars and survivor counts."
+    "next_task": "Re-read authoritative Battle System PDF for formal distributed-damage rules; reconstruct source numeric attack with actual Forge level if verified; bound center Axe damage and casualty evolution against displayed HP bars and survivor counts.",
+    "paper_interpretation_2020": "Barbarossa/Xanto community PRE-V13 paper: RR redistributes survivors' damage across slots/reserve between rounds, SR within addressed slot between firing lines, IR within addressed slot between shots. The paper does NOT establish immediate cross-slot damage by one musket shot.",
+    "direct_single_shot_cross_slot_damage": "UNVERIFIED_OPTIONAL_HYPOTHESIS"
+  },
+  "unit_identity_provenance": {
+    "ordinary_frontline": {
+      "owner_confirmed_label": "Barbarian Knifeman",
+      "packaged_registry_key": "barbarian_knifeman",
+      "source": "OWNER_LABEL_CONFIRMATION",
+      "game_internal_numeric_id_verified": false
+    },
+    "center_position_4": {
+      "owner_confirmed_label": "Barbarian Axe Swinger",
+      "packaged_registry_key": "barbarian_axe_swinger",
+      "source": "OWNER_LABEL_CONFIRMATION",
+      "game_internal_numeric_id_verified": false
+    },
+    "caveat": "Original per-shot target IDs are not available; owner unit names and packaged model unit keys have distinct provenance."
   }
 }
