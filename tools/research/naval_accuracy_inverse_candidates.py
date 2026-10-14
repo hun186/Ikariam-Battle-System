@@ -247,9 +247,95 @@ def _reverse_bars(threshold: float | None) -> dict:
     }
 
 
+def effective_focus_share_surrogate(accuracy: int, targets_per_slot: int) -> float:
+    """UNPROVEN aggregate fit, not an executable individual ship selector.
+
+    Formula was suggested before the recent PvP observations and deliberately
+    has a speculative 60% intercept/slope. Do NOT replace Accuracy logic with
+    this formula. One first-hull crossing per slot is all it evaluates.
+    """
+    if targets_per_slot <= 0 or not 0 <= accuracy <= 100:
+        raise ValueError("Invalid source accuracy or target count")
+    concentration = max(0.0, min(1.0, (accuracy - 60) / 60))
+    return 1 / targets_per_slot + (1 - 1 / targets_per_slot) * concentration
+
+
+def aggregate_focus_surrogate_trials(cases: list[dict]) -> dict:
+    """Cross-unit mathematical thresholds with explicit nonphysical caveats.
+
+    Does NOT allocate indivisible shots, calculate repeat kills or survivor HP.
+    """
+    air = []
+    for case in cases:
+        n = case["initial_units_per_target_slot"]
+        f = effective_focus_share_surrogate(case["weapon_accuracy"], n)
+        approximate = [
+            shots * case["effective_hit"] * f
+            for shots in case["modeled_successful_hits_per_slot"]
+        ]
+        binary = [int(h >= case["hp"]) for h in approximate]
+        air.append({
+            "case_id": case["id"],
+            "source_weapon_accuracy": case["weapon_accuracy"],
+            "assumed_target_ships_per_slot": n,
+            "conditional_first_hull_concentrated_fraction": f,
+            "model_concentrated_first_hull_damage": approximate,
+            "model_binary_first_kills_per_slot_NOT_full_casualty_sim": binary,
+            "source_reported_total_deaths": case["observed_total_deaths"],
+            "binary_first_kill_total_equals_source": (
+                sum(binary) == case["observed_total_deaths"]
+            ),
+            "warning": (
+                "A fractional damage budget is NOT a physical shot allocation. "
+                "One kill maximum per slot is an assumption, not a prediction "
+                "of subsequent kills or observed slot casualty split."
+            ),
+        })
+    ram = []
+    for defense in (14, 15, 19):
+        data = net_damage_math(defense)
+        # Source-described 6 ships per Flank slot, but six real successful
+        # hits per slot were NEVER confirmed by a Gameforge per-ship log.
+        n = 6
+        f = effective_focus_share_surrogate(80, n)
+        amount = 6 * data["barbarian_net_hit"] * f
+        expected = 1 if defense == 14 else 0
+        ram.append({
+            "player_defense_level": defense,
+            "source_weapon_accuracy": 80,
+            "assumed_target_ships_per_slot": 6,
+            "synthetic_successful_hits_per_slot_not_game_trace": 6,
+            "conditional_first_hull_concentrated_fraction": f,
+            "model_concentrated_first_hull_damage": amount,
+            "model_binary_first_kill_NOT_total_ship_losses": int(amount >= data["player_hp"]),
+            "user_reported_per_slot_deaths": expected,
+            "binary_first_kill_equals_source": int(amount >= data["player_hp"]) == expected,
+            "source": "CHAT_PER_SLOT_CLAIM_DEF14_15_AND_INDEPENDENT_CHAT_DEF19",
+        })
+    return {
+        "model_name": "SPECULATIVE_AGGREGATE_EFFECTIVE_FOCUS_SHARE_NOT_SELECTOR",
+        "formula": "F(A,N) = 1/N + (1 - 1/N) * clip((A - 60)/60, 0, 1)",
+        "speculative_intercept_60_not_verified": True,
+        "cannot_apply_fractional_budget_to_undivided_integer_shots": True,
+        "no_production_engine_changes": True,
+        "air_first_hull_binary_trials": air,
+        "ram_first_hull_binary_trials": ram,
+        "all_air_binary_totals_match": all(x["binary_first_kill_total_equals_source"] for x in air),
+        "all_ram_binary_first_kills_match": all(x["binary_first_kill_equals_source"] for x in ram),
+        "warnings": [
+            "This is a numerical equivalence class, NOT a Gameforge Accuracy algorithm.",
+            "For Ram DEF14 vs DEF15 both 1160 and 1150 require THREE indivisible hits to destroy a fresh HP3080 ship. A fixed hit-to-target sequence cannot yield the observed one-vs-zero transition by hit damage alone; the fractional F trick is not an executable targeting algorithm.",
+            "One kill maximum per slot is imposed by this surrogate; it does not compute kills after the first, overflow, real individual HP, ammo/shot eligibility or game bars.",
+            "PvP 30-vs-6 and Round1 plus BOTH Forge5 confirmed, but the 2x15 vs 2x3 physical slot split is model-derived geometry, not separately confirmed game telemetry.",
+            "F versus remaining-HP threshold T are DIFFERENT DIMENSIONS; 44.44% Ram F cannot be directly compared to 74% carrier T.",
+        ],
+    }
+
+
 @lru_cache(maxsize=1)
 def report() -> dict:
     cases = _air_cases()
+    raw_air, raw_pvp, raw_ram = _read(AIR_FIXTURE), _read(PVP_FIXTURE), _read(RAM_FIXTURE)
     # Evaluate each threshold/case exactly once and REUSE the forward
     # predictions for both full-data and leave-one-source-out analysis.
     # Thresholds are fitted on death counts, not on hidden shot histories.
@@ -332,6 +418,22 @@ def report() -> dict:
     return {
         "schema_version": 1,
         "evidence_class": "RESEARCH_ONLY_CANDIDATE_NOT_GAME_RULE",
+        "fixture_provenance_including_unverified_source_limitations": {
+            "barbarian_and_reverse_air": {
+                "source": raw_air.get("source"),
+                "candidate_unit_mapping_provisional": raw_air.get("candidate_unit_mapping"),
+                "separate_extra_observations": raw_air.get("additional_observations"),
+            },
+            "player_versus_player_air": {
+                "source": raw_pvp.get("source"),
+                "model_controls": raw_pvp.get("model_controls"),
+            },
+            "ram_and_deckwrecker": {
+                "source": raw_ram.get("source"),
+                "controlled_scenario_assumptions": raw_ram.get("controlled_scenario_assumptions"),
+            },
+        },
+        "speculative_aggregate_F_surrogate_NOT_same_as_T": aggregate_focus_surrogate_trials(cases),
         "conditional_inputs": {
             "successful_am_shots_by_target_slot": [16, 14],
             "assume_all_30_speedboats_fire_one_successful_hit": True,
@@ -371,6 +473,11 @@ def main() -> None:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n",
                            encoding="utf-8")
+    fmodel = data["speculative_aggregate_F_surrogate_NOT_same_as_T"]
+    print(f"Alternative speculative aggregate F: air_binary_match="
+          f"{fmodel['all_air_binary_totals_match']}, "
+          f"Ram_first_hull_binary_match={fmodel['all_ram_binary_first_kills_match']} "
+          f"(NOT executable ship-by-ship targeting)")
     print(f"Candidate focus threshold window (0.01pp grid): "
           f"{data['fitting_percentage_point_interval_grid_0_01']}; "
           f"count={data['fitting_threshold_count_in_grid']}")
