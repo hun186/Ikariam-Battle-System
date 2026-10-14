@@ -70,6 +70,32 @@ This excellent arithmetic is **strong evidence** for a reserve-to-front replenis
 
 R87 has 7 occupied front cells and loses 88 units including the final 5 axe. R88 has **6 occupied cells and loses 91**; R89 has **4 occupied cells and loses 91**, despite the reserve becoming empty. More casualties per surviving physical cell become visible; may reflect **target-address redistribution** as the target set contracts. But other variables might have changed (eligible target set, damage priorities, one-shot caps, ammunition, shooter quantities), so **91 constant is a pattern, not proof of a fixed damage-budget rule**.
 
+### D. Exact endgame population conservation across formation compaction
+
+**A stronger independent arithmetic finding than fixed per-slot death counts:** Screenshot-read ordinary female melee remaining units for R87/R88/R89, combined with user-verified round deaths and visual reserves, reconcile **without losing or inventing a single ordinary melee unit** across R87→R88→R89.
+
+| Stage | Ordinary melee on occupied front slots | Ordinary reserve | Combined |
+|---|---:|---:|---:|
+| R87 **end** | `35+35+35+35+35+42=217` (axe slot at zero excluded) | **58** | **275** |
+| R88 **before round damage**, reconstructed | six slots `25+50+50+50+50+50=275` | **0** | **275** |
+| R88 **end** | six slots `9+35+35+35+35+35=184` | **0** | **184** |
+| R89 **before round damage**, reconstructed | four slots `34+50+50+50=184` | **0** | **184** |
+| R89 **end** | four slots `9+28+28+28=93` | **0** | **93** |
+
+The equations are exact:
+
+```
+R87-end visible ordinary 217 + reserve 58 = 275
+R88 killed = 16+15+15+15+15+15 = 91
+R88-end visible = 9+35+35+35+35+35 = 184 = 275−91
+R89 killed = 25+22+22+22 = 91
+R89-end visible = 9+28+28+28 = 93 = 184−91
+```
+
+Reconstructed R88-before slot counts `25,50,50,50,50,50` and R89-before `34,50,50,50` follow **mechanically** from shown remaining+round deaths; these before-round slot counts were **not directly seen as complete Gameforge target log states**. They suggest **same-type group consolidation across physical positions, then refill/reuse of reserves**, and provide a stringent conservation property for a candidate Land formation-rebuild algorithm. They **do not uniquely determine** Gameforge's target-address sequence or individual HP distribution.
+
+The data could be an especially useful held-out test for code implementing cross-slot compaction: force a model to pass `217+58→275→184→93` with the proper 7→6→4 visible slot identities *without injecting fake units or killing unseen units*. Beware reserve screenshot transcription has not been independently confirmed by owner, and stage labels before/after-round are deductions based on UI interpretation.
+
 ### D. Restrictive "84 visible defenders each kill at most one enemy" theory fails
 
 From R81 onward, screenshots show **seven** defender positions labeled `12(-0)`, i.e. **84 visible deployed units** in those positions (unit-type identity and attack source/weapon role not independently established). The Barbarian front-line displayed kills are **84** on R81–83, but increase to **88/89** on R84–87 and **91** on R88–89. Therefore **IF** those 84 were the ONLY damage-dealing source, **IF** each fired exactly ONE hit per round, and **IF** each hit could kill at most one target, totals greater than 84 are impossible. At least one assumption of that overly restrictive mechanism would have to fail: other firing lines, wall damage, multi-shot/extra attack, multi-target effects, casualty phase differences, game UI source semantics, etc. The images alone cannot determine which.
