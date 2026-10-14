@@ -63,9 +63,9 @@ def report()->dict:
     j=json.loads(FIXTURE.read_text(encoding="utf-8"))
     rows={r["round"]:r for r in j["rounds"]}
     registry=UnitRegistry.load(include_barbarians=True)
-    hA=registry.get("barbarian_axe_swinger").hp
-    hK=registry.get("barbarian_knifeman").hp
-    hR=registry.get("barbarian_axe_thrower").hp
+    hA=registry.get("barbarian_axe_swinger").hit_points
+    hK=registry.get("barbarian_knifeman").hit_points
+    hR=registry.get("barbarian_axe_thrower").hit_points
     assert (hA,hK,hR)==(1120,360,320)
     profiles={str(lv):_profile_by_target(lv) for lv in (0,5)}
     assert profiles["0"]=={
