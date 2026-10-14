@@ -80,6 +80,23 @@ def test_forge0_and5_damage_primary_only_no_game_F5_assertion():
     assert d["actual_forge_active_level_UNKNOWN"]
 
 
+def test_r77_physical_center56_and_adjacent49_am_wounds_fit_forge5_bars():
+    d=report()
+    v={r["forge_level_comparator"]:r
+       for r in d["R77_physical4_and5_conditional_full_wound_spread_witness"]}
+    assert v[5]["physical4_addresses"]==56
+    assert v[5]["physical5_addresses"]==49
+    assert v[5]["hypothetical_gun_wounds_phys4"]==10472
+    assert v[5]["hypothetical_gun_wounds_phys5"]==9163
+    assert v[5]["phys4_wall_one_kill_and_removes_near_average_prior_wounds"]==209
+    assert v[5]["phys4_end_wounds"]==10263
+    assert v[5]["phys4_floor_HP_bar"]==81
+    assert v[5]["phys5_floor_HP_bar_without_wall_kill"]==83
+    assert v[5]["phys4_and_phys5_match_owner_snapshot"]
+    assert not v[0]["phys4_and_phys5_match_owner_snapshot"]
+    assert v[5]["target_was_100pct_before_round_UNVERIFIED"]
+
+
 def test_hp_percentage_as_interval_rejects_invalid_or_missing_units():
     assert floored_mean_hp_total_interval(49,1120,81)==(44453,45001)
     assert floored_mean_hp_total_interval(0,1120,0)==(0,0)
