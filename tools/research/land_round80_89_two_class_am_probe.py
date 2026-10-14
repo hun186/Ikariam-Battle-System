@@ -90,6 +90,7 @@ def _round_result(game: dict, profiles: dict) -> dict:
     gun_differences = {
         i: model_knife_gun_by_slot[i] - gun_am[i] for i in ordinary
     }
+    # FORGE0 / SEVEN EXCLUSIVE FULL HITS COUNTERFACTUAL ONLY.
     # If each full gun hit does less than target HP but two such hits kill,
     # minimum one-hit-ready wound-bearing axe men needed to kill k targets
     # in fewer than 2k shots is 2k-shots (best-case no wasted hits).
@@ -116,6 +117,8 @@ def _round_result(game: dict, profiles: dict) -> dict:
         "axe_gun_kills_required": axe_gun_kills,
         "minimum_near_lethal_wounded_axes_at_round_start": min_prior_wounded,
         "minimum_initial_carryover_axe_damage_to_support_one_row_shift": min_prior_existing_damage,
+        "wound_lower_bound_is_forge0_exclusive_hit_counterfactual_ONLY": True,
+        "individual_axe_hit_concentration_is_UNVERIFIED": True,
         "conditional_exact_one_AM_row_shift_center_to_leftmost": (
             round_no in (84,85,86,87)
             and gun_differences.get(1)==7
@@ -152,13 +155,32 @@ def report() -> dict:
         row["previous_round_observed_center_hp_bar_percent"]=bar
         row["previous_round_center_survivors_from_screenshot"]=survivors
         row["max_possible_previous_center_average_hp_if_minimum_wounds_percent"] = max_avg_hp_percent_if_minimum_wound
-        row["incompatible_IF_bar_floors_average_of_survivor_HP"] = (
+        row["counterfactual_HP_bar_conflict_IF_no_HP_state_transition"] = (
             max_avg_hp_percent_if_minimum_wound is not None
             and max_avg_hp_percent_if_minimum_wound < bar
         )
+        row["same_survivor_population_and_interround_HP_continuity_VERIFIED"] = False
+        row["floor_survivor_average_bar_semantics_VERIFIED"] = False
+        row["forge0_exclusive_hit_model_represents_actual_battle"] = False
+        row["incompatible_IF_bar_floors_average_of_survivor_HP"] = False
+    sensitivity = {
+        str(level): weapon_profiles(attacker_forge=level)
+        for level in sorted(ForgeProfile.load().levels)
+        if level > 0
+    }
     return {
-        "schema_version":1,
+        "schema_version":2,
         "evidence_class":"RESEARCH_ONLY_CONDITIONAL_TWO_TARGET_CLASS_ONE_KILL_WALL_DECOMPOSITION",
+        "unit_identity_provenance": source["unit_identity_provenance"],
+        "forge_active_level_unknown": True,
+        "sensitivity_cases_only_not_actual_forge": sensitivity,
+        "pdf_source_limitations": {
+            "provenance": "AT Barbarossa and Xanto 2020 community pre-v13 reverse engineering, not authoritative modern formula",
+            "RR": "inter-round same-wave survivors damage may redistribute across slots and reserve",
+            "SR": "within addressed target slot between firing lines, not universal",
+            "IR": "within addressed target slot between shots, not universal",
+            "one_shot_cross_slot_damage": "NOT_PROVEN_BY_THE_PAPER",
+        },
         "source":source["source"],
         "user_confirmed_wall":source.get("wall_attack_followup"),
         "actual_game_forge_record":source.get("player_forge"),
@@ -173,15 +195,17 @@ def report() -> dict:
             "All seven wall sections each execute exactly one successful attack that kills exactly one barbarian",
             "Wall targeting is one opposing physical slot each and all missing-target shots go to leftmost occupied PHYSICAL position",
             "All knife hits that count as casualties are gun one-shot kills (the 635>360 profile comparison)",
-            "Axe is a 1120 HP target and full gun shot is 615 versus base armor20; two hits kill a fresh axe",
+            "In the Forge0 control 14 hits kill seven fresh Axe only IF the 14 are paired on seven individual axes; 14 distinct recipients can yield zero kills. Individual concentration is UNVERIFIED.",
+            "Real Forge is active but level not observed: Forge0 615 Axe/635 knife is counterfactual only, and alternative active levels are sensitivity tests",
+            "Seven-center-gun and previous-wound deductions require full exclusive same-cell gun hits, fixed wall assignment, no SR/IR/RR, unchanged HP state and no additional sources",
             "No other source classes, no hidden extra gun shots, wall effects or final damage transfer",
             "Displayed center HP bar is unknown denominator/rounding; average-live-HP calculations are conditional",
         ],
         "rounds":rows,
         "falsification_guide":[
-            "R81-83 exact per-slot prediction follows 7x12 current AM, six 1-hit knife slot victims, two-gun-hit axe victims and one lethal wall strike per occupied slot",
+            "R81-83 deaths have ONE feasible allocation with paired 14 hits on seven fresh axes plus conditional wall hits; 14 addresses DO NOT guarantee seven axe deaths",
             "R84-87 7 extra knife deaths at physical slot 1 correspond to one 7-shot AM row; source of deviation is UNVERIFIED",
-            "R86 requires at least 3 prewounded axe men with >=505 damage under no-Forge, seven-shots-to-center model; 92 percent end-round85 average HP would be inconsistent if bar is floor of live-survivor weighted HP",
+            "R86 at-least-3 prewounded axes and 505 damage each apply ONLY to Forge0 seven-exclusive-center-hit, fixed-wall no-spread control; previous HP clash additionally needs identical populations, no RR/healing/rebuild/interround transfer and verified bar floor/timing. Not a real-battle lower bound",
             "R88 6 occupied: 14 gun shots each, and proposed wall 2 to physical leftmost and 1 each other gives 16/15/15/15/15/15",
             "R89 4 occupied: 21 gun shots each, and proposed wall 4 to physical leftmost and 1 each other gives 25/22/22/22",
             "Primary musket ammunition from packaged profile is 3 shots per unit; sustaining identical 84 primary shots for nine consecutive rounds would require a changing source/ammo state, unobserved fresh waves or other weapon identification; the full sequence is NOT replicated",
