@@ -312,7 +312,17 @@
       "defender_player_main_line_deaths_total": 0,
       "defender_player_siege_deaths_total": 0,
       "player_deaths_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
-      "empty_slot_semantics": "null means no unit in that slot, not zero deaths"
+      "empty_slot_semantics": "null means no unit in that slot, not zero deaths",
+      "ordinary_melee_remaining_by_front_position": [
+        35,
+        35,
+        35,
+        null,
+        35,
+        35,
+        42
+      ],
+      "ordinary_melee_remaining_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED"
     },
     {
       "round": 88,
@@ -346,7 +356,17 @@
       "defender_player_main_line_deaths_total": 0,
       "defender_player_siege_deaths_total": 0,
       "player_deaths_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
-      "empty_slot_semantics": "null means no unit in that slot, not zero deaths"
+      "empty_slot_semantics": "null means no unit in that slot, not zero deaths",
+      "ordinary_melee_remaining_by_front_position": [
+        9,
+        35,
+        35,
+        35,
+        35,
+        35,
+        null
+      ],
+      "ordinary_melee_remaining_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED"
     },
     {
       "round": 89,
@@ -380,7 +400,17 @@
       "defender_player_main_line_deaths_total": 0,
       "defender_player_siege_deaths_total": 0,
       "player_deaths_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
-      "empty_slot_semantics": "null means no unit in that slot, not zero deaths"
+      "empty_slot_semantics": "null means no unit in that slot, not zero deaths",
+      "ordinary_melee_remaining_by_front_position": [
+        null,
+        9,
+        28,
+        28,
+        28,
+        null,
+        null
+      ],
+      "ordinary_melee_remaining_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED"
     }
   ],
   "supporting_visible_facts": {
@@ -415,6 +445,82 @@
       "id": "LAND-HP-BAR-RECOVERY-001",
       "state": "UNDERDETERMINED",
       "statement": "Central display increases from 92% at Round85 to 96% at Round86 despite units dropping 11 to 5; could be survivor-only HP aggregation, selection bias or healing, NOT confirmed healing."
+    },
+    {
+      "id": "LAND-DEPLETION-SLOT-COMPACTION-001",
+      "state": "EMPIRICALLY_CONSTRAINED_NOT_OFFICIAL",
+      "statement": "Given screenshot-read ordinary front counts and reserves, R87 217 front+58 reserve=275, R88 91 dead leaves184, and R89 91 dead leaves93. Restaging six to four slots conserves exact ordinary troop total.",
+      "caveat": "The algebra does not identify Gameforge target-selection, individual HP, nor shot chronology."
     }
-  ]
+  ],
+  "conservation_late_battle_reconstruction": {
+    "classification": "DERIVED_ARITHMETIC_FROM_USER_CONFIRMED_ROUND_KILLS_AND_SCREENSHOT_TRANSCRIBED_REMAINING_AND_RESERVES_NOT_DIRECT_GAME_HIT_TELEMETRY",
+    "round_87_end": {
+      "ordinary_visible_front_counts": [
+        35,
+        35,
+        35,
+        null,
+        35,
+        35,
+        42
+      ],
+      "front_total": 217,
+      "reserve": 58,
+      "total_available_before_r88": 275
+    },
+    "round_88": {
+      "source_front_plus_prior_reserve": 275,
+      "model_reconstructed_before_deaths_from_visible_ends_and_user_deaths": [
+        25,
+        50,
+        50,
+        50,
+        50,
+        50,
+        null
+      ],
+      "before_total": 275,
+      "user_confirmed_round_deaths": 91,
+      "remaining_visible_after_round": [
+        9,
+        35,
+        35,
+        35,
+        35,
+        35,
+        null
+      ],
+      "remaining_front_total": 184,
+      "remaining_reserve": 0,
+      "conserves_ordinary_melee_headcount": true
+    },
+    "round_89": {
+      "source_front_plus_prior_reserve": 184,
+      "model_reconstructed_before_deaths_from_visible_ends_and_user_deaths": [
+        null,
+        34,
+        50,
+        50,
+        50,
+        null,
+        null
+      ],
+      "before_total": 184,
+      "user_confirmed_round_deaths": 91,
+      "remaining_visible_after_round": [
+        null,
+        9,
+        28,
+        28,
+        28,
+        null,
+        null
+      ],
+      "remaining_front_total": 93,
+      "remaining_reserve": 0,
+      "conserves_ordinary_melee_headcount": true
+    },
+    "caveat": "Per-slot before-round counts are algebraic reconstructions of remaining+round_deaths, NOT literal observed individual target states or confirmed shot/firing order. Other troop compositions/eligibility could vary. Screenshot-transcribed remaining/reserve counts have not been independently verified by owner."
+  }
 }
