@@ -220,3 +220,51 @@ For every candidate, retain exact scene/round scope, unit-ID mapping confidence,
 - To resume: verify Hosted main, Land research Draft PR and exact-head review; run `python -m pytest -q tests/unit/test_land_barbarian_rounds80_89_research.py` and then full `python -m pytest -q`; compare current Land engine event traces against observed within-round casualty maps. Observe the rule that a change in front formation or reserve levels is not a change in the target-selection algorithm.
 
 **Status:** Separate user-confirmed observations and research cases. No official focus mechanism has yet been inferred, and no production combat formula changes are authorized.
+
+
+## 6. Two-target-class AM reconstruction and the owner's seven-bullet reroute insight (2026-10-14)
+
+The owner explicitly corrected an earlier failure to account for different hit-to-kill rates. **Gameforge Help-sourced packaged Barbarian unit profiles** distinguish `barbarian_knifeman` (HP **360**, armor0) from `barbarian_axe_swinger` (HP **1120**, armor20). The *current* packaged player Sulphur Carabineer has primary damage580, Accuracy70, and **primary ammunition3** per unit; the Land workshop increments **+5 per attack level**. Thus at player ATT11, under explicit **Forge0 CONTROL only** (the owner did not specify Forge for this battle), effective gun hit `580 + 11×5 = 635` into knife, and `635−20=615` into axe. **One whole hit kills a full knife; two whole hits kill a full axe**. Under some Forge settings the precise damage changes: do not assume Forge0 was the actual battle or conflate land +5 with naval +10.
+
+### 6A. R81–R83 exactly matches a two-class, two-source **conditional** model
+
+Current Land `_shot_rows([12]*7)` produces **84 model-addressed hits**, using `land-max` central-first damage-position physical mapping `[6,4,2,1,3,5,7]`. The 12 AM source rows have seven attacks each; damage positions1–5 receive two sets of seven and positions6–7 one, producing **physical L→R address counts `[7,14,14,14,14,14,7]`**. The central physical fourth cell is the special axe; others have knife icon.
+
+User has ALSO separately confirmed the **high-level wall can kill one Barbarian on an effective hit**. **For this research calculation only**, additionally assume all seven visible wall sections fire one successful lethal shot every walled round and each first attacks the directly opposing occupied physical cell, with an unverified fallback for empty facing cells. This one-each wall distribution is **not verified observed Gameforge shot telemetry**. Then:
+
+| R81–83 per-position L→R | 1 knife | 2 knife | 3 knife | 4 axe | 5 knife | 6 knife | 7 knife |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Current gun AM source address count | 7 | 14 | 14 | **14** | 14 | 14 | 7 |
+| Conditional wall lethal hits | 1 | 1 | 1 | 1 | 1 | 1 | 1 |
+| Model deaths: full knives 1 hit, full axes 2 | 8 | 15 | 15 | **7+1=8** | 15 | 15 | 8 |
+| **User-confirmed true round deaths** | **8** | **15** | **15** | **8** | **15** | **15** | **8** |
+
+The exact match is a strong **consistency check for the combination of these hypotheses**, not independent proof that the game's wall actually hits the opposite cell or that all guns always fired full-ammo, intact primary shots.
+
+### 6B. R84–R87: an extra **seven** knife kills corresponds to **ONE seven-shot AM source row**
+
+Source-observed from R84: `[15,15,15,5,15,15,8]`; R86 central six kills; remaining knife numbers same. If walls still cause exactly **one kill per occupied physical position**, then:
+- R81–83 knife deaths `76−6 wall =70 gun knife hits`; gun remaining `84−70=14` directed at axes; 14 full hits kill seven fresh axes, wall one kills an eighth.
+- R84/85/87 knife deaths `83−6 wall =77 gun knife hits`; gun remaining **`84−77=7`** for axes, while observed axe total is **five**.
+- R86 similarly knife gun hits77 and remaining axe-directed gun hits7, but user observed **six** axe deaths.
+- Of knife positions, **ONLY physical slot1** has seven MORE knife deaths compared with baseline `8→15`; the other five knife positions do not change. The entire seven-hit difference is a single source AM row, not an arbitrary guessed percentage. In the current baseline, central physical slot4 is damage-position1 and receives 7 hits in source row1 **plus seven more in source row8**. Leftmost physical slot1 is damage-position6 and receives only 7 in row6. Readdressing the hypothetical **second group of seven guns (AM row8)** from center physical4 to leftmost physical1 would yield model gun addresses `[14,14,14,7,14,14,7]` and **exactly 83 knife casualties after adding the wall assumption**, while preserving the total 84 full gun shots. This **does not establish WHY a row would be rerouted**. Notably the preceding center axe survivors go from R82 `29` (start R83) to R83 `21` (start R84); this crosses **half of a 50-unit physical first-slot maximum** (29→21), a falsifiable *hypothesis* for reduced target priority, **not** a confirmed game selector.
+
+**Severe after-battle HP constraint:** For center with 7 guns after the hypothetical reroute, assuming a wall directly kills one axe:
+- R84/85/87: gun must kill **4 axes with 7 shots** instead of eight shots for four full axes. At least **one** axe must start the round already injured enough to die from one 615-damage shot, i.e. at least **505 prior HP damage** in one axe.
+- R86: gun must kill **5 axes with 7 shots** instead of ten shots for five full axes. At least **three** axes require pre-existing ≥505 damage each (minimum **1515 pre-existing axe damage**).
+- Under the **specific additional** assumption that the image HP% is a *floor-rounded arithmetic average of remaining HP across surviving axes at end of the previous round*, **this conflicts with multiple preceding visible HP bars**. E.g. R83 has 21 axes displaying 99%, but one 505-damaged axe limits a survivor average to `100×(1−505/(21×1120)) ≈97.85%` (floor97), **less than 99%**; R85 has 11 axes displaying 92%, but three sufficiently injured axes impose `100×(1−1515/(11×1120)) ≈87.70%`, less than 92%. R86 has only 5 axes displaying 96%, while one axe at 505 injury limits average to about **90.98%**, less than 96%. R84-end (16 survivors bar97%) *could* support a single 505-damaged survivor before R85.
+- This does **NOT prove** that game HP display uses such an average! Round-end displayed HP semantics, Forge effects and exact individual prior wounds remain unknown. But it demonstrates that the attractive “seven guns diverted + prior damage explains everything” hypothesis has **its own potentially fatal counterexample**. If displayed HP bars are truly survivor-weighted averages, it cannot explain R84/R86/R87 with the current Forge0 hit profile. Other possibilities: the front-row image aggregates HP differently, gun shots originate from other sources/rounds, wall hits do not always target one axe, damage is pooled/shared, combat has more than 84 successful gun hits, or a different phase/shot selection applies. Do not hardcode seven redirected hits as an official rule.
+
+### 6C. The same source model reproduces R88/R89 **and** the proposed wall fallback
+
+When the special axe is gone, all visible targets are the one-hit knifemen, and source reserve becomes empty. The 84-shot conditional model redistributes AM **over the remaining occupied target slots**:
+- R88 has **six** occupied positions (1–6). The 12 rows each contain 7 source shots; modulo six target addresses makes **14 gun shots per occupied target**. To get the source **`[16,15,15,15,15,15]`** kills, a wall address vector `[2,1,1,1,1,1]` fits **exactly**: 7 successful wall hits total, one facing each of six occupied positions plus one orphaned wall's attack rerouted to leftmost physical1.
+- R89 has **four** occupied positions (physical2–5). AM predicts **21 gun shots each**. Proposed wall vector `[4,1,1,1]` gives **`[25,22,22,22]`** exactly: three orphaned wall attacks from missing physical1/6/7 redirected to **leftmost occupied physical2**, on top of its own wall hit. This is a very precise **numerical fit** to the owner's conjecture, not direct evidence of the true wall's target-address priority.
+
+**Counterpoint:** If all seven wall strikes were passed through the present `_shot_rows([1]*7)` shared-source AM, they would all be in source row1 and map to the **first damage-priority cell**, NOT to one directly opposite each wall segment. Therefore the owner's *local-facing wall then fallback* proposal is a distinct candidate mechanic, not a verified reuse of the ordinary AM for a seven-wall formation. The current engine explicitly records `wall_offense_modeled: false`, so this needs a research-specific rule rather than a covert production change.
+
+### 6D. Ammunition / source identity is a serious remaining confound
+
+The packaged Sulphur Carabineer primary ammunition is **3 per unit**, while the images show seven groups labeled12 across many consecutive rounds. If precisely the same 84 musketeers fired their primary once for each of **nine** rounds, their 3-shot-per-unit ammunition pool would be exhausted. This could be explained by fresh waves, rotations, using another weapon, mistaken image-unit identification, unknown shot eligibility/refresh behavior or battle-report semantics, but has **NOT been established** from the screenshots. No conclusion about the universal Accuracy rule should ignore this contradiction. The target-class hit-to-kill and AM row counting above is conditional on 84 *valid effective* long-range attacks every analyzed round, NOT proof those occurred historically.
+
+The independent source-aware executable audit `tools/research/land_round80_89_two_class_am_probe.py` outputs an artifact of all rounds, official-profile HP/attack/ammo, the exact AM+wall breakdown, the proposed one-source-row redirection, minimum pre-existing axe wounds, and conditional comparisons against preceding group HP bars. New regression `tests/unit/test_land_round80_89_two_class_am_probe.py` protects these equations. CI `.github/workflows/land-barbarian-round80-89-focus-research.yml` uploads this artifact without any changes to production targeting/damage code.
