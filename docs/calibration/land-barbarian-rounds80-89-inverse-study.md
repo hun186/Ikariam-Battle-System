@@ -2,6 +2,50 @@
 
 > **Research-only, source-grounded, not a Gameforge combat-rule specification.** Created 2026-10-14 for [Issue #71](https://github.com/hun186/Ikariam-Battle-System/issues/71). Keep independent of NAVAL Draft PR #69 and its Accuracy/overkill calibration. Do not merge or change the production battle engine without explicit authorization.
 
+## RESEARCH BREAKTHROUGH CANDIDATE — ONE INTEGER WOUND-POOL RULE FITS R84–R87 (2026-10-14)
+
+The owner proposed a **mode-dependent** explanation: at R81–R83, the current baseline AM gives **14 addressed muskets to central Axe** and individually paired D-kill would cause **seven Axe gun deaths** + one independent wall 1-kill, matching eight observed; after central Axe population falls, an unknown mechanism may move one **seven-shot AM source row** to the leftmost Knifeman, whose one-hit HP360 makes exactly **seven additional Knife kills**, while the remaining **seven** Forge5 gun shots deliver `7×710=4970` damage to the central Axe slot and use some NON-D-kill pooled / indirect / redistributed outcome. **AM baseline 14 remains true in the current program.** The rerouting, phase switch, 7 effective hits and mode selector are all hypotheses, NOT confirmed Gameforge logs. The owner noticed the change occurs after center unit count falls from 29 (round83 start) to 21 (round84 start): a threshold **between 21 and29**, potentially half a 50-capacity slot at25, is a falsifiable suggestion, NOT verified.
+
+**New simpler proposed kill rule** does NOT divide 4970 by a floating-point "average injured Axe HP" and round 4.56 to4 while rounding4.78 to5. Let `H=1120` be **full Axe HP**, `D=4970` proposed effective gun damage to center, and `W` **aggregate prior wounds retained among live Axes in that Slot**. After the proposed seven gun hits, take:
+
+```
+gun_kills = floor((W + D) / H)
+gun_residual_wounds = W + D - gun_kills * H
+alive_after_guns = alive_before_guns - gun_kills
+wall_deaths = 1                                      # INDEPENDENT HYPOTHESIS
+wall_victim_old_wounds = floor(gun_residual_wounds / alive_after_guns)
+alive_end = alive_after_guns - wall_deaths
+W_end = gun_residual_wounds - wall_victim_old_wounds # if alive_end >0; else 0
+display_bar = floor(100*(alive_end*H - W_end) / (alive_end*H))
+```
+
+The wall is **one 1-kill after the gun phase** in this proposed chronology; its large **ATK never enters** the gun pool. Prior to wall attack, gun residual wounds are **near-uniformly redistributed across surviving Axes** with integers; one of the least-injured units (the integer floor share) is struck by wall, which subtracts that unit's **preexisting** wound from the survivors' total. This chronological order, integer per-unit distribution, wall targeting and the UI's floor-mean display are **unverified**; 2020 Barbarossa/Xanto §4.1–4.6 motivate redistributed damage in general but do NOT certify this exact step order. Source paper https://www.scribd.com/document/638484147/ikariam , officially posted (with pre-v13 caveat) at https://forum.ikariam.gameforge.com/forum/thread/43268-ikariam-battle-system/.
+
+### Exact four-round integer witness (no per-round death threshold adjustment)
+
+Assume end R83 center **21 Axe /99%** actually has `W83=25` aggregate injuries; `100×(21×1120−25)/(21×1120)≈99.894%`, shown as 99% IF game floors rather than rounds nearest. Then apply exactly the SAME math for all rounds:
+
+| Round | Old live wounds `W` | `W+4970` gun pool | `floor(pool/1120)` gun kills | Gun residual | Axe alive after gun | Wall 1-kill removes wound | End Axe count | End live wounds | Floor-mean HP bar | User screenshot |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| R84 | 25 | 4995 | **4** | 515 | 17 | floor(515/17)=**30** | **16** | **485** | **97%** | 16 /97%, 5 Axe deaths |
+| R85 | 485 | 5455 | **4** | 975 | 12 | floor(975/12)=**81** | **11** | **894** | **92%** | 11 /92%, 5 Axe deaths |
+| R86 | 894 | 5864 | **5** | 264 | 6 | floor(264/6)=**44** | **5** | **220** | **96%** | 5 /96%, 6 Axe deaths |
+| R87 | 220 | 5190 | **4** | 710 | 1 | floor(710/1)=**710** | **0** | **0** | **0%** | 0 /0%, 5 Axe deaths |
+
+This simultaneously reproduces the **gun kills 4,4,5,4** plus **one wall casualty each**, exact surviving counts **16,11,5,0**, and reported bars **97,92,96,0** with 100% integer calculations; no selective round86 rounding, no healing, and no prior arbitrary per-round wall-victim wounds 70/150. Under the proposed wall-after-gun near-equal wound redistribution, `wall_wound_loss` emerges deterministically as **30,81,44,710**.
+
+**Sensitivity rather than one fine-tuned input:** End R83 live 21 Axe and displayed 99% conditionally allows total integer wounds `1..235`. Exhaustively enumerating every such starting integer wound gives **29 separate complete R84–R87 matches**, exactly `W83=1..29`. The 25-point example is not unique; for >29 the modeled bar/kill sequence deviates. This is a credible **mathematical candidate**, not independent proof of actual game selector, per-shot histories or UI floor. No candidate real damage-wave state has been observed.
+
+**Important falsifiers/remaining unknowns:**
+- **Why only seven full effective center gun hits?** Baseline current-project AM **addresses 14** at all seven occupied slots. In this candidate, one 7-shot group reroutes to leftmost **or** another gun-effectiveness/AM/source adjustment causes only seven full hits into Axe. It does NOT derive rerouting from the damage pool. The leftmost Knife seven extra deaths fit seven redirected full Forge5 hits numerically but are **not** explained mechanistically.
+- **Why change from D-kill to pool after R83?** A slot-occupancy threshold at about half a 50-unit first-line slot, HP/ATT changes, target priority, allocation phases and accuracy are separate hypotheses. The source state crosses 29 (startR83) →21 (startR84), but one battle does not identify a switch.
+- **Wall chronology:** game may resolve walls before guns, or distribute wounds across same-wave reserve differently; near-equal integers are the chosen **candidate**, not proven PDF IR/SR/RR behavior.
+- **Ammunition/full-hit count:** 84 unchanged primary gunshots across nine rounds was not proven due packaged primary ammo3, possible source replacement / other weapons.
+- **Overkill/last Axe:** at R87 all Axes die, 710 not-yet-consumed wound points are removed with last hypothetical wall victim. Whether Gameforge discards or transfers this residual damage, possibly to other slots, is unknown.
+- **Other examples are essential**: test separately on other Axe populations, different Workshop/Forge/Accuracy and comparable battle logs; do NOT put this into production engine merely because it exactly matches four consecutive rounds.
+
+**Executable / persistent:** `tools/research/land_round84_87_integer_slot_pool_probe.py` and `tests/unit/test_land_round84_87_integer_slot_pool_probe.py`, independent of existing `land_round85_86_wall_isolated_killtype_probe.py` which only demonstrated a hand-picked *seven-hit* one-round witness. This is the **multi-round strongest candidate**, but still research-only with explicit unknown source rerouting, wall scheduling and redistribution semantics.
+
 ## CORRECTION — CENTRAL AM BASELINE IS **14** ADDRESSES, NOT SEVEN (owner correction, 2026-10-14)
 
 **Important correction to our previous R85→R86 numerical witness:** The real **current-project AM model** for **seven source groups of 12 muskets**, all **seven** physical first-line Barbarian slots occupied, assigns L→R attack **addresses** `[7,14,14,14,14,14,7]`. The **central physical4 Axe Swinger receives FOURTEEN model addresses**, because damage priority1 gets two source rows of seven. This is established by the repository's `_shot_rows([12]*7)` / `land-max` geometry, **NOT a verified screenshot-by-screenshot successful Gameforge hit ledger**. Never label 7 as the default center AM.
