@@ -1,4 +1,4 @@
-"""R1 Barbarian all-Axe battle: explicitly separate Mortar, Wall, and Gun casualties.
+"""R1 of SAME Barbarian battle later observed R80-R89: source decomposition.
 
 This is a reproducible ONE-ROUND conditional analytical fit, NOT a recovered
 Gameforge attack-by-attack log, wall order or formal Kill-Type dispatcher.
@@ -122,7 +122,8 @@ def report() -> dict:
         })
     return {
         "schema_version":1,
-        "scope":"Independent new first-round all-Axe battle; not prior R80-R89",
+        "scope":"SAME BATTLE as R80-R89, Round1 all-Axe source; R2-R79 unknown",
+        "battle_identity":source["battle_identity"],
         "evidence_class":"CONDITIONAL_MORTAR_ONE_SHOT_WALL_ONE_SHOT_GUN_MIXED_KILL_TYPE_FIT",
         "owner_confirmed_forge":5,
         "source_artillery_screenshot_counts":screen["defender_player_visible_artillery_slots"],
@@ -155,6 +156,7 @@ def report() -> dict:
         "source_total_axe_deaths":sum(screen["axe_deaths_this_round"]),
         "predicted_total_axe_deaths":sum(x["predicted_deaths"] for x in rows),
         "hypothetical_source_phase_order":["mortar","musket","wall"],
+        "chronology_limit":"R1 is same combat as R80-R89, but R2-R79 source shots, losses, replenishment, and per-unit HP are absent",
         "key_numerical_observation":"Both edges have 490 residual gun wounds BEFORE wall. Post-gun wall direct 1-kill removes floor-average injured share (left 11 /right 10), giving end wound totals 479/480 with 40/45 survivors and floor bars98/99.",
         "limitations":[
             "Shot rows/address counts are known from current simulator model, not observed real game logs",
