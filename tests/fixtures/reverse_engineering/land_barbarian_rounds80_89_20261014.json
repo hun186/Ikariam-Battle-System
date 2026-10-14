@@ -10,7 +10,8 @@
       "All transcribed Barbarian seven-position casualty numbers for rounds 80 through 89 are correct",
       "Defending player round80 84 main-line deaths plus 19 siege losses is correct",
       "Player musketeers have attack workshop Lv11 and defense workshop Lv3",
-      "Barbarian visible seven-position front rank HP bars supplied in text (not individually verified unit HP)"
+      "Barbarian visible seven-position front rank HP bars supplied in text (not individually verified unit HP)",
+      "User follow-up 2026-10-14: defending city's wall level was very high; each effective wall attack can kill one attacking Barbarian (one-shot lethal). This does NOT itself confirm wall fired seven times or how it chooses physical target slots."
     ],
     "battle_report_screenshot_filenames_in_chat": [
       "image(20261014-032022).png",
@@ -522,5 +523,27 @@
       "conserves_ordinary_melee_headcount": true
     },
     "caveat": "Per-slot before-round counts are algebraic reconstructions of remaining+round_deaths, NOT literal observed individual target states or confirmed shot/firing order. Other troop compositions/eligibility could vary. Screenshot-transcribed remaining/reserve counts have not been independently verified by owner."
+  },
+  "wall_attack_followup": {
+    "evidence_class": "USER_FOLLOWUP_CHAT_WALL_PER_EFFECTIVE_SHOT_ONE_LETHAL",
+    "source": "USER_CHAT_2026_10_14",
+    "user_confirmed_high_level_wall": true,
+    "user_confirmed_each_effective_wall_hit_kills_one_barbarian": true,
+    "observed_number_wall_sections_round81_to89_from_screenshots": 7,
+    "wall_section_count_separately_confirmed_by_user": false,
+    "actually_fired_once_per_section_per_round_not_verified": true,
+    "wall_target_position_distribution_not_verified": true,
+    "wall_accuracy_and_damage_phase_not_verified": true,
+    "round80_no_matching_wall_formation_in_screenshot": true,
+    "conditional_research_controls": {
+      "assume_all_7_wall_sections_each_fire_one_successful_attack_per_round": true,
+      "assume_one_barbarian_kill_per_successful_wall_attack": true,
+      "assume_84_musketeer_main_weapon_attack_attempts_per_round": true,
+      "assume_all_7_target_slots_legitimate_until_disappearing": true,
+      "separate_sources": true,
+      "not_production_game_rule": true,
+      "conditional_target_address_policy": "One hypothetical wall kill per occupied enemy front slot, then remaining wall events redirect to LEFTMOST occupied slot; merely one illustrative accounting solution, NOT verified official target priority",
+      "warning": "All inferred wall kill distribution and gunshot-kill residuals are analytical decomposition, not Gameforge observed shot-level records."
+    }
   }
 }
