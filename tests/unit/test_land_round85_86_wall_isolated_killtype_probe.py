@@ -53,6 +53,8 @@ def test_isolated_wall_not_added_as_damage_pool_and_pool_witness_matches_source(
 def test_damage_pool_is_NOT_deemed_PDF_indirect_kill_or_proven_cross_slot():
     result=report()
     assert "NOT proof of I-kill" in result["paper_caveats"]["I_kill"]
+    assert "one-shot one-target" in result["paper_caveats"]["1_kill"]
+    assert "several attacks" in result["paper_caveats"]["D_kill"]
     assert "exact algorithm open" in result["paper_caveats"]["cross_slot"]
     assert result["floor_survivor_mean_bar_UNVERIFIED"]
     assert any("Accuracy" in line for line in result[
