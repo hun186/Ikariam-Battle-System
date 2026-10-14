@@ -70,6 +70,12 @@ This excellent arithmetic is **strong evidence** for a reserve-to-front replenis
 
 R87 has 7 occupied front cells and loses 88 units including the final 5 axe. R88 has **6 occupied cells and loses 91**; R89 has **4 occupied cells and loses 91**, despite the reserve becoming empty. More casualties per surviving physical cell become visible; may reflect **target-address redistribution** as the target set contracts. But other variables might have changed (eligible target set, damage priorities, one-shot caps, ammunition, shooter quantities), so **91 constant is a pattern, not proof of a fixed damage-budget rule**.
 
+### D. Restrictive "84 visible defenders each kill at most one enemy" theory fails
+
+From R81 onward, screenshots show **seven** defender positions labeled `12(-0)`, i.e. **84 visible deployed units** in those positions (unit-type identity and attack source/weapon role not independently established). The Barbarian front-line displayed kills are **84** on R81–83, but increase to **88/89** on R84–87 and **91** on R88–89. Therefore **IF** those 84 were the ONLY damage-dealing source, **IF** each fired exactly ONE hit per round, and **IF** each hit could kill at most one target, totals greater than 84 are impossible. At least one assumption of that overly restrictive mechanism would have to fail: other firing lines, wall damage, multi-shot/extra attack, multi-target effects, casualty phase differences, game UI source semantics, etc. The images alone cannot determine which.
+
+Crucially **don't assert** these seven `12(-0)` displayed groups are necessarily the player's 84 musketeers or the only attackers. The owner provided musket Workshop ATT11/DEF3 but did not supply a weapon-by-weapon fire ledger. This bound is a **falsifying sanity check on a narrow hypothetical**, not proof of more than 84 musket hits.
+
 ### D. Health bar rises as unit count falls
 
 R85 central axe = **11 remaining, HP bar 92%**; R86 central axe = **5 remaining, bar 96%**; R87 unit count0, bar0. If the UI bar represents **average HP of living survivors**, the bar can rise naturally when the worst-wounded individuals die, without any healing. It might instead reflect another aggregation/replacement rule. Treat `92→96` as an important counterexample to naively interpreting bars as cumulative damage to an immutable group.
