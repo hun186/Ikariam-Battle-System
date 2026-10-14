@@ -191,12 +191,13 @@ def report() -> dict:
             "available ammunition and observed attack count vs AM addresses",
         ],
         "paper_caveats":{
-            "D_kill":"attacks concentrated on an individual; no survivor overkill per paper",
+            "1_kill":"paper one-shot one-target death, appropriate simplified wall model; distinct from multi-attack D-kill",
+            "D_kill":"several attacks concentrated on an individual until lethal; no survivor overkill per paper",
             "I_kill":"paper described aggregation only for EXACT divisibility; our 5800 pool /1120 is NOT proof of I-kill",
             "P_kill":"retention of excess damage is a possible alternative but not synonymous with a confirmed full slot pool",
             "IR_kill":"within addressed slot, damage may be redistributed between attacks",
             "cross_slot":"paper section13 discusses excess damage exceeding weak slot capacity and other slots; exact algorithm open",
-            "wall_kill":"one kill per EFFECTIVE wall hit user-supported; number of hits reaching central slot is NOT independently observed",
+            "wall_kill":"candidate one-shot 1-kill per EFFECTIVE wall hit as user-supported; owner called it D-kill informally, paper distinguishes from multi-hit D-kill; number of central wall hits not observed",
             "version":"2020 community paper pre-v13; 2025 followup says AM/redistribution ideas persist but old unit values changed",
         },
         "unknowns":[
