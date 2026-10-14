@@ -1,10 +1,12 @@
-"""New independent first-round battle image: conditional AM controls, not combat engine."""
+"""Same-battle R1 snapshot, earlier than R80–89: conditional AM controls."""
 from tools.research.land_round1_full_axes_probe import report
 
 
-def test_round1_new_source_facts_preserved_separately_from_r80_89():
+def test_round1_source_facts_are_from_same_battle_as_r80_89():
     data=report()
-    assert data["fixture"]=="land_barbarian_new_independent_battle_round1_all_seven_axes_2026_10_14"
+    assert data["fixture"]=="land_barbarian_same_battle_round1_all_seven_axes_20261014"
+    assert data["battle_identity"]["owner_explicitly_confirmed_round1_and_round80_89_are_same_battle"]
+    assert data["chronology"]=="R1 and R80-R89 are SAME battle, R2-R79 not supplied"
     assert data["owner_confirmed_forge"]==5
     assert data["damage_into_axe_in_current_profile"]==710
     assert data["axe_full_hp_in_current_profile"]==1120
