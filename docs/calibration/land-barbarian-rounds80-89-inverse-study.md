@@ -2,6 +2,28 @@
 
 > **Research-only, source-grounded, not a Gameforge combat-rule specification.** Created 2026-10-14 for [Issue #71](https://github.com/hun186/Ikariam-Battle-System/issues/71). Keep independent of NAVAL Draft PR #69 and its Accuracy/overkill calibration. Do not merge or change the production battle engine without explicit authorization.
 
+## Current research priority correction — ATTACK FOCUS, not refill rediscovery
+
+**Owner correction 2026-10-14:** Reserve/round-start replenishment, source-unit replacement and front-line slot refilling are ALREADY known and represented in the existing combat simulator. The axe/ordinary reserve accounting below is **only evidence provenance / controlled input verification**; do not spend the next research stage "discovering" that depleted reserves cannot replace casualties. The substantive new question is **target address / attack concentration / additional attack sources / casualty versus hit-budget conservation as active target cells shrink**.
+
+The current production Land `engine._shot_rows([12]*7)` and target address selection `addressed[(row_number-1) % len(addressed)]`, paired with current `land-max` **first** physical order `[6,4,2,1,3,5,7]`, permits a **CONDITIONAL baseline** if all seven shown player musketeer second-line groups (12 units per source cell) successfully fire one time in the same phase and each target front cell is addressable. This is an AM-address histogram, NOT a casualty predictor. Those assumptions about complete source fleet, ammo eligibility and unit shots have NOT been verified from the ten images.
+
+| Game round | Actual occupied Barbarian front cells, physical L→R | Current AM addressed hypothetical shots (84 total) | User-verified Barbarian **deaths** | Residual deaths MINUS model addressed shots (**not extra hits**) |
+| --- | --- | --- | --- | --- |
+| 81–83 | 1–7 | **7,14,14,14,14,14,7** | **8,15,15,8,15,15,8** | **+1,+1,+1,−6,+1,+1,+1** (net0) |
+| 84–85, 87 | 1–7 | **7,14,14,14,14,14,7** | **15,15,15,5,15,15,8** | **+8,+1,+1,−9,+1,+1,+1** (net+4) |
+| 86 | 1–7 | **7,14,14,14,14,14,7** | **15,15,15,6,15,15,8** | **+8,+1,+1,−8,+1,+1,+1** (net+5) |
+| 88 | 1–6 | **14,14,14,14,14,14** | **16,15,15,15,15,15** | **+2,+1,+1,+1,+1,+1** (net+7) |
+| 89 | 2–5 | **21,21,21,21** | **25,22,22,22** | **+4,+1,+1,+1** (net+7) |
+
+**Three sharp focus/attack constraints:**
+
+1. **R81–83 same pattern 3 times:** deviation from current Land AM (if 84 fully eligible shots and 1-shot/kill) is **−6 deaths at central physically distinct unit and +1 at EVERY other six cells**. This exact residual zero structure needs explaining by target-dependent HP/damage/targeting or other attack effects, not a generic Reserve note.
+2. **R88–89 retain 91 reported casualties despite 6→4 target cells:** the current row-address system would change from **14 shots per occupied cell to 21 shots per occupied cell**, but the real casualty patterns are **not** identical to these shot counts. The **+7** total residual for both rounds is a particularly clean *source-identification constraint*. Seven defender wall sections `1(-0)` are visible and their possible independent attack contribution warrants examination alongside unobserved other attack waves/round stages—but 91=84+7 is arithmetic only, NOT evidence of seven wall kills.
+3. **Under a restricted model where ONLY these 84 hypothetical musketeer shots occur and EVERY shot kills at most one unit, R84–89's 88/89/91 casualties are impossible**. At least one restriction is wrong (e.g., extra attacking source / additional fires / multi-unit damage accounting / incorrect source-frame or turn interpretation). A casualty minus shot count is NOT an actual attack trace and cannot identify the culprit without other observations.
+
+**Focused implementation:** `tools/research/land_round80_89_am_focus_probe.py` derives physical-slot AM address histograms from actual `land-max` data and `_shot_rows` and compares them with the owner-confirmed round-end deaths, without claiming shots==kills. `tests/unit/test_land_round80_89_am_focus_probe.py` protects physical 7/6/4-slot cases, R81–83 exact residual and R88/R89 fixed +7. **Next experiments should compare different target address selectors, multi-attacker phase eligibility and Gameforge-visible casualties/HP; no more refill rule discovery.**
+
 ## 0. Quick start for the next AI agent
 
 1. Inspect Hosted GitHub **main**, this research branch `research/land-barbarian-rounds80-89-observations`, issue #71, Draft PR if opened, last exact-head CI, last exact-head Codex Review and unresolved threads; never assume a historical review approves current head.
