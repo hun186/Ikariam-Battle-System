@@ -110,6 +110,9 @@ def two_stage_report(*, illustrative_reroute_threshold: int = 25) -> dict:
         })
     return {
         "kind":"RESEARCH_ONLY_OWNER_TWO_STAGE_ADDRESS_AND_DAMAGE_HYPOTHESIS",
+        "battle_identity":source["battle_identity"],
+        "R1_source_and_R80_R89_are_one_continuous_battle":True,
+        "rounds_2_to_79_unobserved":True,
         "stage_A":"reroute seven attacks to physical1 ONLY IF central Axe slot start population < hypothetical threshold",
         "stage_A_illustrative_threshold":illustrative_reroute_threshold,
         "stage_A_threshold_experiment_not_established":True,
@@ -136,7 +139,7 @@ def two_stage_report(*, illustrative_reroute_threshold: int = 25) -> dict:
             "The shots sent to physical1 Knifeman are a candidate AM transfer, not a demonstrated cross-slot surplus-damage spill",
             "Wall target slots, one effective hit per section and wall-phase injury removal remain unverified",
             "Floor-of-living-survivor-average UI bars and near-equal redistribution remain unverified",
-            "R81-R83 central 99% HP bars may reflect preexisting injuries from earlier rounds not modeled here",
+            "R81-R83 central 99% HP bars may reflect SAME-BATTLE wounds generated in earlier rounds (possibly R2–R80), transported by later waves/redistribution; R1 center was100%, so specific wound transfer NOT demonstrated"
         ],
     }
 
