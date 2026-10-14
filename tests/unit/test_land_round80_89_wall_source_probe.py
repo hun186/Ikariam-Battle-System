@@ -135,3 +135,19 @@ def test_wall_sensitivity_is_experimental_not_misreported_as_game_trace():
         "Wall single-hit lethal effect is user stated" in x["evidence_limits"]
         for x in r["rounds"] if x["round"] != 80
     )
+
+
+def test_minimum_six_extra_kills_claim_is_conditional_on_no_multikill_per_musket_shot():
+    """P2 guard: screenshot aggregate does not establish per-attack kill cap."""
+    data = build_report()
+    premises = data["source_count_assumptions_not_game_shot_log"]
+    assert premises["each_hypothetical_musket_shot_kills_AT_MOST_one_target"]
+    assert premises["multiple_kills_per_attack_NOT_SUPPORTED_BY_THIS_BOUND"]
+    for row in data["rounds"]:
+        if row["round"] == 80:
+            continue
+        assert row["single_musket_attack_at_most_one_casualty_is_a_REQUIRED_CONDITIONAL_PREMISE"]
+        assert row["if_musket_can_multi_kill_or_other_damage_model_changes_bound_is_invalid"]
+        assert "multi-kill" in row["evidence_limits"]
+    assert [row["minimum_kills_requiring_other_gun_addresses_or_other_sources_even_if_seven_wall_kills"]
+            for row in data["rounds"] if row["round"] in (84,85,86,87)] == [6,6,6,6]
