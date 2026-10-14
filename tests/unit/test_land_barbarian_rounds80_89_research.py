@@ -126,8 +126,10 @@ def test_future_agents_can_recover_land_case_without_mixing_naval_studies():
     backlog = (ROOT / ".codex/backlog.md").read_text(encoding="utf-8")
     doc_path = ROOT / "docs/calibration/land-barbarian-rounds80-89-inverse-study.md"
     doc = doc_path.read_text(encoding="utf-8")
-    for source in (agents, memory, backlog, doc):
+    # Routers must link to the document; the document need not link to itself.
+    for source in (agents, memory, backlog):
         assert "land-barbarian-rounds80-89-inverse-study.md" in source
+    assert "rounds 80–89" in doc
     assert "land_barbarian_rounds80_89_20261014.json" in agents
     assert "land_barbarian_rounds80_89_20261014.json" in memory
     assert "land_barbarian_rounds80_89_20261014.json" in doc
