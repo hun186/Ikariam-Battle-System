@@ -15,7 +15,8 @@
       "Owner confirmed the actual battle player Forge ACTIVE; later 2026-10-14 followup explicitly confirmed Forge level 5. Previous Forge0 cases are counterfactual, not actual-game damage.",
       "Owner correction 2026-10-14: seven AM-addressed gun shots seemingly diverted toward far-left Knifemen do NOT establish that seven whole-shot damage budgets all hit only the leftmost physical slot; inspect the repository's Battle System PDF distributed/multi-slot damage mechanism before deriving exclusive target or minimum prior Axe wounds.",
       "Owner-confirmed descriptive units: ordinary outer Barbarian Knifemen and central Axe Swinger; mapped packaged registry names are model identity, not original per-hit Gameforge IDs.",
-      "2026-10-14 newest owner followup: this exact R80-R89 LAND battle was fought with PLAYER Forge level 5."
+      "2026-10-14 newest owner followup: this exact R80-R89 LAND battle was fought with PLAYER Forge level 5.",
+      "Owner followup 2026-10-15 local: screenshot image(20261014-151332).png showing first-round seven full Axe frontline slots belongs to THIS SAME battle as R80–R89, NOT a separate fight."
     ],
     "battle_report_screenshot_filenames_in_chat": [
       "image(20261014-032022).png",
@@ -40,7 +41,13 @@
       "Exact order of pre-/post-round reserve snapshots and reinforcement/rebuild process",
       "Whether displayed 100% is aggregated surviving HP or an independently rounded full state"
     ],
-    "separate_from_naval_pr": "Naval research Draft PR #69: do not mix these Land observations with vessel Accuracy calibration"
+    "separate_from_naval_pr": "Naval research Draft PR #69: do not mix these Land observations with vessel Accuracy calibration",
+    "first_round_screenshot_of_same_battle": "image(20261014-151332).png",
+    "unobserved_intervening_rounds_range": [
+      2,
+      79
+    ],
+    "hp_historical_interpretation": "R81–R83 central Axe HP99% may reflect earlier wounds accumulated/transferred via the SAME battle R1–R80, especially unobserved R2–R79, subject to reserve/refill/individual survivor identity. R1 central five slots were 100% and edge slots 98/99, so cannot assert direct unchanged central R1 wound carry to R81."
   },
   "player_musketeer_upgrade": {
     "attack": 11,
@@ -636,5 +643,33 @@
       "tools/research/land_round84_87_integer_slot_pool_probe.py",
       "tools/research/land_round1_mortar_wall_gun_decomposition_probe.py"
     ]
+  },
+  "battle_identity": {
+    "battle_id": "land-barbarian-same-owner-battle-r1-r89-20261014",
+    "owner_explicitly_confirmed_round1_and_round80_89_are_same_battle": true,
+    "owner_confirmation_provenance": "USER_EXPLICIT_FOLLOWUP_2026_10_15_0027_TAIPEI",
+    "battle_data_coverage": {
+      "first_round": [
+        1
+      ],
+      "late_round_window": [
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89
+      ],
+      "unavailable_intervening_rounds": [
+        2,
+        79
+      ]
+    },
+    "interpretation": "Two source evidence windows from one continuous combat. HP state can persist, be redistributed by RR/SR/IR, or be removed by casualties and replacements between rounds; no invented R2–R79 or exact unit continuity.",
+    "complete_battle_rounds2_79_provided": false
   }
 }
