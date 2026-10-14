@@ -218,6 +218,21 @@ def report()->dict:
             "R80_no_wall_full_hit_feasibility_if_at_most350":needed_axe+needed_rear<=350,
             "source_real_ammo_and_Forge_unknown":True,
         })
+    # One explicit AGGREGATE integer-HP feasibility witness; no wall damage,
+    # no gun miss, and switches source damage when target class changes.
+    # This is mathematically possible within screenshot HP intervals but not
+    # an observed source-shot timeline or a real AM retargeting algorithm.
+    forge5_control=profiles["5"]
+    witness_front_shots=199
+    witness_rear_shots=350-witness_front_shots
+    witness_front_hp=witness_front_shots*forge5_control["barbarian_axe_swinger"]
+    witness_rear_removed=witness_rear_shots*forge5_control["barbarian_axe_thrower"]
+    witness_rear_end=sum(rows[79]["rear_axe_thrower_group_counts"])*hR-witness_rear_removed
+    assert (witness_front_shots,witness_rear_shots,witness_front_hp,
+            witness_rear_removed,witness_rear_end)==(199,151,37213,31257,38183)
+    assert axe_r79[0]<=witness_front_hp<=axe_r79[1]
+    assert rear_final_bounds[0]<=witness_rear_end<=rear_final_bounds[1]
+
     return {
         "schema_version":1,
         "kind":"FOUR_ROUND_400_SLINGER_SAME_BATTLE_COUNT_AND_HP_CONSTRAINTS",
@@ -253,6 +268,19 @@ def report()->dict:
         "project_AM_7x50_control_by_occupied_physical_targets":amp,
         "R77_physical4_and5_conditional_full_wound_spread_witness":r77_candidate,
         "per_hit_forge_comparison_PRIMARY_only":budget,
+        "R80_ONE_NO_WALL_AGGREGATE_FULL_DAMAGE_WITNESS_NOT_REAL_ATTACK_LOG":{
+            "conditional_forge_level":5,
+            "wall_effective_damage_contribution_assumed":0,
+            "gun_hit_count_to_current_front_Axe":witness_front_shots,
+            "gun_hit_count_to_rear_AxeThrower_after_hypothetical_target_switch":witness_rear_shots,
+            "full_front_HP_consumed":witness_front_hp,
+            "full_rear_HP_consumed":witness_rear_removed,
+            "modeled_rear_end_total_HP":witness_rear_end,
+            "front_remaining_HP_interval_makes_witness_possible":axe_r79[0]<=witness_front_hp<=axe_r79[1],
+            "rear_end_HP_interval_makes_witness_possible":rear_final_bounds[0]<=witness_rear_end<=rear_final_bounds[1],
+            "requires_target_class_transition_during_battle_round":True,
+            "per_slot_HP_and_actual_source_shot_paths_not_recovered":True,
+        },
         "central_caveat":"R80 29 rear AxeThrower deaths and 65/61/61/65/61 HP while front Axe114 all die is consistent with shifting attack damage to rear after/beside frontline collapse; source-of-rear-hit timing and direct AM cross-line fallthrough UNVERIFIED.",
         "hypotheses_to_compare":[
             "Integer conserved Slot wounds and RR interround damage vs individual D-kill with wounds retained",
