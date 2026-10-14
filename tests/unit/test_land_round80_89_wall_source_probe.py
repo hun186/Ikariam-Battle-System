@@ -77,18 +77,26 @@ def test_depleted_target_slots_expose_distinct_wall_targeting_hypotheses():
     }
     # A competing assumption that wall source also follows Land AM physical
     # damage priority DOES NOT give these zero residuals. Neither is official.
+    # _shot_rows([1]*7) emits seven first-row addresses, NOT rows 1..7.
+    # Under the ordinary target address priority all hypothetical wall hits
+    # focus the central physical position 4. This does NOT establish wall
+    # uses that attacking matrix in the original game.
     assert cases[88]["alternate_wall_same_AM_target_policy_NOT_OFFICIAL"] == {
-        1:1,2:1,3:1,4:1,5:1,6:2
+        1:0,2:0,3:0,4:7,5:0,6:0
     }
     assert cases[88]["alternate_wall_AM_derived_gun_kills_minus_musket_AM"] == {
-        1:1,2:0,3:0,4:0,5:0,6:-1
+        1:2,2:1,3:1,4:-6,5:1,6:1
     }
     assert cases[89]["alternate_wall_same_AM_target_policy_NOT_OFFICIAL"] == {
-        2:2,3:2,4:2,5:1
+        2:0,3:0,4:7,5:0
     }
     assert cases[89]["alternate_wall_AM_derived_gun_kills_minus_musket_AM"] == {
-        2:2,3:-1,4:-1,5:0
+        2:4,3:1,4:-6,5:1
     }
+    for r in (81,82,83):
+        assert cases[r]["alternate_wall_same_AM_target_policy_NOT_OFFICIAL"] == {
+            1:0,2:0,3:0,4:7,5:0,6:0,7:0
+        }
 
 
 def test_wall_sensitivity_is_experimental_not_misreported_as_game_trace():
