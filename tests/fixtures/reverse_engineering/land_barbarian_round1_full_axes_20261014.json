@@ -121,6 +121,33 @@
     "forge5_damage": "710 gun per full hit to packaged Axe HP1120 armor20; real Gameforge per-hit damage not independently logged",
     "wall_assumption": "exactly one EFFECTIVE wall 1-kill for each occupied facing Axe physical slot is a conditional control, NOT a measured target selection",
     "HP_bar": "percentage source is owner-confirmed, but floor mean of surviving HP is a hypothesis, not official engine rule",
-    "no_unique_cause": "Center and left deaths exceed both plain one-wall + 84-full-shot D-pair and simple lossless pool controls, so cannot label 13 middle deaths as solely gun D-kills."
+    "no_unique_cause": "Previous musket-plus-wall-only shortfalls OMITTED source's five visible groups of six mortars. Owner proposes 5 complete mortar one-shot Axe kills to each physical slot1..6 and none slot7, which with one wall casualty each exactly explains the shortage. Full source hit log, mortar accuracy, wall target count, gun kill-type and screenshot HP display rule remain unverified.",
+    "new_mixed_gun_model": "After conditional mortar+wall subtraction, gun deaths [4,7,7,7,7,7,4]; center five 14-shot AM groups pairwise D-kill seven Axe, edge 7-shot groups can pool 7×710=4970 to kill four and retain 490 wounds. Same 490 wounds over left40 surviving -> floor98%, right45 ->floor99%. A single conditional mixed-model fit across all 7 positions, not recovered Gameforge rules."
+  },
+  "owner_new_attack_source_hypothesis": {
+    "provenance": "USER_EXPLICIT_HYPOTHESIS_2026_10_14_LATE_FOLLOWUP",
+    "mortar_source_groups": 5,
+    "mortars_per_group": 6,
+    "mortar_AM_predicted_one_shot_Axe_kills_by_physical_slot": [
+      5,
+      5,
+      5,
+      5,
+      5,
+      5,
+      0
+    ],
+    "mortar_each_effective_attack_kills_one_axe": true,
+    "wall_direct_one_shot_Axe_kills_by_physical_slot": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "source_all_hit_and_targeting_confirmed_by_game_log": false,
+    "reason": "Five-by-six mortar AM can address six target slots with five shots each; each hypothetical mortar effective attack directly kills one full Axe. Seven wall effective attacks each independently kill one Axe, leaving gun deaths [4,7,7,7,7,7,4]."
   }
 }
