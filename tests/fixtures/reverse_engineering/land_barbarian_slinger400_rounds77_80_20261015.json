@@ -21,15 +21,18 @@
       "R77 firstline HP L-R [56,81,81,81,83,56,56]",
       "R78 firstline HP [0,63,62,57,62,0,0]",
       "R79 remaining Axe HP [29,29,29]",
-      "R80 frontline zero; Axe Throwers rear [65,61,61,65,61]"
+      "R80 frontline zero; Axe Throwers rear [65,61,61,65,61]",
+      "Owner follow-up 2026-10-15: THIS 400-Slinger Workshop Attack24 battle also used Forge Lv5, explicitly confirmed."
     ],
     "screenshot_transcription_note": "Displayed n (-k) means current survivors n and round deaths k, not cumulative. Positions are PHYSICAL left-to-right in full seven frontline slots. Rear Axe Throwers 5 positions within their OWN second line. Blank spots are null, not zero.",
-    "user_confirmed_forge_level_in_this_400_slinger_battle": null,
+    "user_confirmed_forge_level_in_this_400_slinger_battle": 5,
     "slinger_primary_ammo_remaining_before_r77": "UNKNOWN",
     "player_workshop_attack_level_24_user_confirmed": true,
     "army_reinforcement_arrival_round": "UNKNOWN",
     "wall_1shot_actual_target_selection": "UNKNOWN",
-    "HP_bars_assumed_floor_total_living_HP": "HYPOTHESIS_NOT_GAMEFORGE_VERIFIED"
+    "HP_bars_assumed_floor_total_living_HP": "HYPOTHESIS_NOT_GAMEFORGE_VERIFIED",
+    "user_confirmed_forge_active_in_this_400_slinger_battle": true,
+    "forge_confirmation_provenance": "USER_EXPLICIT_REPLY_2026_10_15_TAIWAN: 有開5級熔爐。"
   },
   "player_slinger": {
     "total_army_quantity": 400,
@@ -293,11 +296,12 @@
   "research_limits": [
     "Do not confuse this OTHER 400 slinger battle with same-battle R1→R89 carabineer evidence.",
     "Owner says R77 starting Axe and Knife SHOULD be 100%, not independently certified; never silently assume fresh exact individual HP.",
-    "Player Forge activity/level not provided in this slinger case; compare Forge0 and Forge5 conditional damage only.",
+    "Player Forge active Lv5 explicitly owner-confirmed for THIS Slinger battle. Forge0 comparison is COUNTERFACTUAL only; do not use it as actual case damage.",
     "Native Slinger weapon primary ammo 5 per unit and possible exhaustion/handoff chronology unobserved at R77; AM addresses do not prove 350 fully effective primary hits.",
     "Displayed R79 frontline Axe total 114 re-packs by R80 50+50+14 exactly, but no unit-level wound history available.",
     "R79 rear Axe Thrower bars look green-full, but starting R80 at exactly100% is not owner-verified numeric report.",
     "Whether wall attacks after gun stage transfer or remove residual wounds by individual target remains unknown.",
-    "Floor-of-surviving-HP percentage and no extra heal/transfer between screenshots are explicit counterfactual math assumptions."
+    "Floor-of-surviving-HP percentage and no extra heal/transfer between screenshots are explicit counterfactual math assumptions.",
+    "Even with owner-confirmed Forge5, how many actual 5-ammo primary Slinger attacks survived until R77 and whether 350 original AM addresses all resulted in full damage remain unknown."
   ]
 }
