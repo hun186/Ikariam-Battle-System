@@ -1,0 +1,420 @@
+{
+  "schema_version": 1,
+  "case_id": "land-barbarian-player-musketeer-rounds80-89-20261014",
+  "evidence_class": "USER_UPLOADED_10_BATTLE_SCREENSHOTS_AND_DIRECT_USER_VERIFICATION_OF_PARENTHESES_CASUALTIES",
+  "source": {
+    "conversation": "User ChatGPT conversation, 2026-10-14",
+    "user_confirmed_at_followup": true,
+    "user_confirmed_facts": [
+      "Displayed parentheses (-k) mean deaths IN THAT ROUND, not cumulative battle casualties",
+      "All transcribed Barbarian seven-position casualty numbers for rounds 80 through 89 are correct",
+      "Defending player round80 84 main-line deaths plus 19 siege losses is correct",
+      "Player musketeers have attack workshop Lv11 and defense workshop Lv3",
+      "Barbarian visible seven-position front rank HP bars supplied in text (not individually verified unit HP)"
+    ],
+    "battle_report_screenshot_filenames_in_chat": [
+      "image(20261014-032022).png",
+      "image(20261014-032407).png",
+      "image(20261014-032455).png",
+      "image(20261014-032521).png",
+      "image(20261014-032957).png",
+      "image(20261014-033042).png",
+      "image(20261014-033109).png",
+      "image(20261014-033139).png",
+      "image(20261014-033208).png",
+      "image(20261014-033241).png"
+    ],
+    "screenshot_binary_present_in_repository": false,
+    "user_screenshot_order_matches_ascending_rounds": true,
+    "label_legend": "n (-k) = currently shown n units, and k unit casualties in THAT ROUND; empty slot is null NOT zero",
+    "importantly_not_confirmed": [
+      "Original complete player army including every source firing or using ammunition",
+      "Actual individual target-unit attacks, Accuracy result, damage and ammo",
+      "Official unit IDs for the central axe unit or ordinary female Barbarian melee row",
+      "Reserve counts were separately confirmed by the user (currently screenshot transcriptions only)",
+      "Exact order of pre-/post-round reserve snapshots and reinforcement/rebuild process",
+      "Whether displayed 100% is aggregated surviving HP or an independently rounded full state"
+    ],
+    "separate_from_naval_pr": "Naval research Draft PR #69: do not mix these Land observations with vessel Accuracy calibration"
+  },
+  "player_musketeer_upgrade": {
+    "attack": 11,
+    "armor": 3
+  },
+  "observations": [
+    {
+      "round": 80,
+      "attacker_barbarian_main_line_deaths_left_to_right": [
+        3,
+        3,
+        3,
+        4,
+        3,
+        3,
+        0
+      ],
+      "attacker_barbarian_main_line_total_round_deaths": 19,
+      "attacker_main_line_front_survivor_hp_percent_left_to_right": [
+        100,
+        100,
+        100,
+        99,
+        100,
+        100,
+        100
+      ],
+      "hp_percent_source": "USER_EXPLICIT_TEXT",
+      "central_position_4_axe_bearer_remaining_units": 45,
+      "central_position_4_axe_bearer_deaths": 4,
+      "axe_remaining_units_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "ordinary_melee_reserve_count": 310,
+      "ordinary_melee_reserve_count_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "barrier_context_image_inference": "open_field",
+      "barrier_context_source": "SCREENSHOT_VISUAL_INFERENCE_NOT_CONFIRMED_MECHANIC",
+      "defender_player_main_line_deaths_total": 84,
+      "defender_player_siege_deaths_total": 19,
+      "player_deaths_source": "USER_CONFIRMED",
+      "empty_slot_semantics": "null means no unit in that slot, not zero deaths"
+    },
+    {
+      "round": 81,
+      "attacker_barbarian_main_line_deaths_left_to_right": [
+        8,
+        15,
+        15,
+        8,
+        15,
+        15,
+        8
+      ],
+      "attacker_barbarian_main_line_total_round_deaths": 84,
+      "attacker_main_line_front_survivor_hp_percent_left_to_right": [
+        100,
+        100,
+        100,
+        99,
+        100,
+        100,
+        100
+      ],
+      "hp_percent_source": "USER_EXPLICIT_TEXT",
+      "central_position_4_axe_bearer_remaining_units": 37,
+      "central_position_4_axe_bearer_deaths": 8,
+      "axe_remaining_units_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "ordinary_melee_reserve_count": 535,
+      "ordinary_melee_reserve_count_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "barrier_context_image_inference": "town_wall_present",
+      "barrier_context_source": "SCREENSHOT_VISUAL_INFERENCE_NOT_CONFIRMED_MECHANIC",
+      "defender_player_main_line_deaths_total": 0,
+      "defender_player_siege_deaths_total": 0,
+      "player_deaths_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "empty_slot_semantics": "null means no unit in that slot, not zero deaths"
+    },
+    {
+      "round": 82,
+      "attacker_barbarian_main_line_deaths_left_to_right": [
+        8,
+        15,
+        15,
+        8,
+        15,
+        15,
+        8
+      ],
+      "attacker_barbarian_main_line_total_round_deaths": 84,
+      "attacker_main_line_front_survivor_hp_percent_left_to_right": [
+        100,
+        100,
+        100,
+        99,
+        100,
+        100,
+        100
+      ],
+      "hp_percent_source": "USER_EXPLICIT_TEXT",
+      "central_position_4_axe_bearer_remaining_units": 29,
+      "central_position_4_axe_bearer_deaths": 8,
+      "axe_remaining_units_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "ordinary_melee_reserve_count": 459,
+      "ordinary_melee_reserve_count_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "barrier_context_image_inference": "town_wall_present",
+      "barrier_context_source": "SCREENSHOT_VISUAL_INFERENCE_NOT_CONFIRMED_MECHANIC",
+      "defender_player_main_line_deaths_total": 0,
+      "defender_player_siege_deaths_total": 0,
+      "player_deaths_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "empty_slot_semantics": "null means no unit in that slot, not zero deaths"
+    },
+    {
+      "round": 83,
+      "attacker_barbarian_main_line_deaths_left_to_right": [
+        8,
+        15,
+        15,
+        8,
+        15,
+        15,
+        8
+      ],
+      "attacker_barbarian_main_line_total_round_deaths": 84,
+      "attacker_main_line_front_survivor_hp_percent_left_to_right": [
+        100,
+        100,
+        100,
+        99,
+        100,
+        100,
+        100
+      ],
+      "hp_percent_source": "USER_EXPLICIT_TEXT",
+      "central_position_4_axe_bearer_remaining_units": 21,
+      "central_position_4_axe_bearer_deaths": 8,
+      "axe_remaining_units_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "ordinary_melee_reserve_count": 383,
+      "ordinary_melee_reserve_count_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "barrier_context_image_inference": "town_wall_present",
+      "barrier_context_source": "SCREENSHOT_VISUAL_INFERENCE_NOT_CONFIRMED_MECHANIC",
+      "defender_player_main_line_deaths_total": 0,
+      "defender_player_siege_deaths_total": 0,
+      "player_deaths_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "empty_slot_semantics": "null means no unit in that slot, not zero deaths"
+    },
+    {
+      "round": 84,
+      "attacker_barbarian_main_line_deaths_left_to_right": [
+        15,
+        15,
+        15,
+        5,
+        15,
+        15,
+        8
+      ],
+      "attacker_barbarian_main_line_total_round_deaths": 88,
+      "attacker_main_line_front_survivor_hp_percent_left_to_right": [
+        100,
+        100,
+        100,
+        97,
+        100,
+        100,
+        100
+      ],
+      "hp_percent_source": "USER_EXPLICIT_TEXT",
+      "central_position_4_axe_bearer_remaining_units": 16,
+      "central_position_4_axe_bearer_deaths": 5,
+      "axe_remaining_units_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "ordinary_melee_reserve_count": 307,
+      "ordinary_melee_reserve_count_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "barrier_context_image_inference": "town_wall_present",
+      "barrier_context_source": "SCREENSHOT_VISUAL_INFERENCE_NOT_CONFIRMED_MECHANIC",
+      "defender_player_main_line_deaths_total": 0,
+      "defender_player_siege_deaths_total": 0,
+      "player_deaths_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "empty_slot_semantics": "null means no unit in that slot, not zero deaths"
+    },
+    {
+      "round": 85,
+      "attacker_barbarian_main_line_deaths_left_to_right": [
+        15,
+        15,
+        15,
+        5,
+        15,
+        15,
+        8
+      ],
+      "attacker_barbarian_main_line_total_round_deaths": 88,
+      "attacker_main_line_front_survivor_hp_percent_left_to_right": [
+        100,
+        100,
+        100,
+        92,
+        100,
+        100,
+        100
+      ],
+      "hp_percent_source": "USER_EXPLICIT_TEXT",
+      "central_position_4_axe_bearer_remaining_units": 11,
+      "central_position_4_axe_bearer_deaths": 5,
+      "axe_remaining_units_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "ordinary_melee_reserve_count": 224,
+      "ordinary_melee_reserve_count_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "barrier_context_image_inference": "town_wall_present",
+      "barrier_context_source": "SCREENSHOT_VISUAL_INFERENCE_NOT_CONFIRMED_MECHANIC",
+      "defender_player_main_line_deaths_total": 0,
+      "defender_player_siege_deaths_total": 0,
+      "player_deaths_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "empty_slot_semantics": "null means no unit in that slot, not zero deaths"
+    },
+    {
+      "round": 86,
+      "attacker_barbarian_main_line_deaths_left_to_right": [
+        15,
+        15,
+        15,
+        6,
+        15,
+        15,
+        8
+      ],
+      "attacker_barbarian_main_line_total_round_deaths": 89,
+      "attacker_main_line_front_survivor_hp_percent_left_to_right": [
+        100,
+        100,
+        100,
+        96,
+        100,
+        100,
+        100
+      ],
+      "hp_percent_source": "USER_EXPLICIT_TEXT",
+      "central_position_4_axe_bearer_remaining_units": 5,
+      "central_position_4_axe_bearer_deaths": 6,
+      "axe_remaining_units_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "ordinary_melee_reserve_count": 141,
+      "ordinary_melee_reserve_count_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "barrier_context_image_inference": "town_wall_present",
+      "barrier_context_source": "SCREENSHOT_VISUAL_INFERENCE_NOT_CONFIRMED_MECHANIC",
+      "defender_player_main_line_deaths_total": 0,
+      "defender_player_siege_deaths_total": 0,
+      "player_deaths_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "empty_slot_semantics": "null means no unit in that slot, not zero deaths"
+    },
+    {
+      "round": 87,
+      "attacker_barbarian_main_line_deaths_left_to_right": [
+        15,
+        15,
+        15,
+        5,
+        15,
+        15,
+        8
+      ],
+      "attacker_barbarian_main_line_total_round_deaths": 88,
+      "attacker_main_line_front_survivor_hp_percent_left_to_right": [
+        100,
+        100,
+        100,
+        0,
+        100,
+        100,
+        100
+      ],
+      "hp_percent_source": "USER_EXPLICIT_TEXT",
+      "central_position_4_axe_bearer_remaining_units": 0,
+      "central_position_4_axe_bearer_deaths": 5,
+      "axe_remaining_units_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "ordinary_melee_reserve_count": 58,
+      "ordinary_melee_reserve_count_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "barrier_context_image_inference": "town_wall_present",
+      "barrier_context_source": "SCREENSHOT_VISUAL_INFERENCE_NOT_CONFIRMED_MECHANIC",
+      "defender_player_main_line_deaths_total": 0,
+      "defender_player_siege_deaths_total": 0,
+      "player_deaths_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "empty_slot_semantics": "null means no unit in that slot, not zero deaths"
+    },
+    {
+      "round": 88,
+      "attacker_barbarian_main_line_deaths_left_to_right": [
+        16,
+        15,
+        15,
+        15,
+        15,
+        15,
+        null
+      ],
+      "attacker_barbarian_main_line_total_round_deaths": 91,
+      "attacker_main_line_front_survivor_hp_percent_left_to_right": [
+        100,
+        100,
+        100,
+        100,
+        100,
+        100,
+        null
+      ],
+      "hp_percent_source": "USER_EXPLICIT_TEXT",
+      "central_position_4_axe_bearer_remaining_units": null,
+      "central_position_4_axe_bearer_deaths": null,
+      "axe_remaining_units_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "ordinary_melee_reserve_count": 0,
+      "ordinary_melee_reserve_count_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "barrier_context_image_inference": "town_wall_present",
+      "barrier_context_source": "SCREENSHOT_VISUAL_INFERENCE_NOT_CONFIRMED_MECHANIC",
+      "defender_player_main_line_deaths_total": 0,
+      "defender_player_siege_deaths_total": 0,
+      "player_deaths_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "empty_slot_semantics": "null means no unit in that slot, not zero deaths"
+    },
+    {
+      "round": 89,
+      "attacker_barbarian_main_line_deaths_left_to_right": [
+        null,
+        25,
+        22,
+        22,
+        22,
+        null,
+        null
+      ],
+      "attacker_barbarian_main_line_total_round_deaths": 91,
+      "attacker_main_line_front_survivor_hp_percent_left_to_right": [
+        null,
+        100,
+        100,
+        100,
+        100,
+        null,
+        null
+      ],
+      "hp_percent_source": "USER_EXPLICIT_TEXT",
+      "central_position_4_axe_bearer_remaining_units": null,
+      "central_position_4_axe_bearer_deaths": null,
+      "axe_remaining_units_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "ordinary_melee_reserve_count": 0,
+      "ordinary_melee_reserve_count_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "barrier_context_image_inference": "town_wall_present",
+      "barrier_context_source": "SCREENSHOT_VISUAL_INFERENCE_NOT_CONFIRMED_MECHANIC",
+      "defender_player_main_line_deaths_total": 0,
+      "defender_player_siege_deaths_total": 0,
+      "player_deaths_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+      "empty_slot_semantics": "null means no unit in that slot, not zero deaths"
+    }
+  ],
+  "supporting_visible_facts": {
+    "barbarian_rear_line_ranged_slots_count": 7,
+    "barbarian_rear_line_each_count_displayed": 50,
+    "barbarian_rear_line_round_casualties_displayed": 0,
+    "barbarian_rear_line_source": "SCREENSHOT_TRANSCRIPTION_NOT_SEPARATELY_USER_CONFIRMED",
+    "player_round80_main_line_seven_slot_labels": "0 (-12) × 7 = 84, USER_CONFIRMED",
+    "player_round80_siege_slot_labels": "0 (-6) × 3 plus 0 (-1) = 19, USER_CONFIRMED",
+    "player_round81_through89_visible_line_labels": "12 (-0) × 7, SCREENSHOT_TRANSCRIPTION",
+    "wall_round81_through89_slot_labels": "1 (-0) × 7, SCREENSHOT_TRANSCRIPTION"
+  },
+  "research_hypotheses": [
+    {
+      "id": "LAND-RESERVE-REPLENISH-001",
+      "state": "STRONGLY_SUPPORTED_BUT_NOT_OFFICIAL",
+      "statement": "Ordinary melee rank survivors are refilled from same-type reserves between rounds; reserve decreases parallel shown ordinary-melee casualties. Central axe subpopulation not replenished in observed window.",
+      "caveat": "pre/post snapshot timing and 80->81 reinforcement unknown; reserve image transcribed without separate owner confirmation"
+    },
+    {
+      "id": "LAND-POSITION-FOCUS-001",
+      "state": "UNDERDETERMINED",
+      "statement": "Slot-pattern death counts 15/15/... versus 8/5/6 may constrain attacking-matrix targeting or target defenses, but do not prove a unique focus rule."
+    },
+    {
+      "id": "LAND-FEWER-TARGET-SLOTS-001",
+      "state": "UNDERDETERMINED",
+      "statement": "As source reserve becomes empty and active front slots decrease 7 to 6 to 4, total per-round enemy deaths still reach 91, possibly indicating redirection to remaining targets.",
+      "caveat": "Original shooter count/ammo, target priority and full battle formation not recorded"
+    },
+    {
+      "id": "LAND-HP-BAR-RECOVERY-001",
+      "state": "UNDERDETERMINED",
+      "statement": "Central display increases from 92% at Round85 to 96% at Round86 despite units dropping 11 to 5; could be survivor-only HP aggregation, selection bias or healing, NOT confirmed healing."
+    }
+  ]
+}
