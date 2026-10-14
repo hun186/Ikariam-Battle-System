@@ -51,12 +51,15 @@ def test_live_survivor_average_bar_raises_discriminating_counterexample():
     r={x["round"]:x for x in report()["rounds"]}
     assert r[84]["previous_round_observed_center_hp_bar_percent"]==99
     assert r[84]["previous_round_center_survivors_from_screenshot"]==21
-    assert r[84]["incompatible_IF_bar_floors_average_of_survivor_HP"]
+    assert r[84]["counterfactual_HP_bar_conflict_IF_no_HP_state_transition"]
+    assert not r[84]["incompatible_IF_bar_floors_average_of_survivor_HP"]
     assert r[86]["previous_round_observed_center_hp_bar_percent"]==92
     assert r[86]["previous_round_center_survivors_from_screenshot"]==11
-    assert r[86]["incompatible_IF_bar_floors_average_of_survivor_HP"]
+    assert r[86]["counterfactual_HP_bar_conflict_IF_no_HP_state_transition"]
+    assert not r[86]["incompatible_IF_bar_floors_average_of_survivor_HP"]
     assert r[87]["previous_round_observed_center_hp_bar_percent"]==96
-    assert r[87]["incompatible_IF_bar_floors_average_of_survivor_HP"]
+    assert r[87]["counterfactual_HP_bar_conflict_IF_no_HP_state_transition"]
+    assert not r[87]["incompatible_IF_bar_floors_average_of_survivor_HP"]
     assert not r[85]["incompatible_IF_bar_floors_average_of_survivor_HP"]
 
 
@@ -115,3 +118,24 @@ def test_owner_forge_and_pdf_spread_corrections_are_in_persistent_report():
     assert correction["center_remaining_r80_r87"] == [
         45, 37, 29, 21, 16, 11, 5, 0
     ]
+
+def test_codex_p2_ensemble_preserves_unverified_forge_focus_and_hp_continuity():
+    data=report()
+    id_source=data["unit_identity_provenance"]
+    assert id_source["center_position_4"]["owner_confirmed_label"]=="Barbarian Axe Swinger"
+    assert id_source["ordinary_frontline"]["owner_confirmed_label"]=="Barbarian Knifeman"
+    assert not id_source["center_position_4"]["game_internal_numeric_id_verified"]
+    assert data["actual_game_forge_record"]["active"]
+    assert data["actual_game_forge_record"]["level"] is None
+    assert data["forge_active_level_unknown"]
+    cases=data["sensitivity_cases_only_not_actual_forge"]
+    assert set(cases)=={"1","2","3","4","5"}
+    assert all(v["attacker_forge_level_is_UNVERIFIED"]==int(k) for k,v in cases.items())
+    assert cases["5"]["barbarian_targets"]["barbarian_axe_swinger"]["shot_damage"]>615
+    assert "IF the 14 are paired" in " ".join(data["conditional_assumptions"])
+    assert data["pdf_source_limitations"]["one_shot_cross_slot_damage"]=="NOT_PROVEN_BY_THE_PAPER"
+    for row in data["rounds"]:
+        if 84<=row["round"]<=87:
+            assert not row["same_survivor_population_and_interround_HP_continuity_VERIFIED"]
+            assert not row["incompatible_IF_bar_floors_average_of_survivor_HP"]
+            assert row["wound_lower_bound_is_forge0_exclusive_hit_counterfactual_ONLY"]
