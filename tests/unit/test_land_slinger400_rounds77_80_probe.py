@@ -97,6 +97,24 @@ def test_r77_physical_center56_and_adjacent49_am_wounds_fit_forge5_bars():
     assert v[5]["target_was_100pct_before_round_UNVERIFIED"]
 
 
+def test_r80_integer_aggregate_front_then_rear_feasibility_witness_is_not_a_hit_log():
+    d=report()
+    w=d["R80_ONE_NO_WALL_AGGREGATE_FULL_DAMAGE_WITNESS_NOT_REAL_ATTACK_LOG"]
+    assert w["conditional_forge_level"]==5
+    assert w["gun_hit_count_to_current_front_Axe"]==199
+    assert w["gun_hit_count_to_rear_AxeThrower_after_hypothetical_target_switch"]==151
+    assert w["gun_hit_count_to_current_front_Axe"]+w[
+        "gun_hit_count_to_rear_AxeThrower_after_hypothetical_target_switch"
+    ]==350
+    assert w["full_front_HP_consumed"]==37213
+    assert w["full_rear_HP_consumed"]==31257
+    assert w["modeled_rear_end_total_HP"]==38183
+    assert w["front_remaining_HP_interval_makes_witness_possible"]
+    assert w["rear_end_HP_interval_makes_witness_possible"]
+    assert w["requires_target_class_transition_during_battle_round"]
+    assert w["per_slot_HP_and_actual_source_shot_paths_not_recovered"]
+
+
 def test_hp_percentage_as_interval_rejects_invalid_or_missing_units():
     assert floored_mean_hp_total_interval(49,1120,81)==(44453,45001)
     assert floored_mean_hp_total_interval(0,1120,0)==(0,0)
