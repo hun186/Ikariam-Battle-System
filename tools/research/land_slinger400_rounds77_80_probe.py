@@ -1,7 +1,8 @@
 """400 Slinger Attack Workshop24: four observed R77..R80 Barbarian snapshots.
 
-Read-only inverse constraints. Does NOT identify actual slinger ammo, Forge,
-real Gameforge hit path, wall targets or HP-bar semantics. In particular R77
+Read-only inverse constraints. Owner CONFIRMED active Forge Lv5; native
+Slinger primary ammo and real Gameforge shot targets remain UNKNOWN.
+Do not mistake per-AM addressed shots for actual successful full hits. In particular R77
 '100% before battle hit' and R79 rear 100% are owner hypotheses/screenshots,
 NOT observed exact pre-phase per-individual HP values.
 """
@@ -61,6 +62,8 @@ def _profile_by_target(forge_level: int)->dict:
 
 def report()->dict:
     j=json.loads(FIXTURE.read_text(encoding="utf-8"))
+    assert j["source"]["user_confirmed_forge_level_in_this_400_slinger_battle"] == 5
+    assert j["source"]["user_confirmed_forge_active_in_this_400_slinger_battle"]
     rows={r["round"]:r for r in j["rounds"]}
     registry=UnitRegistry.load(include_barbarians=True)
     hA=registry.get("barbarian_axe_swinger").hit_points
@@ -185,6 +188,59 @@ def report()->dict:
         })
     assert [q["phys4_and_phys5_match_owner_snapshot"] for q in r77_candidate]==[False,True]
 
+    # Source R77 knife physical1/6/7: 50 full HP360 before attacks is an
+    # owner EXPECTATION not a verified game per-individual HP measurement.
+    # Conditional on that AND floor-of-survivor-average bar, each 31/56%
+    # Knife group implies 11639..11750 total HP lost (dead+living wounds).
+    # Even 49 fully damaging Forge5 slinger shots and a generous final
+    # wall 1-kill at up to a FULL 360 HP cannot account for that loss.
+    # Each knife slot would need at least 55 gun equivalents, six above
+    # the baseline AM49, absent other damaging sources. This is NOT
+    # proof of re-addressing; old injuries, overkill, additional attacks,
+    # differing UI, or weapon logs could invalidate that interpretation.
+    knife_before_count=50
+    knife_after_count=31
+    knife_end_hp_range=floored_mean_hp_total_interval(
+        knife_after_count,hK,56
+    )
+    knife_hp_removed_range=(
+        knife_before_count*hK-knife_end_hp_range[1],
+        knife_before_count*hK-knife_end_hp_range[0],
+    )
+    knife_gun_damage=profiles["5"]["barbarian_knifeman"]
+    baseline_knife_gun_addresses=amp[0]["AM_base_addresses_by_physical"]["1"]
+    max_one_wall_knife_hp=hK
+    max_baseline_knife_HP_consumption=(
+        baseline_knife_gun_addresses*knife_gun_damage+max_one_wall_knife_hp
+    )
+    min_full_shots_needed_after_one_wall=ceil(
+        (knife_hp_removed_range[0]-max_one_wall_knife_hp)/knife_gun_damage
+    )
+    assert knife_hp_removed_range==(11639,11750)
+    assert baseline_knife_gun_addresses==49
+    assert max_baseline_knife_HP_consumption==10503
+    assert min_full_shots_needed_after_one_wall==55
+    assert [x["round_deaths"] for x in first(77,"barbarian_knifeman")]==[19,19,19]
+    assert all(x["hp_percent"]==56 for x in first(77,"barbarian_knifeman"))
+    # Conditional high-impact wounded Axe slot physical2: R77 starts
+    # 19 and ends17 (-2) with 81% HP. As with knife, compare FULL
+    # status before the attack, assumed floor-of-living bar after.
+    phys2=rows[77]["barbarian_first_by_physical_slot"][1]
+    assert (phys2["physical_slot"],phys2["survivors"],
+            phys2["round_deaths"],phys2["hp_percent"])==(2,17,2,81)
+    hp17=floored_mean_hp_total_interval(17,hA,81)
+    phys2_removed_range=(19*hA-hp17[1],19*hA-hp17[0])
+    baseline_phys2_damage=amp[0]["AM_base_addresses_by_physical"]["2"]*profiles["5"]["barbarian_axe_swinger"]
+    assert (phys2_removed_range,baseline_phys2_damage)==((5668,5857),9163)
+    # The difference equals ~18 shot equivalents, but ONLY IF all
+    # damage addressed to this cell is conserved, no healing, and the
+    # excess is redirected rather than missed/overkilled. Do not
+    # reify it as exact 18 actual transferred shots.
+    phys2_gun_shot_overhead_lower_bound_if_all_hits_conserved=(
+        49-(phys2_removed_range[1]//profiles["5"]["barbarian_axe_swinger"])
+    )
+    assert phys2_gun_shot_overhead_lower_bound_if_all_hits_conserved==18
+
     # With the same hypothetical all-350-primary shot population, see what
     # Forge0 vs Forge5 budgets can/cannot cover under the restrictive R78-79
     # pure Axe-front-only + max seven independent wall one-shot caps.
@@ -199,7 +255,8 @@ def report()->dict:
         needed_axe=ceil(axe_r79[0]/axe)
         needed_rear=ceil(rear_net_removed_min/rear)
         budget.append({
-            "slinger_forge_control_NOT_CONFIRMED":forge_level,
+            "forge_level_for_control":forge_level,
+            "forge_profile_is_actual_user_confirmed_case":forge_level==5,
             "per_full_primary_hit_to_Axe":axe,
             "per_full_primary_hit_to_Knife":knife,
             "per_full_primary_hit_to_AxeThrower":rear,
@@ -216,7 +273,8 @@ def report()->dict:
             "R80_front_full_primary_shots_min_if_no_other_attack":needed_axe,
             "R80_rear_full_primary_shots_min_if_no_other_attack":needed_rear,
             "R80_no_wall_full_hit_feasibility_if_at_most350":needed_axe+needed_rear<=350,
-            "source_real_ammo_and_Forge_unknown":True,
+            "source_real_primary_ammo_unknown":True,
+            "forge_owner_verified_F5":True,
         })
     # One explicit AGGREGATE integer-HP feasibility witness; no wall damage,
     # no gun miss, and switches source damage when target class changes.
@@ -242,7 +300,10 @@ def report()->dict:
         "user_slinger_total":400,
         "seven_visible_active_firing_cells":[50]*7,
         "reserve":50,
-        "actual_forge_active_level_UNKNOWN":True,
+        "owner_confirmed_active_forge_level":5,
+        "owner_confirmed_forge_evidence":"Explicit user follow-up: 有開5級熔爐。",
+        "actual_forge_level_verified":True,
+        "forge0_is_counterfactual_only":True,
         "target_HP":{"axe":hA,"knife":hK,"rear_axe_thrower":hR},
         "real_hp_bar_floor_mean_rule_VERIFIED":False,
         "owner_R77_front_start_full_100pct_NOT_CONFIRMED":True,
@@ -267,9 +328,39 @@ def report()->dict:
         },
         "project_AM_7x50_control_by_occupied_physical_targets":amp,
         "R77_physical4_and5_conditional_full_wound_spread_witness":r77_candidate,
+        "R77_THREE_KNIFE_SLOTS_FULL_HP_CONDITIONAL_DAMAGE_DEFICIT":{
+            "number_of_identical_knife_front_slots":3,
+            "start_units_IF_full_at_before_R77":50,
+            "end_units_each":31,
+            "owner_bar_percent_each":56,
+            "end_remaining_HP_interval":list(knife_end_hp_range),
+            "HP_removed_per_knife_slot_if_fresh_and_floor_bar":list(knife_hp_removed_range),
+            "baseline_project_AM_primary_addresses_each":baseline_knife_gun_addresses,
+            "owner_confirmed_forge5_damage_per_complete_knife_primary_hit":knife_gun_damage,
+            "max_one_wall_knife_full_HP_direct_kill":max_one_wall_knife_hp,
+            "baseline_49_full_gun_hits_plus_generous_one_wall_HP_depletion":max_baseline_knife_HP_consumption,
+            "minimum_additional_full_gun_equivalents_per_knife_slot":min_full_shots_needed_after_one_wall-baseline_knife_gun_addresses,
+            "minimum_conditional_additional_shots_ALL_three_knife_slots":
+                3*(min_full_shots_needed_after_one_wall-baseline_knife_gun_addresses),
+            "observed_reroute_UNVERIFIED":True,
+            "R77_start_full_individual_HP_UNVERIFIED":True,
+            "wall_one_full_knife_HP_kill_UNVERIFIED":True,
+            "total_HP_accounting_not_specific_Kill_Type":True,
+        },
+        "R77_PARTIAL_AXE_PHYSICAL2_conditional_surplus_assigned_damage":{
+            "start_Axe_IF_full_before_R77":19,
+            "survivors":17,
+            "shown_HP_percent":81,
+            "observed_HP_removed_interval_IF_floor_bar":list(phys2_removed_range),
+            "baseline_AM_49_complete_forge5_shots_HP":baseline_phys2_damage,
+            "at_least_18_gun_tickets_not_consumed_locally_IF_full_hits_conserved_without_overkill":
+                phys2_gun_shot_overhead_lower_bound_if_all_hits_conserved,
+            "no_proof_actual_18_shots_redirected":True,
+        },
         "per_hit_forge_comparison_PRIMARY_only":budget,
+        "confirmed_real_F5_primary_per_hit":profiles["5"],
         "R80_ONE_NO_WALL_AGGREGATE_FULL_DAMAGE_WITNESS_NOT_REAL_ATTACK_LOG":{
-            "conditional_forge_level":5,
+            "owner_confirmed_forge_level_for_damage_profile":5,
             "wall_effective_damage_contribution_assumed":0,
             "gun_hit_count_to_current_front_Axe":witness_front_shots,
             "gun_hit_count_to_rear_AxeThrower_after_hypothetical_target_switch":witness_rear_shots,
@@ -287,7 +378,7 @@ def report()->dict:
             "AM regroup target slot count 7→4→3, distinct from incoming 350 attacks and screenshots showing 50+50+14 after regroup",
             "Target-class change Axe HP1120/armor20 → Axe Thrower HP320/armor0 when frontline clears R80",
             "Can same complete shot pool transfer attacks from front to rear inside one firing phase? Current engine frozen-target vs Gameforge UNKNOWN",
-            "Test Forge5 primary 187/207 vs Forge0 160/180; owner did not confirm Forge for this separate Slinger battle",
+            "Owner HAS confirmed active Forge5 for this Slinger case; Forge0 is an alternative counterfactual only",
             "Primary ammunition 5 and arrival/replenishment before R77 unknown: cannot assume every 50 displayed Slinger shoots full primary",
             "Accuracy20 percent must not be blindly implemented as independent 20pct random hits; kill/wound allocator still unknown",
             "R77 100pct preattack only owner's likely expectation; R79 rear full HP screenshot visual but not precise 100pct certification",
