@@ -2,6 +2,58 @@
 
 > **Research-only, source-grounded, not a Gameforge combat-rule specification.** Created 2026-10-14 for [Issue #71](https://github.com/hun186/Ikariam-Battle-System/issues/71). Keep independent of NAVAL Draft PR #69 and its Accuracy/overkill calibration. Do not merge or change the production battle engine without explicit authorization.
 
+## NEW SEPARATE 400-SLINGER CASE — R77–R80: COUNT CONSERVATION, INJURY POOLS, FRONT→REAR COLLAPSE (2026-10-15)
+
+**This is ANOTHER battle**, not the full-Axe R1→R89 Forge5 musketeer battle above. Four owner-supplied screenshots (20261014-170017, -170407, -170814, -170830.png) of a **400-Slinger attack-workshop Lv24** player army: 7 second-line slots×50=350 in battle, reserve50, 7 defensive wall sections. Owner says Barbarian Axe+Knifeman targets before R77 attack *should have been* 100% HP (**hypothesis, not verified exact pre-round HP**). Unknown whether slinger player Forge was active or at what level; do NOT import the other battle's confirmed Forge5. Exact primary ammunition status and deployment time (late reinforcement vs long battle) unknown. Screenshot source is in conversation, not hosted GitHub. Provenance fixture `tests/fixtures/reverse_engineering/land_barbarian_slinger400_rounds77_80_20261015.json`.
+
+| Observed round | Barbarian frontline physical L→R survivors (-this round deaths) | Owner-confirmed surviving front HP% | Frontline deaths |
+|---|---|---|---:|
+| R77 | Knife31(-19); Axe17(-2),49(-1),49(-1),50(-0); Knife31(-19),31(-19) | 56,81,81,81,83,56,56 | **61** |
+| R78 | Knife0(-50); Axe11(-4),48(-2),47(-3),48(-2); Knife0(-50),0(-12) | 0,63,62,57,62,0,0 | **123** |
+| R79 | Axe0(-4),39(-11),36(-14),39(-11) [four Axe positions] | 0,29,29,29 | **40** |
+| R80 | Axe0(-50),0(-50),0(-14) [three positions] | 0,0,0 | **114** |
+
+R80 Barbarian SECOND line, Axe Thrower `HP320/armor0`: four slots **44(-6)** and final one **12(-5)**, HP% owner-given **[65,61,61,65,61]** (29 dead, **188** survivors). R79 screenshot prior rear line 50×4+17 = **217**, visually full green bars; exact pre-R80 HP100% not numerically owner-confirmed.
+
+### Exact count conservation: the strongest unconditional signal
+
+- R77 frontline Knife 31×3 =93 alive, with **19 Knife in reserve**. R78 Knife deaths 50+50+12=**112 = 93+19**. All Knifemen disappear; per-cell prior positions cannot be matched one-for-one across slot refill and compaction.
+- R77 Axe frontline survivors **17+49+49+50=165**. R78 Axe survivors **11+48+47+48=154**, precisely 11 fewer than R78 observed Axe deaths **4+2+3+2=11**.
+- R79 Axe deaths **4+11+14+11=40**, so R78 154→**114**. R79 visible final **39+36+39=114**.
+- R80 Axe deaths **50+50+14=114**: ALL remaining Axe die that round. These three physical slots show **refilled/compacted counts**, not individual continuity with prior positions 39/36/39.
+- R79 Axe Thrower second-line **217**, R80 29 killed and **188** survivors. Exactly same wave count, while their HP bars fall to65/61/61/65/61.
+
+### Current project source damage/AM controls, not verified Gameforge attacks
+
+For **Slinger primary weapon base60, attack Workshop Lv24 => bonus24×5=120, before Forge180**, official community-packaged Axe HP1120/armor20, Knife HP360/armor0, AxeThrower HP320/armor0:
+
+| Player Forge in THIS slinger battle (UNKNOWN) | Axe per full primary hit | Knife and Thrower per hit | Fresh Axe full hits to kill |
+|---|---:|---:|---:|
+| OFF Forge0 counterfactual | **160** | **180** | **7** |
+| ON Lv5 counterfactual | **187** | **207** | **6** |
+
+Every source primary Slinger has **5 ammunition** and Accuracy20 (packaged stats). These FOUR screenshots do NOT independently prove the 350 deployed slingers each fired successfully or still had ammo at R77. No free assumption that Accuracy20 is random independent 20% hit success. `_shot_rows([50]*7)` current-project source AM for seven occupied physical enemy front slots produces **[50,50,50,50,50,50,50]** attacks; after collapse to four Axe slots (physical2–5) it produces **[84,91,91,84]** in physical order; at three Axe slots (physical3–5) **[119,119,112]**. These are model *addresses*, not confirmed original actual gun shot logs and do not by themselves predict casualties or source phase switch.
+
+**Independent partial R77 clue, IF the target before R77 truly had zero wounds and no other HP transfer:** The physical5 Axe group starts50, ends **50(-0) at83% HP**. Fifty complete hypothetical Forge5 slinger primary hits at187 give **9350 wounds**, `floor(100×(1−9350/(50×1120)))=83%` exact. Forge0 primary160×50=8000 would display85%, not83%, under the same near-uniform total-HP model. Other R77 slots do NOT all fit one independent group of 50 hits, consistent with AM addressing/spill, old injuries, wall kills or unverified UI semantics. Do NOT infer actual Forge5 without explicit owner confirmation.
+
+### Four-round reverse bounds if displayed percent = floor(mean living HP)
+
+Define `p=floor(100×actual_remaining_HP/(n×unit_HP))`. Then for each slot `ceil(n×unit_HP×p/100) ≤ actual_remaining_HP ≤ ceil(n×unit_HP×(p+1)/100)−1`. Summing surviving Axe slots:
+- End R78 154 living Axes: aggregate HP **104,431–106,151**.
+- End R79 114 living Axes: aggregate HP **37,029–38,301**.
+- Therefore net effective Axe HP removed R78→R79 is **66,130–69,122** if the snapshots represent comparable same-wave HP totals and no hidden HP influx/loss source. This includes DEAD Axes and further injured survivors; it is NOT only `40×1120`, nor a proof of a particular Kill Type.
+- If exactly350 effective full Slinger primary shots all address the Axe first line R79, Forge0 max `350×160=56,000`. EVEN giving seven wall sections a generous upper bound `7×1120=7,840` one-full-health-Axe kills, total max **63,840**, **below the minimum 66,130**. Thus the **strict conjunction of Forge0 / primary shots / max7 one-Axe wall kills / zero other sources / no earlier HP-state bookkeeping / floor-average bars is falsified**. This is strong evidence to ASK if Forge was actually ON, or if target/bar/carryover and ammo assumptions differ — not standalone proof of Forge5.
+- Forge5 full primary Axe hit187 gives `350×187=65,450`; at least **680 additional HP disappearance** required from wall or another source at R79's minimum. Even a single effective independent wall one-hit-kill could make a budget feasible, subject to timing and actual victim HP.
+
+**R80 first-line collapse and damaged rear line:** If the R79 second-line 217 Axe Throwers were genuinely 100% at end R79 (only visually inferred), initial total rear HP is `217×320=69,440`. End R80 188 survivors with shown bars65/61/61/65/61 imply end combined HP **37,825–38,422**, or **31,018–31,615 HP removed** from rear in R80. Add vanishing front Axe HP37,029–38,301 ⇒ **at least 68,047 HP** disappears across two enemy classes within R80; upper interval is69,916. This is not automatically all Slinger damage: walls may contribute direct kills, RR and attack order are unresolved.
+
+Forge5 conditional gun damage `187` Axe/`207` Thrower needs *at least* `ceil(37029/187)=199` attacks to finish frontline and `ceil(31018/207)=150` to account for rear loss, total **349** full damaging Slinger-primary attacks **IF walls contribute ZERO and rear starts full**; of the max350 model addresses, this is mathematically *barely feasible* only at the low ends of the allowed HP intervals, and would require some means for gun/pooled damage to reach second line within the same round. Forge0 similarly requires `ceil(37029/160)=232` + `ceil(31018/180)=173` = **405** full hits, exceeding 350 WITHOUT an external wall source; neither proves real forge or source timing.
+
+**What this tells us about our prior musketeer hypothesis:** This provides a valuable DIFFERENT-weapon test of (i) persistent aggregate Slot injuries across rounds, (ii) target-slot shrinkage/refill vs individual soldier identity, and (iii) damage or targeting reaching a new line as earlier line dies. But **7/14 odd-even shot count** is not a universal condition: Slinger starts at 50 full source attack addresses per target; under Forge0 an Axe takes7 fresh full hits, under Forge5 takes6. Their ratios, ammo, source phases and targets are different. R79→80 backline shot behavior is possibly an **AM addressing phase change or target overspill/retarget**, NOT automatically the same slot-level P/I/D/IR mechanism. Future tests must derive one general allocator without hardcoding each screenshot.
+
+Research-only code/fixtures: `tools/research/land_slinger400_rounds77_80_probe.py`, `tests/unit/test_land_slinger400_rounds77_80_probe.py`, `tests/fixtures/reverse_engineering/land_barbarian_slinger400_rounds77_80_20261015.json`. Critical owner follow-up needed: was Forge active in THIS battle, at what level? Were these Slinger groups freshly deployed around R77 or present/firing much earlier? No production combat engine code changes without independent source confirmation.
+
+
 ## CRITICAL OWNER PROVENANCE CORRECTION — R1 and R80–R89 are ONE CONTINUOUS BATTLE (2026-10-15)
 
 **The owner explicitly confirmed that the screenshot showing the very FIRST round (R1, all seven Axe frontline slots each starting at50) and the screenshots R80–R89 belong to THE SAME BATTLE.** All previous wording saying "different battle", "independent battle", or "R1 is not R80–89" was factually wrong and superseded. These are **two NONCONTIGUOUS observational windows of one continuous battle**, not two separate fights. Canonical fixtures are kept in two files for analytical convenience only, and now share exact `battle_identity.battle_id` **`land-barbarian-same-owner-battle-r1-r89-20261014`** with explicit owner-verification provenance. Their raw round vectors remain unchanged.
