@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "case_id": "land_barbarian_new_independent_battle_round1_all_seven_axes_2026_10_14",
+  "evidence_class": "USER_IMAGE_PLUS_EXPLICIT_FORGE_WORKSHOP_AND_HP_REPORT",
+  "source": {
+    "image_in_chat": "image(20261014-151332).png",
+    "image_on_hosted_github": false,
+    "screenshot_text_transcribed": "Barbarian first-line Axe by physical positions1-7: 40(-10),37(-13),37(-13),37(-13),37(-13),37(-13),45(-5)",
+    "source_scope": "NEW battle ROUND ONE, not earlier battle rounds80-89",
+    "display_percent_owner_confirmed": true,
+    "barbarian_front_unit_type_owner_label": "axe soldiers; packaged barbarian_axe_swinger mapping is model-side, not official Gameforge numeric id",
+    "screenshot_attribution": "Attacker is Barbarians, defender player; all seven barbarian front positions start at 50 each according to remaining+current-round loss"
+  },
+  "owner_confirmed": {
+    "player_forge_level": 5,
+    "musketeer_attack_workshop_level": 11,
+    "displayed_axe_front_survivor_HP_percent_physical_left_to_right": [
+      98,
+      100,
+      100,
+      100,
+      100,
+      100,
+      99
+    ]
+  },
+  "transcribed_screenshot": {
+    "round": 1,
+    "axe_front_before": [
+      50,
+      50,
+      50,
+      50,
+      50,
+      50,
+      50
+    ],
+    "axe_front_end": [
+      40,
+      37,
+      37,
+      37,
+      37,
+      37,
+      45
+    ],
+    "axe_deaths_this_round": [
+      10,
+      13,
+      13,
+      13,
+      13,
+      13,
+      5
+    ],
+    "total_axe_deaths": 80,
+    "defender_player_visible_musket_slots": [
+      12,
+      12,
+      12,
+      12,
+      12,
+      12,
+      12
+    ],
+    "defender_player_visible_wall_sections": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "defender_player_visible_artillery_slots": [
+      6,
+      6,
+      6,
+      6,
+      6
+    ],
+    "defender_player_visible_extra_side_slots": [
+      15,
+      15
+    ],
+    "attacker_barbarian_visible_behind_front_line": [
+      50,
+      50,
+      50,
+      50,
+      50,
+      50,
+      50
+    ],
+    "attacker_barbarian_siege_remaining_and_deaths": [
+      [
+        0,
+        6
+      ],
+      [
+        0,
+        6
+      ],
+      [
+        0,
+        6
+      ],
+      [
+        0,
+        6
+      ],
+      [
+        0,
+        6
+      ]
+    ],
+    "caution": "Source imagery shows multiple source classes; actual wall hits, gun effective shot logs, source sequencing, artillery target priorities and cross-line damage are NOT observed."
+  },
+  "analysis_limits": {
+    "baseline_am": "Hypothetical all 7x12 gun shots fire one primary attack and are addressed using current project land-max. Physical L-R address histogram [7,14,14,14,14,14,7].",
+    "forge5_damage": "710 gun per full hit to packaged Axe HP1120 armor20; real Gameforge per-hit damage not independently logged",
+    "wall_assumption": "exactly one EFFECTIVE wall 1-kill for each occupied facing Axe physical slot is a conditional control, NOT a measured target selection",
+    "HP_bar": "percentage source is owner-confirmed, but floor mean of surviving HP is a hypothesis, not official engine rule",
+    "no_unique_cause": "Center and left deaths exceed both plain one-wall + 84-full-shot D-pair and simple lossless pool controls, so cannot label 13 middle deaths as solely gun D-kills."
+  }
+}
