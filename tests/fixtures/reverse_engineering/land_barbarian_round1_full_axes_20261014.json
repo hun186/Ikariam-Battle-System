@@ -149,5 +149,30 @@
     ],
     "source_all_hit_and_targeting_confirmed_by_game_log": false,
     "reason": "Five-by-six mortar AM can address six target slots with five shots each; each hypothetical mortar effective attack directly kills one full Axe. Seven wall effective attacks each independently kill one Axe, leaving gun deaths [4,7,7,7,7,7,4]."
+  },
+  "owner_followup_phase_order": {
+    "provenance": "USER_EXPLICIT_STATEMENT_2026_10_14_LATE_FOLLOWUP",
+    "asserted_sequence": [
+      "mortar",
+      "musket",
+      "wall"
+    ],
+    "interpretation": "Mortar kills first before gun wounds exist. Muskets calculate center D-kill or edge retained-wound pool. Wall strikes last, so each wall-killed Axe may ALREADY carry a share of gun wounds, which leaves the living-wound pool.",
+    "phase_source_is_owner_statement_not_independent_hit_by_hit_log": true,
+    "candidate_near_equal_wound_distribution_before_wall_unverified": true,
+    "edge_490_wounds_is_pre_wall_not_end_of_round": true,
+    "conditional_wall_victim_gun_wound_share_left": 11,
+    "conditional_wall_victim_gun_wound_share_right": 10,
+    "conditional_end_surviving_gun_wounds_left": 479,
+    "conditional_end_surviving_gun_wounds_right": 480,
+    "must_not_overwrite_owner_HP_observation": [
+      98,
+      100,
+      100,
+      100,
+      100,
+      100,
+      99
+    ]
   }
 }
