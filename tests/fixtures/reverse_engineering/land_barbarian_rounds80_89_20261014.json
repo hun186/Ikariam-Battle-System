@@ -12,9 +12,10 @@
       "Player musketeers have attack workshop Lv11 and defense workshop Lv3",
       "Barbarian visible seven-position front rank HP bars supplied in text (not individually verified unit HP)",
       "User follow-up 2026-10-14: defending city's wall level was very high; each effective wall attack can kill one attacking Barbarian (one-shot lethal). This does NOT itself confirm wall fired seven times or how it chooses physical target slots.",
-      "Owner correction 2026-10-14: this actual land battle had the PLAYER Forge ACTIVE; precise Forge level was NOT stated in that correction. All earlier Forge0 numerical examples are synthetic counterfactual controls, NOT game damage.",
+      "Owner confirmed the actual battle player Forge ACTIVE; later 2026-10-14 followup explicitly confirmed Forge level 5. Previous Forge0 cases are counterfactual, not actual-game damage.",
       "Owner correction 2026-10-14: seven AM-addressed gun shots seemingly diverted toward far-left Knifemen do NOT establish that seven whole-shot damage budgets all hit only the leftmost physical slot; inspect the repository's Battle System PDF distributed/multi-slot damage mechanism before deriving exclusive target or minimum prior Axe wounds.",
-      "Owner-confirmed descriptive units: ordinary outer Barbarian Knifemen and central Axe Swinger; mapped packaged registry names are model identity, not original per-hit Gameforge IDs."
+      "Owner-confirmed descriptive units: ordinary outer Barbarian Knifemen and central Axe Swinger; mapped packaged registry names are model identity, not original per-hit Gameforge IDs.",
+      "2026-10-14 newest owner followup: this exact R80-R89 LAND battle was fought with PLAYER Forge level 5."
     ],
     "battle_report_screenshot_filenames_in_chat": [
       "image(20261014-032022).png",
@@ -551,16 +552,17 @@
   },
   "player_forge": {
     "active": true,
-    "level": null,
-    "level_verified": false,
-    "source": "USER_EXPLICIT_CORRECTION_2026_10_14",
-    "prior_no_forge_controls": "COUNTERFACTUAL_ONLY_NOT_REPRESENTATIVE_OF_ACTUAL_BATTLE"
+    "level": 5,
+    "level_verified": true,
+    "source": "USER_EXPLICIT_CONFIRMATION_ACTIVE_AND_LEVEL_5_2026_10_14",
+    "prior_no_forge_controls": "COUNTERFACTUAL_ONLY_NOT_REPRESENTATIVE_OF_ACTUAL_BATTLE",
+    "level_source": "USER_EXPLICIT_CONFIRMATION_2026_10_14_FOLLOWUP"
   },
   "single_shot_distribution_correction": {
     "source": "USER_EXPLICIT_CORRECTION_2026_10_14",
     "pdf_reference": "ikariam battle system.pdf (and repository equivalent ikariam-battle-system.pdf; verify which authoritative version)",
     "owner_interpretation": "A single firing event may contribute dispersed damage across multiple target slots under Battle System PDF damage-distribution rules. Readdressing a seven-shot AM row does not automatically redirect ALL damage to ONLY the leftmost Knifeman cell.",
-    "key_invalid_inference": "Cannot infer at least 3 previously almost-dead Axe Swingers from a residual-seven-exclusive-center-shots model until correct Forge-modified damage, distribution across cells, wall source and previous-round displayed HP aggregation are accounted for.",
+    "key_invalid_inference": "The earlier residual-seven-exclusive-center-shots assumption does not establish individual damage history; confirmed player Forge level5 changes Axe full-hit damage from synthetic 615 to 710 and hypothetical one-hit-ready wound threshold from 505 to 410 (conditional, not a measured prior injury).",
     "center_hp_bar_sequence_r80_r87": [
       99,
       99,
@@ -582,7 +584,7 @@
       0
     ],
     "status": "CONFIRMED_CORRECTION_TO_PREVIOUS_MODEL_INTERPRETATION_NOT_VERIFIED_UNIQUE_GAME_ALGORITHM",
-    "next_task": "Re-read authoritative Battle System PDF for formal distributed-damage rules; reconstruct source numeric attack with actual Forge level if verified; bound center Axe damage and casualty evolution against displayed HP bars and survivor counts.",
+    "next_task": "Using owner-confirmed player Forge5 and workshop attack11, recompute knife/axe damage via packaged profile; compare source AM vs actual per-slot casualties, central Axe survivor HP and RR/SR/IR, without presuming individual target logs.",
     "paper_interpretation_2020": "Barbarossa/Xanto community PRE-V13 paper: RR redistributes survivors' damage across slots/reserve between rounds, SR within addressed slot between firing lines, IR within addressed slot between shots. The paper does NOT establish immediate cross-slot damage by one musket shot.",
     "direct_single_shot_cross_slot_damage": "UNVERIFIED_OPTIONAL_HYPOTHESIS"
   },
