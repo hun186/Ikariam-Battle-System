@@ -99,6 +99,31 @@ def test_depleted_target_slots_expose_distinct_wall_targeting_hypotheses():
         }
 
 
+def test_wall_budget_cannot_rescue_fixed_musket_addressing_on_rounds84_to87():
+    """Seven kills cannot cover 13 positive per-slot deficits at R84-87.
+
+    This is conditional on 84 modeled guns, <=1 kill per gun attack, and
+    at most 7 one-kill wall shots; it does not identify what replaces them.
+    """
+    cases = {r["round"]:r for r in build_report()["rounds"]}
+    for round_number in (84,85,86,87):
+        row = cases[round_number]
+        assert row[
+            "required_kills_beyond_fixed_musket_AM_before_assigning_walls_by_position"
+        ] == {1:8,2:1,3:1,4:0,5:1,6:1,7:1}
+        assert row[
+            "minimum_kills_requiring_other_gun_addresses_or_other_sources_even_if_seven_wall_kills"
+        ] == 6
+        assert row["fixed_musket_AM_plus_any_seven_wall_kill_distribution_is_sufficient"] is False
+    for round_number, expected in [(81,6),(82,6),(83,6),(88,7),(89,7)]:
+        row=cases[round_number]
+        assert sum(row[
+            "required_kills_beyond_fixed_musket_AM_before_assigning_walls_by_position"
+        ].values()) == expected
+        assert row["minimum_kills_requiring_other_gun_addresses_or_other_sources_even_if_seven_wall_kills"] == 0
+        assert row["fixed_musket_AM_plus_any_seven_wall_kill_distribution_is_sufficient"]
+
+
 def test_wall_sensitivity_is_experimental_not_misreported_as_game_trace():
     r = build_report()
     assert r["evidence_class"] == "RESEARCH_ONLY_WALL_AND_GUN_TWO_SOURCE_HYPOTHETICAL_DECOMPOSITION"
