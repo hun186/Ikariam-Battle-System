@@ -63,7 +63,7 @@ This is *sensitivity analysis using known case outcomes* (the family, 16/14 inpu
 
 ## Concrete NEXT game-visible falsification: PvP ATT17/DEF18 end-of-Round-1 bars
 
-The user has independently verified that **both players had Forge5, 30 speedboats (two 15-ship source slots) vs six carriers (two 3-carrier target slots), and observed one TOTAL carrier sunk by end of Round 1**. They have **not** supplied the physical slot where that one carrier sunk or the two surviving-slot HP bars.
+The user has explicitly confirmed **both players had Forge5**, a **total of 30 player speedboats against six player carriers**, and **one TOTAL carrier lost by end of Round 1** in the ATT17/DEF18 case. **The 2×15 attacking / 2×3 defending slot arrangement is inferred from the chosen `naval-max` model geometry and was NOT independently reconfirmed for these three PvP battles.** They have **not** supplied the physical slot where that one carrier sunk or the two surviving-slot HP bars.
 
 The candidate **T=74%** and modeled 16/14 all-hit address allocation predict this specific **previously unmeasured output**:
 
@@ -75,6 +75,44 @@ The candidate **T=74%** and modeled 16/14 all-hit address allocation predict thi
 **The bars 75%/54% are prospective test predictions, not user-reported facts.** If the actual one sink is in the 14-address-hit slot rather than the 16, or observed bars differ materially after establishing game UI rounding and other fleet effects, the combined 74%-focus/16+14-all-hit/discard-overkill explanation is **falsified for that game setting**. A mismatch by itself does not say which component—AM addressing, successful hit count, selector, support fleet, damage accounting or bar denominator—is responsible. No impossible per-individual target-hit record is required; Round1 per-slot deaths and displayed HP bars suffice.
 
 For other source cases without reported bars, the JSON artifact similarly lists separately labeled, **unobserved model-only** first-round slot-health predictions. Keep that section distinct from the confirmed DEF14 65%/70% real-game bars.
+
+## The owner's earlier insight: F(A,N) can differ by Accuracy and number of ships
+
+**Important correction to the initial research conclusion:** A failed attempt to apply the carrier's common **74%-remaining-HP selector threshold `T`** to six-ship Ram slots does **NOT** disprove a shared family of combat allocation rules with **different effective concentration fractions `F`**. These parameters have entirely different meanings:
+
+- `T`: fraction of **one target hull's remaining HP** at which a proposed shot-by-shot selector stops spreading and starts focusing. `T≈74%` was fitted in-sample to seven carrier totals; as a literal global selector it fails the Ram 14→15 first-round cliff.
+- `F`: fraction of **one addressed slot's total modeled effective damage budget** that an aggregate first-hull approximation can concentrate on a fresh hull. It does **not** execute integer-shot allocation, kill/overkill redistribution, or target search; it was originally posited in earlier discussion before the three new PvP totals.
+
+Previously proposed **SPECULATIVE common functional family**:
+```
+F(A, N) = 1/N + (1−1/N) × clip((A−60)/60, 0, 1)
+A := source weapon's Accuracy stat
+N := initial target ships per addressed formation slot
+60 := a convenient fitted offset, NOT an official rule or observed parameter
+```
+
+This yields **Accuracy95 vs three carriers: F=72.222%**; **Accuracy90 vs three carriers: F=66.667%**; **Accuracy80 vs six Ram ships: F=44.444%**. Use the current production hit damage under workshop/Forge (Forge still treated as direct numeric effect only) and current hypothetical AM full fire:
+
+| Case or family | Model hit damage × slot shots | F | First-hull effective damage in the slot(s) | Conditional first-carrier/ship death budget |
+| --- | --- | --- | --- | --- |
+| Barbarian speedboat DEF7, Forge5 | 250 × 16 / 14 | 72.222% | **2,889 / 2,528** vs HP2800 | **1 / 0** |
+| Barbarian speedboat DEF8, Forge5 | 240 × 16 / 14 | 72.222% | **2,773 / 2,427** | **0 / 0** |
+| Barbarian speedboat DEF14, Forge5 | 180 × 16 / 14 | 72.222% | **2,080 / 1,820** | **0 / 0** |
+| Barbarian speedboat DEF3, no Forge | 310 × 16 / 14 | 72.222% | **3,582 / 3,134** | **1 / 1** |
+| PvP ATT12/DEF8, both Forge5 | 314 × 16 / 14 | 66.667% | **3,349 / 2,931** | **1 / 1** |
+| PvP ATT20/DEF16, both Forge5 | 326 × 16 / 14 | 66.667% | **3,477 / 3,043** | **1 / 1** |
+| PvP ATT17/DEF18, both Forge5 | 271 × 16 / 14 | 66.667% | **2,891 / 2,529** | **1 / 0** |
+| Barbarian Deckwrecker vs Ram DEF14 | 1160 × **six assumed hits per slot** | 44.444% | **3,093** vs HP3080 | **1** |
+| Same vs Ram DEF15 | 1150 × six assumed hits | 44.444% | **3,067** | **0** |
+| Same vs Ram DEF19 | 1110 × six assumed hits | 44.444% | **2,960** | **0** |
+
+Thus this **ONE aggregate F formula** is compatible with all **seven carrier observed TOTAL death counts and the three selected Ram per-slot claims**, whereas the literal common T=74 individual selector fails Ram. The model predicts some per-slot casualty assignments, but where the game actually recorded only TOTAL deaths, these assignments are **not factual observations**. The PvP layout 2×15/2×3 and its 16/14 AM addressing are MODEL assumptions. This is a **conditional mathematical consistency check**, NOT 10 independent validations.
+
+**Critical physical objection:** A fixed six successful-hit Ram slot with full indivisible shots of either 1160 or 1150 damage kills one HP3080 Ram ship after **three complete hits in BOTH cases** (3×1160=3480; 3×1150=3450). The `F×gross` amounts 3093 / 3067 are **fractional damage-budget accounting**, not actual combinations of a fixed number of full shots on one target. A genuine executable selector or group-pool model must explain **HOW** the changed numeric damage changes target placement/shot distribution or damage partition between those two defenses. Otherwise it cannot produce DEF14 death1 versus DEF15 death0 from the *same fixed whole-hit target sequence*. Matching thresholds by scalar multiplication alone does NOT solve reverse engineering.
+
+Also the reverse carrier 53%/65% displayed bars remain unexplained by this F first-hull surrogate: it does not specify after-first-kill assignment, excess treatment, per-survivor HP or UI denominators. Keep separate the empirical fit and the existence proof of a playable source-level algorithm.
+
+Research artifacts: `speculative_aggregate_F_surrogate_NOT_same_as_T` in `naval_accuracy_inverse_candidates.json` includes seven source-labeled carrier binary first-kill checks and the three Ram comparisons, with original fixture source provenance included, **without touching production Accuracy**.
 
 ## Mandatory falsification — other units and health bars
 
