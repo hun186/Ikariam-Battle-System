@@ -1,15 +1,16 @@
 {
   "schema_version": 1,
-  "case_id": "land_barbarian_new_independent_battle_round1_all_seven_axes_2026_10_14",
+  "case_id": "land_barbarian_same_battle_round1_all_seven_axes_20261014",
   "evidence_class": "USER_IMAGE_PLUS_EXPLICIT_FORGE_WORKSHOP_AND_HP_REPORT",
   "source": {
     "image_in_chat": "image(20261014-151332).png",
     "image_on_hosted_github": false,
     "screenshot_text_transcribed": "Barbarian first-line Axe by physical positions1-7: 40(-10),37(-13),37(-13),37(-13),37(-13),37(-13),45(-5)",
-    "source_scope": "NEW battle ROUND ONE, not earlier battle rounds80-89",
+    "source_scope": "SAME OWNER BATTLE as verified late rounds R80-R89; screenshot captures first round R1, with rounds R2-R79 not supplied.",
     "display_percent_owner_confirmed": true,
     "barbarian_front_unit_type_owner_label": "axe soldiers; packaged barbarian_axe_swinger mapping is model-side, not official Gameforge numeric id",
-    "screenshot_attribution": "Attacker is Barbarians, defender player; all seven barbarian front positions start at 50 each according to remaining+current-round loss"
+    "screenshot_attribution": "Attacker is Barbarians, defender player; all seven barbarian front positions start at 50 each according to remaining+current-round loss",
+    "battle_connection_user_confirmed": true
   },
   "owner_confirmed": {
     "player_forge_level": 5,
@@ -121,7 +122,7 @@
     "forge5_damage": "710 gun per full hit to packaged Axe HP1120 armor20; real Gameforge per-hit damage not independently logged",
     "wall_assumption": "exactly one EFFECTIVE wall 1-kill for each occupied facing Axe physical slot is a conditional control, NOT a measured target selection",
     "HP_bar": "percentage source is owner-confirmed, but floor mean of surviving HP is a hypothesis, not official engine rule",
-    "no_unique_cause": "Previous musket-plus-wall-only shortfalls OMITTED source's five visible groups of six mortars. Owner proposes 5 complete mortar one-shot Axe kills to each physical slot1..6 and none slot7, which with one wall casualty each exactly explains the shortage. Full source hit log, mortar accuracy, wall target count, gun kill-type and screenshot HP display rule remain unverified.",
+    "no_unique_cause": "Previous musket-plus-wall-only shortfalls OMITTED source's five visible groups of six mortars. Owner proposes 5 complete mortar one-shot Axe kills to each physical slot1..6 and none slot7, which with one wall casualty each exactly explains the shortage. Full source hit log, mortar accuracy, wall target count, gun kill-type and screenshot HP display rule remain unverified. The R1 image and R80-R89 window are two NONCONTIGUOUS source windows from the SAME battle; no fabricated intervening HP trajectory.",
     "new_mixed_gun_model": "After conditional mortar+wall subtraction, gun deaths [4,7,7,7,7,7,4]; center five 14-shot AM groups pairwise D-kill seven Axe, edge 7-shot groups can pool 7×710=4970 to kill four and retain 490 wounds. Same 490 wounds over left40 surviving -> floor98%, right45 ->floor99%. A single conditional mixed-model fit across all 7 positions, not recovered Gameforge rules."
   },
   "owner_new_attack_source_hypothesis": {
@@ -174,5 +175,33 @@
       100,
       99
     ]
+  },
+  "battle_identity": {
+    "battle_id": "land-barbarian-same-owner-battle-r1-r89-20261014",
+    "owner_explicitly_confirmed_round1_and_round80_89_are_same_battle": true,
+    "owner_confirmation_provenance": "USER_EXPLICIT_FOLLOWUP_2026_10_15_0027_TAIPEI",
+    "battle_data_coverage": {
+      "first_round": [
+        1
+      ],
+      "late_round_window": [
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89
+      ],
+      "unavailable_intervening_rounds": [
+        2,
+        79
+      ]
+    },
+    "interpretation": "Two source evidence windows from one continuous combat. HP state can persist, be redistributed by RR/SR/IR, or be removed by casualties and replacements between rounds; no invented R2–R79 or exact unit continuity.",
+    "complete_battle_rounds2_79_provided": false
   }
 }
