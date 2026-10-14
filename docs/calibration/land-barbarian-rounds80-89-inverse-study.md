@@ -16,6 +16,30 @@
 
 6. **Pending review:** the latest completed Codex review on earlier PR #72 head `a0de94556cd230891b82857cf982ebb84a70484c` identified **three P2**: contradictory fixture provenance of owner-confirmed Axe Swinger vs Knifeman identity; missing pairwise Axe focus/wound-allocation premise for claims that 14 musket hits guarantee seven kills; and missing inter-round population/HP continuity premise for bar incompatibility. These are outstanding until the current new head changes/tests address them and a fresh exact-head Codex Review clears. The Forge/distribution correction strengthens the need to downgrade previous conditional death and HP claims. Do not mark these P2 resolved prematurely.
 
+### PDF source check, Forge sensitivity and Codex P2 controls — 2026-10-14
+
+**Source qualification (important):** Both repository PDFs are listed as 38,277,072 bytes, but binary equality and exact revision have not been verified. The GitHub connector cannot return their 38 MB binary in this environment. The accessible text transcription of AT Barbarossa and Xanto, *Ikariam Battle System*, dated 16 July 2020 (sections 2, 3, 4 and 5), was cross-checked. That document is a **player-led reverse-engineering investigation**, not Gameforge's published executable code or an official complete specification. Its Gameforge forum post explicitly warns the data were pre-game-version-13 and that many numeric values changed. See https://www.scribd.com/document/638484147/ikariam and https://forum.ikariam.gameforge.com/forum/thread/43268-ikariam-battle-system/. Direct page-image/binary verification of the exact repository PDFs remains outstanding.
+
+**What its actual redistribution taxonomy supports:**
+
+- **Attacking Matrix:** hypothetical source firing addresses/rows, not a guaranteed mapping to individual deaths; physical order must be distinguished from damage-priority renumbering.
+- **RR (Reserve Redistribution, §4.3):** between rounds; same-unit, same-wave survivor damage may redistribute across reserve and deployed slots. Proposed slot allocation is `slot_damage = total_wave_survivor_damage × slot_population / same_wave_survivors`, subject to unknown integer assignment. This is the strongest PDF reason not to assume persistent individual HP wounds from one screenshot to the next.
+- **SR (Slot Redistribution, §4.5):** within the already targeted slot after one firing line and before the next. Not universally active.
+- **IR (Immediate Redistribution, §4.6):** within an addressed target slot between individual shots, again subject to examples and unverified universal triggers.
+- **One shot splitting immediate damage across distinct target slots is NOT proven by the cited PDF sections.** It may be investigated as a separate candidate, but neither the owner observation nor the text is direct confirmation of this implementation.
+
+**P2-A:** fixture now distinguishes owner-confirmed Knifeman/Axe Swinger labels from packaged registry model IDs and unknown internal Gameforge IDs/per-hit traces.
+
+**P2-B:** 14 hypothetical Forge0 gun attacks of 615 damage against fresh Axe HP1120 yield *zero deaths* if spread over 14 different fresh individuals; they yield *seven deaths* if assigned pairwise to seven different individuals. The latter is one feasible allocation, not a consequence of 14 AM addresses. Likewise seven extra left-side deaths remain a numerical difference, not a measured row redirect.
+
+**P2-C:** the previous unconditional-looking `incompatible_IF_bar_floors_average_of_survivor_HP` result is now always false while actual timing, unchanged survivor identities/HP, precise bar semantics, Forge0 exclusive damage and absence of RR/SR/IR/rebuild/healing remain unverified. A separate counterfactual HP-conflict field shows which stringent hypothetical would fail.
+
+**Forge:** Real player Forge active is confirmed, but **level unknown**. The probe enumerates packaged positive levels 1–5 as sensitivity scenarios using `calculate_damage` and `RoundingPolicy.FLOOR`, without declaring any level real. Older 635/615/505 values are strictly counterfactual Forge0 controls.
+
+**Joint HP constraints (additional read-only executable probe):** Under the explicit *candidate* floor-of-average-survivor-HP convention and Axe HP1120, R85 11 survivors/92% constrain remaining aggregate wounds to **863–985 integer HP**; R86 5 survivors/96% constrain them to **169–224 HP**. A witness has R85 total wounds 900 spread as five ×40 and six later-dying soldiers bearing 116/116/117/117/117/117 damage. If only the more injured six subsequently die, the five survivors still carry 200 wounds and display 96% **without healing**. This proves *HP-bar feasibility*, not that any assumed seven gun hits, wall phase or actual battle events can kill those six; per-hit damage budget is an independent required constraint. See `tools/research/land_round80_89_hp_state_probe.py` and matching tests.
+
+**R88/R89:** 91 deaths with six/four occupied physical target slots remain strong observed constraints. `84 gun + 7 effective walls = 91` is conditional on the sources, all shots and at-most-one-kill premises; it is not a universal upper bound if multi-kill or another source is permitted. The posthoc wall fallback is not a proven algorithm.
+
 **Next AI: Start here, then inspect source fixture, PDF, `tools/research/land_round80_89_am_focus_probe.py`, `tools/research/land_round80_89_two_class_am_probe.py`, wall source experiments and their tests. Hosted main authoritative; work in land Draft PR #72, keep naval PR #69 untouched, never merge without explicit owner command.**
 
 ---
