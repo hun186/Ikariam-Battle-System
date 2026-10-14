@@ -30,9 +30,14 @@ jobs:
       - name: Export controlled AM address histograms versus user casualties
         run: |
           PYTHONPATH=. python tools/research/land_round80_89_am_focus_probe.py --output research-output/land_round80_89_am_focus_probe.json
+      - name: Decompose knife/axe hit-to-kill and conditional wall one-row reroute
+        run: |
+          PYTHONPATH=. python tools/research/land_round80_89_two_class_am_probe.py --output research-output/land_round80_89_two_class_am_probe.json
       - name: Upload read-only inverse research evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: land-barbarian-round80-89-am-address-inverse
-          path: research-output/land_round80_89_am_focus_probe.json
+          path: |
+            research-output/land_round80_89_am_focus_probe.json
+            research-output/land_round80_89_two_class_am_probe.json
           if-no-files-found: error
