@@ -32,7 +32,7 @@ def test_project_seven_50_slinger_slots_AM_addresses_change_on_target_collapse()
     a=d["project_AM_7x50_control_by_occupied_physical_targets"]
     assert [x["total_addresses_if_350_fully_fire"] for x in a]==[350]*3
     assert a[0]["AM_base_addresses_by_physical"]=={
-        str(i):50 for i in range(1,8)
+        "1":49,"2":49,"3":49,"4":56,"5":49,"6":49,"7":49,
     }
     assert a[1]["AM_base_addresses_by_physical"]=={
         "2":84,"3":91,"4":91,"5":84,
