@@ -59,7 +59,8 @@ def test_conditional_success_does_not_recover_game_rules():
     assert a["fourteen_gun_addresses_use_pairwise_D_Kill_and_waste_overkill"]
     assert a["floor_of_total_surviving_HP_bar_semantics"]
     assert a["other_visible_battle_units_add_no_deaths_to_this_Axe_front_in_round1"]
-    assert data["scope"].startswith("Independent new first-round")
+    assert data["scope"].startswith("SAME BATTLE as R80-R89")
+    assert data["battle_identity"]["owner_explicitly_confirmed_round1_and_round80_89_are_same_battle"]
 
 def test_wall_is_last_and_gun_residual_is_not_unchanged_after_wall():
     data=report()
