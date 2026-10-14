@@ -36,6 +36,17 @@ Every source primary Slinger has **5 ammunition** and Accuracy20 (packaged stats
 
 **Independent partial R77 clue, IF the target before R77 truly had zero wounds and no other HP transfer:** The physical5 Axe group starts50, ends **50(-0) at83% HP**. The current AM gives this physical5 slot **49** source addresses. Forty-nine complete hypothetical Forge5 slinger primary hits at187 give **9163 wounds**, `floor(100×(1−9163/(50×1120)))=83%` exactly. Forge0 primary160×49=7840 would display86%, not83%, under the same near-uniform total-HP model. Other R77 slots do NOT all fit independent groups of 49 or 56 hits, consistent with AM addressing/spill, old injuries, wall kills or unverified UI semantics. Do NOT infer actual Forge5 without explicit owner confirmation.
 
+### Strong new R77 geometry clue: 49 vs 56 source shot rows can explain TWO neighboring HP bars
+
+The current project row-major AM for seven 50-unit Slinger source slots has **50 rows × 7 shots**, cyclically assigned by damage priority. There are 7 full cycles of 7 target addresses plus 1 extra source row: six physical target cells receive **49**, central physical4 receives **56**. This is not an arbitrary per-cell average50.
+
+Under the USER-SUGGESTED (unverified) full-HP start R77 and hypothetical active Forge5 (187 per primary hit against Axe HP1120), test two R77 Axe cells without tuning ANY attacks:
+
+- **Physical5** screenshot: **50(-0), 83%**. It receives 49 AM addresses ⇒ `49×187=9,163` wound points; if these spread among its fifty Axe survivors and no one is killed by the wall here, `floor(100×(1−9163/(50×1120)))=83%` EXACT.
+- **Physical4, central** screenshot **49(-1), 81%**. This is the extra 56-address target ⇒ `56×187=10,472` wound points. Suppose gun wounds distribute near-uniformly over initial50 surviving during slinger phase; wall fires last and direct-kills one Axe carrying `floor(10472/50)=209` prior gun wounds (no wall ATK added), leaving49 at `10,472−209=10,263` wounds; `floor(100×(1−10263/(49×1120)))=81%` EXACT.
+
+The same 49/56 shots under Forge0 160 per Axe does **NOT** simultaneously fit both 83% and81%. But the other physical slots in R77 are NOT yet reproduced with this simple model: e.g. Axe physical3 with49 addresses and one wall kill would show roughly83%, whereas owner reports81%; the 3 outer Knife slots with31(-19)/56% also need a different allocation and/or prior wounds. This supports studying AM attack reallocation or RR/SR/IR / Accuracy when a partially filled Axe slot physical2 has only19 units at start, not proof of a specific switch. Wall must NOT be assumed to one-shot the physical5 Axe cell in R77 because screenshot shows **zero** losses there.
+
 ### Four-round reverse bounds if displayed percent = floor(mean living HP)
 
 Define `p=floor(100×actual_remaining_HP/(n×unit_HP))`. Then for each slot `ceil(n×unit_HP×p/100) ≤ actual_remaining_HP ≤ ceil(n×unit_HP×(p+1)/100)−1`. Summing surviving Axe slots:
