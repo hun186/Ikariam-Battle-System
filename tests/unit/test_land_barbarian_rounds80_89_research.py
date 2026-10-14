@@ -150,3 +150,33 @@ def test_visible_seven_groups_of_twelve_do_not_suffice_under_naive_one_shot_one_
     # The fixture never labels 84 units as the entire damage-dealing army:
     # wall/other units, ammo phases and weapon identities remain unverified.
     assert "Original complete player army including every source firing or using ammunition" in evidence()["source"]["importantly_not_confirmed"]
+
+
+def test_r87_r88_r89_exact_troop_conservation_through_slot_compaction():
+    """Population accounting is grounded; pre-round slot counts are algebraic."""
+    d = evidence()["conservation_late_battle_reconstruction"]
+    assert d["classification"].startswith("DERIVED_ARITHMETIC_")
+    start = d["round_87_end"]
+    r88, r89 = d["round_88"], d["round_89"]
+    assert sum(x for x in start["ordinary_visible_front_counts"]
+               if x is not None) == start["front_total"] == 217
+    assert start["reserve"] == 58
+    assert start["front_total"] + start["reserve"] == 275
+    assert sum(x for x in r88["model_reconstructed_before_deaths_from_visible_ends_and_user_deaths"]
+               if x is not None) == 275
+    assert r88["before_total"] == 275
+    assert sum(x for x in r88["remaining_visible_after_round"] if x is not None) == 184
+    assert r88["user_confirmed_round_deaths"] == 91
+    assert 275 - 91 == 184
+    assert r89["before_total"] == 184
+    assert sum(x for x in r89["model_reconstructed_before_deaths_from_visible_ends_and_user_deaths"]
+               if x is not None) == 184
+    assert sum(x for x in r89["remaining_visible_after_round"] if x is not None) == 93
+    assert r89["user_confirmed_round_deaths"] == 91
+    assert 184 - 91 == 93
+    assert r88["remaining_reserve"] == r89["remaining_reserve"] == 0
+    last_three = evidence()["observations"][-3:]
+    assert last_three[0]["ordinary_melee_remaining_by_front_position"] == start["ordinary_visible_front_counts"]
+    assert last_three[1]["ordinary_melee_remaining_by_front_position"] == r88["remaining_visible_after_round"]
+    assert last_three[2]["ordinary_melee_remaining_by_front_position"] == r89["remaining_visible_after_round"]
+    assert "NOT literal observed individual" in d["caveat"]
