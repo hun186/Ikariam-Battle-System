@@ -3,7 +3,7 @@
 This is a reproducible ONE-ROUND conditional analytical fit, NOT a recovered
 Gameforge attack-by-attack log, wall order or formal Kill-Type dispatcher.
 The owner proposed 5 mortar groups of 6 shots, each one-shot-killing an Axe,
-plus seven wall sections causing one direct casualty each; attacking-matrix
+plus seven wall sections causing one direct casualty each AFTER guns; attacking-matrix
 target priority distributes mortar shots across PHYSICAL slots 1..6.
 Guns: 7-address edges use lossless pooled-damage model; 14-address inner
 positions use pairwise two-gun-hit D-kill with discarded overkill. ALL
@@ -44,6 +44,8 @@ def report() -> dict:
     axe_hp = target["target_hp"]
     gun_damage = target["shot_damage"]
     assert (axe_hp, gun_damage) == (1120, 710)
+    # Owner reports source order: MORTAR first, GUN second, WALL last.
+    # Exact wound equalization and wall-victim identity are hypothetical.
     # Ammo, target eligibility and effective Accuracy remain unobserved.
     # Paper/engine AM rows distribute 30 source mortar attacks across
     # first six damage-position targets, physically 1..6 in land-max.
@@ -79,11 +81,22 @@ def report() -> dict:
             wasted_overkill=0
         else:
             raise ValueError("Unexpected gun address count; re-evaluate")
+        # Source order: mortar first, then gun, wall last.
+        after_mortar=initial-mortar_one_shot_kills
+        after_guns=after_mortar-gun_kills
+        if after_guns <= wall_one_shot_kills:
+            raise ValueError("No post-wall survivors under this research control")
+        # Near-uniform integer residual wound allocation is UNVERIFIED.
+        # Wall kills a survivor with an old gun wound floor share.
+        # No wall ATK is added to the gun pool.
+        wall_victim_prior_gun_wounds=(
+            surviving_wounds//after_guns if wall_one_shot_kills else 0
+        )
+        end_wounds=surviving_wounds-wall_victim_prior_gun_wounds
         pred_deaths=mortar_one_shot_kills+wall_one_shot_kills+gun_kills
-        pred_alive=initial-pred_deaths
-        if pred_alive<=0:
-            raise ValueError("No survivors: current HP bar hypothesis undefined")
-        pred_bar=100*(pred_alive*axe_hp-surviving_wounds)//(pred_alive*axe_hp)
+        pred_alive=after_guns-wall_one_shot_kills
+        assert pred_deaths+pred_alive==initial
+        pred_bar=100*(pred_alive*axe_hp-end_wounds)//(pred_alive*axe_hp)
         rows.append({
             "physical_slot":physical,
             "mortar_AM_addresses_CONDITIONAL":mortar_addresses[physical],
@@ -92,7 +105,11 @@ def report() -> dict:
             "gun_kill_type_HYPOTHESIS":gun_kill_type,
             "gun_kills_if_every_address_fires_full":gun_kills,
             "gun_overkill_discarded_in_D_control":wasted_overkill,
-            "gun_surviving_slot_wounds":surviving_wounds,
+            "gun_wounds_AFTER_GUN_BEFORE_WALL":surviving_wounds,
+            "after_mortar_axe_count":after_mortar,
+            "after_guns_before_wall_axe_count":after_guns,
+            "wall_victim_preexisting_gun_wounds":wall_victim_prior_gun_wounds,
+            "gun_surviving_slot_wounds":end_wounds,
             "predicted_deaths":pred_deaths,
             "observed_deaths":dead,
             "predicted_survivors":pred_alive,
@@ -125,7 +142,11 @@ def report() -> dict:
             "gun_primary_hits_all_land_with_full_calculated_damage":True,
             "fourteen_gun_addresses_use_pairwise_D_Kill_and_waste_overkill":True,
             "seven_gun_addresses_use_pooled_damage_and_retain_mod_HP":True,
-            "pooled_490_wounds_remain_on_survivors_not_spent_by_mortar_wall":True,
+            "mortar_before_gun_then_wall_owner_phase_order":True,
+            "gun_wounds_distributed_near_uniformly_before_wall_UNVERIFIED":True,
+            "wall_victim_removes_their_previous_gun_wounds":True,
+            "wall_damage_not_added_to_gun_pool":True,
+            "wall_victim_exact_wound_share_UNVERIFIED":True,
             "floor_of_total_surviving_HP_bar_semantics":True,
             "other_visible_battle_units_add_no_deaths_to_this_Axe_front_in_round1":True,
         },
@@ -133,14 +154,17 @@ def report() -> dict:
         "all_seven_slots_match":all(x["matches_all_source_dimensions"] for x in rows),
         "source_total_axe_deaths":sum(screen["axe_deaths_this_round"]),
         "predicted_total_axe_deaths":sum(x["predicted_deaths"] for x in rows),
-        "key_numerical_observation":"same 490 wounds in both edge slots: /40 surviving Axe =98 percent while /45 =99 percent under floor UI; mortar kills five additional on left",
+        "hypothetical_source_phase_order":["mortar","musket","wall"],
+        "key_numerical_observation":"Both edges have 490 residual gun wounds BEFORE wall. Post-gun wall direct 1-kill removes floor-average injured share (left 11 /right 10), giving end wound totals 479/480 with 40/45 survivors and floor bars98/99.",
         "limitations":[
             "Shot rows/address counts are known from current simulator model, not observed real game logs",
             "Wall source attack count and physical-facing targeting, source ordering, and mortar Accuracy uncertain",
             "Middle clean 100 percent bars and 13 deaths are compatible with two-hit paired focus after mortar/wall losses, not proof of specific Gameforge Kill Type",
             "Seven-shot edge can mathematically kill four by pooled overkill with 490 remainder, but direct sequential two-hit-only gun fire would kill only three and leave one wounded",
             "The current ammunition/secondary weapon/source sequence and other units remain unaudited",
-            "Display floor semantics and persistence of the two 490 wound pools remain unverified",
+            "Source order mortar then guns then walls reflects owner's account; wall must remove the killed post-gun victim's old wounds",
+            "Nearly equal integer wound distribution and which soldier wall kills remain unverified: 490 is PRE-WALL, not final, surviving wounds",
+            "Display floor-survivor-mean HP semantics remain unverified",
         ],
     }
 
