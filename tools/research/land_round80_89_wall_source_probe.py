@@ -71,6 +71,13 @@ def build_report() -> dict:
         residual = {p:gun[p]-current_AM[p] for p in active}
         gun_am_wall = {p:source_deaths[p]-wall_am[p] for p in active}
         residual_am_wall = {p:gun_am_wall[p]-current_AM[p] for p in active}
+        deficits_if_fixed_gun_AM = {
+            p:max(0, source_deaths[p]-current_AM[p])
+            for p in active
+        }
+        minimum_extra_gun_kills_or_other_source = max(
+            0, sum(deficits_if_fixed_gun_AM.values()) - 7
+        )
         result.append({
             "round": game["round"],
             "source": "USER_CONFIRMED_ROUND_DEATHS_PLUS_CONDITIONAL_WALL_HYPOTHESIS",
@@ -93,6 +100,11 @@ def build_report() -> dict:
                 gun[p] <= current_AM[p] for p in active
             ),
             "total_deaths_equals_84_plus_7": sum(source_deaths.values()) == 91,
+            "required_kills_beyond_fixed_musket_AM_before_assigning_walls_by_position": deficits_if_fixed_gun_AM,
+            "minimum_kills_requiring_other_gun_addresses_or_other_sources_even_if_seven_wall_kills": minimum_extra_gun_kills_or_other_source,
+            "fixed_musket_AM_plus_any_seven_wall_kill_distribution_is_sufficient": (
+                minimum_extra_gun_kills_or_other_source == 0
+            ),
             "hypothetical_wall_policy": (
                 "ONE kill per occupied target plus (7-active_slot_count) extra "
                 "kills assigned to LEFTMOST occupied slot ONLY for an algebraic "
@@ -122,7 +134,7 @@ def build_report() -> dict:
         },
         "central_treatment_findings": {
             "rounds_81_83": "AM center14, wall hypothesis1, user center deaths8 => modeled gun kills7; remaining seven addresses need not cause a death",
-            "rounds_84_87": "outer left slot user15 versus hypothetical 7 AM+1 wall => +7 extra kills; fixed AM and one-per-slot wall cannot explain without additional redistribution/sources",
+            "rounds_84_87": "user kills exceed 84-musket AM by 13 summed positive deficits across slots (leftmost +8, four inner slots +1 each, rightmost +1), versus at most seven 1-kill wall shots; so MINIMUM six lethal outcomes need gun readdressing or another source even allowing ANY wall target distribution",
             "rounds_88_89": "both have 91 source deaths; the post-hoc leftmost-extra wall distribution gives EXACT 84 modeled musket one-kill-per-shot allocation; this is NOT proof of wall target priority, while a competing row-major wall AM produces nonzero per-slot residuals",
         },
         "official_wall_target_selection_algorithm_verified": False,
