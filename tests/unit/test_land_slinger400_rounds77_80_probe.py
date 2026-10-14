@@ -55,9 +55,9 @@ def test_HP_budget_intervals_if_and_only_if_floor_mean_bar_and_no_unobserved_HP_
     assert d["owner_R77_front_start_full_100pct_NOT_CONFIRMED"]
 
 
-def test_forge0_and5_damage_primary_only_no_game_F5_assertion():
+def test_owner_confirmed_forge5_damage_with_forge0_counterfactual_comparison():
     d=report()
-    p={x["slinger_forge_control_NOT_CONFIRMED"]:x for x in d[
+    p={x["forge_level_for_control"]:x for x in d[
         "per_hit_forge_comparison_PRIMARY_only"
     ]}
     assert (p[0]["per_full_primary_hit_to_Axe"],
@@ -77,7 +77,12 @@ def test_forge0_and5_damage_primary_only_no_game_F5_assertion():
     assert p[5]["R80_rear_full_primary_shots_min_if_no_other_attack"]==150
     assert p[5]["R80_best_case_full_primary_shots_needed_if_wall_has_ZERO_attacks_front"]==349
     assert p[5]["R80_no_wall_full_hit_feasibility_if_at_most350"]
-    assert d["actual_forge_active_level_UNKNOWN"]
+    assert d["actual_forge_level_verified"]
+    assert d["owner_confirmed_active_forge_level"]==5
+    assert d["forge0_is_counterfactual_only"]
+    assert p[5]["forge_profile_is_actual_user_confirmed_case"]
+    assert not p[0]["forge_profile_is_actual_user_confirmed_case"]
+    assert d["confirmed_real_F5_primary_per_hit"]=={"barbarian_axe_swinger":187,"barbarian_knifeman":207,"barbarian_axe_thrower":207}
 
 
 def test_r77_physical_center56_and_adjacent49_am_wounds_fit_forge5_bars():
@@ -100,7 +105,7 @@ def test_r77_physical_center56_and_adjacent49_am_wounds_fit_forge5_bars():
 def test_r80_integer_aggregate_front_then_rear_feasibility_witness_is_not_a_hit_log():
     d=report()
     w=d["R80_ONE_NO_WALL_AGGREGATE_FULL_DAMAGE_WITNESS_NOT_REAL_ATTACK_LOG"]
-    assert w["conditional_forge_level"]==5
+    assert w["owner_confirmed_forge_level_for_damage_profile"]==5
     assert w["gun_hit_count_to_current_front_Axe"]==199
     assert w["gun_hit_count_to_rear_AxeThrower_after_hypothetical_target_switch"]==151
     assert w["gun_hit_count_to_current_front_Axe"]+w[
@@ -113,6 +118,34 @@ def test_r80_integer_aggregate_front_then_rear_feasibility_witness_is_not_a_hit_
     assert w["rear_end_HP_interval_makes_witness_possible"]
     assert w["requires_target_class_transition_during_battle_round"]
     assert w["per_slot_HP_and_actual_source_shot_paths_not_recovered"]
+
+
+def test_three_knife_groups_require_additional_damage_under_fresh_full_hp_control():
+    d=report()
+    p=d["R77_THREE_KNIFE_SLOTS_FULL_HP_CONDITIONAL_DAMAGE_DEFICIT"]
+    assert p["number_of_identical_knife_front_slots"]==3
+    assert p["HP_removed_per_knife_slot_if_fresh_and_floor_bar"]==[11639,11750]
+    assert p["baseline_project_AM_primary_addresses_each"]==49
+    assert p["owner_confirmed_forge5_damage_per_complete_knife_primary_hit"]==207
+    assert p["max_one_wall_knife_full_HP_direct_kill"]==360
+    assert p["baseline_49_full_gun_hits_plus_generous_one_wall_HP_depletion"]==10503
+    assert p["minimum_additional_full_gun_equivalents_per_knife_slot"]==6
+    assert p["minimum_conditional_additional_shots_ALL_three_knife_slots"]==18
+    assert p["R77_start_full_individual_HP_UNVERIFIED"]
+    assert p["observed_reroute_UNVERIFIED"]
+    assert p["total_HP_accounting_not_specific_Kill_Type"]
+
+
+def test_partial_axe_cell_could_supply_equivalent_18_shots_but_not_proven_reroute():
+    d=report()
+    p=d["R77_PARTIAL_AXE_PHYSICAL2_conditional_surplus_assigned_damage"]
+    assert p["start_Axe_IF_full_before_R77"]==19
+    assert p["survivors"]==17
+    assert p["shown_HP_percent"]==81
+    assert p["observed_HP_removed_interval_IF_floor_bar"]==[5668,5857]
+    assert p["baseline_AM_49_complete_forge5_shots_HP"]==9163
+    assert p["at_least_18_gun_tickets_not_consumed_locally_IF_full_hits_conserved_without_overkill"]==18
+    assert p["no_proof_actual_18_shots_redirected"]
 
 
 def test_hp_percentage_as_interval_rejects_invalid_or_missing_units():
