@@ -101,9 +101,7 @@ def test_player_round80_and_hp_bars_are_source_separated():
         if hp is not None
     )
     assert len(data["source"]["battle_report_screenshot_filenames_in_chat"]) == 10
-    assert data["source"]["original_complete_player_army_observed"] is not True if (
-        "original_complete_player_army_observed" in data["source"]
-    ) else True
+    assert "Original complete player army including every source firing or using ammunition" in data["source"]["importantly_not_confirmed"]
 
 
 def test_empty_and_post_wall_formations_are_not_interpreted_as_zero_casualties():
