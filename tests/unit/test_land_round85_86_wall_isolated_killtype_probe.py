@@ -88,3 +88,31 @@ def test_input_guards_on_impossible_pool_and_one_hit_bounds():
         minimum_prior_wounds_for_individual_direct_kills(
             gun_hits=7,gun_kills=5,unit_hp=1120,full_hit_damage=1120
         )
+
+def test_unmodified_project_am_center_is_14_not_seven():
+    data=report()
+    baseline=data["CURRENT_ENGINE_AM_7x12_all_seven_targets_baseline"]
+    diverted=data["HYPOTHETICAL_seven_address_diversion_center_to_leftmost"]
+    assert baseline["center_physical_4_address_count"] == 14
+    assert [baseline["physical_slot_1_to_7_addresses"][str(i)] for i in range(1,8)] == [7,14,14,14,14,14,7]
+    assert diverted["center_physical_4_address_count"] == 7
+    assert [diverted["physical_slot_1_to_7_addresses"][str(i)] for i in range(1,8)] == [14,14,14,7,14,14,7]
+    assert not baseline["these_addresses_are_real_full_successful_hits_VERIFIED"]
+    assert not diverted["actual_Gameforge_diversion_VERIFIED"]
+
+
+def test_fourteen_full_hit_pool_control_misses_observation_and_is_not_AM_disproof():
+    d=report()
+    control=d["baseline_14_addresses_AS_IF_14_full_hits_lossless_pool_CONTROL"]
+    x=control["result"]
+    assert x["gun_hits"] == 14
+    assert x["gun_hit_damage"] == 710
+    assert x["wall_kills"] == 1
+    assert x["gun_kills"] == 9
+    assert x["all_casualties"] == 10
+    assert x["survivors"] == 1
+    assert x["survivor_wounds"] == 690
+    assert x["floor_survivor_mean_bar"] == 38
+    assert not control["matches_observed_R86_deaths6_remaining5_bar96"]
+    assert "not 14 AM address count" in control["warning"]
+    assert "14 CENTER AM ADDRESSES" in d["AM_distinction"]
