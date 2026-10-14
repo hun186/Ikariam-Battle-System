@@ -40,8 +40,12 @@ def test_edges_same_exact_gun_residue_but_different_percent_due_to_population():
         assert edge["gun_AM_addresses_CONDITIONAL"]==7
         assert edge["gun_kill_type_HYPOTHESIS"]=="HYPOTHETICAL_AGGREGATE_DAMAGE_WITH_REMAINDER"
         assert edge["gun_kills_if_every_address_fires_full"]==4
-        assert edge["gun_surviving_slot_wounds"]==490
+        assert edge["gun_wounds_AFTER_GUN_BEFORE_WALL"]==490
     assert (left["mortar_AM_addresses_CONDITIONAL"],right["mortar_AM_addresses_CONDITIONAL"])==(5,0)
+    assert (left["after_mortar_axe_count"],right["after_mortar_axe_count"])==(45,50)
+    assert (left["after_guns_before_wall_axe_count"],right["after_guns_before_wall_axe_count"])==(41,46)
+    assert (left["wall_victim_preexisting_gun_wounds"],right["wall_victim_preexisting_gun_wounds"])==(11,10)
+    assert (left["gun_surviving_slot_wounds"],right["gun_surviving_slot_wounds"])==(479,480)
     assert (left["predicted_survivors"],right["predicted_survivors"])==(40,45)
     assert (left["predicted_HP_pct_IF_floor_survivor_mean"],right["predicted_HP_pct_IF_floor_survivor_mean"])==(98,99)
 
@@ -56,3 +60,18 @@ def test_conditional_success_does_not_recover_game_rules():
     assert a["floor_of_total_surviving_HP_bar_semantics"]
     assert a["other_visible_battle_units_add_no_deaths_to_this_Axe_front_in_round1"]
     assert data["scope"].startswith("Independent new first-round")
+
+def test_wall_is_last_and_gun_residual_is_not_unchanged_after_wall():
+    data=report()
+    assert data["hypothetical_source_phase_order"]==["mortar","musket","wall"]
+    a=data["assumptions_NOT_OBSERVED"]
+    assert a["mortar_before_gun_then_wall_owner_phase_order"]
+    assert a["wall_victim_removes_their_previous_gun_wounds"]
+    assert a["wall_damage_not_added_to_gun_pool"]
+    assert a["wall_victim_exact_wound_share_UNVERIFIED"]
+    left,right=data["rows"][0],data["rows"][-1]
+    assert left["gun_wounds_AFTER_GUN_BEFORE_WALL"]==right["gun_wounds_AFTER_GUN_BEFORE_WALL"]==490
+    assert left["gun_surviving_slot_wounds"]==479
+    assert right["gun_surviving_slot_wounds"]==480
+    assert left["gun_surviving_slot_wounds"]<490
+    assert right["gun_surviving_slot_wounds"]<490
