@@ -2,6 +2,55 @@
 
 > **Research-only, source-grounded, not a Gameforge combat-rule specification.** Created 2026-10-14 for [Issue #71](https://github.com/hun186/Ikariam-Battle-System/issues/71). Keep independent of NAVAL Draft PR #69 and its Accuracy/overkill calibration. Do not merge or change the production battle engine without explicit authorization.
 
+## Crucial owner's wall-fire correction — separate seven walls from 84 musketeer shots (2026-10-14)
+
+**Owner confirmed:** The defending city wall is at a high level, and **one effective wall attack can kill one attacking Barbarian**. Therefore earlier comparisons that directly equated user-reported Barbarian deaths to **only** the 84 modeled firearm attack addresses were incomplete. In this source sample, seven defending wall sections are visibly present from **R81 through R89** (their `1(-0)` unit symbols indicate walls surviving, not their number of firing shots). The user **did not explicitly confirm** that every wall section actually fired once every round, or the wall phase, target-priority distribution and any misses. Preserve **known one-shot lethality** separate from **hypothetical 7 wall hits/round**.
+
+To test a concrete two-source conditional **maximum** model, assume 84 musket attempts and all seven wall sections each fire once and score **one kill** in the walled rounds, giving a maximum budget of **91 kills/round**, not 84.
+
+| Round | Owner-verified observed Barbarian main deaths | Hypothetical successful wall kills | Remaining deaths attributable to muskets *if wall hypothesis true* | Difference vs 84 modeled musket attacks |
+|---:|---:|---:|---:|---:|
+| 80 | 19 | **not applicable** (different open-field situation) | **not independently separable** | — |
+| 81 | 84 | 7 | **77** | −7 |
+| 82 | 84 | 7 | **77** | −7 |
+| 83 | 84 | 7 | **77** | −7 |
+| 84 | 88 | 7 | **81** | −3 |
+| 85 | 88 | 7 | **81** | −3 |
+| 86 | 89 | 7 | **82** | −2 |
+| 87 | 88 | 7 | **81** | −3 |
+| **88** | **91** | **7** | **84** | **0** |
+| **89** | **91** | **7** | **84** | **0** |
+
+The sign of the last column is the **modeled number of gun attacks minus hypothetical gun kills**, NOT directly observed misses, individual shot logs, target immunity or official Accuracy. `91 = 84 + 7` is an extremely useful joint-source *conditional* equality at R88–89, not proof exactly seven walls fired.
+
+### Per-position conditional decomposition, Round81–83
+
+For **seven occupied target cells**, try an illustrative wall assumption of **one kill on each target cell**:
+
+| Physical target position L→R | 1 | 2 | 3 | **4 (distinct axe)** | 5 | 6 | 7 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Modeled musketeer AM attack addresses | 7 | 14 | 14 | **14** | 14 | 14 | 7 |
+| **Hypothetical** wall successful kills (NOT observed addresses) | 1 | 1 | 1 | **1** | 1 | 1 | 1 |
+| Owner-confirmed actual unit casualties R81–83 | **8** | **15** | **15** | **8** | **15** | **15** | **8** |
+| Implied musketeer kills, conditional on walls | 7 | 14 | 14 | **7** | 14 | 14 | 7 |
+| Implied gun kills − modeled AM addresses | 0 | 0 | 0 | **−7** | 0 | 0 | 0 |
+
+This is an **exact arithmetic fit** with all six non-center cells; the center's seven non-kill gun addresses may represent surplus/nonlethal damage, overkill, other targeting, or incorrect assumptions. Central HP displayed 99% does not identify where seven actual musket bullets landed. The wall section target mapping `one each` is **not independently observed**.
+
+### R84–87 and after reserve/axe depletion
+
+With the **same hypothetical one-wall-kill-per-cell** distribution:
+- R84,85,87: after subtracting wall, required gun kills `14,14,14,4,14,14,7` vs modeled physical AM `7,14,14,14,14,14,7` → residual **+7,0,0,−10,0,0,0**. The first slot needs **SEVEN MORE lethal hits than its nominal AM addresses**. A fixed unchanged 84-attack AM with *every wall exactly once per corresponding enemy position* cannot explain this; some source readdressing, wall priorities, more gun attacks, or wrong hit-to-kill assumption must change.
+- R86: gun kills after wall `14,14,14,5,14,14,7` versus fixed AM → residual **+7,0,0,−9,0,0,0**.
+- **R88**, six occupied targets: existing main AM under 84 shots predicts **14 addresses each**. Actual `16,15,15,15,15,15`; one hypothetical wall distribution `2,1,1,1,1,1` (one per occupied plus extra to leftmost) makes implied guns exactly `14,14,14,14,14,14`.
+- **R89**, four occupied targets: existing main AM predicts **21 addresses each**. Actual `25,22,22,22`; another hypothetical wall distribution `4,1,1,1` gives `21,21,21,21` gun kills.
+
+These R88–89 wall allocations are **post-hoc algebraic examples**. They are NOT a verified wall priority rule; they put all excess wall attacks into the leftmost occupied position specifically because that matches current outcomes. A competing model that gives the seven wall shots the existing **Land AM row-major physical damage-priority** instead would place hypothetical wall kills at R88 **`1,1,1,1,1,2`** and R89 **`2,2,2,1`**, which yields remaining nonzero per-slot residuals against the 84 gun AM. The difference makes wall targeting a **testable separate algorithm**, not something to conflate with musketeer Accuracy.
+
+**Independent unresolved engine boundary:** Current experimental town-wall logic includes damage *to* walls and breach/refill priority; its **offensive wall Accuracy/shot targeting is not calibrated**. Therefore no production engine code has been changed to add wall kills based on these pictures. Keep the wall's *lethal effectiveness* as a direct user observation, the number of actual wall attacks and addresses as unknown, and the numerical 7-shot control as a candidate requiring further evidence.
+
+**Reproducible source-separated experiment:** `tools/research/land_round80_89_wall_source_probe.py` reads fixture `wall_attack_followup`, runs actual current `land-max` AM address calculations and produces alternate wall-targeting decompositions. `tests/unit/test_land_round80_89_wall_source_probe.py` protects the 81–89 death budget, center residual, and differing 7/6/4 active target positions. Neither produces fake game individual-shot telemetry.
+
 ## Current research priority correction — ATTACK FOCUS, not refill rediscovery
 
 **Owner correction 2026-10-14:** Reserve/round-start replenishment, source-unit replacement and front-line slot refilling are ALREADY known and represented in the existing combat simulator. The axe/ordinary reserve accounting below is **only evidence provenance / controlled input verification**; do not spend the next research stage "discovering" that depleted reserves cannot replace casualties. The substantive new question is **target address / attack concentration / additional attack sources / casualty versus hit-budget conservation as active target cells shrink**.
@@ -19,7 +68,7 @@ The current production Land `engine._shot_rows([12]*7)` and target address selec
 **Three sharp focus/attack constraints:**
 
 1. **R81–83 same pattern 3 times:** deviation from current Land AM (if 84 fully eligible shots and 1-shot/kill) is **−6 deaths at central physically distinct unit and +1 at EVERY other six cells**. This exact residual zero structure needs explaining by target-dependent HP/damage/targeting or other attack effects, not a generic Reserve note.
-2. **R88–89 retain 91 reported casualties despite 6→4 target cells:** the current row-address system would change from **14 shots per occupied cell to 21 shots per occupied cell**, but the real casualty patterns are **not** identical to these shot counts. The **+7** total residual for both rounds is a particularly clean *source-identification constraint*. Seven defender wall sections `1(-0)` are visible and their possible independent attack contribution warrants examination alongside unobserved other attack waves/round stages—but 91=84+7 is arithmetic only, NOT evidence of seven wall kills.
+2. **R88–89 retain 91 reported casualties despite 6→4 target cells:** the current row-address system changes from **14 shots per occupied cell to 21 shots per occupied cell**. The owner separately confirmed each effective *high-level wall attack* kills one Barbarian, and seven living wall sections are visible; **if each fires a successful attack**, the 7 wall + 84 musket budget matches 91 deaths exactly. The *real wall shot count and target distribution* remain unknown, and the conditional leftmost-extra `2,1,1,1,1,1` / `4,1,1,1` wall scenarios are only examples; full rationale above.
 3. **Under a restricted model where ONLY these 84 hypothetical musketeer shots occur and EVERY shot kills at most one unit, R84–89's 88/89/91 casualties are impossible**. At least one restriction is wrong (e.g., extra attacking source / additional fires / multi-unit damage accounting / incorrect source-frame or turn interpretation). A casualty minus shot count is NOT an actual attack trace and cannot identify the culprit without other observations.
 
 **Focused implementation:** `tools/research/land_round80_89_am_focus_probe.py` derives physical-slot AM address histograms from actual `land-max` data and `_shot_rows` and compares them with the owner-confirmed round-end deaths, without claiming shots==kills. `tests/unit/test_land_round80_89_am_focus_probe.py` protects physical 7/6/4-slot cases, R81–83 exact residual and R88/R89 fixed +7. **Next experiments should compare different target address selectors, multi-attacker phase eligibility and Gameforge-visible casualties/HP; no more refill rule discovery.**
@@ -120,7 +169,7 @@ The data could be an especially useful held-out test for code implementing cross
 
 ### D. Restrictive "84 visible defenders each kill at most one enemy" theory fails
 
-From R81 onward, screenshots show **seven** defender positions labeled `12(-0)`, i.e. **84 visible deployed units** in those positions (unit-type identity and attack source/weapon role not independently established). The Barbarian front-line displayed kills are **84** on R81–83, but increase to **88/89** on R84–87 and **91** on R88–89. Therefore **IF** those 84 were the ONLY damage-dealing source, **IF** each fired exactly ONE hit per round, and **IF** each hit could kill at most one target, totals greater than 84 are impossible. At least one assumption of that overly restrictive mechanism would have to fail: other firing lines, wall damage, multi-shot/extra attack, multi-target effects, casualty phase differences, game UI source semantics, etc. The images alone cannot determine which.
+From R81 onward, screenshots show **seven** defender positions labeled `12(-0)`, i.e. **84 visible deployed units** in those positions (unit-type identity and attack source/weapon role not independently established). The Barbarian front-line displayed kills are **84** on R81–83, but increase to **88/89** on R84–87 and **91** on R88–89. Therefore **IF** those 84 were the ONLY damage-dealing source, **IF** each fired exactly ONE hit per round, and **IF** each hit could kill at most one target, totals greater than 84 are impossible. At least one assumption of that overly restrictive mechanism would have to fail: other firing lines, wall damage, multi-shot/extra attack, multi-target effects, casualty phase differences, game UI source semantics, etc. The later owner's wall clarification identifies the **wall as an important plausible additional source** whose effective hits kill one Barbarian. This resolves why a musket-only 84-shot bound is inappropriate as a **complete damage-source model**, but does **not** independently establish a seven-shot wall attack count or actual target distribution.
 
 Crucially **don't assert** these seven `12(-0)` displayed groups are necessarily the player's 84 musketeers or the only attackers. The owner provided musket Workshop ATT11/DEF3 but did not supply a weapon-by-weapon fire ledger. This bound is a **falsifying sanity check on a narrow hypothetical**, not proof of more than 84 musket hits.
 
