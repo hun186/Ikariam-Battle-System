@@ -2,6 +2,57 @@
 
 > **Research-only, source-grounded, not a Gameforge combat-rule specification.** Created 2026-10-14 for [Issue #71](https://github.com/hun186/Ikariam-Battle-System/issues/71). Keep independent of NAVAL Draft PR #69 and its Accuracy/overkill calibration. Do not merge or change the production battle engine without explicit authorization.
 
+## 2026-10-15 CROSS-WEAPON ACCURACY / FRESH-HIT CONCENTRATION / R77 18-TICKET HYPOTHESIS
+
+Owner requested a stricter falsification test of the earlier **R77 Knife +6×3 =18 extra full-shot equivalents** matching the partially filled Axe physical2 hypothetical **≥18 unconsumed/readdressable tickets**, comparing **20% Slinger accuracy** against **70% Sulphur Carabineer accuracy**, **fresh HP1120 Axe hit-to-kill six vs two**. This is **two DISTINCT owner battles**, Slinger ATT24 Forge5 R77–R80 vs Gun ATT11 Forge5 R1–R89, not direct experimental replication.
+
+### Source stats, candidate Accuracy selection, and why occupancy alone is insufficient
+
+| Source primary weapon / target | Accuracy (packaged) | Forge5 full damage | Target HP | Fresh hits-to-kill |
+|---|---:|---:|---:|---:|
+| Sulphur Carabineer Attack11 → Axe | **70** | **710** | 1,120 | **2** |
+| Sulphur Carabineer Attack11 → Knife | 70 | 730 | 360 | 1 |
+| Slinger Attack24 → Axe | **20** | **187** | 1,120 | **6** |
+| Slinger Attack24 → Knife | 20 | 207 | 360 | 2 |
+
+These are project packaged weapon Accuracy and owner-confirmed Forge levels, **not proof of actual Gameforge accuracy algorithm**. Project experimental `ikariam_battle/accuracy.py` (`EXP-ACCURACY-CONCENTRATION-001`) chooses another healthy target until the most-injured surviving individual's remaining HP% `<=accuracy`, then focuses. A healthy Axe after one 710 gun hit has **36.6% HP remaining**, already below70: 14 direct hits into a fresh pool can pair and kill **7 Axe**. A healthy Axe after 187 Slinger hit has **83.3%** and needs **five** hits into the *same* Axe before remaining HP `<=20%` (sixth kills). Knife after one207 Slinger hit has **42.5%** left (>20), so one hit alone does not switch the experimental focus rule. The project is **explicitly experimental and current game's code is unverified**. The 2020 AT Barbarossa/Xanto paper §18 says the author's earlier Accuracy hypotheses had counterexamples and offered several competing conjectures (IR trigger, number of D-kills, AM grouping): https://www.scribd.com/document/638484147/ikariam . Older Gameforge help describes Accuracy in terms of hit **concentration**, not a proven Bernoulli miss probability; independent GitHub forum 2024 speculation about random hits is not an actual algorithm specification.
+
+**Executable individual-selection falsifier:** Fresh 21 Axe with14 actual gun hits and experimental Accuracy70 ⇒ **seven killed**. Fresh 50 Knife with49 actual Slinger hits at Acc20 ⇒ **zero gun kills**; even 55 full hits into 50 Knife ⇒ **only five gun kills** before hypothetical wall, far short of owner's **19 deaths**. Fresh 19 Axe with49 Slinger hits under this selection ⇒ **zero gun kills** before walls, whereas owner sees two Axe deaths. Thus the simplistic experimental "keep spreading until HP% below Accuracy" model **CANNOT reproduce R77**, even if Knife receive six extra tickets. It must not be installed as official Gameforge targeting solely because it explains musket 14→7.
+
+### Joint R77 full seven-slot inverse accounting, NOT just 18-shot numeric matching
+
+All following lower bounds require owner-EXPECTED but UNVERIFIED **ALL full HP before R77**, **floor(mean surviving HP%)** UI assumption, Forge5 primary damage187 Axe /207 Knife, at most seven **one-shot-kills** from walls, max **350 FULL primary source tickets** (7 deployed Slinger groups×50) with unknown ammo. **Shots** are gun-like full damaging primary tickets; actual AM addresses don't guarantee they fired. Source screenshot fronts: `Knife31(-19)/56, Axe17(-2)/81, Axe49(-1)/81, Axe49(-1)/81, Axe50(-0)/83, Knife31(-19)/56, Knife31(-19)/56`.
+
+| Physical Slot | Source AM | Minimum loss of total original HP (dead + survivor injuries) | Minimum full gun tickets IF each death-eligible slot gets ONE ideal FULL-HP wall kill, no overkill waste | Minimum full gun tickets if fresh-health individual D-kill and excess 2-hit/6-hit overkill is LOST |
+|---|---:|---:|---:|---:|
+| 1 Knife | 49 | 11,639 | **55** | **60** |
+| 2 Axe (starts19) | 49 | 5,668 | **25** | **25** |
+| 3 Axe | 49 | 10,999 | **53** | **53** |
+| 4 Axe (center) | 56 | 10,999 | **53** | **53** |
+| 5 Axe (no deaths) | 49 | 8,961 | **48** | **48** |
+| 6 Knife | 49 | 11,639 | **55** | **60** |
+| 7 Knife | 49 | 11,639 | **55** | **60** |
+| **Seven-Slot Total** | **350** | **71,544** | **344** | **359** |
+
+The HP-only minima allow FULL injury pooling/reuse with **ZERO overkill loss**, do NOT independently reproduce death counts or near-uniform individual wounds. Illustrative integer HP-only `350-ticket` assignment physical L→R **[55,27,54,56,48,55,55]** (vs AM **[49,49,49,56,49,49,49]**) has delta **[+6,−22,+5,0,−1,+6,+6]** and can fit each **HP-loss interval** if each death-eligible cell receives one wall one-kill of some HP amount up to a full victim. This witness does **NOT** construct 19 Knife casualties and all seven HP bars via any actual Kill Type. In particular **the 18 Knife extra shots are NOT a complete or unique redirect pattern**: another Axe cell physical3 also needs >=4 tickets above baseline even with a full wall one-kill, so the shortage can't be attributed solely to an 18-to-three-Knife transfer without addressing other slots.
+
+For strict **individually focused D-kill**, every **full Knife kill from two207 hits wastes `414−360=54` HP**; every full Axe kill from six187 hits wastes `1122−1120=2` HP. If a Knife cell has19 observed deaths and 1 wall kill, then 18 gun killed Knife create **at least `18×54=972` lost overkill**. Need `ceil((11639−360+972)/207)=60` full hits per Knife cell; not55. Across seven slots, best case with one ideal wall 1-kill in each nonzero-death cell => **359** full gun hits, above max350. Furthermore, permitting **ANY distribution** of up to seven ideal full-HP wall one-kills over ALL targets (even unrealistic physically), an exhaustive **bounded wall allocation** integer search still requires **at least353 full primary hits**. This is a rigorous conditional refutation of **"reroute tickets alone + fresh individual D-kill with discarded overkill + 350 primary hits + seven walls"**. The game can still work under weaker assumptions: pre-R77 old HP state, alternate weapon/ammo, different bar semantics, wound transfer/overkill recovery (P/IR), extra sources, or different wall behavior.
+
+The new case even pushes AGAINST simple **fully pooled damage converted directly into deaths by `floor(total_damage/HP)`**: a Knife Slot receiving55×207=11,385 full damage would trivially allow **31 Knife HP360** to be consumed, whereas **only19 deaths total** are observed; some damage must be retained as survivor wounds (or be lost by overkill), not every pooled HP unit converted to death. Thus the competing models are **not** just D vs one naive full-slot HP floor-kill. Kill count and surviving HP must be fitted *together*.
+
+### The small target counts do NOT prove "no more targets to receive shots"
+
+At R77 Axe physical2 **19 full Axe** would collectively require **19×6=114** perfectly focused187-damage primary hits to kill all, far above default **49** AM addresses. In the earlier musket fight R84 center Axe start21 and14 nominal gun addresses would need **21×2=42** complete gun attacks to kill all, also >14. Neither potential redirect is forced by literal empty-target exhaustion. The candidate trigger must be a different rule (source-row grouping, Accuracy/focus, effective target-capacity metric, slot HP threshold, AM model limitation, SR/IR/RR, etc). The previous numerical18 =6×3 is an intriguing but **non-identifying coincidence** without additional controlled screenshots.
+
+**Critical follow-up experiments:**
+1. Slinger Axe cell **19 vs 25 vs 50** full HP, fixed source 7×50 and Forge5, record same-round all seven Slot casualty and BAR values. Changes in **AM addresses** versus **individual hit distribution** should be differentiated.
+2. Fix one Axe cell at19 and vary source primary weapon Acc20 vs Acc70 *without changing effective per-hit damage* if controllable (otherwise cannot attribute differences uniquely to Accuracy because weapons differ in damage/hits-to-kill).
+3. Vary slinger ATT level around24 while preserving Forge5/formation size; hits-to-kill Axe may cross a threshold only when `ceil(1120/damage)` changes.
+4. Capture source ammunition and R76 pre-hit bar to validate **350 effective primary shots and initial full HP**, without which the numerical counterexamples remain conditional.
+5. Never hardcode an inferred 18-hit diversion nor apply an unverified Kill Type to production engine.
+
+Executable read-only model `tools/research/land_cross_weapon_accuracy_am_reallocation_probe.py`, tests `tests/unit/test_land_cross_weapon_accuracy_am_reallocation_probe.py`. Source fixture values are unchanged; the exact Gameforge Accuracy, D/I/P/IR selector and redirected target groups remain UNKNOWN.
+
 ## NEW SEPARATE 400-SLINGER CASE — R77–R80: COUNT CONSERVATION, INJURY POOLS, FRONT→REAR COLLAPSE (2026-10-15)
 
 **This is ANOTHER battle**, not the full-Axe R1→R89 Forge5 musketeer battle above. Four owner-supplied screenshots (20261014-170017, -170407, -170814, -170830.png) of a **400-Slinger attack-workshop Lv24** player army: 7 second-line slots×50=350 in battle, reserve50, 7 defensive wall sections. Owner says Barbarian Axe+Knifeman targets before R77 attack *should have been* 100% HP (**hypothesis, not verified exact pre-round HP**). **Owner explicitly confirmed THIS Slinger battle also had active Forge Lv5** (2026-10-15 follow-up), independently of the other Carabineer fight. Exact primary ammunition status and deployment time (late reinforcement vs long battle) unknown. Screenshot source is in conversation, not hosted GitHub. Provenance fixture `tests/fixtures/reverse_engineering/land_barbarian_slinger400_rounds77_80_20261015.json`.
