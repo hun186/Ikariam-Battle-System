@@ -238,6 +238,17 @@ def report()->dict:
             dead=row["deaths"],wall_kills=w,discard_kill_overkill=True
         ) for row,w in zip(entries,one_per)
     ]
+    # AM source columns form 7-shot WHOLE source rows in BOTH cases.
+    # Original Gun center nominal14 = 2 complete 7-shot rows and the
+    # candidate redirect exactly7 = ONE full source row. In contrast
+    # slinger physical2 default49 = 7 complete rows of7, but inferred
+    # 18 equivalent hit surplus is NOT divisible by7: a simple intact-row
+    # AM reassignment of just18 fully effective shots is NOT possible.
+    # Either within-row attacks split, residual damage moves rather than
+    # full shots, walls/accuracy/other assumptions differ, or the exact18
+    # match is coincidental. NOT a verdict on the actual game mechanism.
+    assert 14%7==0 and 7%7==0
+    assert 49%7==0 and 18%7!=0
     # All physically occupied 7 front slots: wall cannot kill in the slot
     # showing ZERO source deaths; wall shots therefore may be ineffective.
     assert (one_conserved,one_strict)==(
@@ -402,6 +413,16 @@ def report()->dict:
         ] for v in hp_witness),
         "EXPERIMENTAL_accuracy_selector_not_gameforge":EXPERIMENTAL_ACCURACY_MODEL_ID,
         "EXPERIMENTAL_accuracy_single_slot_simulations":threshold_models,
+        "AM_source_row_reassignment_control":{
+            "source_columns_each_weapon":7,
+            "gun_R84_center_original_addressed_shots":14,
+            "gun_hypothesized_7_diverted_shots_equals_one_whole_row":True,
+            "slinger_R77_partial_Axe_original_addressed_shots":49,
+            "slinger_min_unspent_full_shot_equivalents_NO_WALL_example":18,
+            "slinger_18_equivalents_NOT_DIVISIBLE_BY_source_row_width7":True,
+            "slinger_exact18_would_require_partial_source_rows_or_damage_equivalents_or_wrong_hypothesis":True,
+            "no_Gameforge_row_reassignment_rule_PROVEN":True,
+        },
         "R77_Knife_19_deaths_vs_exp_accuracy_55hits_model_only5":
             threshold_models["slinger_55_into_50_fresh_Knife"]["gun_deaths"]==5,
         "one_shot_or_diversion_explanations_unverified":True,
