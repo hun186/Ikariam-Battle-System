@@ -127,3 +127,16 @@ def test_R76_two_wall_kills_in_one_slot_changes_R77_18_hit_equivalence():
             for v in b]==[31,25,19]
     assert sens["wall_damage_assumes_each_direct_death_REMOVES_full_target_HP_NOT_PREWOUNDED"]
     assert sens["R77_true_wall_targets_UNOBSERVED"]
+
+
+def test_18_slinger_ticket_equivalents_cannot_be_one_whole_source_AM_row():
+    d=report()
+    a=d["AM_source_row_reassignment_control"]
+    assert a["source_columns_each_weapon"]==7
+    assert a["gun_R84_center_original_addressed_shots"]==14
+    assert a["gun_hypothesized_7_diverted_shots_equals_one_whole_row"]
+    assert a["slinger_R77_partial_Axe_original_addressed_shots"]==49
+    assert a["slinger_min_unspent_full_shot_equivalents_NO_WALL_example"]==18
+    assert a["slinger_18_equivalents_NOT_DIVISIBLE_BY_source_row_width7"]
+    assert a["slinger_exact18_would_require_partial_source_rows_or_damage_equivalents_or_wrong_hypothesis"]
+    assert a["no_Gameforge_row_reassignment_rule_PROVEN"]
