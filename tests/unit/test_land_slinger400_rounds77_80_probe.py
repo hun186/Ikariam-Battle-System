@@ -148,6 +148,24 @@ def test_partial_axe_cell_could_supply_equivalent_18_shots_but_not_proven_rerout
     assert p["no_proof_actual_18_shots_redirected"]
 
 
+def test_help_priority_confirms_front_to_rear_fallthrough_but_not_199_151():
+    from ikariam_battle.profiles import TargetingProfile
+
+    rules=TargetingProfile.load()
+    assert rules.priorities["second"]==("first","flank","second")
+    d=report()
+    known=d["R80_formational_fallback_GAMEFORGE_HELP_KNOWN"]
+    assert known["source_runtime_line"]=="second"
+    assert known["priority_target_lines"]==["first","flank","second"]
+    assert known["next_target_when_no_first_and_no_flank"]=="second"
+    assert known["later_shots_reselect_target_class_after_higher_priority_class_eliminated"]
+    assert known["individual_slot_AM_damage_distribution_UNKNOWN"]
+    assert known["actual_R80_front_vs_rear_shot_counts_UNKNOWN"]
+    witness=d["R80_ONE_NO_WALL_AGGREGATE_FULL_DAMAGE_WITNESS_NOT_REAL_ATTACK_LOG"]
+    assert witness["target_class_fallback_priority_KNOWN_IN_GAME_HELP"]
+    assert witness["precise_199_151_shot_split_IS_HYPOTHETICAL_NOT_OBSERVED"]
+
+
 def test_hp_percentage_as_interval_rejects_invalid_or_missing_units():
     assert floored_mean_hp_total_interval(49,1120,81)==(44453,45001)
     assert floored_mean_hp_total_interval(0,1120,0)==(0,0)
