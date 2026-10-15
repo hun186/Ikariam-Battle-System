@@ -110,3 +110,20 @@ def test_two_small_axe_slots_42_to43_pct_nominal_damage_pressure_not_universal_t
     assert r["universal_pressure_threshold_is_FALSIFIED_by_full_Knife"]
     assert r["understrength_occupancy_gate_or_other_rule_UNVERIFIED"]
     assert r["actual_round_damage_post_AM_may_differ"]
+
+
+def test_R76_two_wall_kills_in_one_slot_changes_R77_18_hit_equivalence():
+    d=report()
+    sens=d["R77_Knife_AND_partial_Axe_wall_assignment_sensitivity"]
+    assert d["R76_wall7_nonuniform_distribution_makes_R77_wall_redistribution_unknown"]
+    a=sens["Knife_by_wall_0_1_2"]
+    assert [v["Knife_min_extra_equivalents_over_base49"] for v in a]==[8,6,4]
+    assert [v["three_Knife_min_extra_over_base"] for v in a]==[24,18,12]
+    assert [v["using_three_slots_wall_cost"] for v in a]==[0,3,6]
+    b=sens["partial_Axe_by_wall_0_1_2"]
+    assert [v["min_unspent_nominal_AM_hit_equivalents_under_assumptions"]
+            for v in b]==[18,24,30]
+    assert [v["max_locally_consumable_primary_hits_IF_no_damage_loss"]
+            for v in b]==[31,25,19]
+    assert sens["wall_damage_assumes_each_direct_death_REMOVES_full_target_HP_NOT_PREWOUNDED"]
+    assert sens["R77_true_wall_targets_UNOBSERVED"]
