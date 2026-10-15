@@ -73,3 +73,40 @@ def test_experimental_accuracy_only_DIFferences_do_not_fit_R77_knives():
     assert v["R77_Knife_19_deaths_vs_exp_accuracy_55hits_model_only5"]
     assert v["one_shot_or_diversion_explanations_unverified"]
     assert any("19-Axe slot" in x for x in v["interpretive_limits"])
+
+
+
+def test_R76_owner_full_health_seven_wall_deaths_precedes_fresh_slinger_volley():
+    r=report()["R76_owner_verified_baseline"]
+    assert r["front_HP_full_100pct_owner_verified"]
+    assert r["no_slinger_before_R77_owner_verified"]
+    assert r["R77_slingers_first_arrival_round"]==77
+    assert r["R77_visible_primary_blue_ammo_sufficient_for_first_350_attempts_owner_verified"]
+    assert r["R76_round_deaths_LTR"]==[1,2,1,1,0,1,1]
+    assert r["R76_round_deaths_total"]==7
+    assert r["wall_one_death_PER_SLOT_is_NOT_supported"]
+    assert r["wall_actual_seven_attack_hit_log_not_observed"]
+
+
+def test_R76_R77_inter_round_169_Axe_repacking_was_not_projectile_reroute():
+    r=report()["R76_to_R77_slot_population_repacking"]
+    assert r["R76_end_front_physical"]==[49,21,49,49,50,49,49]
+    assert r["R77_before_shots_physical"]==[50,19,50,50,50,50,50]
+    assert r["inter_round_delta_LTR"]==[1,-2,1,1,0,1,1]
+    assert r["axe_total_before_and_after"]==[169,169]
+    assert r["Knife_total_front_plus_reserve_before_and_after"]==[169,169]
+    assert r["partial_Axe_slot2_21_to19_and_phys3_4_each_plus1"]
+    assert r["is_inter_round_UNIT_repacking_not_same_round_AM_shot_reroute"]
+
+
+def test_two_small_axe_slots_42_to43_pct_nominal_damage_pressure_not_universal_trigger():
+    r=report()["dimensionless_incoming_nominal_HP_pressure_CANDIDATE_NOT_RULE"]
+    gun=14*710/(21*1120)
+    slinger=49*187/(19*1120)
+    assert r["gun_R84_center_Axe_14x710_div_21x1120"]==gun
+    assert r["slinger_R77_partial_Axe_49x187_div_19x1120"]==slinger
+    assert abs(gun-slinger)<0.01
+    assert r["slinger_R77_full_Knife49x207_div50x360_counterexample"]==49*207/(50*360)
+    assert r["universal_pressure_threshold_is_FALSIFIED_by_full_Knife"]
+    assert r["understrength_occupancy_gate_or_other_rule_UNVERIFIED"]
+    assert r["actual_round_damage_post_AM_may_differ"]
