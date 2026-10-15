@@ -52,7 +52,14 @@ def test_HP_budget_intervals_if_and_only_if_floor_mean_bar_and_no_unobserved_HP_
     assert p["R80_thrower_HP_removed_range_IF_R79_REAR_FULL_HP"]==[31018,31615]
     assert p["R80_joint_axe_plus_thrower_HP_removed_IF_R79_REAR_FULL_HP"]==[68047,69916]
     assert d["real_hp_bar_floor_mean_rule_VERIFIED"] is False
-    assert d["owner_R77_front_start_full_100pct_NOT_CONFIRMED"]
+    assert d["owner_R76_front_full_100pct_CONFIRMED"]
+    assert d["R77_slinger_first_join_round_owner_confirmed"]==77
+    assert d["owner_blue_primary_ammo_visible_in_R77"]
+    assert d["primary_ammo_capacity_per_unit"]==5
+    assert d["max_primary_shots_PER_UNIT_in_4_rounds_77_to80"]==4
+    assert d["ammo_cannot_have_been_exhausted_before_R80_IF_max1_shot_per_round"]
+    assert d["R76_wall_only_seven_deaths_NONUNIFORM"]==[1,2,1,1,0,1,1]
+    assert d["R76_to_R77_frontline_repacking"]==[1,-2,1,1,0,1,1]
 
 
 def test_owner_confirmed_forge5_damage_with_forge0_counterfactual_comparison():
@@ -131,7 +138,9 @@ def test_three_knife_groups_require_additional_damage_under_fresh_full_hp_contro
     assert p["baseline_49_full_gun_hits_plus_generous_one_wall_HP_depletion"]==10503
     assert p["minimum_additional_full_gun_equivalents_per_knife_slot"]==6
     assert p["minimum_conditional_additional_shots_ALL_three_knife_slots"]==18
-    assert p["R77_start_full_individual_HP_UNVERIFIED"]
+    assert p["R76_all_frontline_hp_100pct_CONFIRMED"]
+    assert p["no_unobserved_damage_between_R76_R77_ASSUMED"]
+    assert p["actual_per_individual_hit_log_UNAVAILABLE"]
     assert p["observed_reroute_UNVERIFIED"]
     assert p["total_HP_accounting_not_specific_Kill_Type"]
 
@@ -174,3 +183,31 @@ def test_hp_percentage_as_interval_rejects_invalid_or_missing_units():
         floored_mean_hp_total_interval(0,1120,81)
     with pytest.raises(ValueError):
         floored_mean_hp_total_interval(-1,1120,81)
+
+
+def test_r76_owner_full_100_percent_and_seven_walls_cannot_assume_one_per_slot():
+    d=report()
+    assert d["R76_wall_only_seven_deaths_NONUNIFORM"]==[1,2,1,1,0,1,1]
+    assert sum(d["R76_wall_only_seven_deaths_NONUNIFORM"])==7
+    assert d["owner_R76_front_full_100pct_CONFIRMED"]
+    assert d["R77_slinger_first_join_round_owner_confirmed"]==77
+
+
+def test_r77_19_Axe_exactly_grounded_in_inter_round_169_repacking():
+    d=report()
+    assert d["R76_to_R77_frontline_repacking"]==[1,-2,1,1,0,1,1]
+    assert d["R77_PARTIAL_AXE_PHYSICAL2_conditional_surplus_assigned_damage"][
+        "start_Axe_IF_full_before_R77"
+    ]==19
+    assert d["R77_THREE_KNIFE_SLOTS_FULL_HP_CONDITIONAL_DAMAGE_DEFICIT"][
+        "start_units_IF_full_at_before_R77"
+    ]==50
+
+
+def test_five_primary_ammo_each_supports_all_four_rounds_but_not_claim_hits():
+    d=report()
+    assert d["primary_ammo_capacity_per_unit"]==5
+    assert d["max_primary_shots_PER_UNIT_in_4_rounds_77_to80"]==4
+    assert d["ammo_cannot_have_been_exhausted_before_R80_IF_max1_shot_per_round"]
+    assert d["owner_blue_primary_ammo_visible_in_R77"]
+    assert d["R77_slinger_first_join_round_owner_confirmed"]==77
