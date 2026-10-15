@@ -1,10 +1,11 @@
-"""400 Slinger Attack Workshop24: four observed R77..R80 Barbarian snapshots.
+"""400 Slinger Attack Workshop24: R76 full-health baseline + R77..R80.
 
-Read-only inverse constraints. Owner CONFIRMED active Forge Lv5; native
-Slinger primary ammo and real Gameforge shot targets remain UNKNOWN.
-Do not mistake per-AM addressed shots for actual successful full hits. In particular R77
-'100% before battle hit' and R79 rear 100% are owner hypotheses/screenshots,
-NOT observed exact pre-phase per-individual HP values.
+Read-only inverse constraints. Owner CONFIRMED active Forge Lv5, R76
+frontline HP all 100%, and 400 freshly introduced Slingers at R77, with
+visible R77 BLUE primary-ammo bars. Native weapon capacity=5 primary shots,
+so one shot per round R77-80 does NOT exhaust it. Real per-hit source
+targets, accuracy/individual HP algorithm and percent-bar formula UNKNOWN.
+R79 rear 100% remains visually inferred, NOT owner-verified.
 """
 from __future__ import annotations
 
@@ -64,6 +65,21 @@ def report()->dict:
     j=json.loads(FIXTURE.read_text(encoding="utf-8"))
     assert j["source"]["user_confirmed_forge_level_in_this_400_slinger_battle"] == 5
     assert j["source"]["user_confirmed_forge_active_in_this_400_slinger_battle"]
+    assert j["source"]["pre_R77_HP_100pct_verified_by_owner"]
+    assert j["source"]["all_400_slingers_first_enter_round"] == 77
+    assert j["source"]["R77_350_deployed_primary_shots_ammo_available_owner_confirmed"]
+    r76=next(r for r in j["rounds"] if r["round"]==76)
+    r77=next(r for r in j["rounds"] if r["round"]==77)
+    prior=[x["survivors"] for x in r76["barbarian_first_by_physical_slot"]]
+    start=[x["survivors"]+x["round_deaths"]
+           for x in r77["barbarian_first_by_physical_slot"]]
+    assert prior==[49,21,49,49,50,49,49]
+    assert start==[50,19,50,50,50,50,50]
+    assert [b-a for a,b in zip(prior,start)]==[1,-2,1,1,0,1,1]
+    assert sum(prior[i] for i in (1,2,3,4))==sum(start[i] for i in (1,2,3,4))==169
+    assert sum(prior[i] for i in (0,5,6))+22==sum(start[i] for i in (0,5,6))+19==169
+    assert [x["hp_percent"] for x in r76["barbarian_first_by_physical_slot"]]==[100]*7
+    assert sum(x["round_deaths"] for x in r76["barbarian_first_by_physical_slot"])==7
     rows={r["round"]:r for r in j["rounds"]}
     registry=UnitRegistry.load(include_barbarians=True)
     hA=registry.get("barbarian_axe_swinger").hit_points
@@ -189,7 +205,8 @@ def report()->dict:
     assert [q["phys4_and_phys5_match_owner_snapshot"] for q in r77_candidate]==[False,True]
 
     # Source R77 knife physical1/6/7: 50 full HP360 before attacks is an
-    # owner EXPECTATION not a verified game per-individual HP measurement.
+    # owner now VERIFIED R76 all frontline at 100%; actual HP per soldier
+    # is not separately instrumented. No Slingers before R77.
     # Conditional on that AND floor-of-survivor-average bar, each 31/56%
     # Knife group implies 11639..11750 total HP lost (dead+living wounds).
     # Even 49 fully damaging Forge5 slinger shots and a generous final
@@ -273,7 +290,9 @@ def report()->dict:
             "R80_front_full_primary_shots_min_if_no_other_attack":needed_axe,
             "R80_rear_full_primary_shots_min_if_no_other_attack":needed_rear,
             "R80_no_wall_full_hit_feasibility_if_at_most350":needed_axe+needed_rear<=350,
-            "source_real_primary_ammo_unknown":True,
+            "source_primary_ammo_fresh_at_R77_owner_verified":True,
+            "available_primary_shot_R77_through_R80_if_max1_per_round":True,
+            "individual_effective_hits_and_GM_accuracy_UNKNOWN":True,
             "forge_owner_verified_F5":True,
         })
     # One explicit AGGREGATE integer-HP feasibility witness; no wall damage,
@@ -306,7 +325,14 @@ def report()->dict:
         "forge0_is_counterfactual_only":True,
         "target_HP":{"axe":hA,"knife":hK,"rear_axe_thrower":hR},
         "real_hp_bar_floor_mean_rule_VERIFIED":False,
-        "owner_R77_front_start_full_100pct_NOT_CONFIRMED":True,
+        "owner_R76_front_full_100pct_CONFIRMED":True,
+        "R77_slinger_first_join_round_owner_confirmed":77,
+        "owner_blue_primary_ammo_visible_in_R77":True,
+        "max_primary_shots_PER_UNIT_in_4_rounds_77_to80":4,
+        "primary_ammo_capacity_per_unit":5,
+        "ammo_cannot_have_been_exhausted_before_R80_IF_max1_shot_per_round":True,
+        "R76_wall_only_seven_deaths_NONUNIFORM":[1,2,1,1,0,1,1],
+        "R76_to_R77_frontline_repacking":[1,-2,1,1,0,1,1],
         "rear_R79_before_R80_full_100pct_NOT_CONFIRMED":True,
         "by_round":totals,
         "three_count_conservation_checks":{
@@ -343,7 +369,9 @@ def report()->dict:
             "minimum_conditional_additional_shots_ALL_three_knife_slots":
                 3*(min_full_shots_needed_after_one_wall-baseline_knife_gun_addresses),
             "observed_reroute_UNVERIFIED":True,
-            "R77_start_full_individual_HP_UNVERIFIED":True,
+            "R76_all_frontline_hp_100pct_CONFIRMED":True,
+            "no_unobserved_damage_between_R76_R77_ASSUMED":True,
+            "actual_per_individual_hit_log_UNAVAILABLE":True,
             "wall_one_full_knife_HP_kill_UNVERIFIED":True,
             "total_HP_accounting_not_specific_Kill_Type":True,
         },
@@ -383,16 +411,16 @@ def report()->dict:
             "precise_199_151_shot_split_IS_HYPOTHETICAL_NOT_OBSERVED":True,
             "per_slot_HP_and_actual_source_shot_paths_not_recovered":True,
         },
-        "central_caveat":"Known in-game Help: Second targets First, then Flank, then Second. Later shots select next eligible target class after a higher priority formation is eliminated (no enemy Flank shown at R80). The general First-to-Second fallback is KNOWN, not an unknown mechanic. However exact in-round shot counts 199/151, slot AM reallocation, individual damage, ammo, and UI wound math remain UNVERIFIED.",
+        "central_caveat":"Known Help targeting Second→First then Flank then Second. R77 newly deployed Slinger primary ammo 5 shots per unit and 4 observed attacking rounds implies sufficient first-primary ammo R77–80 if at most one shot per unit each round. The R80 exact 199/151 shots, effectiveness, within-slot damage redistribution, wall assignments, and UI wound rule remain UNKNOWN.",
         "hypotheses_to_compare":[
             "Integer conserved Slot wounds and RR interround damage vs individual D-kill with wounds retained",
             "AM regroup target slot count 7→4→3, distinct from incoming 350 attacks and screenshots showing 50+50+14 after regroup",
             "Target-class change Axe HP1120/armor20 → Axe Thrower HP320/armor0 when frontline clears R80",
             "In-game Help / current engine ALREADY establish that later Second-line shots select another target class once First and Flank are absent. Only exact 199/151 allocation and per-slot damage within R80 remain unknown",
             "Owner HAS confirmed active Forge5 for this Slinger case; Forge0 is an alternative counterfactual only",
-            "Primary ammunition 5 and arrival/replenishment before R77 unknown: cannot assume every 50 displayed Slinger shoots full primary",
+            "Owner CONFIRMED 400 Slingers first joined R77 with blue primary ammo; 5 shots per unit supports one primary shot in each R77–R80, but not an independently captured successful hit/damage count",
             "Accuracy20 percent must not be blindly implemented as independent 20pct random hits; kill/wound allocator still unknown",
-            "R77 100pct preattack only owner's likely expectation; R79 rear full HP screenshot visual but not precise 100pct certification",
+            "Owner CONFIRMED R76 all frontline HP100% and no slingers before R77; R77 starts full absent inter-round hidden damage. R79 rear full HP remains visually inferred",
         ]
     }
 
