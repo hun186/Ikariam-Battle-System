@@ -266,6 +266,45 @@ def report()->dict:
         })
     assert all(v["budget_feasible_WITH_ONE_DIRECT_WALL_KILL"] for v in hp_witness)
 
+    # Wall strikes are NOT one-per-slot: R76 had seven wall-era kills
+    # [1,2,1,1,0,1,1] while all frontline survivor bars were 100%.
+    # Changing candidate R77 wall distribution changes the 18-redirect
+    # arithmetic even before Accuracy/P/IR enters.
+    knife_slot=entries[0]
+    partial_axe=entries[1]
+    wall_allocation_sensitivity=[]
+    for knife_wall in (0,1,2):
+        knife_needed=_minimum_full_shots(
+            hp_loss_min=knife_slot["HP_loss_min_IF_R77_full"],
+            hp=knife_slot["target_hp"],per_hit=knife_slot["full_primary_damage"],
+            dead=knife_slot["deaths"],wall_kills=knife_wall,
+            discard_kill_overkill=False,
+        )
+        wall_allocation_sensitivity.append({
+            "candidate_wall_Knife_kills_per_each_outer_Knife_slot":knife_wall,
+            "Knife_required_full_gun_hit_equivalents_min":knife_needed,
+            "Knife_min_extra_equivalents_over_base49":knife_needed-49,
+            "three_Knife_min_extra_over_base":3*(knife_needed-49),
+            "using_three_slots_wall_cost":3*knife_wall,
+            "this_is_NOT_actual_R77_wall_allocation":True,
+        })
+    assert [r["Knife_min_extra_equivalents_over_base49"]
+            for r in wall_allocation_sensitivity]==[8,6,4]
+    axe_wall_remainder=[]
+    for axe_wall in (0,1,2):
+        max_gun_equiv_if_this_wall_HYPOTHETICALLY_removes_full1120=(
+            partial_axe["HP_loss_max_IF_R77_full"]-axe_wall*1120
+        )//187
+        axe_wall_remainder.append({
+            "candidate_wall_1kill_full_HP_Axe_count":axe_wall,
+            "max_locally_consumable_primary_hits_IF_no_damage_loss":
+                max_gun_equiv_if_this_wall_HYPOTHETICALLY_removes_full1120,
+            "min_unspent_nominal_AM_hit_equivalents_under_assumptions":
+                49-max_gun_equiv_if_this_wall_HYPOTHETICALLY_removes_full1120,
+            "actual_wall_old_wound_removal_not_assessed":True,
+        })
+    assert [x["min_unspent_nominal_AM_hit_equivalents_under_assumptions"]
+            for x in axe_wall_remainder]==[18,24,30]
     threshold_models={
         "carabineer_14_against_21_fresh_Axe":
             _simulate_experimental_individual_focus(
@@ -348,6 +387,14 @@ def report()->dict:
         "R77_allocation_optimum_with_at_most_seven_wall_one_shots":{
             "conserved_HP_no_overkill":c1,
             "strict_individual_D_with_discarded_overkill":c2,
+        },
+        "R76_wall7_nonuniform_distribution_makes_R77_wall_redistribution_unknown":True,
+        "R77_Knife_AND_partial_Axe_wall_assignment_sensitivity":{
+            "Knife_by_wall_0_1_2":wall_allocation_sensitivity,
+            "partial_Axe_by_wall_0_1_2":axe_wall_remainder,
+            "wall_damage_assumes_each_direct_death_REMOVES_full_target_HP_NOT_PREWOUNDED":True,
+            "whole_army_wall_limited_to_seven_actions":True,
+            "R77_true_wall_targets_UNOBSERVED":True,
         },
         "R77_one_INTEGER_HP_budget_witness_350_tickets":hp_witness,
         "R77_one_witness_all_HP_intervals_fit":all(v[
