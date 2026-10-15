@@ -147,7 +147,7 @@ def report()->dict:
         i=pos["physical_slot"]
         unit=units.get(pos["unit"])
         hp=unit.hit_points
-        shot=187 if pos["unit"]=="barbarian_axe_swinger" else207
+        shot=187 if pos["unit"]=="barbarian_axe_swinger" else 207
         before=pos["survivors"]+pos["round_deaths"]
         loss_lo,loss_hi=_hp_loss_interval(
             before=before,dead=pos["round_deaths"],hp=hp,bar=pos["hp_percent"])
