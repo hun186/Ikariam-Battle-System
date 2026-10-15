@@ -5,11 +5,11 @@ Compare two distinct battle/source windows, NOT the same battle:
 - 84 Carabineer Workshop ATT11 Forge5: same fight's R81-87 window
 
 All conditional damage bounds below require:
-* Every victim BEFORE R77 had FULL HP, as OWNER EXPECTED (not independently logged).
+* Owner VERIFIED R76 displayed HP100% for all frontline and R77 is the FIRST Slinger deployment; no evidence of interim wounds, but no per-individual shot log.
 * Screenshot bar is floor(100 * SUM(living_hp)/(living_count*max_unit_hp)).
 * Primary weapon FULL damage and no other damage source except up to 7
   independent direct one-unit wall kills. Shot addresses are not real hits.
-* Cross-slot conservation budget is 350 source tickets, not verified ammo.
+* Blue ammo bars and R77 fresh 400 Slingers establish first-volley primary ammo availability for 350 deployed units, not a real per-hit, effective-damage, or exact Gameforge AM target ledger.
 
 This does not assert that Gameforge uses the current experimental Accuracy
 threshold, overkill recovery, D/I/P/IR selection or any inferred target transfers.
@@ -137,11 +137,46 @@ def report()->dict:
         gun["barbarian_axe_swinger"]["shot_damage"],
         gun["barbarian_knifeman"]["shot_damage"]
     )==(710,730)
+    previous=next(x for x in fixture["rounds"] if x["round"]==76)
+    assert fixture["source"]["pre_R77_HP_100pct_verified_by_owner"]
+    assert fixture["source"]["all_400_slingers_first_enter_round"]==77
+    assert fixture["source"]["R77_350_deployed_primary_shots_ammo_available_owner_confirmed"]
+    assert previous["owner_confirms_all_7_front_slot_HP_at_100pct"]
+    assert previous["defender_slingers_deployed"]==0
+    assert [x["round_deaths"] for x in previous["barbarian_first_by_physical_slot"]]==[
+        1,2,1,1,0,1,1
+    ]
+    assert sum(x["round_deaths"] for x in previous["barbarian_first_by_physical_slot"])==7
     source=next(x for x in fixture["rounds"] if x["round"]==77)
     slinger_am=model_am_addressed_shots_by_physical_slot(
         list(range(1,8)),[50]*7
     )
     assert list(slinger_am.values())==[49,49,49,56,49,49,49]
+    prev_end=[x["survivors"] for x in previous["barbarian_first_by_physical_slot"]]
+    start_now=[x["survivors"]+x["round_deaths"] for x in source["barbarian_first_by_physical_slot"]]
+    repack=[now-prev for now,prev in zip(start_now,prev_end)]
+    assert prev_end==[49,21,49,49,50,49,49]
+    assert start_now==[50,19,50,50,50,50,50]
+    assert repack==[1,-2,1,1,0,1,1]
+    assert (sum(prev_end[i] for i in (1,2,3,4)),
+            sum(start_now[i] for i in (1,2,3,4)))==(169,169)
+    assert sum(prev_end[i] for i in (0,5,6))+22==sum(
+        start_now[i] for i in (0,5,6)
+    )+19==169
+    # Compare percentage of HP capacity addressed with per-hit gun damage,
+    # not a claim of actual full applied damage or "accuracy = miss %".
+    # Understrength Axe: Gun center 21 at original R84:14×710 / (21×1120)
+    # vs Slinger R77 Axe19:49×187/(19×1120).
+    # Both ~42%-43%, although sample size2 does NOT prove threshold.
+    gun_pressure=14*710/(21*1120)
+    slinger_pressure=49*187/(19*1120)
+    assert 0.42<gun_pressure<0.43
+    assert 0.43<slinger_pressure<0.44
+    assert abs(gun_pressure-slinger_pressure)<0.01
+    # Refute a UNIVERSAL damage-pressure trigger: all THREE healthy Knife
+    # outer cells are FULL 50 and have HIGHER baseline pressure (~56%).
+    knife_pressure=49*207/(50*360)
+    assert knife_pressure>0.56
     entries=[]
     for pos in source["barbarian_first_by_physical_slot"]:
         i=pos["physical_slot"]
@@ -276,6 +311,36 @@ def report()->dict:
                 "slinger_vs_Knife":"never before second hit kills, since one hit leaves 42.5pct >Accuracy20",
             },
         },
+        "R76_owner_verified_baseline":{
+            "source_image":"image(20261015-062727).png",
+            "front_HP_full_100pct_owner_verified":True,
+            "no_slinger_before_R77_owner_verified":True,
+            "R77_slingers_first_arrival_round":77,
+            "R77_visible_primary_blue_ammo_sufficient_for_first_350_attempts_owner_verified":True,
+            "R76_seven_wall_segments":[1]*7,
+            "R76_round_deaths_LTR":[1,2,1,1,0,1,1],
+            "R76_round_deaths_total":7,
+            "wall_one_death_PER_SLOT_is_NOT_supported":True,
+            "wall_actual_seven_attack_hit_log_not_observed":True,
+        },
+        "R76_to_R77_slot_population_repacking":{
+            "R76_end_front_physical":prev_end,
+            "R77_before_shots_physical":start_now,
+            "inter_round_delta_LTR":repack,
+            "axe_total_before_and_after":[169,169],
+            "Knife_total_front_plus_reserve_before_and_after":[169,169],
+            "partial_Axe_slot2_21_to19_and_phys3_4_each_plus1":True,
+            "is_inter_round_UNIT_repacking_not_same_round_AM_shot_reroute":True,
+        },
+        "dimensionless_incoming_nominal_HP_pressure_CANDIDATE_NOT_RULE":{
+            "gun_R84_center_Axe_14x710_div_21x1120":gun_pressure,
+            "slinger_R77_partial_Axe_49x187_div_19x1120":slinger_pressure,
+            "absolute_difference":abs(gun_pressure-slinger_pressure),
+            "slinger_R77_full_Knife49x207_div50x360_counterexample":knife_pressure,
+            "universal_pressure_threshold_is_FALSIFIED_by_full_Knife":True,
+            "understrength_occupancy_gate_or_other_rule_UNVERIFIED":True,
+            "actual_round_damage_post_AM_may_differ":True,
+        },
         "R77_slot_HP_bounds_fresh_full_floor_bar_ONLY":entries,
         "R77_standard_350_AM_physical":list(slinger_am.values()),
         "R77_conservative_HP_only_min_full_primary_with_one_wall_each":sum(one_conserved),
@@ -297,11 +362,11 @@ def report()->dict:
             "Combined 18-ticket knife deficit matched partial Axe surplus applies only to HP-only accounting with one wall per living casualty slot, NOT to D kills; global D lower bound353 exceeds the350 address budget even with seven ideal wall 1-kills",
             "Raw HP-only witness 350 addresses fits HP intervals but does NOT reproduce casualty count from any actual per-individual allocator, so do not call it a full Gameforge simulation",
             "Slinger weapon Accuracy20 and Gun70 are known user/project weapon stats but EXACT Gameforge focusing/targeting semantics UNKNOWN",
-            "User's R77 initial fresh HP is an expected value, not a measured log; invalidates bounds if false",
+            "Owner CONFIRMED all R76 frontline HP bars were 100% and Slingers first arrive R77: fresh pre-volley HP is now strongly sourced, barring unlogged inter-round damage. Actual per-individual target HP never instrumented",
             "Accuracy is not automatically hit/miss probability or damage scalar; current EXP accuracy function only selects a target WITHIN an addressed slot",
             "A 19-Axe slot has capacity 19×6=114 primary slinger hits to kill all full Axe, more than49 original attacks; an already-empty-slot overflow cannot explain the candidate transfer",
-            "Source primary ammo5 and live slot shot count at R77 unverified; source gunning may be secondary",
-            "Wall 7 hits physically targeted/one hit each is a generous assumption, not observed",
+            "Slingers newly arrived R77 and player sees BLUE primary ammo: enough to attempt 350 first-volley primary shots; which were full damaging hits and how they target slots remain unverified",
+            "R76 seven frontline deaths exactly match seven visible walls and distribution [1,2,1,1,0,1,1]; one wall kill per different slot is NOT observed even on wall-only R76. R77 wall shot targets remain unobserved",
         ],
     }
 
