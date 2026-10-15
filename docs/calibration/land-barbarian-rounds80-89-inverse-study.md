@@ -2,6 +2,44 @@
 
 > **Research-only, source-grounded, not a Gameforge combat-rule specification.** Created 2026-10-14 for [Issue #71](https://github.com/hun186/Ikariam-Battle-System/issues/71). Keep independent of NAVAL Draft PR #69 and its Accuracy/overkill calibration. Do not merge or change the production battle engine without explicit authorization.
 
+## 2026-10-15 OWNER R76 SOURCE — VERIFIED FRESH HP AND R77 PRIMARY AMMO
+
+**NEW directly supplied image** `image(20261015-062727).png` shows R76 of the **400 Slinger ATT24 Forge5 OTHER battle**. User explicitly VERIFIED all seven Barbarian frontline HP bars are **100% at end of R76** and **NO SLINGERS exist on-field before R77**; all 400 Slingers were newly deployed in R77. R77 screenshot's blue primary-ammo bars confirm the newly-arrived ranged troop has initial loaded finite weapon. Packaged Slinger **5 primary rounds per individual**, so IF max one primary attack per unit per battle round (as represented by current project's once-per-round source AM), these freshly arrived Slingers can fire primary in **R77,78,79,80** (at most four rounds spent by R80). Therefore prior possible explanations **"old R76 injury state"**, **"Slingers already exhausted their five primary shots by R77"** are now contradicted by owner evidence, and even **R80 ammunition exhaustion** is not required within the first four rounds. This establishes **350 potential loaded first-round firing attempts**, NOT a verified 350 successful/fully damaging per-target shots or official Gameforge Accuracy behavior. R79 rear Throwers full 100% are still unconfirmed numerically.
+
+### Observed exact R76→R77 slot repacking: full count conservation
+
+| Physical frontline slot | R76 end count (owner-confirmed 100% HP) | R77 start (R77 survivors+round deaths) | Delta BEFORE slinger volley |
+|---|---:|---:|---:|
+| 1 Knife | 49 | 50 | +1 |
+| 2 Axe | **21** | **19** | **−2** |
+| 3 Axe | 49 | 50 | +1 |
+| 4 Axe | 49 | 50 | +1 |
+| 5 Axe | 50 | 50 | 0 |
+| 6 Knife | 49 | 50 | +1 |
+| 7 Knife | 49 | 50 | +1 |
+
+R76 **all Axe =21+49+49+50=169**; inferred R77 starts **19+50+50+50=169**, so the partial Axe physical2 sends 2 **UNIT COUNTS** to formerly 49-slot positions3/4 as they top up. Independently R76 three Knife groups 49 each + Knife reserve22 =169; R77 three groups50 each + reserve19 =169, one knife refill into each slot. These balances establish **inter-round UNIT occupancy repacking** and ground the **19 starting Axe** on R77 as sourced, NOT an arbitrary reconstruction. However, **moving TWO UNIT COUNTS across slots between rounds does NOT demonstrate any intra-round SLINGER AM projectile readdressing**: these are separate processes.
+
+R76 seven direct frontline deaths `[1,2,1,1,0,1,1]` **sum exactly 7**, with no player Slingers and seven player wall segments shown. Strongly supports walls as the R76 lethal damage source. Critically **wall casualty distribution was NOT one per physical slot**: phys2 Axe2 deaths, phys5 zero. Therefore the earlier shortcut "`wall1 each target Slot`" is NOT an established global rule; in R77 wall 7 potential final attacks can concentrate or leave some slots unhit, subject to real damage/targeting. Reported R76 death counters are evidence, but no per-hit wall telemetry exists.
+
+### Does R76 invalidate the original conditional R77 18-Slinger-shot match?
+
+It **strengthens the initial-state and ammo premises**, while the nonuniform wall targeting **weakens treating the number18 as UNIQUE**:
+- For each R77 Knifeman target50→31(-19), bar56, start full360 and nominal primary damage207, need at least **11,639 HP removed** per slot if bar is floor(mean surviving HP). With **zero** hypothetical full-HP wall 1-kills on that slot need `ceil(11639/207)=57` full primary-hit equivalents, **+8 over baseline49**; with **one** wall 1-kill need55, **+6**; with **two** wall 1-kills need53, **+4**. If three Knife slots each receive respectively zero/one/two wall 1-kills, their joint minimum extra tickets are **24/18/12** (the two-walls-each marginal control spends six of seven wall actions).
+- R77 partial Axe physical2 (R76→R77 verifiably19 initial full soldiers), 17(-2)/81% end implies HP removed **5,668–5,857** if floor bars. Baseline AM49×187=9,163 nominal damage. Under **restrictive lossless/no-miss/no-discard** model, maximum usable locally with **zero** ideal full-HP wall 1-kills is floor(5857/187)=**31** shots, leaving≥**18** address equivalents; if one ideal full-HP Axe wall kill then max25 and **≥24** nonlocal equivalents; if two then max19 and **≥30**. These last two variants presume the wall victims carried FULL1120 HP immediately before wall attack; if wall killed prewounded units, old gun damage would change the subtraction. They are **sensitivity calculations**, NOT measured Gameforge shot movements.
+- Thus the elegant equality of **18 Knife extra tickets** and **18 partial-Axe extra nominal tickets** occurs under ONE generous wall choice, *not automatically under all plausible wall patterns*. The R76 wall casualty distribution itself demonstrates nonuniform allocations can happen.
+- With confirmed R76 100% full HP and R77 primaries loaded, the prior **strict pure individually paired D-Kill with discarded overkill lower bound353 shots even after optimal distribution of seven ideal wall kills** (versus350 deployed primary attacks) becomes a **stronger conditional falsification**, assuming floor-survivor-average UI and no extra source/healing during R77. But **350 loaded attempts ≠ 350 effective full hits** and other damage algorithms may pool/split overkill: still cannot prove which D/I/P/IR rule actually ran.
+
+### Additional testable normalized trigger candidate, with a built-in counterexample
+
+Across the two distinct battles, both small **Axe** slots under suspected AM redirect have remarkably similar **BASE-AM nominal damage / pre-attack Slot full HP capacity**:
+- Earlier Forge5 Gun R84 center Axe21, baseline14×710/(21×1120) = **42.26%**.
+- Fresh Forge5 Slinger R77 partial Axe19, baseline49×187/(19×1120) = **43.06%**.
+
+This is a normalized cross-weapon proximity of **0.80 percentage points**, which superficially suggests a **Slot damage pressure** threshold (rather than a common "redirect exactly 50% of bullets"). But it does **NOT** prove such a threshold: full50 Knifeman cells at R77 already show baseline49×207/(50×360)=**56.35%** without being understrength, so a **UNIVERSAL** 40% damage pressure trigger alone would incorrectly classify them. Any serious candidate needs an independent *partial-occupancy gate*, target class, Accuracy/hits-to-kill, or another structural condition. With only two small Axe cases, avoid hardcoding a 40% rule or extrapolating to real Gameforge implementation.
+
+Source fixture `tests/fixtures/reverse_engineering/land_barbarian_slinger400_rounds77_80_20261015.json` now includes R76 and provenance metadata. Research-only `tools/research/land_slinger400_rounds77_80_probe.py` and `tools/research/land_cross_weapon_accuracy_am_reallocation_probe.py` plus regressions preserve R76→R77 exact count and wall/HP/ammo constraints. No production engine change; keep PR Draft and no merge.
+
 ## 2026-10-15 CROSS-WEAPON ACCURACY / FRESH-HIT CONCENTRATION / R77 18-TICKET HYPOTHESIS
 
 Owner requested a stricter falsification test of the earlier **R77 Knife +6×3 =18 extra full-shot equivalents** matching the partially filled Axe physical2 hypothetical **≥18 unconsumed/readdressable tickets**, comparing **20% Slinger accuracy** against **70% Sulphur Carabineer accuracy**, **fresh HP1120 Axe hit-to-kill six vs two**. This is **two DISTINCT owner battles**, Slinger ATT24 Forge5 R77–R80 vs Gun ATT11 Forge5 R1–R89, not direct experimental replication.
