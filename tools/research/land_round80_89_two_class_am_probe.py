@@ -22,15 +22,19 @@ ROOT = Path(__file__).resolve().parents[2]
 FIRST_LINE = [1, 2, 3, 4, 5, 6, 7]
 
 
-def weapon_profiles(*, attacker_forge: int = 0) -> dict:
+def weapon_profiles(*, attacker_forge: int = 0, attack_level: int | None = None) -> dict:
     """Read authoritative packaged unit HP, armor, ammo and land upgrades."""
-    data = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    # Independent battle probes MUST pass their own workshop level; only
+    # default to late-round source when no explicit level is supplied.
+    data = json.loads(FIXTURE.read_text(encoding="utf-8")) if attack_level is None else None
     registry = UnitRegistry.load(include_barbarians=True)
     gun = registry.get("sulphur_carabineer")
     axe = registry.get("barbarian_axe_swinger")
     knife = registry.get("barbarian_knifeman")
     workshop, forge = WorkshopProfile.load(), ForgeProfile.load()
-    attack_level = data["player_musketeer_upgrade"]["attack"]
+    if attack_level is None:
+        assert data is not None
+        attack_level = data["player_musketeer_upgrade"]["attack"]
     damage = {}
     for target in (axe, knife):
         trace = calculate_damage(
@@ -55,6 +59,7 @@ def weapon_profiles(*, attacker_forge: int = 0) -> dict:
         "weapon_primary_acc": gun.primary_weapon.accuracy,
         "land_workshop_attack_increase_per_level": workshop.land_increment,
         "attacker_forge_level_used": attacker_forge,
+        "workshop_attack_level_used": attack_level,
         "barbarian_targets": damage,
         "model_only_weapon_ids_not_identified_from_per_hit_game_logs": True,
     }
