@@ -384,6 +384,9 @@ def report()->dict:
             "at_least_18_gun_tickets_not_consumed_locally_IF_full_hits_conserved_without_overkill":
                 phys2_gun_shot_overhead_lower_bound_if_all_hits_conserved,
             "no_proof_actual_18_shots_redirected":True,
+            "no_unobserved_HP_inflow_heal_or_rebuild_into_phys2_REQUIRED":True,
+            "no_ammo_miss_overkill_OR_other_damage_loss_REQUIRED":True,
+            "possible_RR_reserve_replacement_HP_inflow_NOT_EXCLUDED_BY_SCREENSHOT":True,
         },
         "per_hit_forge_comparison_PRIMARY_only":budget,
         "confirmed_real_F5_primary_per_hit":profiles["5"],
