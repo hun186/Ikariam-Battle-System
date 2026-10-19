@@ -220,8 +220,8 @@ def test_five_primary_ammo_each_supports_all_four_rounds_but_not_claim_hits():
     assert d["R77_slinger_first_join_round_owner_confirmed"]==77
 
 
-def test_two_slinger_shots_reselect_living_second_after_first_eliminated_same_volley():
-    """Engine regression: Help priority fallback is real, not report booleans."""
+def test_two_long_range_shots_reselect_second_after_first_killed_same_volley():
+    """Synthetic two-shot high-damage Second-line case: First dies on shot1."""
     from collections import defaultdict
     from ikariam_battle.battlefield import LAND_MINI, deploy
     from ikariam_battle.engine import _build_damage_queues, _resolve_volleys, _snapshot_phase_fire
@@ -234,7 +234,7 @@ def test_two_slinger_shots_reselect_living_second_after_first_eliminated_same_vo
     assert targeting.metadata["target_transfer_contract"]["status"]=="KNOWN_AT_FORMATION_CLASS_LEVEL"
     a_army=Army.from_dict({
         "forge_level":5,
-        "units":[{"unit_id":"slinger","quantity":2,"attack_upgrade":24}],
+        "units":[{"unit_id":"sulphur_carabineer","quantity":2,"attack_upgrade":11}],
     })
     d_army=Army.from_dict({
         "forge_level":0,
