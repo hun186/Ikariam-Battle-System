@@ -162,6 +162,10 @@ def test_help_priority_confirms_front_to_rear_fallthrough_but_not_199_151():
 
     rules=TargetingProfile.load()
     assert rules.priorities["second"]==("first","flank","second")
+    contract=rules.metadata["target_transfer_contract"]
+    assert contract["status"]=="KNOWN_AT_FORMATION_CLASS_LEVEL"
+    assert "Later individual shots select" in contract["rule"]
+    assert contract["source_type"]=="GAMEFORGE_IN_GAME_HELP"
     d=report()
     known=d["R80_formational_fallback_GAMEFORGE_HELP_KNOWN"]
     assert known["source_runtime_line"]=="second"
@@ -211,3 +215,44 @@ def test_five_primary_ammo_each_supports_all_four_rounds_but_not_claim_hits():
     assert d["ammo_cannot_have_been_exhausted_before_R80_IF_max1_shot_per_round"]
     assert d["owner_blue_primary_ammo_visible_in_R77"]
     assert d["R77_slinger_first_join_round_owner_confirmed"]==77
+
+
+def test_two_slinger_shots_reselect_living_second_after_first_eliminated_same_volley():
+    """Engine regression: Help priority fallback is real, not report booleans."""
+    from collections import defaultdict
+    from ikariam_battle.battlefield import LAND_MINI, deploy
+    from ikariam_battle.engine import _build_damage_queues, _resolve_volleys, _snapshot_phase_fire
+    from ikariam_battle.models import Army
+    from ikariam_battle.profiles import ForgeProfile, WorkshopProfile, TargetingProfile
+    from ikariam_battle.units import UnitRegistry
+
+    registry=UnitRegistry.load()
+    targeting=TargetingProfile.load()
+    assert targeting.metadata["target_transfer_contract"]["status"]=="KNOWN_AT_FORMATION_CLASS_LEVEL"
+    a_army=Army.from_dict({
+        "forge_level":5,
+        "units":[{"unit_id":"slinger","quantity":2,"attack_upgrade":24}],
+    })
+    d_army=Army.from_dict({
+        "forge_level":0,
+        "units":[{"unit_id":"spearman","quantity":1},{"unit_id":"slinger","quantity":1}],
+    })
+    attacker=deploy(a_army,registry,LAND_MINI)
+    defender=deploy(d_army,registry,LAND_MINI)
+    events=[]
+    applied={}
+    volleys=_snapshot_phase_fire(
+        attacker,defender,registry,targeting,events,1,"attacker","second",applied
+    )
+    assert len(volleys)>=1
+    queues=_build_damage_queues(defender,registry,events,1,"defender",applied)
+    fired=_resolve_volleys(
+        volleys,defender,queues,registry,WorkshopProfile.load(),
+        ForgeProfile.load(),targeting,events,1,a_army,d_army,
+        defaultdict(int),defaultdict(int),applied,
+    )
+    assert fired==2
+    damaged=[event for event in events if event.type=="damage"]
+    assert [event.details["target_class"] for event in damaged]==["first","second"]
+    assert damaged[0].details["target_unit_id"]=="spearman"
+    assert damaged[1].details["target_unit_id"]=="slinger"
