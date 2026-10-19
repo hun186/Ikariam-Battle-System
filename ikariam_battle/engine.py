@@ -2661,7 +2661,7 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             and target_unit.id == "balloon_carrier"
             and volley["runtime_line"] == "anti-balloon"
             and target_slot.line == "balloon"
-            and weapon.id == "primary"
+            and weapon.id == source_unit.primary_weapon.id
             and phase_start_slots.get(queue_key) == (3, 0)
             and sum(len(v["row_numbers"]) for v in volleys) == 30
             and all(
