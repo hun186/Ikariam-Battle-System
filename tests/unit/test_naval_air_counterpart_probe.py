@@ -92,7 +92,9 @@ def test_full_simulator_control_is_a_different_evidence_class():
 
 def test_actual_engine_am_addresses_same_16_14_target_slots():
     cases = report()["cases"]
-    expected_model_losses = [2, 2, 1, 2]
+    # Forward carrier cases use user-authorized *in-sample* T74 candidate;
+    # the reverse case retains older sequential D and unverified HP bars.
+    expected_model_losses = [1, 0, 0, 2]
     for test, expected_deaths in zip(cases, expected_model_losses):
         control = test["current_engine_control"]
         assert control["rounds_completed"] == 1
@@ -116,9 +118,10 @@ def test_actual_engine_am_addresses_same_16_14_target_slots():
 def test_actual_current_model_vs_user_report_are_not_assumed_equal():
     cases = report()["cases"]
     assert [x["current_engine_control"]["model_target_units_lost"] for x in cases] == [
-        2, 2, 1, 2
+        1, 0, 0, 2
     ]
-    # 7/8/14 defenses differ in REAL battle from model's 2/2/1 kills.
+    # Forward first-round TOTAL deaths now fit IN SAMPLE only; real slot-hit
+    # chronology and complete fleet composition remain unverified.
     assert [c["case"]["reported_player_total_deaths"] for c in cases[:3]] == [1,0,0]
     reverse = cases[3]
     assert reverse["case"]["reported_barbarian_deaths_per_position"] == 1
@@ -143,7 +146,10 @@ def test_air_artifact_preserves_full_synthetic_round1_damage_and_assumptions():
         assert all(x["round"] == 1 for x in events)
         assert control["model_applied_assumptions"]
         assumptions = {x["id"] for x in control["model_applied_assumptions"]}
-        assert "EXP-ACCURACY-CONCENTRATION-001" in assumptions
+        assert (
+            "EXP-NAVAL-FAST-CARRIER-74PCT-001" if item["case"]["attacker"]
+            == "barbarian_dirigible_igniter" else "EXP-ACCURACY-CONCENTRATION-001"
+        ) in assumptions
         assert "EXP-D-KILL-SEQUENTIAL-001" in assumptions
         damage_events = [
             x for x in events
