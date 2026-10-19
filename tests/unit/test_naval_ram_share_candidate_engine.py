@@ -47,7 +47,7 @@ def test_ram_engine_six_flank_slots_match_observed_defense14_to19_cliff():
         if level==19:
             assert all(int(100*(s["units"]*3080-s["damage"])
                                /(s["units"]*3080))==63 for s in slots)
-        events=[e for e in r["model_source_damage_events"]
+        events=[e for e in [e for e in r["round1_events"] if e["type"]=="damage"]
                 if e["details"]["source_unit_id"]=="barbarian_deckwrecker"
                 and e["details"]["target_unit_id"]=="ram_ship"]
         assert events
