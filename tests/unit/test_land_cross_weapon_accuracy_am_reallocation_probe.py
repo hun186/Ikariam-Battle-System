@@ -140,3 +140,33 @@ def test_18_slinger_ticket_equivalents_cannot_be_one_whole_source_AM_row():
     assert a["slinger_18_equivalents_NOT_DIVISIBLE_BY_source_row_width7"]
     assert a["slinger_exact18_would_require_partial_source_rows_or_damage_equivalents_or_wrong_hypothesis"]
     assert a["no_Gameforge_row_reassignment_rule_PROVEN"]
+
+
+def test_R77_18_equivalent_lower_bound_requires_no_same_round_HP_inflow_in_study():
+    """Net HP loss cannot upper-bound gross gun damage if HP enters the slot."""
+    from pathlib import Path
+
+    root=Path(__file__).resolve().parents[2]
+    doc=(root/"docs/calibration/land-barbarian-rounds80-89-inverse-study.md").read_text(
+        encoding="utf-8"
+    )
+    summary=doc.split("### Does R76 invalidate",1)[1].split(
+        "### Full attacking-matrix",1
+    )[0]
+    focused=doc.split("**Part-filled Axe slot physical2 as possible source",1)[1].split(
+        "### Four-round reverse bounds",1
+    )[0]
+    assert "NO HP INFLOW during R77" in summary
+    assert "NO HP inflow to physical slot2 DURING R77" in focused
+    assert "healing" in focused and "RR/rebuild" in focused
+    assert "reserve replacement" in focused
+    assert "all49 original attacks might remain local" in focused
+    assert "no-HP-inflow" in summary
+
+    nominal_hits=49
+    primary_Axe_damage=187
+    observed_net_HP_loss_max=5857
+    hypothetical_same_round_HP_inflow=nominal_hits*primary_Axe_damage-observed_net_HP_loss_max
+    assert hypothetical_same_round_HP_inflow==3306
+    assert nominal_hits*primary_Axe_damage-hypothetical_same_round_HP_inflow==5857
+    # This is algebraic non-identifiability, NOT a claim of real Gameforge healing.
