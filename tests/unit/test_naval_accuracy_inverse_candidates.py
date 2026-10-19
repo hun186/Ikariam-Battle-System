@@ -269,7 +269,21 @@ def test_ram_F_surrogate_derives_all_inputs_from_fixture_and_profiles(monkeypatc
     assert changed_out["ram_first_hull_binary_trials"][0][
         "user_reported_per_slot_deaths"
     ]==0
-    assert not changed_out["ram_first_hull_binary_trials"][0][
+    assert changed_out["ram_first_hull_binary_trials"][0][
+        "conditional_first_hull_concentrated_fraction"
+    ] != normal["ram_first_hull_binary_trials"][0][
+        "conditional_first_hull_concentrated_fraction"
+    ]
+    # Separate control: source-death mutation alone breaks the baseline fit;
+    # mutating n=7 ALSO changes the model threshold, so those are independent.
+    altered_outcomes=deepcopy(base)
+    altered_outcomes["observed"]["direct_chat_position_claims"][
+        "defense_upgrades_3_to_14_each_slot_deaths"
+    ]=0
+    observed_out=inverse.aggregate_focus_surrogate_trials(
+        inverse._air_cases(),altered_outcomes
+    )
+    assert not observed_out["ram_first_hull_binary_trials"][0][
         "binary_first_kill_equals_source"
     ]
 
