@@ -81,3 +81,43 @@ def test_reverse_overkill_allocator_never_revives_dead_or_kills_from_extra_hp():
     assert recover_baseline_dkill_overkill([3050],100,3080) is None
     assert six_ram_hull_share_candidate(initial_units=5,hp=3080,shots=6,
                                        hit_damage=1160,accuracy=80) is None
+
+
+def test_sufficient_tenders_heal_candidate_ram_wounds_without_resurrecting_losses():
+    """The provisional integer HP queue actually reaches next-round Tender healing."""
+    from ikariam_battle.engine import _prepare_round_start
+    from ikariam_battle.events import Event
+    from ikariam_battle.models import ArmyUnit, Slot, Wave
+    from ikariam_battle.profiles import SupportProfile
+    from ikariam_battle.units import UnitRegistry
+
+    for armor,expected_survivors in ((14,30),(19,36)):
+        round1=model_one_controlled_round(armor,fill_front=True)
+        battle_slots=round1["round1_unit_slots_all_lines"]["defender"]
+        assert sum(s["units"] for s in battle_slots)==expected_survivors
+        observed_wounds=sum(s["damage"] for s in battle_slots)
+        assert 0 < observed_wounds <= 10*4000
+        ram_slots=[
+            Slot(s["slot_id"],"flank",s["physical_position"],
+                 s["damage_position"],"ram_ship","ram-w",
+                 s["units"],s["units"],s["damage"])
+            for s in battle_slots
+        ]
+        ram=Wave(ArmyUnit("ram_ship",36,"ram-w"),0,ram_slots)
+        tender=Wave(ArmyUnit("tender",10,"t-w"),0,[],0,None,10)
+        events=[]
+        applied={}
+        _prepare_round_start(
+            [tender,ram],events,2,"defender",applied,
+            registry=UnitRegistry.load(include_barbarians=True),
+            support=SupportProfile.load(),
+        )
+        assert sum(x.damage for x in ram.slots)==0
+        assert sum(x.units for x in ram.slots)==expected_survivors
+        heals=[
+            e for e in events if e.type=="healing"
+            and e.details.get("support_unit_id")=="tender"
+        ]
+        assert heals
+        assert sum(e.details["healing"] for e in heals)==observed_wounds
+        assert "EXP-TENDER-HEAL-NONE-001" not in applied
