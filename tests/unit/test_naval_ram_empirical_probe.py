@@ -115,8 +115,10 @@ def test_current_max_help_geometry_and_controlled_formation_provenance():
             assert len(flank) == 6
             assert sorted(x["physical_position"] for x in flank) == [1, 2, 3, 4, 5, 6]
             assert [x["units"] for x in flank] == [6] * 6
-        assert model["defender_player_deaths"] == 12
         assert model["attacker_barbarian_deaths"] == 18
+    # The scoped Experimental F(Accuracy,N) six-Ram pool now tracks the
+    # owner's 14→15 death cliff, *not* an independently held-out case.
+    assert [m["defender_player_deaths"] for m in matched] == [6, 0, 0]
     assert case["controlled_scenario_assumptions"][
         "synthetic_geometry_valid_front_fillers"
     ]["do_not_calibrate_casualties_as_real_battle"]
