@@ -39,8 +39,11 @@ def two_stage_report(*, illustrative_reroute_threshold: int = 25) -> dict:
     assert source["player_forge"]["level"]==5
     assert (axe["target_hp"],axe["shot_damage"])==(1120,710)
     assert knife["shot_damage"]>=knife["target_hp"]
-    if not 1<=illustrative_reroute_threshold<=50:
-        raise ValueError("candidate threshold must be a positive slot occupancy within50")
+    # The precomputed W83=25 R84-87 pooled witness ONLY applies if the
+    # trigger first occurs at R84 (R83 before=29, R84 before=21).
+    # Arbitrary later/earlier switches must recompute all prior HP state.
+    if not 22<=illustrative_reroute_threshold<=29:
+        raise ValueError("fixed R84-R87 wound witness only valid for 22..29 thresholds; recompute earlier state for other thresholds")
     games={item["round"]:item for item in source["observations"]}
     default_am=model_am_addressed_shots_by_physical_slot(
         list(range(1,8)),[12]*7,
@@ -116,11 +119,14 @@ def two_stage_report(*, illustrative_reroute_threshold: int = 25) -> dict:
         "stage_A":"reroute seven attacks to physical1 ONLY IF central Axe slot start population < hypothetical threshold",
         "stage_A_illustrative_threshold":illustrative_reroute_threshold,
         "stage_A_threshold_experiment_not_established":True,
+        "accepted_thresholds_restricted_to_switch_at_R84_for_fixed_W83_seed":[22,29],
         "stage_B":"depending on post-route AM hit-count divisibility by fresh individual hits-to-kill, choose PAIRWISE D or retained slot-pool model",
         "stage_B_selector_is_unverified":True,
         "baseline_am_physical":[default_am[i] for i in range(1,8)],
         "post_route_shots_may_not_be_full_real_hits":True,
-        "wall_phase_last_as_owner_stated":True,
+        "R1_mortar_then_musket_then_wall_order_owner_statement":True,
+        "R81_to_R87_wall_phase_last_is_HYPOTHETICAL":True,
+        "owner_has_not_independently_verified_late_round_wall_phase_last":True,
         "r81_r83_hp_bar_not_reconstructed":True,
         "r84_r87_R83_old_wound_seed_is_conditional":25,
         "rounds":rows,
@@ -133,7 +139,7 @@ def two_stage_report(*, illustrative_reroute_threshold: int = 25) -> dict:
         ),
         "remaining_unknowns":[
             "No verified reroute transition: central 29 before R83 vs21 before R84 only bounds candidate threshold",
-            "R1 with all Axe targets starting50 already demonstrates 7-shot edge behavior, even with no Stage A reroute",
+            "R1 all-Axe starting50 screenshot is COMPATIBLE with a CONDITIONAL model assigning seven source AM addresses to edge slots; actual delivered hits/pooled gun mode not established",
             "Divisibility of delivered attack count by hits-to-kill may correlate with final loss and wound remainder without any explicit Kill Type dispatcher",
             "No full per-hit Gameforge logs, ammunition history or verified Accuracy selection",
             "The shots sent to physical1 Knifeman are a candidate AM transfer, not a demonstrated cross-slot surplus-damage spill",
