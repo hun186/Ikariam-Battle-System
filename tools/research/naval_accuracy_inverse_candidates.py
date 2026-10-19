@@ -4,7 +4,9 @@ Evaluates executable selectors against held-out casualty / surviving HP bars.
 In-game per-ship hits are NOT visible. One shot per initially deployed source
 ship, full AM 16/14 addressed hits and chosen synthetic target slot populations
 are CONDITIONAL experimental inputs, not historical ship-by-ship telemetry.
-No production Accuracy, damage, AM, Forge or overkill function is changed.
+This inverse tool does not mutate the engine. Separately, Draft PR #69 now
+integrates narrowly scoped experimental naval allocation into the engine;
+strict/official rules and existing game evidence are NOT changed.
 """
 from __future__ import annotations
 
@@ -335,7 +337,8 @@ def aggregate_focus_surrogate_trials(cases: list[dict], ram_fixture: dict) -> di
         "formula": "F(A,N) = 1/N + (1 - 1/N) * clip((A - 60)/60, 0, 1)",
         "speculative_intercept_60_not_verified": True,
         "cannot_apply_fractional_budget_to_undivided_integer_shots": True,
-        "no_production_engine_changes": True,
+        "no_production_engine_changes": False,
+        "experimental_engine_scoped_candidate_now_wired_in_Draft_PR69": True,
         "air_first_hull_binary_trials": air,
         "ram_first_hull_binary_trials": ram,
         "all_air_binary_totals_match": all(x["binary_first_kill_total_equals_source"] for x in air),
