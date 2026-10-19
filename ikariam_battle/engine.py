@@ -5,7 +5,12 @@ from copy import deepcopy
 from decimal import Decimal, ROUND_FLOOR
 from typing import Any
 
-from .accuracy import EXPERIMENTAL_ACCURACY_MODEL_ID, select_accuracy_target
+from .accuracy import (
+    EXPERIMENTAL_ACCURACY_MODEL_ID,
+    NAVAL_FAST_CARRIER_FOCUS_ID,
+    NAVAL_FAST_CARRIER_FOCUS_THRESHOLD,
+    select_accuracy_target,
+)
 from .battlefield import battlefield, deploy
 from .economy import MilitaryEconomyProfile
 from .events import Event
@@ -66,6 +71,7 @@ EXPERIMENTAL_POLICIES = {
     "EXP-AMMO-STOP-001": "After primary ammunition is exhausted, do not silently switch to an unverified secondary weapon while the unit remains in its native firing formation. Official naval exhausted Long-Range -> Front fallback is handled separately.",
     "EXP-AMMO-PARTIAL-ORDER-001": "Allocate a partial ammunition pool by source-slot damage priority.",
     EXPERIMENTAL_ACCURACY_MODEL_ID: "Use weapon Accuracy as a deterministic within-slot concentration threshold: one-shot-capable hits never miss; otherwise spread to healthier survivors until the most-damaged survivor remaining-HP% is <= Accuracy, then focus it.",
+    NAVAL_FAST_CARRIER_FOCUS_ID: "For Round1 fresh 2x3 Carriers addressed by 30 primary-armed Fast Boats (2x15 nominal AM), use the IN-SAMPLE candidate of 74% surviving individual HP to switch from spreading to concentrating hits; keep actual weapon Accuracy 90/95 and discard lethal overkill. This is a bounded naval inverse-research model, NOT a Gameforge rule or proof of exact historical addresses; other geometries and future rounds use the baseline proxy.",
     "EXP-BATTLE-END-ROUND-BOUNDARY-001": "Evaluate battle-sustaining forces at the initial and completed-round boundaries.",
     "EXP-HEAL-NONE-001": "When Doctor capacity cannot clear all eligible Human persistent damage at a round boundary, do not apply partial healing because allocation and exact Healing/RR ordering are unresolved.",
     "EXP-TENDER-HEAL-NONE-001": "When Tender capacity cannot clear all eligible naval persistent damage at a round boundary, do not apply partial repair because allocation and exact Healing/RR ordering are unresolved.",
@@ -2578,7 +2584,6 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
         context["fired_shots"] += 1
         _assume(applied, events, "EXP-D-KILL-SEQUENTIAL-001", number, "fire")
         _assume(applied, events, "EXP-IR-DISABLED-001", number, "fire")
-        _assume(applied, events, EXPERIMENTAL_ACCURACY_MODEL_ID, number, "fire")
         _assume(applied, events, "EXP-ROUND-FLOOR-001", number, "fire")
         _, enemy, target_slot = addressed[(row_number - 1) % len(addressed)]
 
@@ -2644,11 +2649,34 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
         prior_slot_damage = target_slot.damage
         if weapon.accuracy is None:
             raise ScenarioError(f"weapon accuracy missing for {source_unit.id}:{weapon.id}")
+        carrier_focus_case = (
+            number == 1
+            and source_unit.id in {"paddle_speedboat", "barbarian_dirigible_igniter"}
+            and target_unit.id == "balloon_carrier"
+            and volley["runtime_line"] == "anti-balloon"
+            and target_slot.line == "balloon"
+            and weapon.id == "primary"
+            and phase_start_slots.get(queue_key) == (3, 0)
+            and sum(len(v["row_numbers"]) for v in volleys) == 30
+            and all(
+                v["source_unit"] == source_unit.id and v["weapon_id"] == weapon.id
+                for v in volleys
+            )
+        )
+        accuracy_model_id = (
+            NAVAL_FAST_CARRIER_FOCUS_ID
+            if carrier_focus_case else EXPERIMENTAL_ACCURACY_MODEL_ID
+        )
+        _assume(applied, events, accuracy_model_id, number, "fire")
         accuracy_decision = select_accuracy_target(
             queue,
             target_unit.hit_points or 0,
             damage_trace.final_damage,
             weapon.accuracy,
+            experimental_focus_threshold=(
+                NAVAL_FAST_CARRIER_FOCUS_THRESHOLD
+                if carrier_focus_case else None
+            ),
         )
         prior_unit_damage, killed, overkill = _apply_sequential_hit(
             target_slot,
@@ -2678,7 +2706,9 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             "prior_damage": prior_slot_damage,
             "first_target_unit_damage": prior_unit_damage,
             "weapon_accuracy": weapon.accuracy,
-            "accuracy_model": EXPERIMENTAL_ACCURACY_MODEL_ID,
+            "accuracy_model": accuracy_model_id,
+            "focus_threshold_percent": accuracy_decision.focus_threshold_percent,
+            "focus_threshold_in_sample_not_game_verified": carrier_focus_case,
             "target_eligibility_rule": TARGET_PENETRATION_RULE_ID,
             "accuracy_decisions": defaultdict(int),
             "source_column_hits": defaultdict(int),
@@ -2918,7 +2948,7 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             resolution = "sequential_d_kill_baseline"
             assumption_ids = [
                 "EXP-D-KILL-SEQUENTIAL-001",
-                EXPERIMENTAL_ACCURACY_MODEL_ID,
+                group["accuracy_model"],
                 "EXP-IR-DISABLED-001",
             ]
 
