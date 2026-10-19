@@ -612,7 +612,7 @@
   },
   "owner_two_stage_attack_hypothesis": {
     "provenance": "USER_EXPLICIT_NEW_HYPOTHESIS_2026_10_14_LATE_FOLLOWUP",
-    "source_battle": "this original R80-R89 land Barbarian battle (NOT separate first round battle)",
+    "source_battle": "R80-R89 later window of the SAME fight whose R1 full-Axe screenshot is separately transcribed (R2-R79 unavailable)",
     "stage_A_conditional_address_diversion": {
       "standard_project_AM_center_gun_addresses": 14,
       "candidate_from_round84_center_diverted": 7,
@@ -634,8 +634,9 @@
       "candidate_condition": "shot count divisible by 2 full gun hits per fresh Axe (HP1120, gun710) vs remainder",
       "full_14_gun_hits_early_candidate": "seven pairwise individual D kills; one wall adds one, earlier bar99 must retain unexplained injury state",
       "full_7_gun_hits_late_candidate": "aggregated 4970 damage, conserved wound remainder plus carryover W and integer floor-to-deaths",
-      "wall_phase_last": "Owner explicitly states mortar, then gun, then wall order in separate first-round battle. Here independently hypothetical one wall 1-kill after gun, removing targeted soldier's old gun wounds",
-      "actual_selector_is_unknown": true
+      "wall_phase_last": "Owner stated mortar→gun→wall order for SAME battle R1; assuming one late R81-R87 wall kill AFTER gun is INDEPENDENT UNVERIFIED RESEARCH PREMISE, not owner-confirmed late-round hit timing",
+      "actual_selector_is_unknown": true,
+      "late_round_wall_last_IS_HYPOTHETICAL": true
     },
     "boundary": "Source AM address count not direct evidence of successful full gun hits; do not label stage A/B official Gameforge behavior.",
     "dependent_research": [
