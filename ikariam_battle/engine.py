@@ -2745,6 +2745,14 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
     for context in contexts.values():
         volley = context["volley"]
         source_unit = context["source_unit"]
+        if source_unit.id == "barbarian_deckwrecker" and number == 1:
+            print("FOCUS_GATE_SOURCE", repr({
+                "contexts":len(contexts),
+                "runtime":volley["runtime_line"],
+                "source_total":sum(len(v["row_numbers"]) for v in volleys),
+                "source_ids":[v["source_unit"] for v in volleys],
+                "forge":(source_army.forge_level,target_army.forge_level),
+            }))
         if (
             number != 1 or volley["runtime_line"] != "flank"
             or len(contexts) != 1
@@ -2758,6 +2766,12 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             slot = group["_target_slot"]
             queue_key = group["_queue_key"]
             start = phase_start_slots.get(queue_key)
+            if source_unit.id == "barbarian_deckwrecker":
+                print("FOCUS_GATE_TARGET",repr({
+                    "unit":target_unit.id,"targetHP":target_unit.hit_points,
+                    "target_line":group["target_line"],"start":start,
+                    "fired":group["firing_units"],"damage":group["damage"],
+                }))
             if (
                 start != (6, 0) or group["firing_units"] != 6
                 or target_unit.hit_points != 3080
