@@ -27,7 +27,10 @@ def report() -> dict:
     picture=f["transcribed_screenshot"]
     assert f["owner_confirmed"]["player_forge_level"] == 5
     assert f["owner_confirmed"]["musketeer_attack_workshop_level"] == 11
-    guns=weapon_profiles(attacker_forge=5)
+    guns=weapon_profiles(
+        attacker_forge=f["owner_confirmed"]["player_forge_level"],
+        attack_level=f["owner_confirmed"]["musketeer_attack_workshop_level"],
+    )
     axe=guns["barbarian_targets"]["barbarian_axe_swinger"]
     hp,damage=axe["target_hp"],axe["shot_damage"]
     assert (hp,damage)==(1120,710)
@@ -85,6 +88,7 @@ def report() -> dict:
         "fixture":f["case_id"],
         "chronology":"R1 and R80-R89 are SAME battle, R2-R79 not supplied",
         "owner_confirmed_forge":5,
+        "workshop_level_used_from_this_R1_fixture":guns["workshop_attack_level_used"],
         "damage_into_axe_in_current_profile":damage,
         "axe_full_hp_in_current_profile":hp,
         "AM_addresses_left_to_right":list(shots.values()),
