@@ -48,7 +48,7 @@
       1,
       1
     ],
-    "R76_wall_attribution_status": "WALL_ONLY_SOURCE_VISIBLE; 7 FRONT DEATHS MATCH 7 WALL SEGMENTS; ACTUAL_WALL_ATTACKS_VICTIM_SELECTION_NOT_LOGGED"
+    "R76_wall_attribution_status": "INFERRED_LIKELY_WALL_SOURCE_ONLY: seven deaths match seven visible wall segments with no Slingers; no actual wall hit target/event log"
   },
   "player_slinger": {
     "total_army_quantity": 400,
@@ -159,7 +159,9 @@
         0,
         0,
         0
-      ]
+      ],
+      "wall_only_damage_source_inferred_NOT_verified_shot_log": true,
+      "frontline_deaths_are_observed_not_wall_hit_distribution": true
     },
     {
       "round": 77,
@@ -404,8 +406,8 @@
     "R79 rear Axe Thrower bars look green-full, but starting R80 at exactly100% is not owner-verified numeric report.",
     "Whether wall attacks after gun stage transfer or remove residual wounds by individual target remains unknown.",
     "Floor-of-surviving-HP percentage and no extra heal/transfer between screenshots are explicit counterfactual math assumptions.",
-    "Even with owner-confirmed Forge5, how many actual 5-ammo primary Slinger attacks survived until R77 and whether 350 original AM addresses all resulted in full damage remain unknown.",
-    "R76 seven frontline deaths [1,2,1,1,0,1,1] with seven wall sections and no Slingers visible confirms wall damage can be NONUNIFORM; cannot force one wall kill to each slot in R77.",
+    "Owner confirms R77 fresh 400 Slingers/blue primary ammo with native 5 per unit; all 350 deployed have enough ammunition for a first-primary attempt, but how many landed full effective damage and target allocation remain unknown.",
+    "R76 seven frontline deaths [1,2,1,1,0,1,1] with seven wall sections and no Slingers visible strongly suggests walls contributed, but cannot verify wall target allocation; observed deaths are NONUNIFORM; cannot force one wall kill to each slot in R77.",
     "R76->R77 Axe global count 169 stable, phys2 loses2 inter-round while phys3/4 each gain1; this establishes pre-round position rebalance but not why it occurs and NOT intra-round projectile diversion."
   ],
   "R76_to_R77_round_transition": {
