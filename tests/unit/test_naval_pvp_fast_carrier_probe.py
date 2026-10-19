@@ -1,7 +1,8 @@
 """Three user-reported player-vs-player anti-air/carrier cases are held-out tests.
 
-All casualties represent empirical user reports; engine predictions intentionally
-remain mismatched for ATT17/DEF18 pending actual rule calibration.
+All casualties represent empirical user reports. A bounded 74% Round1
+Experimental carrier-focus candidate now also matches the ATT17/DEF18 total
+in a synthetic controlled fleet; this is IN-SAMPLE, not held-out validation.
 """
 import json
 from math import ceil
@@ -62,7 +63,7 @@ def test_same_forge5_profile_damage_is_computed_not_hardcoded(
     assert [s["line"] for s in model["model_carrier_slots"]] == ["balloon","balloon"]
 
 
-def test_all_three_current_engine_casualty_outcomes_and_holdout_mismatch():
+def test_three_current_engine_bounded_candidate_matches_in_sample_totals_only():
     r=report()
     assert len(r["comparisons"]) == 6
     both=[m for m in r["comparisons"]
@@ -84,13 +85,15 @@ def test_all_three_current_engine_casualty_outcomes_and_holdout_mismatch():
         "COUNTERFACTUAL_FORGE_SENSITIVITY_NOT_USER_OBSERVED"
         for m in attacker_only
     )
-    assert [m["model_total_carrier_deaths"] for m in both] == [2,2,2]
+    assert [m["model_total_carrier_deaths"] for m in both] == [2,2,1]
     assert [m["model_total_carrier_deaths"] for m in attacker_only] == [2,2,2]
     assert [m["net_hit"] for m in both] == [314,326,271]
     assert [m["net_hit"] for m in attacker_only] == [334,346,291]
     assert all(m["model_rounds_completed"]==1 for m in r["comparisons"])
+    assert [[s["casualties"] for s in m["model_carrier_slots"]]
+            for m in both] == [[1,1],[1,1],[1,0]]
     assert all([s["casualties"] for s in m["model_carrier_slots"]] == [1,1]
-               for m in r["comparisons"])
+               for m in attacker_only)
     assert all(m["synthetic_frontline_warning"].startswith("Invented")
                for m in r["comparisons"])
 
