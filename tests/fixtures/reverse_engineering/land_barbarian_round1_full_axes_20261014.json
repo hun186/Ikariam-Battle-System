@@ -123,7 +123,11 @@
     "wall_assumption": "exactly one EFFECTIVE wall 1-kill for each occupied facing Axe physical slot is a conditional control, NOT a measured target selection",
     "HP_bar": "percentage source is owner-confirmed, but floor mean of surviving HP is a hypothesis, not official engine rule",
     "no_unique_cause": "Previous musket-plus-wall-only shortfalls OMITTED source's five visible groups of six mortars. Owner proposes 5 complete mortar one-shot Axe kills to each physical slot1..6 and none slot7, which with one wall casualty each exactly explains the shortage. Full source hit log, mortar accuracy, wall target count, gun kill-type and screenshot HP display rule remain unverified. The R1 image and R80-R89 window are two NONCONTIGUOUS source windows from the SAME battle; no fabricated intervening HP trajectory.",
-    "new_mixed_gun_model": "After conditional mortar+wall subtraction, gun deaths [4,7,7,7,7,7,4]; center five 14-shot AM groups pairwise D-kill seven Axe, edge 7-shot groups can pool 7×710=4970 to kill four and retain 490 wounds. Same 490 wounds over left40 surviving -> floor98%, right45 ->floor99%. A single conditional mixed-model fit across all 7 positions, not recovered Gameforge rules."
+    "new_mixed_gun_model": "After conditional mortar direct kills5 into first six slots, R1 gun center14 complete shots can kill7 fresh Axes ONLY IF individually paired. On edges 7×710=4970=4×1120+490 GUN-PHASE (PRE-WALL) wounds. With near-equal wound allocation and wall LAST killing an already slightly wounded Axe (left 11 old damage / right 10), final surviving wounds are LEFT 479 among40 Axes and RIGHT 480 among45 Axes; displayed bars floor98%/99% under HYPOTHETICAL floor-survivor-mean display. Not a Gameforge shot log or proven wall victim choice.",
+    "post_wall_end_surviving_gun_wounds_left_CONDITIONAL": 479,
+    "post_wall_end_surviving_gun_wounds_right_CONDITIONAL": 480,
+    "pre_wall_edge_gun_wounds_each_CONDITIONAL": 490,
+    "owner_forge_and_source_round_identity_distinct_from_real_hit_trace": true
   },
   "owner_new_attack_source_hypothesis": {
     "provenance": "USER_EXPLICIT_HYPOTHESIS_2026_10_14_LATE_FOLLOWUP",
