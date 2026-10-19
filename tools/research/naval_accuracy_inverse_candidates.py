@@ -260,7 +260,7 @@ def effective_focus_share_surrogate(accuracy: int, targets_per_slot: int) -> flo
     return 1 / targets_per_slot + (1 - 1 / targets_per_slot) * concentration
 
 
-def aggregate_focus_surrogate_trials(cases: list[dict]) -> dict:
+def aggregate_focus_surrogate_trials(cases: list[dict], ram_fixture: dict) -> dict:
     """Cross-unit mathematical thresholds with explicit nonphysical caveats.
 
     Does NOT allocate indivisible shots, calculate repeat kills or survivor HP.
@@ -291,20 +291,38 @@ def aggregate_focus_surrogate_trials(cases: list[dict]) -> dict:
                 "of subsequent kills or observed slot casualty split."
             ),
         })
+    # Source-derived ship count and observed casualty transitions: no magic
+    # Accuracy=80 / six-hull / (1,0,0) fixture echo that can go stale.
+    observed = ram_fixture["observed"]
+    n = observed["user_stated_ships_per_flank_position"]
+    positions = observed["assumed_naval_max_flank_positions"]
+    synthetic_shots = observed["total_barbarian_ships_in_excel"] // positions
+    if synthetic_shots * positions != observed["total_barbarian_ships_in_excel"]:
+        raise ValueError("Non-integral synthetic Deckwrecker source-slot layout")
+    per_slot_reported = observed["direct_chat_position_claims"]
+    assert n == observed["user_stated_ships_per_flank_position"]
     ram = []
     for defense in (14, 15, 19):
         data = net_damage_math(defense)
-        # Source-described 6 ships per Flank slot, but six real successful
-        # hits per slot were NEVER confirmed by a Gameforge per-ship log.
-        n = 6
-        f = effective_focus_share_surrogate(80, n)
-        amount = 6 * data["barbarian_net_hit"] * f
-        expected = 1 if defense == 14 else 0
+        # Synthetic AM shots are inferred from source fleet/geometry; actual
+        # successful Gameforge hits per position have NOT been observed.
+        accuracy = data["barbarian_accuracy"]
+        f = effective_focus_share_surrogate(accuracy, n)
+        amount = synthetic_shots * data["barbarian_net_hit"] * f
+        if defense <= 14:
+            expected = per_slot_reported["defense_upgrades_3_to_14_each_slot_deaths"]
+        elif defense == 15:
+            expected = per_slot_reported["defense_15_each_slot_deaths"]
+        else:
+            total = observed["direct_conversation_case"]["player_total_deaths"]
+            if total % positions:
+                raise ValueError("Defense19 deaths are not uniform by slot")
+            expected = total // positions
         ram.append({
             "player_defense_level": defense,
-            "source_weapon_accuracy": 80,
-            "assumed_target_ships_per_slot": 6,
-            "synthetic_successful_hits_per_slot_not_game_trace": 6,
+            "source_weapon_accuracy": accuracy,
+            "assumed_target_ships_per_slot": n,
+            "synthetic_successful_hits_per_slot_not_game_trace": synthetic_shots,
             "conditional_first_hull_concentrated_fraction": f,
             "model_concentrated_first_hull_damage": amount,
             "model_binary_first_kill_NOT_total_ship_losses": int(amount >= data["player_hp"]),
@@ -433,7 +451,7 @@ def report() -> dict:
                 "controlled_scenario_assumptions": raw_ram.get("controlled_scenario_assumptions"),
             },
         },
-        "speculative_aggregate_F_surrogate_NOT_same_as_T": aggregate_focus_surrogate_trials(cases),
+        "speculative_aggregate_F_surrogate_NOT_same_as_T": aggregate_focus_surrogate_trials(cases, raw_ram),
         "conditional_inputs": {
             "successful_am_shots_by_target_slot": [16, 14],
             "assume_all_30_speedboats_fire_one_successful_hit": True,
