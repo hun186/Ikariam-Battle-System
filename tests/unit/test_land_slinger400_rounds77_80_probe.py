@@ -155,6 +155,9 @@ def test_partial_axe_cell_could_supply_equivalent_18_shots_but_not_proven_rerout
     assert p["baseline_AM_49_complete_forge5_shots_HP"]==9163
     assert p["at_least_18_gun_tickets_not_consumed_locally_IF_full_hits_conserved_without_overkill"]==18
     assert p["no_proof_actual_18_shots_redirected"]
+    assert p["no_unobserved_HP_inflow_heal_or_rebuild_into_phys2_REQUIRED"]
+    assert p["no_ammo_miss_overkill_OR_other_damage_loss_REQUIRED"]
+    assert p["possible_RR_reserve_replacement_HP_inflow_NOT_EXCLUDED_BY_SCREENSHOT"]
 
 
 def test_help_priority_confirms_front_to_rear_fallthrough_but_not_199_151():
