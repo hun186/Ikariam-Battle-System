@@ -57,7 +57,9 @@ def test_gyrocopter_early_phase_kill_prevents_later_balloon_fire():
     assert not _attacks(result, "bombardier")
     phases = [event["details"]["firing_phase"] for event in result["events"]
               if event["type"] == "formation_fire_phase"]
-    assert phases.index("anti-balloon") < phases.index("balloon")
+    # No balloon phase is emitted when all balloon shooters die earlier.
+    assert "anti-balloon" in phases
+    assert "balloon" not in phases
 
 
 def test_without_gyrocopter_bombardier_still_fires_when_alive():
@@ -69,6 +71,8 @@ def test_without_gyrocopter_bombardier_still_fires_when_alive():
     assert events
     assert {event["side"] for event in events} == {"defender"}
     assert {event["details"]["firing_phase"] for event in events} == {"balloon"}
+    assert "balloon" in [e["details"]["firing_phase"] for e in result["events"]
+                          if e["type"] == "formation_fire_phase"]
 
 
 def test_swordsman_mirror_same_phase_simultaneity():
