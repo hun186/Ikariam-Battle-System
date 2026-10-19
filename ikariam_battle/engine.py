@@ -2663,6 +2663,13 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             and target_slot.line == "balloon"
             and weapon.id == source_unit.primary_weapon.id
             and phase_start_slots.get(queue_key) == (3, 0)
+            and len(contexts) == 1
+            and sorted(volley.get("source_phase_start_slot_units", {}).values())
+                == [15, 15]
+            and sorted(
+                state for (unit_id, _, _), state in phase_start_slots.items()
+                if unit_id == "balloon_carrier"
+            ) == [(3, 0), (3, 0)]
             and sum(len(v["row_numbers"]) for v in volleys) == 30
             and all(
                 v["source_unit"] == source_unit.id and v["weapon_id"] == weapon.id
@@ -2748,6 +2755,8 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
         if (
             number != 1 or volley["runtime_line"] != "flank"
             or len(contexts) != 1
+            or sorted(volley.get("source_phase_start_slot_units", {}).values())
+                != [6, 6, 6, 6, 6, 6]
             or sum(len(v["row_numbers"]) for v in volleys) != 36
             or any(v["source_unit"] != source_unit.id
                    or v["weapon_id"] != source_unit.primary_weapon.id for v in volleys)
