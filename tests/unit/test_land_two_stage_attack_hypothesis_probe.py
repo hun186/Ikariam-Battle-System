@@ -9,6 +9,10 @@ def test_owner_two_stage_independent_routing_and_damage_accounting():
     rows=d["rounds"]
     assert d["stage_A_illustrative_threshold"]==25
     assert d["stage_A_threshold_experiment_not_established"]
+    assert d["accepted_thresholds_restricted_to_switch_at_R84_for_fixed_W83_seed"]==[22,29]
+    assert d["R1_mortar_then_musket_then_wall_order_owner_statement"]
+    assert d["R81_to_R87_wall_phase_last_is_HYPOTHETICAL"]
+    assert d["owner_has_not_independently_verified_late_round_wall_phase_last"]
     assert d["stage_B_selector_is_unverified"]
     assert d["baseline_am_physical"]==[7,14,14,14,14,14,7]
     assert [x["round"] for x in rows]==list(range(81,88))
@@ -47,9 +51,8 @@ def test_occupancy_threshold_25_is_nonunique_and_would_need_external_discriminat
         d=two_stage_report(illustrative_reroute_threshold=t)
         assert d["seven_round_deaths_all_match_under_both_stages"]
         assert d["r84_r87_pooled_center_hp_all_match"]
-    bad=two_stage_report(illustrative_reroute_threshold=20)
-    assert not bad["seven_round_deaths_all_match_under_both_stages"]
-    assert not bad["r84_r87_pooled_center_hp_all_match"]
+    with pytest.raises(ValueError, match="fixed R84-R87 wound witness"):
+        two_stage_report(illustrative_reroute_threshold=20)
     with pytest.raises(ValueError):
         two_stage_report(illustrative_reroute_threshold=0)
     with pytest.raises(ValueError):
