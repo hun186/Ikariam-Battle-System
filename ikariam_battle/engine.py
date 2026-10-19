@@ -27,6 +27,10 @@ from .kill_calibration import (
     MKILL_RULE_ID as SWORDSMAN_MKILL_RULE_ID,
     swordsman_flank_kill_adjustment,
 )
+from .naval_focus import (
+    NAVAL_DECK_OVERKILL_RULE_ID, NAVAL_RAM_SHARE_RULE_ID,
+    recover_baseline_dkill_overkill, six_ram_hull_share_candidate,
+)
 from .models import Army, ArmyUnit, Policy, Scenario, ScenarioError, Slot, Wave
 from .profiles import BattleEndProfile, ContinuationState, ForgeProfile, SupportProfile, TargetingProfile, WorkshopProfile
 from .redistribution import SlotShare, reserve_redistribution
@@ -66,6 +70,8 @@ EXPERIMENTAL_POLICIES = {
     "EXP-SR-DISABLED-001": "Slot Redistribution has an implementation hook but its trigger is unknown, so it is not triggered.",
     SWORDSMAN_IKILL_RULE_ID: "For Swordsman flank target slots whose six reduced-AM source columns are all odd, use aggregate I-kill only when prior persistent damage plus incoming damage divides target HP exactly; this reproduces the empirical paper's historical full-formation divisible case.",
     SWORDSMAN_MKILL_RULE_ID: "For the current full 6x40 Swordsman-vs-Swordsman central flank shape (six 7-hit reduced-AM columns) in the two-hit regime, start from the generic sequential D-kill result and retain one lethal-pair overkill per AM row into an M-pool; convert that pool to additional casualties plus persistent damage. Outer six-hit columns remain D-kill. Accuracy remains an unresolved higher-level selector candidate rather than a fabricated multiplier.",
+    NAVAL_RAM_SHARE_RULE_ID: "In first-round fresh 6-Ram Flank slots with 6 same-source Deckwrecker full shots, apportion a modeled F(Accuracy,N) of slot-wide damage toward one hull and spread the remainder. The rational fraction is an unverified pooled-damage hypothesis, NOT actual per-shot targeting.",
+    NAVAL_DECK_OVERKILL_RULE_ID: "In first-round player Ram ATT20 Forge5 six-shot vs fresh Deckwrecker 6-hull slot, retain nominal sequential-D discarded overkill as even wounds on survivors; not an official P/IR rule or general global overkill recovery.",
     "EXP-ROUND-FLOOR-001": "Floor non-integer net damage; the general selector is unknown.",
     "EXP-RR-ROUND-HALF-UP-001": "Round the total deployed RR share half-up, then assign remainder by damage priority.",
     "EXP-AMMO-STOP-001": "After primary ammunition is exhausted, do not silently switch to an unverified secondary weapon while the unit remains in its native firing formation. Official naval exhausted Long-Range -> Front fallback is handled separately.",
@@ -2731,6 +2737,101 @@ def _resolve_volleys(volleys: list[dict[str, Any]], targets: list[Wave],
             _rebalance_damage_queue(queue)
             target_slot.damage = sum(queue)
             group["_persistent_damage"] = target_slot.damage
+
+    # Deliberately BOUNDED naval candidate: adjust survivor queues only after
+    # all six source shots, leaving phase chronology, finite ammo, and AM
+    # target addresses unchanged. Do NOT mistake aggregate focus for the
+    # Gameforge trace of six indivisible projectiles.
+    for context in contexts.values():
+        volley = context["volley"]
+        source_unit = context["source_unit"]
+        if (
+            number != 1 or volley["runtime_line"] != "flank"
+            or len(contexts) != 1
+            or sum(len(v["row_numbers"]) for v in volleys) != 36
+            or any(v["source_unit"] != source_unit.id
+                   or v["weapon_id"] != "primary" for v in volleys)
+        ):
+            continue
+        for group in context["damage_groups"].values():
+            target_unit = registry.get(group["target_unit_id"])
+            slot = group["_target_slot"]
+            queue_key = group["_queue_key"]
+            start = phase_start_slots.get(queue_key)
+            if (
+                start != (6, 0) or group["firing_units"] != 6
+                or target_unit.hit_points != 3080
+                or group["target_line"] != "flank"
+            ):
+                continue
+            queue = queues[queue_key]
+            rule = None
+            adjusted = None
+            kills = group["casualties"]
+            overkill = group["overkill_discarded"]
+            details = {}
+            if (
+                source_unit.id == "barbarian_deckwrecker"
+                and target_unit.id == "ram_ship"
+                and source_army.forge_level == 0
+                and target_army.forge_level == 5
+            ):
+                model = six_ram_hull_share_candidate(
+                    initial_units=6,
+                    hp=target_unit.hit_points,
+                    shots=6,
+                    hit_damage=group["damage"] // group["firing_units"],
+                    accuracy=context["weapon"].accuracy,
+                )
+                if model is not None:
+                    rule = NAVAL_RAM_SHARE_RULE_ID
+                    adjusted = list(model.survivors_damage)
+                    kills = model.deaths
+                    overkill = model.discarded_overkill
+                    details = {
+                        "focus_share_fraction": str(model.share),
+                        "first_hull_budget_including_lost_overkill":
+                            model.initial_focus_damage,
+                    }
+            elif (
+                source_unit.id == "ram_ship"
+                and target_unit.id == "barbarian_deckwrecker"
+                and source_army.forge_level == 5
+                and target_army.forge_level == 0
+                and volley["attack_upgrade"] == 20
+                and group["casualties"] == 3
+            ):
+                retained = recover_baseline_dkill_overkill(
+                    queue, group["overkill_discarded"], target_unit.hit_points
+                )
+                if retained is not None:
+                    rule = NAVAL_DECK_OVERKILL_RULE_ID
+                    adjusted = list(retained)
+                    overkill = 0
+                    details = {
+                        "retained_baseline_overkill_HP":
+                            group["overkill_discarded"],
+                    }
+            if rule is None or adjusted is None:
+                continue
+            old_kills = group["casualties"]
+            old_damage = slot.damage
+            delta = kills - old_kills
+            casualties[slot.unit_id] += delta
+            slot_casualties[(slot.wave_id, slot.slot_id)] += delta
+            queue[:] = sorted(adjusted, reverse=True)
+            slot.units = len(queue)
+            slot.damage = sum(queue)
+            group["casualties"] = kills
+            group["overkill_discarded"] = overkill
+            group["_persistent_damage"] = slot.damage
+            group["baseline_sequential_d_deaths_before_candidate"] = old_kills
+            group["baseline_sequential_d_HP_before_candidate"] = old_damage
+            group["experimental_pooled_allocation_not_real_shot_trace"] = True
+            group.update(details)
+            group["_resolution_override"] = "naval_bounded_empirical_focus_pool"
+            group["_assumption_override"] = [rule, "EXP-IR-DISABLED-001"]
+            _assume(applied, events, rule, number, "fire", volley["side"])
 
     # Apply the Swordsman kill hypothesis once per target slot across the whole
     # runtime formation. Same-unit waves share one row-major AM, so calculating
