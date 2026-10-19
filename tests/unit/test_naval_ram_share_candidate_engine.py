@@ -39,7 +39,7 @@ def test_ram_engine_six_flank_slots_match_observed_defense14_to19_cliff():
     for level,deaths in ((14,6),(15,0),(19,0)):
         r=model_one_controlled_round(level,fill_front=True)
         assert r["synthetic_front_filled"]
-        assert r["defender_player_deaths"]==deaths
+        assert r["defender_player_deaths"]==deaths, [e for e in r["round1_events"] if e["type"]=="damage" and e["details"].get("source_unit_id")=="barbarian_deckwrecker"]
         slots=r["round1_unit_slots_all_lines"]["defender"]
         assert len(slots)==6
         assert {s["line"] for s in slots}=={"flank"}
@@ -66,7 +66,7 @@ def test_reverse_ram_overkill_recovery_fits_3_deck_losses_88percent_survivors():
     assert all(s["damage"]==1050 for s in slots)
     assert all(int(100*(s["units"]*3080-s["damage"])
                        /(s["units"]*3080))==88 for s in slots)
-    events=[e for e in r["model_source_damage_events"]
+    events=[e for e in [x for x in r["round1_events"] if x["type"]=="damage"]
             if e["details"]["source_unit_id"]=="ram_ship"
             and e["details"]["target_unit_id"]=="barbarian_deckwrecker"]
     assert events and all(
