@@ -242,3 +242,43 @@ def test_json_report_retains_all_fixture_provenance_not_just_user_chat_label():
     assert provenance["ram_and_deckwrecker"]["source"]
     assert provenance["ram_and_deckwrecker"]["controlled_scenario_assumptions"]
     assert len(provenance["barbarian_and_reverse_air"]["separate_extra_observations"]) == 1
+
+
+def test_ram_F_surrogate_derives_all_inputs_from_fixture_and_profiles(monkeypatch):
+    """Old P2: accuracy, slot size, observations cannot silently stay literals."""
+    from copy import deepcopy
+    from tools.research import naval_accuracy_inverse_candidates as inverse
+    base=inverse._read(inverse.RAM_FIXTURE)
+    normal=inverse.aggregate_focus_surrogate_trials(inverse._air_cases(),base)
+    assert [(x["source_weapon_accuracy"],
+             x["assumed_target_ships_per_slot"],
+             x["synthetic_successful_hits_per_slot_not_game_trace"],
+             x["user_reported_per_slot_deaths"])
+            for x in normal["ram_first_hull_binary_trials"]] == [
+        (80,6,6,1),(80,6,6,0),(80,6,6,0)
+    ]
+
+    changed=deepcopy(base)
+    changed["observed"]["user_stated_ships_per_flank_position"]=7
+    changed["observed"]["direct_chat_position_claims"][
+        "defense_upgrades_3_to_14_each_slot_deaths"
+    ]=0
+    changed_out=inverse.aggregate_focus_surrogate_trials(inverse._air_cases(),changed)
+    assert all(x["assumed_target_ships_per_slot"]==7
+               for x in changed_out["ram_first_hull_binary_trials"])
+    assert changed_out["ram_first_hull_binary_trials"][0][
+        "user_reported_per_slot_deaths"
+    ]==0
+    assert not changed_out["ram_first_hull_binary_trials"][0][
+        "binary_first_kill_equals_source"
+    ]
+
+    original=inverse.net_damage_math
+    def changed_profile(level):
+        v=dict(original(level))
+        v["barbarian_accuracy"]=90
+        return v
+    monkeypatch.setattr(inverse,"net_damage_math",changed_profile)
+    changed_accuracy=inverse.aggregate_focus_surrogate_trials(inverse._air_cases(),base)
+    assert all(x["source_weapon_accuracy"]==90
+               for x in changed_accuracy["ram_first_hull_binary_trials"])
