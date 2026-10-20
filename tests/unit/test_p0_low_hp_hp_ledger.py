@@ -52,12 +52,19 @@ def _hp_balance(result, side, unit_id, hp):
 def test_gyro_mirror_conserves_each_side_deaths_and_survivor_hp():
     squad = [
         {"unit_id": "hoplite", "quantity": 350},
-        {"unit_id": "gyrocopter", "quantity": 30},
+        {"unit_id": "gyrocopter", "quantity": 3},
     ]
     result = _fight(squad, squad)
     a = _hp_balance(result, "attacker", "gyrocopter", 580)
     d = _hp_balance(result, "defender", "gyrocopter", 580)
-    assert a == d and a[0] > 0
+    # Three shots cause one two-hit kill, leave a *real* wounded survivor,
+    # and discard only the exact lethal excess. A 30v30 case had zero wounds.
+    assert a == d == (1, 340, 1020, 100)
+    for side in ("attacker", "defender"):
+        slots = [s for s in result["rounds"][1][side]["slots"]
+                 if s["unit_id"] == "gyrocopter"]
+        assert sum(s["units"] for s in slots) == 2
+        assert sum(s["damage"] for s in slots) == 340
     gyro_events = [
         e for e in result["events"]
         if e["type"] == "damage"
@@ -93,16 +100,22 @@ def test_gyro_preemptive_balloon_kill_accounts_for_actual_hp_not_fake_fire():
 def test_doctor_full_clear_heals_human_swordsman_but_not_machine_gyro():
     """Doctor subset never accidentally repairs gyro (or resurrects casualties)."""
     gyro = Wave(
-        ArmyUnit("gyrocopter", 2, "gyro-wave"), 0,
+        ArmyUnit("gyrocopter", 3, "gyro-wave"), 0,
         [Slot("gyro-slot", "anti-balloon", 1, 1, "gyrocopter",
               "gyro-wave", 2, 2, 300)],
     )
     sword = Wave(
-        ArmyUnit("swordsman", 2, "sword-wave"), 0,
+        ArmyUnit("swordsman", 3, "sword-wave"), 0,
         [Slot("sword-slot", "flank", 1, 1, "swordsman",
               "sword-wave", 2, 2, 200)],
     )
     doctor = Wave(ArmyUnit("doctor", 2, "doctor-wave"), 0, [], 0, None, 2)
+    # Each concrete Wave began with three units but has only two living
+    # units and no reserve: there is one existing death to protect.
+    assert gyro.unit.quantity == sword.unit.quantity == 3
+    assert gyro.alive == sword.alive == 2
+    assert gyro.reserve == sword.reserve == 0
+    before_living = (gyro.alive, sword.alive)
     events, assumptions = [], {}
     healed = _apply_supported_doctor_healing(
         [gyro, sword, doctor],
@@ -114,6 +127,8 @@ def test_doctor_full_clear_heals_human_swordsman_but_not_machine_gyro():
     assert sword.slots[0].damage == 0
     assert gyro.slots[0].damage == 300
     assert gyro.slots[0].units == sword.slots[0].units == 2
+    assert (gyro.alive, sword.alive) == before_living
+    assert (gyro.unit.quantity - gyro.alive, sword.unit.quantity - sword.alive) == (1, 1)
     heals = [e for e in events if e.type == "healing"]
     assert len(heals) == 1
     assert heals[0].details["affected_units"] == {"swordsman": 200}
