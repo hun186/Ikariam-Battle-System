@@ -1,0 +1,453 @@
+{
+  "schema_version": 1,
+  "case_id": "land_barbarian_400_slinger_attack24_rounds76_80_20261015",
+  "evidence_class": "USER_UPLOADED_FIVE_SCREENSHOTS_R76_TO_R80_AND_EXPLICIT_R76_FULL_HP_FORGE5_NEW_SLINGER_R77",
+  "battle_identity": {
+    "battle_id": "land-barbarian-400-slinger-attack24-r77-r80",
+    "relationship_to_forge5_carabineer_r1_r89_battle": "ANOTHER battle example; user says 另外一個400投石兵的攻擊戰報",
+    "relationship_verified_same_battle": false
+  },
+  "source": {
+    "files_in_chat": [
+      "image(20261015-062727).png",
+      "image(20261014-170017).png",
+      "image(20261014-170407).png",
+      "image(20261014-170814).png",
+      "image(20261014-170830).png"
+    ],
+    "images_binary_present_in_github": false,
+    "owner_explicit_data": [
+      "400 Slinger; attack level 24",
+      "R77 axe/knifeman before attack SHOULD be 100% (owner hypothesis, not direct proof)",
+      "R77 firstline HP L-R [56,81,81,81,83,56,56]",
+      "R78 firstline HP [0,63,62,57,62,0,0]",
+      "R79 remaining Axe HP [29,29,29]",
+      "R80 frontline zero; Axe Throwers rear [65,61,61,65,61]",
+      "Owner follow-up 2026-10-15: THIS 400-Slinger Workshop Attack24 battle also used Forge Lv5, explicitly confirmed.",
+      "Owner verified R76 all seven Barbarian frontline slot surviving HP bars represent 100% full HP, with NO Slinger on defender's battlefield in R76.",
+      "Owner confirms ALL 400 Slingers entered battle in R77; R77 blue ammunition bars demonstrate primary finite weapon was loaded enough to fire for 350 deployed Slingers. This is ammo availability, not a verified logged total of 350 effective full-damage hits."
+    ],
+    "screenshot_transcription_note": "Displayed n (-k) means current survivors n and round deaths k, not cumulative. Positions are PHYSICAL left-to-right in full seven frontline slots. Rear Axe Throwers 5 positions within their OWN second line. Blank spots are null, not zero.",
+    "user_confirmed_forge_level_in_this_400_slinger_battle": 5,
+    "slinger_primary_ammo_remaining_before_r77": "FRESH_ALL_400_DEPLOY_R77; PRIMARY_AMMO_5_EACH, R77_BLUE_BARS_OWNER_VERIFIED",
+    "player_workshop_attack_level_24_user_confirmed": true,
+    "army_reinforcement_arrival_round": 77,
+    "wall_1shot_actual_target_selection": "UNKNOWN",
+    "HP_bars_assumed_floor_total_living_HP": "Game owner confirmed full HP100% after R76; formula for other bars FLOOR_OF_MEAN remains hypothetical",
+    "user_confirmed_forge_active_in_this_400_slinger_battle": true,
+    "forge_confirmation_provenance": "USER_EXPLICIT_REPLY_2026_10_15_TAIWAN: 有開5級熔爐。",
+    "pre_R77_HP_100pct_verified_by_owner": true,
+    "all_400_slingers_first_enter_round": 77,
+    "R77_350_deployed_primary_shots_ammo_available_owner_confirmed": true,
+    "R76_wall_kills_distribution_inferred_from_visible_deaths": [
+      1,
+      2,
+      1,
+      1,
+      0,
+      1,
+      1
+    ],
+    "R76_wall_attribution_status": "INFERRED_LIKELY_WALL_SOURCE_ONLY: seven deaths match seven visible wall segments with no Slingers; no actual wall hit target/event log"
+  },
+  "player_slinger": {
+    "total_army_quantity": 400,
+    "visible_second_line_7_groups": [
+      50,
+      50,
+      50,
+      50,
+      50,
+      50,
+      50
+    ],
+    "visible_reserve": 50,
+    "player_wall_7_sections": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "other_damage_sources_visible": "none beyond these slingers and wall sections",
+    "effective_shot_count_from_seven_active_groups": "350 full PRIMARY FIRE ATTEMPTS ARE AMMO_AVAILABLE on their first deployment R77 (owner confirmed); individual Gameforge actual hit and damage behavior not instrumented.",
+    "first_appear_round": 77,
+    "primary_ammo_blue_bar_owner_verified_for_R77": true
+  },
+  "rounds": [
+    {
+      "round": 76,
+      "battle_source": "UPLOADED_IMAGE_image(20261015-062727).png",
+      "barbarian_first_by_physical_slot": [
+        {
+          "physical_slot": 1,
+          "unit": "barbarian_knifeman",
+          "survivors": 49,
+          "round_deaths": 1,
+          "hp_percent": 100
+        },
+        {
+          "physical_slot": 2,
+          "unit": "barbarian_axe_swinger",
+          "survivors": 21,
+          "round_deaths": 2,
+          "hp_percent": 100
+        },
+        {
+          "physical_slot": 3,
+          "unit": "barbarian_axe_swinger",
+          "survivors": 49,
+          "round_deaths": 1,
+          "hp_percent": 100
+        },
+        {
+          "physical_slot": 4,
+          "unit": "barbarian_axe_swinger",
+          "survivors": 49,
+          "round_deaths": 1,
+          "hp_percent": 100
+        },
+        {
+          "physical_slot": 5,
+          "unit": "barbarian_axe_swinger",
+          "survivors": 50,
+          "round_deaths": 0,
+          "hp_percent": 100
+        },
+        {
+          "physical_slot": 6,
+          "unit": "barbarian_knifeman",
+          "survivors": 49,
+          "round_deaths": 1,
+          "hp_percent": 100
+        },
+        {
+          "physical_slot": 7,
+          "unit": "barbarian_knifeman",
+          "survivors": 49,
+          "round_deaths": 1,
+          "hp_percent": 100
+        }
+      ],
+      "barbarian_knifeman_reserve_after_round": 22,
+      "defender_slingers_deployed": 0,
+      "defender_slingers_reserve": 0,
+      "player_wall_7_sections": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "owner_confirms_all_7_front_slot_HP_at_100pct": true,
+      "wall_only_damage_source_is_visible": true,
+      "frontline_deaths_total": 7,
+      "rear_axe_thrower_group_counts": [
+        50,
+        50,
+        50,
+        50,
+        17
+      ],
+      "rear_axe_thrower_round_deaths": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "wall_only_damage_source_inferred_NOT_verified_shot_log": true,
+      "frontline_deaths_are_observed_not_wall_hit_distribution": true
+    },
+    {
+      "round": 77,
+      "barbarian_first_by_physical_slot": [
+        {
+          "physical_slot": 1,
+          "unit": "barbarian_knifeman",
+          "survivors": 31,
+          "round_deaths": 19,
+          "hp_percent": 56
+        },
+        {
+          "physical_slot": 2,
+          "unit": "barbarian_axe_swinger",
+          "survivors": 17,
+          "round_deaths": 2,
+          "hp_percent": 81
+        },
+        {
+          "physical_slot": 3,
+          "unit": "barbarian_axe_swinger",
+          "survivors": 49,
+          "round_deaths": 1,
+          "hp_percent": 81
+        },
+        {
+          "physical_slot": 4,
+          "unit": "barbarian_axe_swinger",
+          "survivors": 49,
+          "round_deaths": 1,
+          "hp_percent": 81
+        },
+        {
+          "physical_slot": 5,
+          "unit": "barbarian_axe_swinger",
+          "survivors": 50,
+          "round_deaths": 0,
+          "hp_percent": 83
+        },
+        {
+          "physical_slot": 6,
+          "unit": "barbarian_knifeman",
+          "survivors": 31,
+          "round_deaths": 19,
+          "hp_percent": 56
+        },
+        {
+          "physical_slot": 7,
+          "unit": "barbarian_knifeman",
+          "survivors": 31,
+          "round_deaths": 19,
+          "hp_percent": 56
+        }
+      ],
+      "barbarian_knifeman_reserve_after_round": 19,
+      "rear_axe_thrower_group_counts": [
+        50,
+        50,
+        50,
+        50,
+        17
+      ],
+      "rear_axe_thrower_round_deaths": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "round": 78,
+      "barbarian_first_by_physical_slot": [
+        {
+          "physical_slot": 1,
+          "unit": "barbarian_knifeman",
+          "survivors": 0,
+          "round_deaths": 50,
+          "hp_percent": 0
+        },
+        {
+          "physical_slot": 2,
+          "unit": "barbarian_axe_swinger",
+          "survivors": 11,
+          "round_deaths": 4,
+          "hp_percent": 63
+        },
+        {
+          "physical_slot": 3,
+          "unit": "barbarian_axe_swinger",
+          "survivors": 48,
+          "round_deaths": 2,
+          "hp_percent": 62
+        },
+        {
+          "physical_slot": 4,
+          "unit": "barbarian_axe_swinger",
+          "survivors": 47,
+          "round_deaths": 3,
+          "hp_percent": 57
+        },
+        {
+          "physical_slot": 5,
+          "unit": "barbarian_axe_swinger",
+          "survivors": 48,
+          "round_deaths": 2,
+          "hp_percent": 62
+        },
+        {
+          "physical_slot": 6,
+          "unit": "barbarian_knifeman",
+          "survivors": 0,
+          "round_deaths": 50,
+          "hp_percent": 0
+        },
+        {
+          "physical_slot": 7,
+          "unit": "barbarian_knifeman",
+          "survivors": 0,
+          "round_deaths": 12,
+          "hp_percent": 0
+        }
+      ],
+      "barbarian_knifeman_reserve_after_round": 0,
+      "rear_axe_thrower_group_counts": [
+        50,
+        50,
+        50,
+        50,
+        17
+      ],
+      "rear_axe_thrower_round_deaths": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "round": 79,
+      "barbarian_first_by_physical_slot": [
+        {
+          "physical_slot": 2,
+          "unit": "barbarian_axe_swinger",
+          "survivors": 0,
+          "round_deaths": 4,
+          "hp_percent": 0
+        },
+        {
+          "physical_slot": 3,
+          "unit": "barbarian_axe_swinger",
+          "survivors": 39,
+          "round_deaths": 11,
+          "hp_percent": 29
+        },
+        {
+          "physical_slot": 4,
+          "unit": "barbarian_axe_swinger",
+          "survivors": 36,
+          "round_deaths": 14,
+          "hp_percent": 29
+        },
+        {
+          "physical_slot": 5,
+          "unit": "barbarian_axe_swinger",
+          "survivors": 39,
+          "round_deaths": 11,
+          "hp_percent": 29
+        }
+      ],
+      "rear_axe_thrower_group_counts": [
+        50,
+        50,
+        50,
+        50,
+        17
+      ],
+      "rear_axe_thrower_round_deaths": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "rear_HP_bars_visually_full_but_owner_not_explicitly_certified": true
+    },
+    {
+      "round": 80,
+      "barbarian_first_by_physical_slot": [
+        {
+          "physical_slot": 3,
+          "unit": "barbarian_axe_swinger",
+          "survivors": 0,
+          "round_deaths": 50,
+          "hp_percent": 0
+        },
+        {
+          "physical_slot": 4,
+          "unit": "barbarian_axe_swinger",
+          "survivors": 0,
+          "round_deaths": 50,
+          "hp_percent": 0
+        },
+        {
+          "physical_slot": 5,
+          "unit": "barbarian_axe_swinger",
+          "survivors": 0,
+          "round_deaths": 14,
+          "hp_percent": 0
+        }
+      ],
+      "rear_axe_thrower_group_counts": [
+        44,
+        44,
+        44,
+        44,
+        12
+      ],
+      "rear_axe_thrower_round_deaths": [
+        6,
+        6,
+        6,
+        6,
+        5
+      ],
+      "rear_axe_thrower_HP_percent": [
+        65,
+        61,
+        61,
+        65,
+        61
+      ]
+    }
+  ],
+  "research_limits": [
+    "Do not confuse this OTHER 400 slinger battle with same-battle R1→R89 carabineer evidence.",
+    "Owner explicitly CONFIRMS R76 end survivors were at 100% HP and no Slingers before R77; with no inter-round HP damage, R77 fresh full is strongly grounded (no per-individual Gameforge hit log).",
+    "Player Forge active Lv5 explicitly owner-confirmed for THIS Slinger battle. Forge0 comparison is COUNTERFACTUAL only; do not use it as actual case damage.",
+    "400 Slingers entered R77 with visible blue primary ammo bars (user-confirmed); first volley of 350 deployed primary attempts has available ammo, but AM addresses do not independently log 350 hits or individual targeting.",
+    "Displayed R79 frontline Axe total 114 re-packs by R80 50+50+14 exactly, but no unit-level wound history available.",
+    "R79 rear Axe Thrower bars look green-full, but starting R80 at exactly100% is not owner-verified numeric report.",
+    "Whether wall attacks after gun stage transfer or remove residual wounds by individual target remains unknown.",
+    "Floor-of-surviving-HP percentage and no extra heal/transfer between screenshots are explicit counterfactual math assumptions.",
+    "Owner confirms R77 fresh 400 Slingers/blue primary ammo with native 5 per unit; all 350 deployed have enough ammunition for a first-primary attempt, but how many landed full effective damage and target allocation remain unknown.",
+    "R76 seven frontline deaths [1,2,1,1,0,1,1] with seven wall sections and no Slingers visible strongly suggests walls contributed, but cannot verify wall target allocation; observed deaths are NONUNIFORM; cannot force one wall kill to each slot in R77.",
+    "R76->R77 Axe global count 169 stable, phys2 loses2 inter-round while phys3/4 each gain1; this establishes pre-round position rebalance but not why it occurs and NOT intra-round projectile diversion."
+  ],
+  "R76_to_R77_round_transition": {
+    "provenance": "USER_R76_SCREENSHOT_AND_R77_CONFIRMED_SNAPSHOT_OWNER_HP_STATEMENT",
+    "R76_end_front_LTR": [
+      49,
+      21,
+      49,
+      49,
+      50,
+      49,
+      49
+    ],
+    "R77_before_gun_front_from_survivors_plus_round_deaths_LTR": [
+      50,
+      19,
+      50,
+      50,
+      50,
+      50,
+      50
+    ],
+    "delta_LTR": [
+      1,
+      -2,
+      1,
+      1,
+      0,
+      1,
+      1
+    ],
+    "R76_end_Axe_count": 169,
+    "R77_pre_attack_Axe_count": 169,
+    "R76_end_Knife_front_count": 147,
+    "R76_end_Knife_reserve": 22,
+    "R77_pre_attack_Knife_front_count": 150,
+    "R77_pre_attack_Knife_reserve": 19,
+    "R77_source_first_slinger_round": 77,
+    "owner_explicit_full_HP_R76": true,
+    "partial_Axe_physical2_21_to_19_associated_with_phys3_and4_plus1_each": "COUNT CONSERVATION OBSERVABLE; target-level movement mechanism not independently traced",
+    "pre_attack_slot_repack_observation_distinct_from_intra_round_AM_shot_reroute": true
+  }
+}

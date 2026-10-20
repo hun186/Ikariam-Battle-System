@@ -1,0 +1,211 @@
+{
+  "schema_version": 1,
+  "case_id": "land_barbarian_same_battle_round1_all_seven_axes_20261014",
+  "evidence_class": "USER_IMAGE_PLUS_EXPLICIT_FORGE_WORKSHOP_AND_HP_REPORT",
+  "source": {
+    "image_in_chat": "image(20261014-151332).png",
+    "image_on_hosted_github": false,
+    "screenshot_text_transcribed": "Barbarian first-line Axe by physical positions1-7: 40(-10),37(-13),37(-13),37(-13),37(-13),37(-13),45(-5)",
+    "source_scope": "SAME OWNER BATTLE as verified late rounds R80-R89; screenshot captures first round R1, with rounds R2-R79 not supplied.",
+    "display_percent_owner_confirmed": true,
+    "barbarian_front_unit_type_owner_label": "axe soldiers; packaged barbarian_axe_swinger mapping is model-side, not official Gameforge numeric id",
+    "screenshot_attribution": "Attacker is Barbarians, defender player; all seven barbarian front positions start at 50 each according to remaining+current-round loss",
+    "battle_connection_user_confirmed": true
+  },
+  "owner_confirmed": {
+    "player_forge_level": 5,
+    "musketeer_attack_workshop_level": 11,
+    "displayed_axe_front_survivor_HP_percent_physical_left_to_right": [
+      98,
+      100,
+      100,
+      100,
+      100,
+      100,
+      99
+    ]
+  },
+  "transcribed_screenshot": {
+    "round": 1,
+    "axe_front_before": [
+      50,
+      50,
+      50,
+      50,
+      50,
+      50,
+      50
+    ],
+    "axe_front_end": [
+      40,
+      37,
+      37,
+      37,
+      37,
+      37,
+      45
+    ],
+    "axe_deaths_this_round": [
+      10,
+      13,
+      13,
+      13,
+      13,
+      13,
+      5
+    ],
+    "total_axe_deaths": 80,
+    "defender_player_visible_musket_slots": [
+      12,
+      12,
+      12,
+      12,
+      12,
+      12,
+      12
+    ],
+    "defender_player_visible_wall_sections": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "defender_player_visible_artillery_slots": [
+      6,
+      6,
+      6,
+      6,
+      6
+    ],
+    "defender_player_visible_extra_side_slots": [
+      15,
+      15
+    ],
+    "attacker_barbarian_visible_behind_front_line": [
+      50,
+      50,
+      50,
+      50,
+      50,
+      50,
+      50
+    ],
+    "attacker_barbarian_siege_remaining_and_deaths": [
+      [
+        0,
+        6
+      ],
+      [
+        0,
+        6
+      ],
+      [
+        0,
+        6
+      ],
+      [
+        0,
+        6
+      ],
+      [
+        0,
+        6
+      ]
+    ],
+    "caution": "Source imagery shows multiple source classes; actual wall hits, gun effective shot logs, source sequencing, artillery target priorities and cross-line damage are NOT observed."
+  },
+  "analysis_limits": {
+    "baseline_am": "Hypothetical all 7x12 gun shots fire one primary attack and are addressed using current project land-max. Physical L-R address histogram [7,14,14,14,14,14,7].",
+    "forge5_damage": "710 gun per full hit to packaged Axe HP1120 armor20; real Gameforge per-hit damage not independently logged",
+    "wall_assumption": "exactly one EFFECTIVE wall 1-kill for each occupied facing Axe physical slot is a conditional control, NOT a measured target selection",
+    "HP_bar": "percentage source is owner-confirmed, but floor mean of surviving HP is a hypothesis, not official engine rule",
+    "no_unique_cause": "Previous musket-plus-wall-only shortfalls OMITTED source's five visible groups of six mortars. Owner proposes 5 complete mortar one-shot Axe kills to each physical slot1..6 and none slot7, which with one wall casualty each exactly explains the shortage. Full source hit log, mortar accuracy, wall target count, gun kill-type and screenshot HP display rule remain unverified. The R1 image and R80-R89 window are two NONCONTIGUOUS source windows from the SAME battle; no fabricated intervening HP trajectory.",
+    "new_mixed_gun_model": "After conditional mortar direct kills5 into first six slots, R1 gun center14 complete shots can kill7 fresh Axes ONLY IF individually paired. On edges 7×710=4970=4×1120+490 GUN-PHASE (PRE-WALL) wounds. With near-equal wound allocation and wall LAST killing an already slightly wounded Axe (left 11 old damage / right 10), final surviving wounds are LEFT 479 among40 Axes and RIGHT 480 among45 Axes; displayed bars floor98%/99% under HYPOTHETICAL floor-survivor-mean display. Not a Gameforge shot log or proven wall victim choice.",
+    "post_wall_end_surviving_gun_wounds_left_CONDITIONAL": 479,
+    "post_wall_end_surviving_gun_wounds_right_CONDITIONAL": 480,
+    "pre_wall_edge_gun_wounds_each_CONDITIONAL": 490,
+    "owner_forge_and_source_round_identity_distinct_from_real_hit_trace": true
+  },
+  "owner_new_attack_source_hypothesis": {
+    "provenance": "USER_EXPLICIT_HYPOTHESIS_2026_10_14_LATE_FOLLOWUP",
+    "mortar_source_groups": 5,
+    "mortars_per_group": 6,
+    "mortar_AM_predicted_one_shot_Axe_kills_by_physical_slot": [
+      5,
+      5,
+      5,
+      5,
+      5,
+      5,
+      0
+    ],
+    "mortar_each_effective_attack_kills_one_axe": true,
+    "wall_direct_one_shot_Axe_kills_by_physical_slot": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "source_all_hit_and_targeting_confirmed_by_game_log": false,
+    "reason": "Five-by-six mortar AM can address six target slots with five shots each; each hypothetical mortar effective attack directly kills one full Axe. Seven wall effective attacks each independently kill one Axe, leaving gun deaths [4,7,7,7,7,7,4]."
+  },
+  "owner_followup_phase_order": {
+    "provenance": "USER_EXPLICIT_STATEMENT_2026_10_14_LATE_FOLLOWUP",
+    "asserted_sequence": [
+      "mortar",
+      "musket",
+      "wall"
+    ],
+    "interpretation": "Mortar kills first before gun wounds exist. Muskets calculate center D-kill or edge retained-wound pool. Wall strikes last, so each wall-killed Axe may ALREADY carry a share of gun wounds, which leaves the living-wound pool.",
+    "phase_source_is_owner_statement_not_independent_hit_by_hit_log": true,
+    "candidate_near_equal_wound_distribution_before_wall_unverified": true,
+    "edge_490_wounds_is_pre_wall_not_end_of_round": true,
+    "conditional_wall_victim_gun_wound_share_left": 11,
+    "conditional_wall_victim_gun_wound_share_right": 10,
+    "conditional_end_surviving_gun_wounds_left": 479,
+    "conditional_end_surviving_gun_wounds_right": 480,
+    "must_not_overwrite_owner_HP_observation": [
+      98,
+      100,
+      100,
+      100,
+      100,
+      100,
+      99
+    ]
+  },
+  "battle_identity": {
+    "battle_id": "land-barbarian-same-owner-battle-r1-r89-20261014",
+    "owner_explicitly_confirmed_round1_and_round80_89_are_same_battle": true,
+    "owner_confirmation_provenance": "USER_EXPLICIT_FOLLOWUP_2026_10_15_0027_TAIPEI",
+    "battle_data_coverage": {
+      "first_round": [
+        1
+      ],
+      "late_round_window": [
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89
+      ],
+      "unavailable_intervening_rounds": [
+        2,
+        79
+      ]
+    },
+    "interpretation": "Two source evidence windows from one continuous combat. HP state can persist, be redistributed by RR/SR/IR, or be removed by casualties and replacements between rounds; no invented R2–R79 or exact unit continuity.",
+    "complete_battle_rounds2_79_provided": false
+  }
+}
