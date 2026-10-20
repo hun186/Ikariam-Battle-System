@@ -1,7 +1,58 @@
 # Naval inverse engineering — durable evidence, mathematics, and agent handoff
 
 > **Living research record, not a verified Gameforge combat algorithm.**
-> Last research-note update: 2026-10-13. Hosted GitHub `main` is authoritative for the **merged** simulator, currently including five Sea Fight geometries from PR #70; draft PR #69 holds **unmerged** experimental evidence and tests. Verify live heads, review and CI at the start of every new session. Do **not** merge without the owner explicitly saying so.
+> Last research-note update: 2026-10-20. Hosted GitHub `main` is authoritative for the **merged** simulator, currently including five Sea Fight geometries from PR #70; draft PR #69 holds **unmerged** experimental evidence and tests. Verify live heads, review and CI at the start of every new session. Do **not** merge without the owner explicitly saying so.
+
+## Current unmerged executable Experimental state (2026-10-20)
+
+**Historical sections below describe earlier research-only stages.** PR #69 now has
+three **bounded, owner-authorized, in-engine Experimental candidates**, NOT changes
+to merged `main`, confirmed Gameforge mechanics, or independently held-out fits:
+
+- `EXP-NAVAL-FAST-CARRIER-74PCT-001`: Round 1 two 15-fastboat source slots
+  versus two fresh 3-carrier slots. The 74% *remaining individual HP* focus
+  switch is separate from weapon Accuracy 90/95. Guard to confirmed profile
+  settings: player speedboat both Forge5 ATT12/DEF8, ATT20/DEF16, ATT17/DEF18,
+  or Barbarian igniter Forge0 versus player DEF3/Forge0 or DEF7/8/14/Forge5.
+  First-round **synthetic** PvP totals reproduce owner chat 2/2/1 **in-sample**.
+  Source Waves may be serialized as 1×30 or 2×15 without changing physical
+  formation outcomes. Unknown original supporting fleets/slot-specific losses
+  remain unresolved.
+- `EXP-NAVAL-RAM-FOCUS-SHARE-001`: pooled slot-HP candidate F(80,6)=4/9
+  reproduces six controlled Flank losses 6/0/0 at player DEF14/15/19. This
+  **splits six-hit slot damage**, not six independently targeted game shots.
+- `EXP-NAVAL-DECK-OVERKILL-RETAIN-001`: reverse player ATT20/Forge5 Ram
+  six-shot slot conserves model D-kill discarded overkill into surviving hulls,
+  yielding three losses per slot and model 88% survivor bar. Source player
+  36-Ram formation with two 18-unit Waves retains this outcome.
+- Both Ram rules aggregate damage by physical target Slot across source
+  contexts, adjust the actual HP queue and casualty state, and emit a
+  **pooled-not-per-wave-attributed** event. Disaggregated Gameforge hits
+  remain UNKNOWN; only calibrated First-round geometry enables candidates.
+- Real `simulate()` 3-round-cap tests cover full Tender repair entering Round2,
+  permanent Round1 deaths, Round2 actual firing and casualty carry, and
+  insufficient 1-Tender repair flagged
+  `UNKNOWN-TENDER-HEALING-ALLOCATION` with no invented partial repair.
+  These test fleets include **invented** First-line filler and therefore are
+  NOT validation of the user's historical multi-round battlefield.
+
+**Audit anchor (historical, never infer current status):** head
+`7d1a17b2b9a4d680a9f850ef4cd6b7dd1f6cf415`, Hosted
+[Actions #39352655657](https://github.com/hun186/Ikariam-Battle-System/actions/runs/39352655657)
+SUCCESS **514 passed, 3 expected xfailed**. Corresponding focused tests:
+`test_naval_fast_carrier_experimental_engine.py`,
+`test_naval_ram_share_candidate_engine.py`,
+`test_naval_split_wave_focus_regression.py`, and
+`test_naval_tender_multiround_experimental.py`.
+Previous Codex P2 on split Carrier Waves, split Ram Wave pooled overkill and
+over-broad carrier Forge/upgrade gate were fixed/replied/resolved;
+**fresh Codex review of the subsequent exact Head is still required.**
+
+**Open limits:** prospective new source-tagged reports with measured per-slot
+deaths and survivor HP; insufficient Tender allocation and Healing/RR order;
+other shot geometry, targeting and mixed-source damage; long multi-round
+verification against the actual complete fleet; Strict UNKNOWN boundaries.
+Do not generalize these in-sample fits or merge without owner's explicit command.
 
 ## 0. Agent quick-start: first five minutes
 
