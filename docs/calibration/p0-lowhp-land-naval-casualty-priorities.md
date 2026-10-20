@@ -33,6 +33,32 @@ Research regression `tests/unit/test_p0_low_hp_initiative_baseline.py`:
 - **Naval Tender** provides **4000 HP per Tender per round** according to current v17 derived profile. Only the full-clear subset is executable: enough capacity clears surviving naval combat damage at round boundary. Insufficient capacity emits named unimplemented/experimental guard (`EXP-TENDER-HEAL-NONE-001`), NOT a correct partial-healing result. First-round casualties permanently change later ships able to fire; equal total damage != equal future strength.
 - For Naval focus, the **existing separate Draft PR #69** contains conditional first-hull aggregate F(A,N), T=74 focus candidates and actual observed first-round carrier 2/2/1 vs synthetic model 2/2/2. These cannot be treated as official or code-ported into main.
 
+### 2026-10-20 — Actual Round-1 land HP ledger tests (synthetic)
+
+Added `tests/unit/test_p0_low_hp_hp_ledger.py` on **Draft PR #74 only**. It now
+exercises the real `simulate()` damage/casualty events and Round-1 slot HP rather
+than checking only timing. Synthetic mirrored 30-Gyrocopter armies with invented
+350-Hoplite First-line filler must have both sides fire in `anti-balloon`,
+equal actual casualties and surviving slot wounds, and integer conservation
+`gross successful-hit damage = dead units × unit HP + surviving wounds + discarded overkill`
+for both target sides. Synthetic Gyro-before-Bombardier also verifies
+one 800-HP bomber casualty, correct discarded lethal overkill, and **no**
+late `balloon` shot when it was already destroyed.
+
+A direct real-engine support subset test proves two Doctors clear **only**
+a live human Swordsman's 200-HP wound, not the mechanically classed
+Gyrocopter's 300-HP wound. Doctor never creates or revives a casualty;
+insufficient Doctor capacity and exact Healing/RR allocation remain UNKNOWN.
+This is a **baseline conservation and eligibility guarantee**, not proof that
+the underlying low-HP Gameforge Accuracy, D/P/IR/RR or attack concentration
+selector is correct. No official real-game low-HP death/HP fixture was invented.
+
+Historical code+test checkpoint `b25a2e9314427564c0ebb8d6515abf227e8ec546`:
+[Hosted Actions #39353600201](https://github.com/hun186/Ikariam-Battle-System/actions/runs/39353600201)
+SUCCESS — 544 passed, 3 expected xfailed (including the six original
+phase-order baseline tests). Subsequent doc commits require their own
+exact-Head validation and Codex Review. No merge authorization.
+
 ## Remaining P0 implementation gate
 
 - [ ] Get real source-tagged gyrocopter-vs-gyro, gyro-vs-balloon and more asymmetric swordsman casualty/bar screenshots. Keep *Gameforge observations* distinct from above synthetic scenario tests.
