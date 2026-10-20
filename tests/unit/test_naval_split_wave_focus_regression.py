@@ -77,7 +77,9 @@ def test_calibrated_pvp_carrier_same_for_one_or_two_source_waves(
             result, "paddle_speedboat", "balloon_carrier",
             NAVAL_FAST_CARRIER_FOCUS_ID,
         )
-        assert len(events) == 2
+        # Split source Waves generate separate per-wave event groups, while
+        # the shared AM still addresses the same two physical target slots.
+        assert len(events) == (4 if result is split else 2)
         assert sum(e["details"]["firing_units"] for e in events) == 30
         assert all(e["details"]["weapon_accuracy"] == 90 for e in events)
     assert _target_slot_state(single, "defender", "balloon_carrier") == (
@@ -85,15 +87,13 @@ def test_calibrated_pvp_carrier_same_for_one_or_two_source_waves(
     )
 
 
-@pytest.mark.parametrize("source_id, target_id, rule, target_side, expected_deaths", [
-    ("barbarian_deckwrecker", "ram_ship",
-     NAVAL_RAM_SHARE_RULE_ID, "defender", 6),
-    ("ram_ship", "barbarian_deckwrecker",
-     NAVAL_DECK_OVERKILL_RULE_ID, "attacker", 18),
-])
-def test_ram_pooled_casualties_and_hp_invariant_to_split_source(
-    source_id, target_id, rule, target_side, expected_deaths,
-):
+def test_ram_pooled_casualties_and_hp_invariant_to_split_source():
+    # Barbarian army rules forbid distinct entry batches; the legally
+    # split-Wave regression is player Ram ships, not Barbarian Deckwreckers.
+    source_id, target_id = "ram_ship", "barbarian_deckwrecker"
+    rule, target_side, expected_deaths = (
+        NAVAL_DECK_OVERKILL_RULE_ID, "attacker", 18
+    )
     scenario = {
         "policy": "experimental", "battlefield": "naval-max", "max_rounds": 1,
         "attacker": {"army_kind": "barbarian", "forge_level": 0, "units": [
