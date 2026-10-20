@@ -37,17 +37,19 @@ Research regression `tests/unit/test_p0_low_hp_initiative_baseline.py`:
 
 Added `tests/unit/test_p0_low_hp_hp_ledger.py` on **Draft PR #74 only**. It now
 exercises the real `simulate()` damage/casualty events and Round-1 slot HP rather
-than checking only timing. Synthetic mirrored 30-Gyrocopter armies with invented
+than checking only timing. Synthetic mirrored 3-Gyrocopter armies with invented
 350-Hoplite First-line filler must have both sides fire in `anti-balloon`,
-equal actual casualties and surviving slot wounds, and integer conservation
+**one casualty and 340 HP of nonzero survivor wounds on each side**, and integer conservation
 `gross successful-hit damage = dead units × unit HP + surviving wounds + discarded overkill`
 for both target sides. Synthetic Gyro-before-Bombardier also verifies
 one 800-HP bomber casualty, correct discarded lethal overkill, and **no**
 late `balloon` shot when it was already destroyed.
 
-A direct real-engine support subset test proves two Doctors clear **only**
-a live human Swordsman's 200-HP wound, not the mechanically classed
-Gyrocopter's 300-HP wound. Doctor never creates or revives a casualty;
+A direct real-engine support subset test seeds **one pre-existing death**
+in both the human Swordsman and machine Gyrocopter state waves (three originally,
+two living, zero reserve), proving that two Doctors clear **only** the live
+human Swordsman's 200-HP wound, not the mechanically classed
+Gyrocopter's 300-HP wound; live counts remain two after healing.
 insufficient Doctor capacity and exact Healing/RR allocation remain UNKNOWN.
 This is a **baseline conservation and eligibility guarantee**, not proof that
 the underlying low-HP Gameforge Accuracy, D/P/IR/RR or attack concentration
@@ -68,3 +70,5 @@ exact-Head validation and Codex Review. No merge authorization.
 - [ ] Exact-head Hosted CI & Codex Review and owner permission for any merge.
 
 **This baseline PR does NOT implement or assert the unverified general Gameforge Accuracy, D/P/IR/SR/RR selector.** It protects the already-known firing semantics while prioritizing focused calibration.
+
+**2026-10-20 review follow-up:** Codex exact-head review of `bf1592205e` raised two P2 test-strength findings (zero gyro survivor wounds in 30v30; absent pre-existing casualties in Doctor fixture). Both corrected in `2a048c73e8a4803930aaf343323a8355afe6603c`: 3v3 exact HP ledger (1 kill, 340 HP living wounds, 1020 gross and 100 discarded excess per side), human/machine waves now each start with one historical casualty and cannot be resurrected by full-clear healing. [Hosted #39362861171](https://github.com/hun186/Ikariam-Battle-System/actions/runs/39362861171) PASS 544/3 expected xfailed. Current exact-head review status must be checked separately; these remain **synthetic**, not Gameforge observations.
