@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "case_id": "naval-player-fast-boat-vs-player-balloon-carrier-20261013",
+  "evidence_class": "USER_CHAT_REPORTED_REAL_BATTLE_AGGREGATE",
+  "source": {
+    "medium": "User ChatGPT conversation 2026-10-13",
+    "original_battle_reports_attached": false,
+    "comment": "User supplied three player speedboat (30) versus player carrier (6) cases; later explicitly confirmed BOTH attacking and defending players use Forge Level 5 AND that the casualty totals (2/2/1) were measured at the END OF ROUND ONE. Original battle-report files, full supporting fleets and physical-slot casualty split remain unavailable.",
+    "forge_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_BOTH_PLAYERS_FORGE5",
+    "round_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_ALL_THREE_PVP_RESULTS_END_OF_ROUND_ONE"
+  },
+  "observed": [
+    {
+      "case": "pvp_fast_att12_carrier_def8",
+      "attacker_unit_id": "paddle_speedboat",
+      "attacker_count": 30,
+      "defender_unit_id": "balloon_carrier",
+      "defender_count": 6,
+      "attacker_attack_upgrade": 12,
+      "defender_armor_upgrade": 8,
+      "reported_forge_level": 5,
+      "reported_carrier_total_deaths": 2,
+      "death_slots_unknown": true,
+      "attacker_forge_level": 5,
+      "defender_forge_level": 5,
+      "both_forge5_confirmed_by_user": true,
+      "forge_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_BOTH_PLAYERS_FORGE5",
+      "observed_round_number": 1,
+      "round_one_confirmed_by_user": true,
+      "round_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_ALL_THREE_PVP_RESULTS_END_OF_ROUND_ONE"
+    },
+    {
+      "case": "pvp_fast_att20_carrier_def16",
+      "attacker_unit_id": "paddle_speedboat",
+      "attacker_count": 30,
+      "defender_unit_id": "balloon_carrier",
+      "defender_count": 6,
+      "attacker_attack_upgrade": 20,
+      "defender_armor_upgrade": 16,
+      "reported_forge_level": 5,
+      "reported_carrier_total_deaths": 2,
+      "death_slots_unknown": true,
+      "attacker_forge_level": 5,
+      "defender_forge_level": 5,
+      "both_forge5_confirmed_by_user": true,
+      "forge_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_BOTH_PLAYERS_FORGE5",
+      "observed_round_number": 1,
+      "round_one_confirmed_by_user": true,
+      "round_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_ALL_THREE_PVP_RESULTS_END_OF_ROUND_ONE"
+    },
+    {
+      "case": "pvp_fast_att17_carrier_def18",
+      "attacker_unit_id": "paddle_speedboat",
+      "attacker_count": 30,
+      "defender_unit_id": "balloon_carrier",
+      "defender_count": 6,
+      "attacker_attack_upgrade": 17,
+      "defender_armor_upgrade": 18,
+      "reported_forge_level": 5,
+      "reported_carrier_total_deaths": 1,
+      "death_slots_unknown": true,
+      "attacker_forge_level": 5,
+      "defender_forge_level": 5,
+      "both_forge5_confirmed_by_user": true,
+      "forge_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_BOTH_PLAYERS_FORGE5",
+      "observed_round_number": 1,
+      "round_one_confirmed_by_user": true,
+      "round_confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_ALL_THREE_PVP_RESULTS_END_OF_ROUND_ONE"
+    }
+  ],
+  "model_controls": {
+    "battlefield": "naval-max",
+    "mode": "experimental",
+    "comparison_round": 1,
+    "attacker_slots": [
+      15,
+      15
+    ],
+    "defender_slots": [
+      3,
+      3
+    ],
+    "slots_derived_from_official_help_not_explicitly_reconfirmed_for_these_three_battles": true,
+    "invented_both_sides_front_fillers_not_observed": true,
+    "conditional_forge_configs": [
+      {
+        "attacker_forge": 5,
+        "defender_forge": 5,
+        "label": "observed_both_players_forge5",
+        "evidence_class": "USER_CONFIRMED_FORGE_SCOPE"
+      },
+      {
+        "attacker_forge": 5,
+        "defender_forge": 0,
+        "label": "counterfactual_attacker_only_forge5",
+        "evidence_class": "COUNTERFACTUAL_SENSITIVITY_NOT_OBSERVED"
+      }
+    ],
+    "assumptions_not_gamefacts": [
+      "Actual full fleet including front line unknown",
+      "AM 16/14 is model allocation",
+      "Official individual target allocation unknown",
+      "Real game ship-by-ship target traces unavailable",
+      "Attacker-only Forge5 is a counterfactual sensitivity experiment, not the user's observed game configuration",
+      "Round 1 is user-confirmed, but the synthetic model's invented First-line fleets are NOT the real complete opposing formations"
+    ],
+    "actual_game_forge_configuration": {
+      "attacker_forge": 5,
+      "defender_forge": 5,
+      "confirmed_by_user": true
+    },
+    "actual_game_observed_round": 1,
+    "round_one_confirmed_by_user": true
+  }
+}

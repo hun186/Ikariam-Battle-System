@@ -30,6 +30,7 @@
 - Barbarian Clubman 的 tactical semantic class 是 `heavy_infantry`、native line 是 `first`；與 Spearman 的 equivalence 只可用於有證據的數值推導，不得反推為 Light Infantry。
 - 同一 runtime formation 可由多種 unit type 組成；Attacking Matrix 必須以整個 formation 共用 row-major source columns。Target address book 以「相同 penetrable target-wave set」為共享邊界，而且必須在該 formation firing phase 的第一發之前 freeze runtime-line membership、eligibility set 與 slot addresses；中途傷亡不得讓 promoted Light wave 因 `_runtime_line()` 回退 native line 而縮小 address book。穿甲資格相同的 source waves 共用 frozen address book；若 weapon-specific `ATK>DEF` 導致合法 target set 不同，則各自 freeze 對應 address book。每個 source wave 的 weapon、Workshop、ammo 仍獨立。
 - Target eligibility 必須先於 shot/ammo 消耗判斷：selected weapon 的 effective ATK 必須嚴格大於 candidate effective DEF；`ATK <= DEF` 的目標不可建立攻擊、不可耗彈，應繼續找下一個合法 priority target。Active Town Wall 存在時，Land Artillery 的已知 priority 為 Wall 優先於普通 First。Strict 仍以 `UNKNOWN-TOWN-WALL-COMBAT` 保護完整牆戰；Experimental 已接入 section-state core：可穿甲 Artillery 先集中牆段，但牆段原本佔有守方 First 位置，破口當回合不可立即補入守方方陣，必須從下一回合開始依前一回合破洞位置填入 First；攻守雙方 Flank 在有牆時均不部署，全牆破盡的下一回合才可上場（野戰壓制牆除外）；城牆破洞進入下一回合時，先由 native First（如 Hoplite）依中央優先填已破牆格，再讓耗盡主彈藥的 Long-Range／Light 等 non-native First fallback 競爭剩餘且確實已破牆的位置（有牆時被鎖在 Reserve、尚無側翼格 owner 的 Light Infantry 也能在這個限定 wall-gap fallback 階段進場；不可放寬一般無牆 fallback 的 live-native-line 前提），絕不能先讓火槍轉 First 佔掉原生方陣的位置，更不能填未破的牆格；多個 native Waves 爭奪新空牆格而 precedence 未證實時必須 UNKNOWN，不可猜測。可整除的 surviving-section round-start damage redistribution 可執行。同 geometry 的 initial open-field → wall re-entry 可直接切換；跨 geometry 仍由 `UNKNOWN-GARRISON-BATTLEFIELD-TRANSITION` 保護。牆段先後位置與每發皆視為 successful wall hit、牆本身攻擊停用，均以具名 Experimental assumptions 暴露；非整除 redistribution 仍停在 `UNKNOWN-TOWN-WALL-REDISTRIBUTION-ROUNDING`。
+- 海軍逆向研究中，Forge 目前優先當成僅改變 effective Attack／Armor 的**待驗證空假說**；不能憑熔爐開關同時變動就聲稱 Forge 直接控制 Accuracy、AM 分配或集火。必須保留每筆實戰來源、可觀測 Round 與 casualties、血條、未知格位、計算的條件假設、失敗候選模型及 Reviewed Head，詳見 `docs/calibration/naval-inverse-engineering-handoff.md`；研究模型不可直接套入 production formula。
 - Accuracy 的官方演算法仍未知；Strict 必須保留 `UNKNOWN-ACCURACY`。Experimental 不得把 Accuracy 當成每發獨立 Bernoulli miss：目前 `EXP-ACCURACY-CONCENTRATION-001` 只在已選定 slot 內做 deterministic individual-target concentration；one-shot-capable hit 不製造 miss，非 one-shot 以最殘血目標 remaining-HP% 與 weapon Accuracy 的門檻決定 spread/focus。新實戰證據可替換此假說，但不得悄悄改動 AM addressing、target priority、Damage、Ammo 或 firing chronology。
 - 最快驗證：`pytest -q`
 <!-- END CODEX PROJECT QUICKSTART -->
@@ -86,6 +87,7 @@
 | API、CLI、schema、檔案格式、事件、外部整合 | `.codex/contracts.md` |
 | 技術選型、相容性取捨、重大設計變更 | `.codex/decisions.md` |
 | 除錯、環境限制、已知失敗 | `.codex/known_issues.md` |
+| 海軍 Accuracy／集火／溢傷逆向研究（含 PR #69 新對話接續） | `docs/calibration/naval-inverse-engineering-handoff.md`，並核對三份 reverse-engineering JSON fixtures：`naval_ram_deckwrecker_20261013.json`、`naval_air_counterparts_20261013.json`、`naval_pvp_fast_boat_carrier_20261013.json`；工作分支的研究事實不可直接當成已 merge 的 `main` 事實 |
 | 排程、優先度、延後工作、技術債 | `.codex/backlog.md` |
 
 若文件不存在，只有在使用者要求的變更需要它，或使用者明確要求初始化記憶機制時才建立；不要為湊齊格式新增無內容文件。

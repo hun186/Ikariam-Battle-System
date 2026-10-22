@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "case_id": "naval-barbarian-deckwrecker-player-ram-20261013",
+  "kind": "user_recorded_game_empirical_series",
+  "source": {
+    "workbook": "野蠻人.xlsx",
+    "worksheet": "野撞打開爐衝撞",
+    "actual_series_range": "F4:F19",
+    "provenance": "User-attached workbook snapshot 2026-10-13; separate conversation observation at defense19, attack20",
+    "cautions": [
+      "F4:F19 records TOTAL casualties by armor grade 3–18 only; defense grade 19 is an independent chat observation, not an Excel row",
+      "Excel column F contains actual recorded casualties; columns D/E/H/J are mathematical calculations not gameplay measurements",
+      "User did not attach original combat screenshots or a simulator debug JSON for these specific battles",
+      "A controlled 36 vs 36 pure-Ram simulation cannot be assumed to reproduce the entire original battle setup",
+      "The per-slot one-death distribution for grades 3–14 was stated by the user in chat; the spreadsheet column F supplies totals only, not physical-slot addresses"
+    ]
+  },
+  "observed": {
+    "player_forge_level": 5,
+    "barbarian_forge_level": 0,
+    "total_barbarian_ships_in_excel": 36,
+    "assumed_naval_max_flank_positions": 6,
+    "user_stated_ships_per_flank_position": 6,
+    "player_deaths_total_by_defense_upgrade": {
+      "3": 6,
+      "4": 6,
+      "5": 6,
+      "6": 6,
+      "7": 6,
+      "8": 6,
+      "9": 6,
+      "10": 6,
+      "11": 6,
+      "12": 6,
+      "13": 6,
+      "14": 6,
+      "15": 0,
+      "16": 0,
+      "17": 0,
+      "18": 0
+    },
+    "direct_conversation_case": {
+      "player_attack_upgrade": 20,
+      "player_defense_upgrade": 19,
+      "player_total_deaths": 0,
+      "player_remaining_hp_bar_percent": 63,
+      "barbarian_deaths_per_flank_position": 3,
+      "barbarian_remaining_hp_bar_percent": 88,
+      "note": "Defense Lv19 deaths and both 63%/88% bars are reported in chat, not in Excel F4:F19; no original per-shot/slot debug trace",
+      "source": "USER_CONVERSATION_2026_10_13_NOT_WORKBOOK"
+    },
+    "direct_chat_position_claims": {
+      "source": "USER_CONVERSATION_2026_10_13_NOT_WORKBOOK_CELLS",
+      "scope": "User stated player Forge Lv5, six physical slots, six Ram ships per slot, with one loss in each slot for defense upgrades 3–14; all ships damaged with no loss at defense 15; not supported by per-slot battle images.",
+      "defense_upgrades_3_to_14_each_slot_deaths": 1,
+      "defense_15_each_slot_deaths": 0,
+      "independently_telemetry_verified": false
+    }
+  },
+  "controlled_scenario_assumptions": {
+    "battlefield": "naval-max",
+    "policy": "experimental",
+    "max_rounds": 1,
+    "only_one_ship_type_per_side": true,
+    "barbarian_attacking_units": 36,
+    "player_defending_units": 36,
+    "player_attack_upgrade_fixed_for_defense_sweep": 20,
+    "player_armor_upgrade_variants": [
+      14,
+      15,
+      19
+    ],
+    "not_observed_exact_original_battle_configuration": true,
+    "synthetic_geometry_valid_front_fillers": {
+      "evidence_class": "CONTROLLED_INVENTED_UNITS_NOT_OBSERVED_IN_HISTORICAL_BATTLE",
+      "attacker_front": {
+        "unit_id": "barbarian_wedge_paddler",
+        "quantity": 42,
+        "workshop": 0,
+        "forge": 0
+      },
+      "defender_front": {
+        "unit_id": "steam_ram",
+        "quantity": 35,
+        "attack_upgrade": 0,
+        "armor_upgrade": 0
+      },
+      "reason": "Fill all seven max Sea Fight First slots (7x25 space); keep original 36 each of native Flank Rams in six physical Flank slots (6x20 space)",
+      "do_not_calibrate_casualties_as_real_battle": true
+    }
+  }
+}

@@ -1,0 +1,174 @@
+{
+  "schema_version": 1,
+  "case_id": "naval-paddle-speedboat-vs-balloon-carrier-counterpart-20261013",
+  "evidence_class": "USER_CONVERSATION_REPORTED_REAL_GAME_OUTCOMES",
+  "source": {
+    "medium": "User-reported game observations in ChatGPT conversation 2026-10-13",
+    "original_battle_reports_attached": false,
+    "raw_game_individual_shot_trace_available": false,
+    "note": "Official battle reports do not reveal individual target-hit sequences; infer from visible casualties and remaining formation health bars. Follow-up chat confirmed the reverse player's 30 speedboats (2x15) attacked six Barbarian carriers (2x3), with 53%/65% shown after round one; this is not a shot-by-shot trace. Separate no-Forge defender Lv3 case's 30-vs-6 / two-slot formation and two first-round carrier deaths were confirmed in a later chat; the slot distribution of the two deaths and exact unseen fleet remain unknown."
+  },
+  "candidate_unit_mapping": {
+    "barbarian_speedboat": "barbarian_dirigible_igniter",
+    "player_carrier": "balloon_carrier",
+    "player_speedboat": "paddle_speedboat",
+    "barbarian_carrier": "barbarian_nest",
+    "status": "provisional_equivalence_by_role_and_help_names_verify_with_game_unit_labels"
+  },
+  "observed": [
+    {
+      "case": "barbarian_fast_vs_player_carrier_def7",
+      "attacker": "barbarian_dirigible_igniter",
+      "target": "balloon_carrier",
+      "attacker_count": 30,
+      "target_count": 6,
+      "attacker_positions": 2,
+      "attacker_units_per_position": 15,
+      "target_positions": 2,
+      "target_units_per_position": 3,
+      "player_defense_upgrade": 7,
+      "player_attack_upgrade": 0,
+      "player_forge_level": 5,
+      "barbarian_forge_level": 0,
+      "reported_player_total_deaths": 1,
+      "source": "USER_CHAT",
+      "bar_percentages": null
+    },
+    {
+      "case": "barbarian_fast_vs_player_carrier_def8",
+      "attacker": "barbarian_dirigible_igniter",
+      "target": "balloon_carrier",
+      "attacker_count": 30,
+      "target_count": 6,
+      "attacker_positions": 2,
+      "attacker_units_per_position": 15,
+      "target_positions": 2,
+      "target_units_per_position": 3,
+      "player_defense_upgrade": 8,
+      "player_attack_upgrade": 0,
+      "player_forge_level": 5,
+      "barbarian_forge_level": 0,
+      "reported_player_total_deaths": 0,
+      "source": "USER_CHAT",
+      "bar_percentages": null
+    },
+    {
+      "case": "barbarian_fast_vs_player_carrier_def14",
+      "attacker": "barbarian_dirigible_igniter",
+      "target": "balloon_carrier",
+      "attacker_count": 30,
+      "target_count": 6,
+      "attacker_positions": 2,
+      "attacker_units_per_position": 15,
+      "target_positions": 2,
+      "target_units_per_position": 3,
+      "player_defense_upgrade": 14,
+      "player_attack_upgrade": 0,
+      "player_forge_level": 5,
+      "barbarian_forge_level": 0,
+      "reported_player_total_deaths": 0,
+      "reported_occupied_slot_bars_percent": [
+        65,
+        70
+      ],
+      "source": "USER_CHAT",
+      "bar_percentages": [
+        65,
+        70
+      ]
+    },
+    {
+      "case": "player_fast_att14_vs_barbarian_carrier",
+      "attacker": "paddle_speedboat",
+      "target": "barbarian_nest",
+      "attacker_count": 30,
+      "target_count": 6,
+      "attacker_positions": 2,
+      "attacker_units_per_position": 15,
+      "target_positions": 2,
+      "target_units_per_position": 3,
+      "player_defense_upgrade": 0,
+      "player_attack_upgrade": 14,
+      "player_forge_level": 5,
+      "barbarian_forge_level": 0,
+      "reported_barbarian_deaths_per_position": 1,
+      "reported_survivor_slot_bars_percent": [
+        53,
+        65
+      ],
+      "source": "USER_CHAT",
+      "bar_percentages": [
+        53,
+        65
+      ],
+      "counts_and_layout_confirmed_by_user": true,
+      "health_bars_observed_after_round": 1,
+      "confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_CONFIRMED_BOTH_30_VS_6_AND_END_OF_ROUND_1"
+    }
+  ],
+  "model_assumptions": {
+    "scenario_type": "1_round_isolated_two_unit_type_not_exact_original_fleet",
+    "field": "naval-max",
+    "players_have_other_ships_unknown": true,
+    "conditional_shot_count": "30 live attacking speedboats fire one shot each if eligible; AM addresses 2 target slots by formation row, possibly 16+14",
+    "bar_interpretation": "floor of 100*(remaining alive target ships full HP minus persistent retained damage)/(remaining alive target ships full HP)",
+    "overflow_model": "conditional conservation of all incoming damage, even across one sunk ship",
+    "no_claim_of_true_attack_order_for_unseen_original_battle": true,
+    "prefer_actual_simulator_AM_trace": true,
+    "never_hardcode_observed_casualties_into_combat_logic": true,
+    "reverse_army_counts_are_provisional": false,
+    "reverse_bar_snapshot_round_confirmed": 1,
+    "forge_direct_numeric_only_hypothesis": {
+      "classification": "USER_SUGGESTED_PARSIMONIOUS_RESEARCH_HYPOTHESIS_NOT_GAME_RULE",
+      "statement": "Treat Forge effects as attack-damage or defense/armor adjustments only; do not let Forge separately alter Accuracy, target-selector, AM address order, or firing order absent new independent evidence",
+      "current_profile_defense_forge5_flat_armor_bonus": 20,
+      "current_profile_attacker_forge5_attack_multiplier": 1.15,
+      "controlled_parameter_axes": [
+        "attack_damage",
+        "defense_armor"
+      ],
+      "verification": "Compare on/off Forge cases at equal effective net damage to distinguish numeric-only effects from other mechanics"
+    }
+  },
+  "additional_observations": [
+    {
+      "case": "barbarian_fast_vs_player_carrier_def3_no_forge",
+      "evidence_class": "USER_CHAT_REPORTED_AGGREGATE_CASUALTIES",
+      "source": "USER_CHAT_2026_10_13_NEW_OBSERVATION",
+      "observed_player_defense_upgrade": 3,
+      "observed_player_forge_level": 0,
+      "observed_total_player_carrier_deaths": 2,
+      "known_per_slot_deaths": false,
+      "observed_bars_percent": null,
+      "round_number_verified": true,
+      "attacker_and_target_counts_verified_for_this_case": true,
+      "aircraft_unit_id_mapping_verified": false,
+      "conditional_compare_to_forward_battles": {
+        "hypothetical_attacker_count": 30,
+        "hypothetical_defender_count": 6,
+        "hypothetical_attacker_slots": [
+          15,
+          15
+        ],
+        "hypothetical_defender_slots": [
+          3,
+          3
+        ],
+        "hypothetical_battlefield": "naval-max",
+        "note": "Fleet counts and 2x15/2x3 distribution, and Round 1 total losses are now user-confirmed for this case. The split of TWO casualties among the slots and entire other-fleet composition remain unknown. AM 16/14 shots are the model's conditional calculation, not observed individual hits."
+      },
+      "observed_round_number": 1,
+      "confirmed_attacker_count": 30,
+      "confirmed_target_count": 6,
+      "confirmed_attacker_slot_counts": [
+        15,
+        15
+      ],
+      "confirmed_target_slot_counts": [
+        3,
+        3
+      ],
+      "confirmation_source": "USER_FOLLOWUP_CHAT_2026_10_13_CONFIRMED_SAME_30_FAST_BOATS_VS_6_CARRIERS_AND_TWO_DEATHS_ROUND1"
+    }
+  ]
+}
