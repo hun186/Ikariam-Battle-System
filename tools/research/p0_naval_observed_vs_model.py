@@ -24,6 +24,8 @@ from tools.research.naval_ram_empirical_probe import (
     CASE as RAM_FIXTURE,
     model_one_controlled_round,
 )
+from ikariam_battle.accuracy import NAVAL_FAST_CARRIER_FOCUS_ID
+from ikariam_battle.naval_focus import NAVAL_RAM_SHARE_RULE_ID
 
 SOURCE_AGGREGATE = "SOURCE_REPORTED_AGGREGATE"
 MODEL_SYNTHETIC = "SYNTHETIC_CONTROLLED_CURRENT_ENGINE"
@@ -34,6 +36,9 @@ NO_INDEPENDENT_HOLDOUT = "not_assessable_no_independent_holdout"
 SLOT_UNAVAILABLE = "not_assessable_original_slot_telemetry_unavailable"
 BAR_UNAVAILABLE = "not_assessable_hp_bar_semantics_unverified"
 ROUND_UNKNOWN = "not_assessable_original_round_not_confirmed"
+ASSUMPTION_REPORTED = "experimental_candidate_reported_by_engine"
+ASSUMPTION_NOT_REPORTED = "experimental_candidate_not_reported_by_engine"
+RAM_CHAT_SOURCE = "USER_CONVERSATION_2026_10_13_NOT_WORKBOOK"
 
 NEXT_EVIDENCE = (
     "Original opposing full fleets, exact entry batches and source weapon upgrades",
@@ -54,6 +59,39 @@ def assess_aggregate(observed: int | None, predicted: int | None) -> str:
     return MATCH_IN_SAMPLE if observed == predicted else MISMATCH_CONTROLLED
 
 
+def _pvp_engine_assumptions(prediction: dict[str, Any]) -> tuple[list[str], str]:
+    """Keep the actual controlled simulator assumption ledger, not a guess."""
+    raw = prediction.get("model_applied_assumptions")
+    if not isinstance(raw, list) or not raw:
+        raise ValueError("PvP engine assumption ledger is missing")
+    if any(not isinstance(item, dict) or not isinstance(item.get("id"), str)
+           or not item["id"] for item in raw):
+        raise ValueError("PvP engine assumption ledger contains malformed IDs")
+    return sorted({item["id"] for item in raw}), "engine_result.assumptions"
+
+
+def _ram_engine_assumptions(prediction: dict[str, Any]) -> tuple[list[str], str]:
+    """Get actual model target-damage event IDs; never treat these as game shots."""
+    events = [
+        event for event in prediction.get("round1_events", [])
+        if event.get("type") == "damage"
+        and event.get("details", {}).get("source_unit_id") == "barbarian_deckwrecker"
+        and event.get("details", {}).get("target_unit_id") == "ram_ship"
+    ]
+    if not events or any(
+        not isinstance(event["details"].get("assumption_ids"), list)
+        or not event["details"]["assumption_ids"]
+        or any(not isinstance(v, str) or not v
+               for v in event["details"]["assumption_ids"])
+        for event in events
+    ):
+        raise ValueError("Ram target damage events lack engine assumption IDs")
+    return sorted({
+        assumption for event in events
+        for assumption in event["details"]["assumption_ids"]
+    }), "engine_round1_target_damage_event.assumption_ids"
+
+
 def _record(
     *,
     case_id: str,
@@ -64,6 +102,9 @@ def _record(
     model_round: int | None,
     simulated_slots: list[dict[str, Any]],
     observed_slot_provenance: str,
+    applied_assumption_ids: list[str],
+    assumption_evidence_source: str,
+    fitted_candidate_rule_id: str,
     observed_hp_bars: dict[str, int] | None = None,
 ) -> dict[str, Any]:
     # An actual slot address or bar must not silently come from model output:
@@ -84,6 +125,13 @@ def _record(
             "physical_slots_model_only": simulated_slots,
             "invented_first_line_fillers": True,
             "production_combat_algorithm_changed": False,
+            "applied_assumption_ids": applied_assumption_ids,
+            "assumption_evidence_source": assumption_evidence_source,
+            "fitted_candidate_rule_id": fitted_candidate_rule_id,
+            "fitted_candidate_rule_status": (
+                ASSUMPTION_REPORTED if fitted_candidate_rule_id in applied_assumption_ids
+                else ASSUMPTION_NOT_REPORTED
+            ),
         },
         "assessment": {
             "aggregate": assess_aggregate(observed_total, model_total),
@@ -127,6 +175,7 @@ def build_report() -> dict[str, Any]:
             prediction["model_carrier_slots"],
             key=lambda x: x["damage_position"],
         )
+        applied_ids, assumption_source = _pvp_engine_assumptions(prediction)
         cases.append(_record(
             case_id=item["case"],
             source_class=pvp["evidence_class"],
@@ -136,6 +185,9 @@ def build_report() -> dict[str, Any]:
             model_round=prediction["model_rounds_completed"],
             simulated_slots=slots,
             observed_slot_provenance="unreported_for_this_game_case",
+            applied_assumption_ids=applied_ids,
+            assumption_evidence_source=assumption_source,
+            fitted_candidate_rule_id=NAVAL_FAST_CARRIER_FOCUS_ID,
         ))
 
     observed = ram["observed"]
@@ -145,8 +197,14 @@ def build_report() -> dict[str, Any]:
             and observed["barbarian_forge_level"] == 0):
         raise ValueError("Ram workbook provenance or forge scope changed")
     chat = observed["direct_conversation_case"]
-    if chat["player_defense_upgrade"] != 19 or chat["player_attack_upgrade"] != 20:
-        raise ValueError("Ram chat DEF19/ATT20 observation changed")
+    if not (
+        chat["player_defense_upgrade"] == 19
+        and chat["player_attack_upgrade"] == 20
+        and chat.get("source") == RAM_CHAT_SOURCE
+        and "not in Excel" in chat.get("note", "")
+        and ram["source"].get("worksheet") == "野撞打開爐衝撞"
+    ):
+        raise ValueError("Ram DEF19 chat source or workbook separation changed")
 
     for defense in (14, 15, 19):
         predicted = model_one_controlled_round(
@@ -171,6 +229,7 @@ def build_report() -> dict[str, Any]:
             predicted["round1_unit_slots_all_lines"]["defender"],
             key=lambda x: (x["line"], x["damage_position"]),
         )
+        applied_ids, assumption_source = _ram_engine_assumptions(predicted)
         cases.append(_record(
             case_id=f"ram_defense_{defense}_attack_20_forge5",
             source_class=source_class,
@@ -181,6 +240,9 @@ def build_report() -> dict[str, Any]:
             simulated_slots=slots,
             observed_slot_provenance=slot_provenance,
             observed_hp_bars=bars,
+            applied_assumption_ids=applied_ids,
+            assumption_evidence_source=assumption_source,
+            fitted_candidate_rule_id=NAVAL_RAM_SHARE_RULE_ID,
         ))
 
     summary = {
@@ -194,6 +256,14 @@ def build_report() -> dict[str, Any]:
         "independently_held_out_cases": 0,
         "per_slot_game_telemetry_assessable_cases": 0,
         "game_hp_bar_parity_assessable_cases": 0,
+        "fitted_candidate_reported_cases": sum(
+            c["model"]["fitted_candidate_rule_status"] == ASSUMPTION_REPORTED
+            for c in cases
+        ),
+        "fitted_candidate_not_reported_cases": sum(
+            c["model"]["fitted_candidate_rule_status"] == ASSUMPTION_NOT_REPORTED
+            for c in cases
+        ),
     }
     return {
         "schema_version": 1,
@@ -224,6 +294,10 @@ def csv_rows(report: dict[str, Any]) -> list[dict[str, Any]]:
         "physical_slot_status": c["assessment"]["per_slot_deaths"],
         "hp_bar_status": c["assessment"]["hp_bar"],
         "holdout_status": c["assessment"]["independent_holdout"],
+        "engine_applied_assumption_ids": ";".join(c["model"]["applied_assumption_ids"]),
+        "engine_assumption_source": c["model"]["assumption_evidence_source"],
+        "fitted_candidate_rule_id": c["model"]["fitted_candidate_rule_id"],
+        "fitted_candidate_rule_status": c["model"]["fitted_candidate_rule_status"],
         "invented_first_line_fillers": c["model"]["invented_first_line_fillers"],
     } for c in report["cases"]]
 
