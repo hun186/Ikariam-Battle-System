@@ -1,5 +1,18 @@
 # P0 — Low-HP formation timing and casualty-focus acceptance matrix
 
+## Current merged baseline and follow-up (2026-10-23)
+
+**GitHub canonical status:** Land PR [#74](https://github.com/hun186/Ikariam-Battle-System/pull/74) and Naval PR [#69](https://github.com/hun186/Ikariam-Battle-System/pull/69) are **both merged** to `main`; current merged head at start of this workstream: `c0021d83bc115ba15b9427ee935734d70786d5fd`. Naval combined-head Hosted Actions #39530374551 Attempt 2 passed **607 passed / 3 expected xfailed**; Codex clean at `9013f0d586`. Older references below to Draft #69/#74 are **historical research checkpoints**, not current PR status. Their bounded Experimental hypotheses have entered `main`, but **their official Gameforge correctness has NOT been established**; Strict still guards unverified mechanisms.
+
+**NEW draft follow-up PR #75** (`research/p0-land-doctor-multiround-20261023`) fills a different acceptance gap using *real engine execution on invented synthetic armies*, not historical combat reports:
+
+- Real `simulate()` Round1→Round2 mirrored three-Gyrocopter / three-Swordsman combat with synthetic 350-Hoplite filler. Compare identical defenses with **zero Doctors** and **50 Doctors**; Round1 losses and HP must be identical.
+- Both simulations must reach Round2 and still emit actual Gyrocopter shots. Full-clear Doctor healing must happen at the Round2 boundary, repair damaged **human Swordsmen** and other eligible Humans, exclude **machine Gyrocopters**, and never raise dead units' live counts.
+- Direct insufficient Doctor case uses 80 live Swordsmen with **6000 pre-existing HP wounds** versus one Doctor's **4000 HP reference capacity**. Output must preserve original wounds, emit `UNKNOWN-HEALING-ALLOCATION` / `EXP-HEAL-NONE-001` and **not** fabricate a partially healed survivor.
+- Dedicated Hosted CI runs targeted Land Doctor, Land HP ledger and Naval Tender multi-round tests, followed by full pytest and compile. This PR modifies **tests / documentation / workflow only**, no `ikariam_battle` combat formula.
+- Still **out of scope**: exact partial-heal allocation, Doctor/Tender Healing-versus-RR ordering, source-observed per-slot/game HP shots, general asymmetric Swordsman kill-selector proof, and official Gameforge Accuracy / P / IR / SR selectors. Do not use synthetic outcomes to claim these are solved.
+
+
 Related: [Issue #73](https://github.com/hun186/Ikariam-Battle-System/issues/73), naval [Issue #68](https://github.com/hun186/Ikariam-Battle-System/issues/68) / [Draft PR #69](https://github.com/hun186/Ikariam-Battle-System/pull/69). This Land baseline starts from **merged main** commit `9a8d20feb517a71e44f5b7be9ccf4c0bae63ced2`; naval PR #69 is separate and **NOT merged**.
 
 ## Known timing versus unknown casualty formula
