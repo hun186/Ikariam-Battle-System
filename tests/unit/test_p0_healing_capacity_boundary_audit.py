@@ -127,6 +127,39 @@ def test_invalid_seeded_wounds_and_support_counts_are_rejected(domain):
         audit._seeded_waves(domain, 12000, 1)
 
 
+
+@pytest.mark.parametrize("domain,maximum_live_slot_damage,patient_wave_id", [
+    # Patient A consumes 2000 HP. Patient B has 2*1120 or 3*2800 HP.
+    ("land_doctor", 4240, "hoplites-with-one-death"),
+    ("naval_tender", 10400, "carriers-with-one-death"),
+])
+def test_lethal_equality_and_overflow_are_rejected_but_one_hp_remains_valid(
+    domain, maximum_live_slot_damage, patient_wave_id,
+):
+    # Exactly zero remaining HP cannot coexist with declared living units.
+    for damage in (maximum_live_slot_damage, maximum_live_slot_damage + 1):
+        with pytest.raises(ValueError, match="exceed surviving"):
+            audit._seeded_waves(domain, damage, 1)
+        with pytest.raises(ValueError, match="exceed surviving"):
+            audit.probe(domain, damage, 1)
+
+    # The adjacent, genuinely living state is admitted by the real Round2
+    # processing path, and leaves a positive (although tiny) HP remainder.
+    result = audit.probe(domain, maximum_live_slot_damage - 1, 1)
+    after_patient = result["after"][patient_wave_id]
+    before_patient = result["before"][patient_wave_id]
+    assert after_patient["alive"] == before_patient["alive"]
+    assert after_patient["historical_dead"] == before_patient["historical_dead"] == 1
+    assert after_patient["persistent_damage"] == before_patient["persistent_damage"]
+    patient_snapshot = [
+        slot for slot in result["round2_snapshot"]["slots"]
+        if slot["wave_id"] == patient_wave_id
+    ]
+    assert len(patient_snapshot) == 1
+    assert patient_snapshot[0]["hit_points_percent"] > 0
+
+
+
 def test_negative_mutation_of_real_healing_state_is_detected(monkeypatch):
     real = audit._prepare_round_start
 
