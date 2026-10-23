@@ -60,14 +60,75 @@ def assess_aggregate(observed: int | None, predicted: int | None) -> str:
 
 
 def _pvp_engine_assumptions(prediction: dict[str, Any]) -> tuple[list[str], str]:
-    """Keep the actual controlled simulator assumption ledger, not a guess."""
+    """Require the fitted carrier selector on each real *simulator* target event.
+
+    A result-wide assumption union alone could conceal a partial slot fallback.
+    Check target event provenance and exactly the two modelled Carrier slots.
+    None of these simulator events represent actual Gameforge projectile logs.
+    """
     raw = prediction.get("model_applied_assumptions")
     if not isinstance(raw, list) or not raw:
         raise ValueError("PvP engine assumption ledger is missing")
     if any(not isinstance(item, dict) or not isinstance(item.get("id"), str)
            or not item["id"] for item in raw):
         raise ValueError("PvP engine assumption ledger contains malformed IDs")
-    return sorted({item["id"] for item in raw}), "engine_result.assumptions"
+    ids = {item["id"] for item in raw}
+
+    # Only two Paddle Speedboat→Balloon Carrier target slots are relevant;
+    # the other synthetic First-line fighting is not an observation.
+    events = prediction.get("model_source_damage_events")
+    slots = prediction.get("model_carrier_slots")
+    if not isinstance(events, list) or not isinstance(slots, list):
+        raise ValueError("PvP model carrier target-event or slot ledger missing")
+    carrier_positions = [
+        slot.get("damage_position") for slot in slots
+        if isinstance(slot, dict)
+        and slot.get("unit_id") == "balloon_carrier"
+        and slot.get("line") == "balloon"
+    ]
+    matching = [
+        event for event in events
+        if isinstance(event, dict)
+        and event.get("type") == "damage"
+        and (event.get("details") or {}).get("source_unit_id") == "paddle_speedboat"
+        and (event.get("details") or {}).get("target_unit_id") == "balloon_carrier"
+    ]
+    if not matching or any(
+        not isinstance(event.get("details"), dict)
+        or not isinstance(event["details"].get("assumption_ids"), list)
+        or not event["details"]["assumption_ids"]
+        or any(not isinstance(rule, str) or not rule
+               for rule in event["details"]["assumption_ids"])
+        for event in matching
+    ):
+        raise ValueError("PvP carrier target damage events lack assumption IDs")
+    if any(
+        NAVAL_FAST_CARRIER_FOCUS_ID not in event["details"]["assumption_ids"]
+        for event in matching
+    ):
+        raise ValueError("PvP fitted carrier candidate missing on target event")
+
+    event_positions = [
+        event["details"].get("target_damage_position") for event in matching
+    ]
+    if (
+        len(carrier_positions) != 2
+        or len(set(carrier_positions)) != 2
+        or len(event_positions) != 2
+        or set(event_positions) != set(carrier_positions)
+    ):
+        raise ValueError("PvP carrier target events do not cover both model slots")
+
+    # The emitted union remains full-result diagnostic context, but its
+    # candidate status is only trusted after EVERY scoped event passed.
+    if NAVAL_FAST_CARRIER_FOCUS_ID not in ids:
+        raise ValueError("PvP fitted carrier candidate absent from result ledger")
+    ids.update(
+        rule for event in matching for rule in event["details"]["assumption_ids"]
+    )
+    return sorted(ids), (
+        "engine_result.assumptions+round1_carrier_target_damage_event.assumption_ids"
+    )
 
 
 def _ram_engine_assumptions(prediction: dict[str, Any]) -> tuple[list[str], str]:
