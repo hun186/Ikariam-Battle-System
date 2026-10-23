@@ -124,7 +124,7 @@ def test_invalid_seeded_wounds_and_support_counts_are_rejected(domain):
     with pytest.raises(ValueError, match="nonnegative"):
         audit._seeded_waves(domain, -1, 1)
     with pytest.raises(ValueError, match="exceed surviving"):
-        audit._seeded_waves(domain, 10000, 1)
+        audit._seeded_waves(domain, 12000, 1)
 
 
 def test_negative_mutation_of_real_healing_state_is_detected(monkeypatch):
