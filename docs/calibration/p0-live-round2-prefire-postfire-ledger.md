@@ -8,7 +8,10 @@ All armies are **SYNTHETIC**, not new Gameforge observations, not independent ho
 
 ## Controlled baseline
 
-- Land: `land-max`, defender 410 Hoplites (350 deployed / 60 initial Reserve), 3 Gyrocopters and 3 Swordsmen; attacker 350 Hoplites, 3 Gyros, 3 Swordsmen. Baseline 0 Doctor vs 50 Doctors. This preserves some non-native support and low-HP phase cases alongside actual First-line reserve.
+An initial 410-Hoplite trial had insufficient living Reserve at the R2 pre-volley boundary; initial quantity was increased to 750 while the actual First-line deployed capacity remains 350. The prior test failure is preserved in Hosted CI history. This is scenario calibration, not a changed combat formula.
+
+
+- Land: `land-max`, defender 750 Hoplites (350 deployed / 400 initial Reserve), 3 Gyrocopters and 3 Swordsmen; attacker 350 Hoplites, 3 Gyros, 3 Swordsmen. Baseline 0 Doctor vs 50 Doctors. This preserves some non-native support and low-HP phase cases alongside actual First-line reserve.
 - Navy: `naval-max`, defender 48 Rams (36 deployed / 12 initial Reserve), 35 Steam Rams, Forge5, player Rams ATT20 ARM14; attacker 42 Barbarian Wedge Paddlers and 36 Deckwreckers. Baseline 0 Tender vs 50 Tenders. A 48-Ram configuration is **outside the previously calibrated exact 36-Ram in-sample candidate** and must remain a model-only fallback, not an asserted Gameforge match.
 - Full `simulate()` with max_rounds=2, require actual Round 1 and Round 2 damage events and defender patient volleys in Round 2. Uses a **scoped `unittest.mock.patch.object`** only for research to capture snapshots precisely when existing `_build_damage_queues` starts; the real function executes normally and the patch is restored afterwards.
 - Independently reconcile each Wave's true living count, deployed slot counts and Reserve; first and second-round `casualties` against live wave deltas; global casualty totals; all positive surviving HP, nonnegative Reserve wounds; no R1→R2 resurrection or changed Wave identities. Capture pre-volley snapshot **separately from damage/healing event claims**.
