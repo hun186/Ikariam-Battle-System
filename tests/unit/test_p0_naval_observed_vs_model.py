@@ -3,6 +3,7 @@ import json
 from copy import deepcopy
 
 import pytest
+from tools.research.naval_pvp_fast_carrier_probe import control_case
 from tools.research.naval_ram_empirical_probe import model_one_controlled_round
 from ikariam_battle.accuracy import NAVAL_FAST_CARRIER_FOCUS_ID
 from ikariam_battle.naval_focus import NAVAL_RAM_SHARE_RULE_ID
@@ -58,7 +59,7 @@ def test_six_actual_source_aggregates_match_bounded_in_sample_controls_only():
         )
         assert case["model"]["fitted_candidate_rule_status"] == ASSUMPTION_REPORTED
         assert case["model"]["assumption_evidence_source"] in {
-            "engine_result.assumptions",
+            "engine_result.assumptions+round1_carrier_target_damage_event.assumption_ids",
             "engine_round1_target_damage_event.assumption_ids",
         }
         assert len(case["next_required_evidence"]) >= 3
@@ -73,7 +74,9 @@ def test_pvp_round_one_confirmed_but_original_slot_casualties_not_observed():
         assert case["observed"]["reported_hp_bars_percent"] is None
         assert len(case["model"]["physical_slots_model_only"]) == 2
         assert case["model"]["fitted_candidate_rule_id"] == NAVAL_FAST_CARRIER_FOCUS_ID
-        assert case["model"]["assumption_evidence_source"] == "engine_result.assumptions"
+        assert case["model"]["assumption_evidence_source"] == (
+            "engine_result.assumptions+round1_carrier_target_damage_event.assumption_ids"
+        )
     assert [c["case_id"] for c in cases[:3]] == [
         "pvp_fast_att12_carrier_def8",
         "pvp_fast_att20_carrier_def16",
@@ -215,3 +218,56 @@ def test_ram_candidate_rejects_missing_entire_target_event():
     )
     with pytest.raises(ValueError, match="do not cover all six model slots"):
         audit._ram_engine_assumptions(mutated)
+
+
+def _real_pvp_engine_probe():
+    fixture = json.loads(audit.PVP_FIXTURE.read_text(encoding="utf-8"))
+    item = fixture["observed"][0]
+    return control_case(
+        item,
+        attacker_forge=item["attacker_forge_level"],
+        defender_forge=item["defender_forge_level"],
+    )
+
+
+def test_pvp_candidate_requires_each_of_both_target_events_not_only_global_union():
+    predicted = _real_pvp_engine_probe()
+    events = predicted["model_source_damage_events"]
+    assert len(events) == 2
+    assert sorted(e["details"]["target_damage_position"] for e in events) == [1, 2]
+    assert NAVAL_FAST_CARRIER_FOCUS_ID in audit._pvp_engine_assumptions(predicted)[0]
+    assert all(
+        NAVAL_FAST_CARRIER_FOCUS_ID in e["details"]["assumption_ids"]
+        for e in events
+    )
+
+    mutated = deepcopy(predicted)
+    first = mutated["model_source_damage_events"][0]["details"]
+    first["assumption_ids"] = [
+        rule for rule in first["assumption_ids"]
+        if rule != NAVAL_FAST_CARRIER_FOCUS_ID
+    ]
+    # Other slot AND global scenario ledger still say candidate is active.
+    assert any(
+        item["id"] == NAVAL_FAST_CARRIER_FOCUS_ID
+        for item in mutated["model_applied_assumptions"]
+    )
+    assert NAVAL_FAST_CARRIER_FOCUS_ID in (
+        mutated["model_source_damage_events"][1]["details"]["assumption_ids"]
+    )
+    assert first["assumption_ids"], "the mutated slot still has other rules"
+    with pytest.raises(ValueError, match="candidate missing on target event"):
+        audit._pvp_engine_assumptions(mutated)
+
+
+def test_pvp_candidate_rejects_missing_carrier_target_slot_event():
+    predicted = _real_pvp_engine_probe()
+    mutated = deepcopy(predicted)
+    removed = mutated["model_source_damage_events"].pop()
+    assert NAVAL_FAST_CARRIER_FOCUS_ID in removed["details"]["assumption_ids"]
+    assert any(
+        NAVAL_FAST_CARRIER_FOCUS_ID in e["details"]["assumption_ids"]
+        for e in mutated["model_source_damage_events"]
+    )
+    with pytest.raises(ValueError, match="do not cover both model slots"):
+        audit._pvp_engine_assumptions(mutated)
