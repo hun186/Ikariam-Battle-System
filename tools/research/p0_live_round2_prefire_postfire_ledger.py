@@ -28,9 +28,11 @@ def scenario(domain: str, supporters: int) -> dict:
     if type(supporters) is not int or supporters not in SUPPORT_COUNTS:
         raise ValueError("only the controlled supporter counts 0 and 50 are supported")
     if domain == "land_doctor":
-        # 7x50 land-max First capacity: 410 Hoplites keep 60 in Reserve.
+        # 7x50 land-max First capacity: 750 Hoplites keep 400 in Reserve.
+        # Smaller 410 initial Hoplites exhausted Reserve in R1 during first Hosted
+        # validation, so could not witness a *nonempty* R2 pre-volley Reserve.
         defender = [
-            {"unit_id": "hoplite", "quantity": 410},
+            {"unit_id": "hoplite", "quantity": 750},
             {"unit_id": "gyrocopter", "quantity": 3},
             {"unit_id": "swordsman", "quantity": 3},
         ]
