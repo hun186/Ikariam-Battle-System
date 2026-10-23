@@ -43,10 +43,27 @@ def test_support_is_first_applied_after_round1_but_before_second_volley(domain):
     with_full = audit.live_audit(domain, 50)
     patient = with_full["patient"]
     for side in ("attacker", "defender"):
-        # Adding a support unit must not change the previous round's actual
-        # combat casualties or combat patient wounds on either side.
-        assert (without["witness"][side]["round1_end"]["remaining"]
-                == with_full["witness"][side]["round1_end"]["remaining"]) if side == "attacker" else True
+        # Adding only support units must not change R1 combat Wave identities,
+        # living totals, Reserve, ammo or HP. Compare both sides and exclude
+        # only the newly introduced support unit on the treated defender.
+        support_id = "doctor" if domain == "land_doctor" else "tender"
+        for phase in ("round1_prefire", "round1_end"):
+            baseline = without["witness"][side][phase]
+            treated = with_full["witness"][side][phase]
+            def combat_waves(state):
+                return {
+                    (w["unit_id"], w["wave_id"]): w
+                    for w in state["waves"] if w["unit_id"] != support_id
+                }
+            def combat_slots(state):
+                return {
+                    (s["unit_id"], s["wave_id"], s["slot_id"]): s
+                    for s in state["slots"] if s["unit_id"] != support_id
+                }
+            assert combat_waves(baseline) == combat_waves(treated)
+            assert combat_slots(baseline) == combat_slots(treated)
+        assert (without["witness"][side]["round_1_deaths_per_wave"]
+                == with_full["witness"][side]["round_1_deaths_per_wave"])
     for label in ("round1_end", "round1_prefire"):
         def wounded(case):
             state = case["witness"]["defender"][label]
