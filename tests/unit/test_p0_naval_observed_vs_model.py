@@ -1,7 +1,9 @@
 """Evidence-gap matrix regressions: aggregate fit is not Gameforge proof."""
 import json
+from copy import deepcopy
 
 import pytest
+from tools.research.naval_ram_empirical_probe import model_one_controlled_round
 from ikariam_battle.accuracy import NAVAL_FAST_CARRIER_FOCUS_ID
 from ikariam_battle.naval_focus import NAVAL_RAM_SHARE_RULE_ID
 from tools.research import p0_naval_observed_vs_model as audit
@@ -159,3 +161,57 @@ def test_assumption_extraction_rejects_missing_source_trace():
                 "target_unit_id": "ram_ship", "assumption_ids": [],
             }}
         ]})
+
+
+def test_ram_candidate_must_apply_on_each_target_damage_event_not_union():
+    model = model_one_controlled_round(14, attack_upgrade=20, fill_front=True)
+    actual = [
+        event for event in model["round1_events"]
+        if event["type"] == "damage"
+        and event["details"].get("source_unit_id") == "barbarian_deckwrecker"
+        and event["details"].get("target_unit_id") == "ram_ship"
+    ]
+    assert len(actual) == 6
+    assert sorted(e["details"]["target_damage_position"] for e in actual) == list(range(1, 7))
+    assert all(NAVAL_RAM_SHARE_RULE_ID in e["details"]["assumption_ids"] for e in actual)
+    assert NAVAL_RAM_SHARE_RULE_ID in audit._ram_engine_assumptions(model)[0]
+
+    mutated = deepcopy(model)
+    events = [
+        event for event in mutated["round1_events"]
+        if event["type"] == "damage"
+        and event["details"].get("source_unit_id") == "barbarian_deckwrecker"
+        and event["details"].get("target_unit_id") == "ram_ship"
+    ]
+    first = events[0]["details"]
+    first["assumption_ids"] = [
+        x for x in first["assumption_ids"] if x != NAVAL_RAM_SHARE_RULE_ID
+    ]
+    # Union over the OTHER FIVE events would still contain the candidate.
+    assert any(
+        NAVAL_RAM_SHARE_RULE_ID in e["details"]["assumption_ids"]
+        for e in events[1:]
+    )
+    assert first["assumption_ids"]  # Generic assumption remains, not empty.
+    with pytest.raises(ValueError, match="candidate missing on one or more target events"):
+        audit._ram_engine_assumptions(mutated)
+
+
+def test_ram_candidate_rejects_missing_entire_target_event():
+    model = model_one_controlled_round(14, attack_upgrade=20, fill_front=True)
+    mutated = deepcopy(model)
+    events = mutated["round1_events"]
+    missing = next(
+        e for e in events if e["type"] == "damage"
+        and e["details"].get("source_unit_id") == "barbarian_deckwrecker"
+        and e["details"].get("target_unit_id") == "ram_ship"
+    )
+    events.remove(missing)
+    assert all(
+        NAVAL_RAM_SHARE_RULE_ID in e["details"]["assumption_ids"]
+        for e in events if e["type"] == "damage"
+        and e["details"].get("source_unit_id") == "barbarian_deckwrecker"
+        and e["details"].get("target_unit_id") == "ram_ship"
+    )
+    with pytest.raises(ValueError, match="do not cover all six model slots"):
+        audit._ram_engine_assumptions(mutated)
