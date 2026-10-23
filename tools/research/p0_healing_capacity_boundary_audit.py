@@ -44,8 +44,10 @@ def _seeded_waves(domain: str, injury: int, supporters: int) -> tuple[list[Wave]
     # population, NO Reserve, and a living wound that can be repaired.
     # Eligible wounds are split over two DISTINCT combat state waves.
     a, b = min(2000, injury), max(0, injury - 2000)
+    # A populated surviving slot must have strictly positive remaining HP.
+    # Equality with slot units * HP describes a fatal wound, not living units.
     if domain == "land_doctor":
-        if a > 10 * 360 or b > 2 * 1120:
+        if a >= 10 * 360 or b >= 2 * 1120:
             raise ValueError("seeded land wounds exceed surviving slot HP")
         waves = [
             _patient("swordsman", "swords-with-one-death", "flank", 10, 40, a, 1),
@@ -55,7 +57,7 @@ def _seeded_waves(domain: str, injury: int, supporters: int) -> tuple[list[Wave]
         ]
         return waves, ["swordsman", "hoplite"]
     if domain == "naval_tender":
-        if a > 3 * 3080 or b > 3 * 2800:
+        if a >= 3 * 3080 or b >= 3 * 2800:
             raise ValueError("seeded naval wounds exceed surviving slot HP")
         waves = [
             _patient("ram_ship", "rams-with-one-death", "flank", 3, 3, a, 1),
