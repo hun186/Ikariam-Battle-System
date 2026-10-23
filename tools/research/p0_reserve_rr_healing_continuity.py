@@ -149,18 +149,29 @@ def audit(domain: str, support_count: int, injury: int):
     elif heals or unknowns:
         raise AssertionError("non-healing case emitted support healing")
 
-    # Independent expected RR values: same-Wave reserve count and each of the
-    # two slots each hold EXACTLY 1/4 of the living population after repack,
-    # so total wounds divisible by four allocate exactly 1/4 each.
-    # The odd-damage variant exercises explicit current RR rounding.
-    expected_deployed = 0 if outcome == FULL else ((injury + 2) // 4)
-    expected_reserve = remaining_wounds - 2 * expected_deployed
+    # Independent expected RR values: each slot holds 1/4 and Reserve
+    # holds 1/2 of the same surviving Wave after refill. Existing Experimental
+    # RR rounds the *combined deployed fraction* half-up, then assigns the
+    # remaining indivisible HP by ascending physical damage priority. Thus
+    # odd 5001 HP means 1251 to slot 1, 1250 to slot 2, 2500 to Reserve.
+    # This is current engine behavior, NOT official Gameforge verification.
+    if outcome == FULL:
+        expected_slots = [0, 0]
+    else:
+        whole_per_slot = injury // 4
+        deployed_target = (injury + 1) // 2
+        priority_remainder = deployed_target - 2 * whole_per_slot
+        if not 0 <= priority_remainder <= 2:
+            raise AssertionError("invalid independent RR remainder derivation")
+        expected_slots = [whole_per_slot + min(priority_remainder, 1),
+                          whole_per_slot + max(0, priority_remainder - 1)]
+    expected_reserve = remaining_wounds - sum(expected_slots)
     actual_deployed = [x["damage"] for x in after["slots"]]
-    if (actual_deployed != [expected_deployed] * 2
+    if (actual_deployed != expected_slots
             or after["reserve_damage"] != expected_reserve):
         raise AssertionError(
             f"Round2 RR survivor/Reserve HP mismatch: expected "
-            f"{expected_deployed}/{expected_deployed}/{expected_reserve}, "
+            f"{expected_slots}/{expected_reserve}, "
             f"actual {actual_deployed}/{after['reserve_damage']}"
         )
     rr_events = [
@@ -175,7 +186,7 @@ def audit(domain: str, support_count: int, injury: int):
                 or d.get("reserve_damage") != expected_reserve
                 or d.get("damage_conserved") is not True
                 or d.get("deployed_damage") != {
-                    1: expected_deployed, 2: expected_deployed,
+                    1: expected_slots[0], 2: expected_slots[1],
                 }):
             raise AssertionError("RR event does not reflect actual conserved HP")
     elif rr_events:
