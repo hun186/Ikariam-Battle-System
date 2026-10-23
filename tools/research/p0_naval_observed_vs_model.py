@@ -86,6 +86,38 @@ def _ram_engine_assumptions(prediction: dict[str, Any]) -> tuple[list[str], str]
         for event in events
     ):
         raise ValueError("Ram target damage events lack engine assumption IDs")
+
+    # The union alone can hide a partial fallback: one Ram slot may lose the
+    # bounded pooled rule while another preserves it. Require the candidate
+    # on EVERY actual source-to-target damage event, not merely somewhere.
+    if any(
+        NAVAL_RAM_SHARE_RULE_ID not in event["details"]["assumption_ids"]
+        for event in events
+    ):
+        raise ValueError("Ram fitted candidate missing on one or more target events")
+
+    # Also check that the evidence covers every modelled physical Flank slot;
+    # otherwise dropping a whole candidate-free damage event could make the
+    # remaining events look uniformly fitted. These are synthetic model
+    # addresses, NEVER independently observed Gameforge shot addresses.
+    slots = prediction.get("round1_unit_slots_all_lines", {}).get("defender", [])
+    if not isinstance(slots, list):
+        raise ValueError("Ram modelled target-slot evidence missing")
+    positions = [
+        slot.get("damage_position") for slot in slots
+        if slot.get("unit_id") == "ram_ship" and slot.get("line") == "flank"
+    ]
+    event_positions = [
+        event["details"].get("target_damage_position") for event in events
+    ]
+    if (
+        len(positions) != 6
+        or len(set(positions)) != 6
+        or set(event_positions) != set(positions)
+        or len(event_positions) != 6
+    ):
+        raise ValueError("Ram target damage events do not cover all six model slots")
+
     return sorted({
         assumption for event in events
         for assumption in event["details"]["assumption_ids"]
