@@ -16,7 +16,7 @@ Starts from owner-authorized merged PR #78 and main `3d3cfbc8d513efe4e4cd65059a3
 | Round2 after same-wave refill | 30 + 30, Reserve 60 | 6 + 6, Reserve 12 |
 | Wounds before | Slot1 600 + Slot2 200 + Reserve remaining | Same |
 
-Both resulting slots each hold precisely one-fourth of the same Wave's living population. Without support, the existing provisional RR hypothesis therefore assigns 5000 surviving wounds as 1250 / 1250 / 2500 (slots/Reserve), and 5001 wounds as 1250 / 1250 / 2501. These are **simulator predictions, not observed HP bars**.
+Both resulting slots each hold precisely one-fourth of the same Wave's living population. Without support, the existing provisional RR hypothesis therefore assigns 5000 surviving wounds as 1250 / 1250 / 2500 (slots/Reserve), and 5001 wounds as **1251 / 1250 / 2500**. The odd extra point is allocated to the lowest-numbered damage-priority slot because the existing experimental RR implementation rounds the *combined deployed share* half-up before distributing the integer remainder center-first; it is not left in Reserve. The first Hosted attempt uncovered this erroneous research expectation (5 tests failed, 40 passed), prompting a test/evidence correction, **not** a combat-formula change. These are **simulator predictions, not observed HP bars**.
 
 Per-domain cases: no support + 5000; one supporter + 5000; one supporter + 5001; two supporters + 5000; one supporter + 4000. Insufficient 4000-HP support **does not mean the real game repairs none**: current Experimental must identify unknown partial allocation and refrain from inventing a Gameforge answer. Two supporters fully clear 5000 injury; one supporter fully clears exactly 4000.
 
