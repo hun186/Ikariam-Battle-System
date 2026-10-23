@@ -62,8 +62,15 @@ def test_support_is_first_applied_after_round1_but_before_second_volley(domain):
                 }
             assert combat_waves(baseline) == combat_waves(treated)
             assert combat_slots(baseline) == combat_slots(treated)
-        assert (without["witness"][side]["round_1_deaths_per_wave"]
-                == with_full["witness"][side]["round_1_deaths_per_wave"])
+        # The treated trace includes an extra zero-loss Doctor/Tender Wave;
+        # compare only the same real combat waves, not that new support key.
+        without_losses = without["witness"][side]["round_1_deaths_per_wave"]
+        treated_losses = {
+            key: value
+            for key, value in with_full["witness"][side]["round_1_deaths_per_wave"].items()
+            if key.split("|", 1)[0] != support_id
+        }
+        assert without_losses == treated_losses
     for label in ("round1_end", "round1_prefire"):
         def wounded(case):
             state = case["witness"]["defender"][label]
