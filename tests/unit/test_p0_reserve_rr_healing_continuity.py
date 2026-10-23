@@ -69,14 +69,21 @@ def test_reserve_state_matches_without_support_or_with_unknown_partial(domain):
 
 
 @pytest.mark.parametrize("domain", ("land_doctor", "naval_tender"))
-def test_odd_damage_retains_the_extra_hp_in_reserve(domain):
+def test_odd_damage_remainder_goes_to_first_damage_priority_slot(domain):
     even = probe.audit(domain, 1, 5000)
     odd = probe.audit(domain, 1, 5001)
     assert [s["damage"] for s in even["after"]["slots"]] == [1250, 1250]
-    assert [s["damage"] for s in odd["after"]["slots"]] == [1250, 1250]
-    assert odd["after"]["reserve_damage"] == even["after"]["reserve_damage"] + 1
-    assert even["after"]["reserve_damage"] == 2500
+    # Existing Experimental RR rounds the *combined deployed* share half-up,
+    # then grants the indivisible remainder by damage position, not Reserve.
+    assert [s["damage"] for s in odd["after"]["slots"]] == [1251, 1250]
+    assert even["after"]["reserve_damage"] == odd["after"]["reserve_damage"] == 2500
     assert odd["after"]["total_wounds"] == even["after"]["total_wounds"] + 1
+    rr = [e["details"] for e in odd["events"]
+          if e["type"] == "redistribution" and e["details"].get("rule") == "RR"]
+    assert len(rr) == 1
+    assert rr[0]["deployed_damage"] == {"1": 1251, "2": 1250} or (
+        rr[0]["deployed_damage"] == {1: 1251, 2: 1250}
+    )
 
 
 def test_cross_domain_report_is_deterministic_and_never_claims_holdouts():
