@@ -41,3 +41,12 @@ No Gameforge new observed battle, holdout, or actual individual-hit sequence is 
 ## First Hosted finding and corrected test expectation
 
 Initial Hosted CI discovered the one-Doctor Land control enters **full-clear**, not insufficient-support; four expectation tests failed, while other tests passed. This was a flawed *test premise*, not a production error. The follow-up fixes test expectations to match independently measured Round1 eligible wounds and uses the one-Tender Naval case for adversarial unknown-partial-healing validation. Do not hardcode unsupported Gameforge healing behavior based on either scenario.
+
+## Formal Codex Round 1: two P2 evidence-integrity fixes
+
+The first formal review of source `3b7da7d687d3aac1c80ae487613bcf647e03095f` returned **two real P2 Findings** even though Hosted CI had passed 735 tests:
+
+1. The global cumulative-death check used the *reported global map* as its unit-ID iteration source. If a nonzero unit casualty entry was deleted from that map, the check could silently ignore it. The updated audit independently sums **all** nonnegative per-round casualty entries after the prior per-wave death checks, then compares against the entire nonzero global map. Regression mutations delete a nonzero attacker or defender casualty key without touching R1/R2 records and require rejection.
+2. The prior damage-event guard checked for *any* R1-or-R2 event. This admitted complete disappearance of R1 damage evidence while R2 events survived. The updated guard checks the presence of model damage records **separately for R1 and R2**. Regression mutations delete **all R1 damage events** while retaining R2 and must fail. R2 removal is also explicitly tested.
+
+These are research evidence-integrity fixes, **not** changes to production Gameforge combat rules or historical observations. After the new source HEAD passes exact-head Hosted CI, explicitly reply and resolve both original review threads, then request a **new formal exact-head Codex Review**. Do not treat the old completed review as approval of the new HEAD; keep Draft and do not merge without user authorization.
