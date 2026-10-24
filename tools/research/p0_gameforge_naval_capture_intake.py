@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 from collections import defaultdict
-from itertools import combinations
 import json
 from pathlib import Path
 
@@ -37,7 +36,8 @@ REF_KEYS = frozenset({"round1_end", "round2_prefire", "fleet_setup"})
 CONTEXT_KEYS = frozenset({
     "battlefield_id", "tender_count", "attacker_forge_level", "defender_forge_level",
     "attacker_units", "defender_units", "ram_ship_attack_upgrade",
-    "ram_ship_armor_upgrade", "workshop_details_captured",
+    "ram_ship_armor_upgrade", "steam_ram_attack_upgrade",
+    "steam_ram_armor_upgrade", "workshop_details_captured",
     "reinforcements_between_snapshots", "r2_snapshot_is_prefire",
 })
 OBS_KEYS = frozenset({
@@ -61,6 +61,7 @@ def template() -> dict:
             "attacker_forge_level": None, "defender_forge_level": None,
             "attacker_units": {}, "defender_units": {},
             "ram_ship_attack_upgrade": None, "ram_ship_armor_upgrade": None,
+            "steam_ram_attack_upgrade": None, "steam_ram_armor_upgrade": None,
             "workshop_details_captured": None,
             "reinforcements_between_snapshots": "unknown",
             "r2_snapshot_is_prefire": None,
@@ -91,6 +92,7 @@ def _expected_control_setup() -> dict:
     setup = scenario("naval_tender", 0)
     defender = setup["defender"]
     ram = next(x for x in defender["units"] if x["unit_id"] == "ram_ship")
+    steam = next(x for x in defender["units"] if x["unit_id"] == "steam_ram")
     return {
         "battlefield_id": setup["battlefield"],
         "tender_count": 1,
@@ -106,6 +108,10 @@ def _expected_control_setup() -> dict:
         },
         "ram_ship_attack_upgrade": ram["attack_upgrade"],
         "ram_ship_armor_upgrade": ram["armor_upgrade"],
+        # Absent upgrade keys in the actual control are normalized defaults 0.
+        # Compare both values explicitly; a captured=true boolean is not enough.
+        "steam_ram_attack_upgrade": steam.get("attack_upgrade", 0),
+        "steam_ram_armor_upgrade": steam.get("armor_upgrade", 0),
     }
 
 
@@ -185,8 +191,52 @@ def _valid_observations(raw: list, mode: str, channels: dict,
         results.append({
             "unit_id": uid, "wave_id": wave, "visible_percent": percent,
             "channel_id": mapped if mode == MAPPED else None,
+            "units_alive": alive,
         })
     return results
+
+
+def _unmapped_wave_assignment(observed: list[dict], candidate_ids: list[str],
+                              channels: dict, predictions: dict | None = None,
+                              rounding: str | None = None) -> bool:
+    """Injectively match recorded bars to any *distinct* model Slot in Wave.
+
+    When predictions is None, only test population compatibility. This
+    prevents a forged 999-unit bar from being interpreted as a model percent
+    mismatch, while keeping genuine percent-only hypothesis disagreement
+    conditional rather than misclassifying it as a bad screenshot.
+    """
+    if predictions is not None and rounding not in ROUNDS:
+        raise ValueError("missing globally shared candidate rounding mode")
+    states = {0}
+    for observed_bar in observed:
+        next_states = set()
+        for used in states:
+            for index, cid in enumerate(candidate_ids):
+                if used & (1 << index):
+                    continue
+                required_population = observed_bar["units_alive"]
+                if (required_population is not None and
+                        channels[cid]["simulated_slot_population"] != required_population):
+                    continue
+                if (predictions is not None and
+                        predictions[cid][rounding] != observed_bar["visible_percent"]):
+                    continue
+                next_states.add(used | (1 << index))
+        if not next_states:
+            return False
+        states = next_states
+    return True
+
+
+def _unmapped_groups(observations: list[dict], channels: dict) -> tuple[dict, dict]:
+    observed_by_wave = defaultdict(list)
+    model_by_wave = defaultdict(list)
+    for row in observations:
+        observed_by_wave[row["unit_id"], row["wave_id"]].append(row)
+    for cid, channel in channels.items():
+        model_by_wave[channel["unit_id"], channel["wave_id"]].append(cid)
+    return observed_by_wave, model_by_wave
 
 
 def _matches_case(plan: dict, observations: list, case_id: str,
@@ -196,29 +246,16 @@ def _matches_case(plan: dict, observations: list, case_id: str,
         return any(all(predicted[row["channel_id"]][rounding] == row["visible_percent"]
                        for row in observations) for rounding in modes)
 
-    observed_by_wave = defaultdict(list)
-    model_by_wave = defaultdict(list)
-    for row in observations:
-        observed_by_wave[row["unit_id"], row["wave_id"]].append(row["visible_percent"])
-    for cid, channel in channels.items():
-        model_by_wave[channel["unit_id"], channel["wave_id"]].append(cid)
-    # Unknown physical mapping: each Wave's observed bars may correspond to
-    # ANY subset of its modeled live Slots. Never match the first N by default
-    # and falsely reject a hypothesis if a screenshot was incomplete.
-    for rounding in modes:
-        all_waves_match = True
-        for key, bars in observed_by_wave.items():
-            model_bars = [
-                predicted[cid][rounding] for cid in model_by_wave[key]
-            ]
-            if not any(sorted(picked) == sorted(bars)
-                       for picked in combinations(model_bars, len(bars))):
-                all_waves_match = False
-                break
-        if all_waves_match:
-            return True
-    return False
-
+    observed_by_wave, model_by_wave = _unmapped_groups(observations, channels)
+    # A single rounding mode is used across *all* Waves and all observed
+    # Slot percentages. Partial per-Wave screenshots can map to any distinct
+    # subset, but must preserve each supplied survivor population.
+    return any(
+        all(_unmapped_wave_assignment(rows, model_by_wave[wave], channels,
+                                      predicted, rounding)
+            for wave, rows in observed_by_wave.items())
+        for rounding in modes
+    )
 
 def evaluate_capture(record: dict, plan: dict | None = None) -> dict:
     """Never return an official game-mechanic conclusion, even for matches."""
@@ -288,6 +325,14 @@ def evaluate_capture(record: dict, plan: dict | None = None) -> dict:
         parsed = _valid_observations(observations, mode, channels, refs, errors)
     else:
         parsed = []
+    if mode == UNMAPPED and parsed:
+        groups, model_groups = _unmapped_groups(parsed, channels)
+        for wave, rows in groups.items():
+            if not _unmapped_wave_assignment(rows, model_groups[wave], channels):
+                errors.append(
+                    f"unmapped Wave {wave}: no injective model Slot assignment "
+                    "compatible with supplied living-unit counts"
+                )
     if errors:
         return _out("NOT_COMPARABLE", errors, parsed, None)
     modes = ROUNDS if rounding == ROUND_UNKNOWN else (rounding,)
