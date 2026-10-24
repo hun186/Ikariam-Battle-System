@@ -351,7 +351,7 @@ def main():
         "status": "template" if args.write_template is not None else out["status"],
         "output": str(destination),
     }, ensure_ascii=False))
-    if args.input is not None and out["status"] == "NOT_COMPARABLE":
+    if args.input is not None and out["status"] in ("NOT_COMPARABLE", "INVALID"):
         raise SystemExit(2)
 
 
