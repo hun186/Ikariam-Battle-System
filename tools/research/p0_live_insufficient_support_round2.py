@@ -210,24 +210,43 @@ def live_case(domain: str, supporters: int) -> dict:
     if not source_shots or not sum(e["details"].get("firing_units", 0)
                                    for e in source_shots):
         raise AssertionError("wounded/refilled defender patient did not fire in actual R2")
-    if not any(e["round"] == number and e["type"] == "damage"
-               for e in actual["events"] for number in (1, 2)):
-        raise AssertionError("missing actual R1/R2 damage events")
+    # R1 wounds determine who is eligible for R2 healing. Never accept a
+    # surviving R2 trace as a substitute for missing R1 firing provenance.
+    # Check each round independently rather than using an existential check
+    # over both rounds, which can pass with R1 stripped entirely.
+    for number in (1, 2):
+        if not any(e["round"] == number and e["type"] == "damage"
+                   for e in actual["events"]):
+            raise AssertionError(f"missing actual R{number} damage events")
     defender = transitions["defender"]
     patient_key = patient, "wave-1"
     wound1 = _wave_wounds(defender["after_r1"], patient_key)
     wound2 = _wave_wounds(defender["before_r2"], patient_key)
     if wound1 <= 0:
         raise AssertionError("the controlled combat failed to leave any wounded patient")
-    all_deaths = {
-        side: {unit_id: sum(
-            actual["rounds"][round_no]["casualties"][side].get(unit_id, 0)
-            for round_no in (1, 2))
-            for unit_id in actual["casualties"][side]}
-        for side in ("attacker", "defender")
-    }
-    if all_deaths != actual["casualties"]:
-        raise AssertionError("global casualty tally does not reconcile to R1 and R2")
+    # Construct the expected unit-ID set exclusively from independently
+    # validated R1/R2 per-round casualty ledgers. Iterating keys from the
+    # *global* field would make a deleted global casualty entry invisible.
+    all_deaths = {}
+    for side in ("attacker", "defender"):
+        total = defaultdict(int)
+        for round_no in (1, 2):
+            for unit_id, lost in actual["rounds"][round_no]["casualties"][side].items():
+                if type(lost) is not int or lost < 0:
+                    raise AssertionError("invalid round casualty count")
+                total[unit_id] += lost
+        expected = {uid: lost for uid, lost in total.items() if lost > 0}
+        reported = actual["casualties"][side]
+        if (not isinstance(reported, dict)
+                or any(type(lost) is not int or lost < 0
+                       for lost in reported.values())
+                or {uid: lost for uid, lost in reported.items() if lost > 0}
+                != expected):
+            raise AssertionError(
+                f"{side}: global casualty tally does not reconcile to independently "
+                "validated R1 and R2 unit deaths"
+            )
+        all_deaths[side] = expected
     return {
         "case_id": f"{domain}_support_{supporters}_live_R1_R2",
         "provenance": PROVENANCE, "domain": domain,
