@@ -360,6 +360,14 @@ def live_audit(domain: str, supporters: int) -> dict:
         "round2_patient_firing_event_count": len(fired),
         "patient_round2_firing_units": sum(e["details"].get("firing_units", 0) for e in fired),
         "global_casualties": result["casualties"],
+        "round_casualties": {
+            str(number): result["rounds"][number]["casualties"]
+            for number in (1, 2)
+        },
+        "round_damage_events": [
+            event for event in result["events"]
+            if event["type"] == "damage" and event["round"] in (1, 2)
+        ],
         "witness": transition,
         "round2_support_events": [
             e for e in result["events"]
