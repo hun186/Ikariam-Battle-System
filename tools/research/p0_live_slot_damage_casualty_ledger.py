@@ -208,8 +208,8 @@ def report() -> dict:
             "independent_holdouts": 0,
             "slot_rounds": sum(x["counts"]["concrete_slot_rounds"] for x in cases),
             "slot_deaths": sum(x["counts"]["audited_slot_deaths"] for x in cases),
-            "noncanonical_hp_balances": sum(
-                x["counts"]["model_specific_hp_residuals"] for x in cases
+            "experimental_model_slot_rounds": sum(
+                x["counts"]["experimental_model_slot_rounds"] for x in cases
             ),
         },
         "cases": cases,
