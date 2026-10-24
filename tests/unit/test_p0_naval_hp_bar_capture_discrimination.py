@@ -187,3 +187,68 @@ def test_rejects_fabricated_source_evidence(mutation):
         report["cases"].pop()
     with pytest.raises(AssertionError):
         audit.extract_predictions(report)
+
+
+
+@pytest.mark.parametrize("mutation", [
+    "source_game_observations",
+    "source_independent_holdouts",
+    "source_classification",
+    "source_reference_capacity",
+    "source_partial_heal_report",
+    "baseline_relabelled_actual_game",
+    "hypothesis_relabelled_actual_game",
+    "hypothesis_wrong_policy",
+])
+def test_source_and_per_case_provenance_forgery_is_rejected(mutation):
+    report = prior.build_report()
+    if mutation == "source_game_observations":
+        report["source"]["game_observations"] = 1
+    elif mutation == "source_independent_holdouts":
+        report["source"]["independent_holdouts"] = 1
+    elif mutation == "source_classification":
+        report["source"]["evidence_class"] = "ACTUAL_GAME_OBSERVATION"
+    elif mutation == "source_reference_capacity":
+        report["source"]["model_reference_capacity_hp"] = 5000
+    elif mutation == "source_partial_heal_report":
+        report["source"]["original_model_partial_healing_applied_hp"] = 4000
+    elif mutation == "baseline_relabelled_actual_game":
+        report["cases"][0]["source_evidence"] = "ACTUAL_GAME_OBSERVATION"
+    elif mutation == "hypothesis_relabelled_actual_game":
+        report["cases"][1]["source_evidence"] = "ACTUAL_GAME_OBSERVATION"
+    else:
+        report["cases"][1]["policy"] = "invented_new_game_verified_healing"
+    with pytest.raises(AssertionError, match="provenance"):
+        audit.build_report(report)
+
+
+@pytest.mark.parametrize("mutation", [
+    "reserve_and_alive_increase",
+    "original_wounds_and_healing_increase",
+    "cross_wave_budget_neutral_original_wound_shift",
+])
+def test_changed_starting_wave_baseline_cannot_pass_cross_hypothesis_comparison(mutation):
+    report = prior.build_report()
+    if mutation == "reserve_and_alive_increase":
+        # Per-case Slot/Reserve wound conservation and all active Slot counts
+        # still pass, but a different Reserve population/fleet must not.
+        report["cases"][1]["wave_hp"][0]["reserve"] += 1
+        report["cases"][1]["wave_hp"][0]["alive"] += 1
+    elif mutation == "original_wounds_and_healing_increase":
+        # Per-case remaining-wound conservation is preserved, but the
+        # purported common R1 injury baseline is silently changed.
+        report["cases"][1]["wave_hp"][0]["original_wounds_r1"] += 1
+        report["cases"][1]["wave_hp"][0]["hypothetical_healed_hp"] += 1
+    else:
+        # Budget-neutral coordinated corruption that bypasses even a check
+        # against the declared total 4000 HP. Both Wave balances still add up.
+        case = next(c for c in report["cases"] if c["policy"] ==
+                    "hypothetical_proportional_largest_remainder")
+        healed = [w for w in case["wave_hp"] if w["hypothetical_healed_hp"] > 0]
+        assert len(healed) >= 2
+        healed[0]["original_wounds_r1"] += 1
+        healed[0]["hypothetical_healed_hp"] += 1
+        healed[1]["original_wounds_r1"] -= 1
+        healed[1]["hypothetical_healed_hp"] -= 1
+    with pytest.raises(AssertionError, match="baseline|healing budget"):
+        audit.build_report(report)
