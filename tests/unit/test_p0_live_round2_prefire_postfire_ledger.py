@@ -116,6 +116,105 @@ def test_mutated_second_round_alive_count_is_detected_even_with_unchanged_events
         audit.live_audit("naval_tender", 0)
 
 
+
+
+@pytest.mark.parametrize("domain,unit_id", (
+    ("land_doctor", "gyrocopter"),  # Doctor-ineligible Machine
+    ("land_doctor", "swordsman"),   # Doctor-eligible Human
+    ("naval_tender", "steam_ram"),  # Tender-eligible second ship type
+))
+def test_round2_cross_wave_wounds_detect_valid_but_corrupted_other_unit(
+    domain, unit_id,
+):
+    from ikariam_battle.units import UnitRegistry
+
+    case = audit.live_audit(domain, 50)
+    before = case["witness"]["defender"]["round1_end"]
+    after = deepcopy(case["witness"]["defender"]["round2_prefire"])
+    registry = UnitRegistry.load(include_barbarians=True)
+
+    target = next(slot for slot in after["slots"]
+                  if slot["unit_id"] == unit_id and slot["units"] > 0)
+    hp = registry.get(unit_id).hit_points
+    old_damage = target["damage"]
+    # A locally valid mutation: change wound by one HP and *correctly*
+    # recompute the exported percentage so the independent snapshot validator
+    # does not catch it. Only full per-Wave cross-boundary accounting can.
+    target["damage"] = old_damage + 1 if old_damage + 1 < hp * target["units"] else old_damage - 1
+    assert target["damage"] >= 0 and target["damage"] != old_damage
+    target["hit_points_percent"] = round(
+        100 * (target["units"] * hp - target["damage"])
+        / (target["units"] * hp), 2
+    )
+    audit._validate_snapshot(after, registry, "locally-valid-corruption")
+    with pytest.raises(AssertionError, match="wave wound continuity"):
+        audit._round2_wound_continuity(before, after, registry, domain, "defender", 50)
+
+
+@pytest.mark.parametrize("domain", audit.DOMAINS)
+def test_reserve_wound_drift_detected_when_percent_is_updated(domain):
+    from ikariam_battle.units import UnitRegistry
+
+    case = audit.live_audit(domain, 0)
+    before = case["witness"]["defender"]["round1_end"]
+    after = deepcopy(case["witness"]["defender"]["round2_prefire"])
+    registry = UnitRegistry.load(include_barbarians=True)
+    reserve = next(wave for wave in after["waves"]
+                   if wave["unit_id"] == case["patient"] and wave["reserve"] > 0)
+    hp = registry.get(case["patient"]).hit_points
+    original = reserve["reserve_damage"]
+    reserve["reserve_damage"] = (original + 1
+                                if original + 1 < reserve["reserve"] * hp
+                                else original - 1)
+    assert reserve["reserve_damage"] >= 0 and reserve["reserve_damage"] != original
+    reserve["reserve_hit_points_percent"] = round(
+        100 * (reserve["reserve"] * hp - reserve["reserve_damage"])
+        / (reserve["reserve"] * hp), 2
+    )
+    audit._validate_snapshot(after, registry, "locally-valid-reserve-corruption")
+    with pytest.raises(AssertionError, match="wave wound continuity"):
+        audit._round2_wound_continuity(before, after, registry, domain, "defender", 0)
+
+
+@pytest.mark.parametrize("domain", audit.DOMAINS)
+def test_stale_slot_hp_percent_fails_even_when_within_0_to_100(domain):
+    from ikariam_battle.units import UnitRegistry
+
+    case = audit.live_audit(domain, 0)
+    corrupted = deepcopy(case["witness"]["defender"]["round2_prefire"])
+    slot = next(s for s in corrupted["slots"] if s["unit_id"] == case["patient"])
+    slot["hit_points_percent"] = (
+        91.23 if slot["hit_points_percent"] != 91.23 else 83.21
+    )
+    with pytest.raises(AssertionError, match="stale slot HP percentage"):
+        audit._validate_snapshot(corrupted, UnitRegistry.load(include_barbarians=True),
+                                 "corrupted-slot-percentage")
+
+
+@pytest.mark.parametrize("domain", audit.DOMAINS)
+def test_stale_reserve_percent_and_empty_reserve_percent_fail(domain):
+    from ikariam_battle.units import UnitRegistry
+
+    case = audit.live_audit(domain, 0)
+    state = case["witness"]["defender"]["round2_prefire"]
+    registry = UnitRegistry.load(include_barbarians=True)
+    corrupted = deepcopy(state)
+    patient = next(w for w in corrupted["waves"] if w["unit_id"] == case["patient"])
+    assert patient["reserve"] > 0
+    patient["reserve_hit_points_percent"] = (
+        91.23 if patient["reserve_hit_points_percent"] != 91.23 else 83.21
+    )
+    with pytest.raises(AssertionError, match="stale Reserve HP percentage"):
+        audit._validate_snapshot(corrupted, registry, "bad-reserve-percentage")
+
+    corrupted = deepcopy(state)
+    zero_reserve = next(w for w in corrupted["waves"] if w["reserve"] == 0)
+    assert zero_reserve["reserve_hit_points_percent"] is None
+    zero_reserve["reserve_hit_points_percent"] = 100
+    with pytest.raises(AssertionError, match="stale Reserve HP percentage"):
+        audit._validate_snapshot(corrupted, registry, "phantom-empty-reserve-percentage")
+
+
 def test_scenario_only_allows_explicit_controlled_domains_and_support_counts():
     for domain, amount in (("other", 0), ("land_doctor", 1), ("naval_tender", -1)):
         with pytest.raises(ValueError):
