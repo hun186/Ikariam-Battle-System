@@ -32,11 +32,9 @@ def test_real_round2_fires_and_every_wave_keeps_deaths_and_hp(domain, supporters
                 assert w["wounds_r2_prefire"] == 0
 
 
-@pytest.mark.parametrize("domain, expected_unknown_rule", [
-    ("land_doctor", "UNKNOWN-HEALING-ALLOCATION"),
-    ("naval_tender", "UNKNOWN-TENDER-HEALING-ALLOCATION"),
-])
-def test_under_capacity_uses_explicit_unknown_not_fake_heal(domain, expected_unknown_rule):
+def test_naval_under_capacity_uses_explicit_unknown_not_fake_heal():
+    domain = "naval_tender"
+    expected_unknown_rule = "UNKNOWN-TENDER-HEALING-ALLOCATION"
     case = audit.live_case(domain, 1)
     boundary = case["transitions"]["defender"]["boundary"]
     assert boundary["outcome"] == audit.INSUFFICIENT
@@ -53,8 +51,22 @@ def test_under_capacity_uses_explicit_unknown_not_fake_heal(domain, expected_unk
                for e in case["round2_patient_grouped_damage_events"])
 
 
-def _boundary_case():
+
+def test_one_doctor_really_full_clears_land_round1_wounds():
     case = audit.live_case("land_doctor", 1)
+    boundary = case["transitions"]["defender"]["boundary"]
+    assert boundary["outcome"] == audit.FULL
+    assert 0 < boundary["eligible_wounds_at_r1_end"] <= 4000
+    assert boundary["actual_applied_heal_hp"] == boundary["eligible_wounds_at_r1_end"]
+    assert case["round2_real_patient_firing"] is True
+    assert case["round2_prefire_patient_wounds"] == 0
+    assert any(e["type"] == "healing" for e in boundary["support_events"])
+    assert not any(e["type"] == "healing_allocation_unresolved"
+                   for e in boundary["support_events"])
+
+
+def _boundary_case(domain="naval_tender"):
+    case = audit.live_case(domain, 1)
     w = case["transitions"]["defender"]
     return (
         deepcopy(w["after_r1"]),
@@ -70,7 +82,7 @@ def test_corrupted_wound_after_unknown_partial_support_is_rejected():
     eligible["reserve_damage"] += 1
     with pytest.raises(AssertionError, match="wound drift"):
         audit.reconcile_round_boundary(
-            before, after, domain="land_doctor", side="defender",
+            before, after, domain="naval_tender", side="defender",
             supporters=1, capacity_per_supporter=4000,
             events=events, registry=registry
         )
@@ -83,7 +95,7 @@ def test_false_success_healing_event_cannot_mask_unknown_boundary():
     events.append(forged)
     with pytest.raises(AssertionError, match="unknown partial heal was turned"):
         audit.reconcile_round_boundary(
-            before, after, domain="land_doctor", side="defender",
+            before, after, domain="naval_tender", side="defender",
             supporters=1, capacity_per_supporter=4000,
             events=events, registry=registry
         )
@@ -95,7 +107,7 @@ def test_unknown_support_event_must_match_independent_eligible_damage():
     unresolved["details"]["eligible_damage"] -= 1
     with pytest.raises(AssertionError, match="warning mismatches"):
         audit.reconcile_round_boundary(
-            before, after, domain="land_doctor", side="defender",
+            before, after, domain="naval_tender", side="defender",
             supporters=1, capacity_per_supporter=4000,
             events=events, registry=registry
         )
@@ -107,7 +119,7 @@ def test_support_cannot_restore_previous_dead_units_at_round_start():
     hoplite["alive"] += 1
     with pytest.raises(AssertionError, match="illegally added/removed living"):
         audit.reconcile_round_boundary(
-            before, after, domain="land_doctor", side="defender",
+            before, after, domain="naval_tender", side="defender",
             supporters=1, capacity_per_supporter=4000,
             events=events, registry=registry
         )
@@ -117,8 +129,8 @@ def test_full_report_scenarios_have_provenance_and_mandatory_csv_case_identity()
     data = audit.report()
     assert data["summary"]["synthetic_cases"] == 6
     assert data["summary"]["with_R2_firing"] == 6
-    assert data["summary"]["insufficient_support_cases"] == 2
-    assert data["summary"]["full_clear_cases"] == 2
+    assert data["summary"]["insufficient_support_cases"] == 1
+    assert data["summary"]["full_clear_cases"] == 3
     assert data["summary"]["new_game_observations"] == 0
     assert data["summary"]["independent_game_holdouts"] == 0
     assert data == audit.report()
@@ -135,6 +147,8 @@ def test_full_report_scenarios_have_provenance_and_mandatory_csv_case_identity()
         assert json.loads(row["r2_patient_grouped_shots_json"])
         assert json.loads(row["per_wave_round_boundary_json"])
         events = json.loads(row["support_event_evidence_json"])
-        if row["supporters"] == 1:
+        if row["supporters"] == 1 and row["domain"] == "naval_tender":
             assert any(e["type"] == "healing_allocation_unresolved"
                        for e in events)
+        if row["supporters"] == 1 and row["domain"] == "land_doctor":
+            assert any(e["type"] == "healing" for e in events)
