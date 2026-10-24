@@ -20,8 +20,8 @@ def _synthetic_test_record(*, mapping=intake.MAPPED, percent_mode="floor"):
             "fleet_setup": "TEST_ONLY_SETUP",
         },
         "context": {
-            "battlefield_id": "naval-medium", "tender_count": 1,
-            "forge_level": 0, "workshop_details_captured": True,
+            **intake._expected_control_setup(),
+            "workshop_details_captured": True,
             "reinforcements_between_snapshots": "none",
             "r2_snapshot_is_prefire": True,
         },
@@ -102,7 +102,8 @@ def test_unmapped_partial_bars_allow_any_model_slot_subset():
 
 @pytest.mark.parametrize("patch", [
     "missing_ref", "duplicated_ref", "wrong_stage", "future_r2", "bad_tender",
-    "unknown_forge", "unknown_workshop", "reinforcements", "unasserted_equivalence",
+    "unknown_forge", "wrong_attacker_forge", "wrong_battlefield", "wrong_initial_fleet",
+    "wrong_ram_workshop", "unknown_workshop", "reinforcements", "unasserted_equivalence",
     "wrong_source", "duplicate_slot", "negative_bar", "boolean_bar",
     "wrong_slot_population", "invented_slot", "foreign_wave",
     "hidden_address_with_unmapped_mode", "extra_official_proof_field",
@@ -121,7 +122,15 @@ def test_reject_unverified_or_incompatible_observation(patch):
     elif patch == "bad_tender":
         data["context"]["tender_count"] = 2
     elif patch == "unknown_forge":
-        data["context"]["forge_level"] = None
+        data["context"]["defender_forge_level"] = None
+    elif patch == "wrong_attacker_forge":
+        data["context"]["attacker_forge_level"] = 5
+    elif patch == "wrong_battlefield":
+        data["context"]["battlefield_id"] = "naval-small"
+    elif patch == "wrong_initial_fleet":
+        data["context"]["defender_units"]["ram_ship"] += 1
+    elif patch == "wrong_ram_workshop":
+        data["context"]["ram_ship_attack_upgrade"] += 1
     elif patch == "unknown_workshop":
         data["context"]["workshop_details_captured"] = False
     elif patch == "reinforcements":
