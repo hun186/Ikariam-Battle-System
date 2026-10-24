@@ -41,30 +41,67 @@ def _channel_id(uid: str, wave_id: str, position: int) -> str:
 
 def extract_predictions(report: dict) -> tuple[list[str], dict[str, dict], dict[str, dict]]:
     """Validate report provenance and all common population/HP denominators."""
+    # Do not re-label an injected real-game claim as synthetic on export.
+    # Require the ENTIRE upstream report's provenance (not just summary),
+    # and each individual case's evidence class, before deriving any bars.
+    source, summary = report.get("source"), report.get("summary")
+    expected_source = {
+        "case_id": "naval_tender_support_1_live_R1_R2",
+        "evidence_class": previous.prior.LIVE_PROVENANCE,
+        "source_run_rounds": 2,
+        "game_observations": 0,
+        "independent_holdouts": 0,
+        "tender_count": 1,
+        "model_reference_capacity_hp": previous.prior.SupportProfile.load().derived_capacity,
+        "original_model_partial_healing_applied_hp": 0,
+        "unknown_original_game_rule": previous.prior.PENDING,
+    }
+    expected_cases = [
+        ("model_current_no_partial_healing_R2_prefire",
+         previous.prior.POLICIES[0], "original_engine_fallback",
+         previous.prior.LIVE_PROVENANCE),
+    ] + [
+        (f"{policy}__{ordering}", policy, ordering, previous.PROVENANCE)
+        for policy in previous.PRIORITIES for ordering in previous.ORDERS
+    ]
     if (report.get("classification") != previous.PROVENANCE
-            or report.get("summary", {}).get("novel_game_observations") != 0
-            or report.get("summary", {}).get("independent_holdouts") != 0
-            or report.get("summary", {}).get("game_mechanic_verified") is not False
-            or report.get("source", {}).get("unknown_original_game_rule")
-            != previous.prior.PENDING):
-        raise AssertionError("source is not the classified unverified PR #85 model")
-    cases = report["cases"]
-    expected_count = 1 + len(previous.PRIORITIES) * len(previous.ORDERS)
-    if len(cases) != expected_count:
+            or not isinstance(source, dict)
+            or any(type(source.get(key)) is not type(value)
+                   or source.get(key) != value
+                   for key, value in expected_source.items())
+            or not isinstance(summary, dict)
+            or summary.get("novel_game_observations") != 0
+            or type(summary.get("novel_game_observations")) is not int
+            or summary.get("independent_holdouts") != 0
+            or type(summary.get("independent_holdouts")) is not int
+            or summary.get("game_mechanic_verified") is not False
+            or type(summary.get("comparisons")) is not int
+            or summary.get("comparisons") != len(expected_cases)
+            or type(summary.get("hypothetical_comparisons")) is not int
+            or summary.get("hypothetical_comparisons") != len(expected_cases) - 1):
+        raise AssertionError("contradictory source-level evidence provenance")
+    cases = report.get("cases")
+    if not isinstance(cases, list) or len(cases) != len(expected_cases):
         raise AssertionError("model case set changed")
     registry = UnitRegistry.load(include_barbarians=True)
     frames = {}
     common = None
-    for case in cases:
+    baseline_waves = None
+    for case, (expected_id, expected_policy, expected_order, expected_provenance) in zip(
+            cases, expected_cases):
         case_id = case["case_id"]
-        if (not isinstance(case_id, str) or not case_id
-                or case_id in frames
+        if (case_id != expected_id
+                or case.get("policy") != expected_policy
+                or case.get("ordering_hypothesis") != expected_order
+                or case.get("source_evidence") != expected_provenance
                 or case.get("game_mechanic_verified") is not False
                 or case.get("actual_changed_R2_combat_executed") is not False):
-            raise AssertionError("duplicate identity or forged case verification")
+            raise AssertionError("contradictory per-case evidence provenance")
         frame = {}
         populations = {}
         seen_waves = set()
+        wave_baselines = {}
+        accounted_healing = 0
         for wave in case["wave_hp"]:
             wkey = (wave["unit_id"], wave["wave_id"])
             if wkey in seen_waves:
@@ -76,10 +113,16 @@ def extract_predictions(report: dict) -> tuple[list[str], dict[str, dict], dict[
             original = _nonnegative(wave["original_wounds_r1"], "original wound")
             remaining = _nonnegative(wave["hypothetical_remaining_wounds"], "remaining wound")
             healed = _nonnegative(wave["hypothetical_healed_hp"], "heal")
+            alive = _nonnegative(wave["alive"], "alive units")
+            accounted_healing += healed
             if original != remaining + healed:
                 raise AssertionError("Wave healed HP not conserved")
             reserve_wounds = _nonnegative(wave["reserve_wounds"], "reserve wound")
             reserve = _nonnegative(wave["reserve"], "reserve units")
+            # These are common *original* conditions for every hypothesis.
+            # Checking only active Slot counts loses Reserve units and prior
+            # R1 wound budgets, allowing invented cross-case fleets to pass.
+            wave_baselines[wkey] = (alive, reserve, original)
             if reserve_wounds >= max(1, reserve * hp):
                 raise AssertionError("Reserve surviving HP invalid")
             if reserve == 0 and reserve_wounds:
@@ -119,14 +162,25 @@ def extract_predictions(report: dict) -> tuple[list[str], dict[str, dict], dict[
                         },
                     }
                     populations[cid] = (slot["slot_id"], units, full_hp)
-            if summed != remaining or living != wave["alive"]:
+            if summed != remaining or living != alive:
                 raise AssertionError("case Wave HP or surviving population drift")
+        expected_healing = (
+            0 if case_id == expected_cases[0][0]
+            else expected_source["model_reference_capacity_hp"]
+        )
+        if (_nonnegative(case.get("total_hypothetical_heal_hp"), "case healing")
+                != accounted_healing or accounted_healing != expected_healing):
+            raise AssertionError("source case healing budget changed")
         if not frame:
             raise AssertionError("no visible model Slot HP to discriminate")
         if common is None:
             common = populations
-        elif populations != common:
-            raise AssertionError("hypotheses have incompatible physical Slot topology")
+            baseline_waves = wave_baselines
+        else:
+            if populations != common:
+                raise AssertionError("hypotheses have incompatible physical Slot topology")
+            if wave_baselines != baseline_waves:
+                raise AssertionError("hypotheses changed original Wave survivor/Reserve/wound baseline")
         frames[case_id] = frame
     ids = sorted(common)
     return ids, frames, {
