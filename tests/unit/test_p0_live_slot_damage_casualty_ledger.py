@@ -133,6 +133,86 @@ def test_nonsequential_model_label_never_claims_sequential_hp_truth():
 
 
 
+
+def test_grouped_hit_assumptions_and_pooled_diagnostics_survive_json_evidence():
+    import json
+
+    evidence = audit.report()
+    naval = [case for case in evidence["cases"] if case["domain"] == "naval_tender"]
+    assert len(naval) == 2
+    found_experiment_ids = set()
+    for case in evidence["cases"]:
+        for row in case["rows"]:
+            source_events = row["grouped_damage_events"]
+            assert len(source_events) == row["grouped_event_count"]
+            expected_ids = sorted({
+                assumption
+                for event in source_events
+                for assumption in event["details"].get("assumption_ids", [])
+            })
+            assert row["assumption_ids"] == expected_ids
+            for event in source_events:
+                detail = event["details"]
+                assert detail["target_side"] == row["side"]
+                assert detail["target_unit_id"] == row["unit_id"]
+                assert detail["target_wave"] == row["wave_id"]
+                assert detail["target_slot"] == row["slot_id"]
+                assert detail["target_damage_position"] == row["damage_position"]
+            if case["domain"] == "naval_tender":
+                found_experiment_ids.update(expected_ids)
+    # The two naval sub-hypotheses share a resolution label; the evidence
+    # must retain their *different* specific IDs for downstream audit.
+    assert "EXP-NAVAL-RAM-FOCUS-SHARE-001" in found_experiment_ids
+    assert "EXP-NAVAL-DECK-OVERKILL-RETAIN-001" in found_experiment_ids
+
+
+def test_csv_rows_carry_case_support_settings_and_full_event_provenance():
+    import json
+
+    evidence = audit.report()
+    flattened = audit.csv_rows(evidence)
+    assert len(flattened) == evidence["summary"]["slot_rounds"]
+    assert len({row["case_id"] for row in flattened}) == 4
+    assert {row["domain"] for row in flattened} == {"land_doctor", "naval_tender"}
+    assert {row["supporters"] for row in flattened} == {0, 50}
+    assert all(row["provenance"] == audit.PROVENANCE
+               and row["real_game_observations"] == 0
+               and row["independent_game_holdouts"] == 0
+               for row in flattened)
+    keys = [
+        (row["case_id"], row["side"], row["round"],
+         row["unit_id"], row["wave_id"], row["slot_id"])
+        for row in flattened
+    ]
+    assert len(keys) == len(set(keys))
+    # Real same-side, same-wave, same-slot keys recur across two experiments,
+    # but full scenario-qualified keys must never collide.
+    unqualified = [key[1:] for key in keys]
+    assert len(set(unqualified)) < len(unqualified)
+    case_map = {case["case_id"]: case for case in evidence["cases"]}
+    for row in flattened:
+        parent = case_map[row["case_id"]]
+        assert row["domain"] == parent["domain"]
+        assert row["supporters"] == parent["supporters"]
+        matching = next(slot for slot in parent["rows"]
+                        if (slot["side"], slot["round"], slot["unit_id"],
+                            slot["wave_id"], slot["slot_id"]) ==
+                        (row["side"], row["round"], row["unit_id"],
+                         row["wave_id"], row["slot_id"]))
+        assert json.loads(row["grouped_damage_events_json"]) == json.loads(
+            json.dumps(matching["grouped_damage_events"])
+        )
+        assert json.loads(row["assumption_ids_json"]) == matching["assumption_ids"]
+        assert json.loads(row["resolutions_json"]) == matching["resolutions"]
+
+
+def test_export_rejects_duplicate_scenario_slot_rows():
+    data = audit.report()
+    data["cases"].append(deepcopy(data["cases"][0]))
+    with pytest.raises(AssertionError, match="duplicate scenario-specific Slot"):
+        audit.csv_rows(data)
+
+
 def test_invalid_side_or_round_is_rejected():
     registry = UnitRegistry.load(include_barbarians=True)
     with pytest.raises(ValueError):
