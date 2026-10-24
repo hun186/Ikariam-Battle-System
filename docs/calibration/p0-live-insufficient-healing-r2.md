@@ -4,7 +4,7 @@
 
 Starts at owner-authorized merged [PR #82](https://github.com/hun186/Ikariam-Battle-System/pull/82) from Hosted `main` `6a0aebcb59bd3ba3dbeefc498d1cbd0c653047eb`. This work only extends **research, tests, CI and evidence**, with no modifications to the executable production battle formula, Gameforge accuracy, target concentration, RR or partial healing allocation.
 
-Earlier PRs #78–#81 independently checked isolated boundary/support capacity and *actual* R1-to-R2 synthetic shooting **without support (0)** and **with abundant support (50)**. A crucial missing full-round control was **1 Doctor/Tender whose 4000 HP nominal capacity cannot repair all R1 wounds**: the simulator currently proceeds under explicitly named Experimental **no-partial-applied** fallback, but that is *NOT* a claim that the real game did not heal.
+Earlier PRs #78–#81 independently checked isolated boundary/support capacity and *actual* R1-to-R2 synthetic shooting **without support (0)** and **with abundant support (50)**. A crucial missing full-round control was **1 Doctor/Tender versus its actual R1 eligible wounds**: with the current invented Land armies, one 4000-HP Doctor **already covers all** eligible survivor wounds, whereas in the invented Naval armies one 4000-HP Tender **does not**. The naval shortfall leads to the explicitly named Experimental **no-partial-applied** fallback, which does *NOT* mean the real game repaired nobody. The difference was observed in first Hosted tests and is preserved instead of altering combat data to force a predicted outcome.
 
 ## What the new real simulate() audit does
 
@@ -15,10 +15,11 @@ For every Wave at the R1-end → R2-prefire transition, derive eligible human co
 | Support level | Capacity vs eligible Round1 survivor wounds | Current Experimental output, not official game result |
 | --- | --- | --- |
 | 0 | zero | Preserve every Wave's wounds; no support events |
-| 1 | if eligible total exceeds 4000 HP | Named `healing_allocation_unresolved` event and `EXP-HEAL-NONE-001` / `EXP-TENDER-HEAL-NONE-001`; **no invented partial healing**, wounds unchanged through existing RR |
+| 1 Doctor (Land) | eligible wounds at most 4000 HP in this actual controlled R1 result | **Full-clear** supported subset; Round2 still fires; no fabricated UNKNOWN |
+| 1 Tender (Naval) | eligible wounds exceed 4000 HP in this actual controlled R1 result | Named `healing_allocation_unresolved` and `EXP-TENDER-HEAL-NONE-001`; **no invented partial healing**; wounds unchanged through current RR fallback |
 | 50 | capacity 200000 HP and sufficient for controlled cases | Full healing of eligible surviving wounds; not resurrection; machine Gyrocopter remains unhealed |
 
-Support cases must produce identical pre-healing Round1 combat-wave wounds and casualties. For insufficient support, the second-round prefire **combative** wounds must equal the no-support control (model behavior only); for abundant support, only eligible Wave persistent wounds may clear. In all cases, R2 fire executes, and previous dead units remain dead. Corruption tests flip a living count, per-Wave wound HP, an unresolved event into a fake healing event, or event-reported eligible damage: all must be rejected.
+Support cases must produce identical pre-healing Round1 combat-wave wounds and casualties. For insufficient Tender capacity, the second-round prefire **combative** wounds must equal the no-support control (model behavior only); for the sufficient single Doctor or abundant 50 supporters, only eligible Wave persistent wounds may clear. In all cases, R2 fire executes, and previous dead units remain dead. Corruption tests flip a living count, per-Wave wound HP, an unresolved event into a fake healing event, or event-reported eligible damage: all must be rejected.
 
 Structured JSON and CSV evidence preserve the case identity, domain, support count and capacity, exact pre/post R2 Wave/Slot/Reserve numeric state, Round2 source damage-event groups, healing/unknown/redistribution events and source assumptions. Research output is marked as **SYNTHETIC_REAL_SIMULATE_R1_R2_PARTIAL_HEAL_UNKNOWN_NOT_GAME_OBSERVATION**.
 
@@ -36,3 +37,7 @@ Hosted exact-head CI runs focused support/wound tests, full regression, Python c
 ## Remaining scientific unknowns
 
 No Gameforge new observed battle, holdout, or actual individual-hit sequence is supplied. A real game could partially heal with capacity insufficient; how that capacity is assigned across wounded individuals, any true Healing-versus-RR order, Gameforge's per-slot focus/overkill/Accuracy, and original naval 53%/65% vs current model 57%/69% remain **unverified**. Do not replace strict UNKNOWN gates or production algorithms based solely on the controlled 0/1/50 comparison. Keep Issue #73 OPEN.
+
+## First Hosted finding and corrected test expectation
+
+Initial Hosted CI discovered the one-Doctor Land control enters **full-clear**, not insufficient-support; four expectation tests failed, while other tests passed. This was a flawed *test premise*, not a production error. The follow-up fixes test expectations to match independently measured Round1 eligible wounds and uses the one-Tender Naval case for adversarial unknown-partial-healing validation. Do not hardcode unsupported Gameforge healing behavior based on either scenario.
