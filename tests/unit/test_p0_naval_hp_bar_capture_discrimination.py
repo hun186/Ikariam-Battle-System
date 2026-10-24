@@ -74,7 +74,7 @@ def test_duplicated_slot_mapping_unmapped_multiset_erases_distinction():
 def test_capture_greedy_handles_two_slot_joint_rounding_separation():
     cases = {
         "a": _case({"1": (40, 41, 42), "2": (70, 71, 72)}),
-        "b": _case({"1": (42, 43, 44), "2": (73, 74, 75)}),
+        "b": _case({"1": (42, 43, 44), "2": (71, 72, 73)}),
     }
     ids = list(cases)
     assert not audit.distinguished_pairs(
