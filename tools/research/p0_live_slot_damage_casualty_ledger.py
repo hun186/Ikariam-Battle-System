@@ -124,8 +124,11 @@ def reconcile_round(side: str, round_number: int, before: dict, after: dict,
             "hp_balance_residual": hp_residual,
             "grouped_event_count": len(entries),
             "resolutions": resolutions,
+            # Even an accidental zero residual in a bounded pooled /
+            # model-specific override must not be certified as a validated
+            # sequential per-shot ledger.
             "balance_status": (
-                EXACT if not hp_residual else EXPERIMENTAL_EXEMPT
+                EXPERIMENTAL_EXEMPT if overrides else EXACT
             ),
             "independent_game_holdout": False,
         })
@@ -136,10 +139,12 @@ def reconcile_round(side: str, round_number: int, before: dict, after: dict,
     total_by_unit = defaultdict(int)
     for row in result:
         total_by_unit[row["unit_id"]] += row["dead"]
+    if "_round_casualties" not in after or not isinstance(after["_round_casualties"], dict):
+        raise AssertionError("required independent round unit casualty totals missing")
     declared = {
-        k: v for k, v in after.get("_round_casualties", {}).items() if v
+        k: v for k, v in after["_round_casualties"].items() if v
     }
-    if declared and {
+    if {
         k: v for k, v in total_by_unit.items() if v
     } != declared:
         raise AssertionError("per-slot deaths disagree with round unit totals")
@@ -177,7 +182,7 @@ def slot_case(domain: str, supporters: int) -> dict:
             "concrete_slot_rounds": len(rows),
             "grouped_damage_events": sum(row["grouped_event_count"] for row in rows),
             "audited_slot_deaths": sum(row["dead"] for row in rows),
-            "model_specific_hp_residuals": sum(
+            "experimental_model_slot_rounds": sum(
                 row["balance_status"] == EXPERIMENTAL_EXEMPT for row in rows
             ),
         },
