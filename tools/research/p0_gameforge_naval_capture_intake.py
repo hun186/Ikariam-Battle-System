@@ -14,6 +14,7 @@ import json
 from pathlib import Path
 
 from tools.research import p0_naval_hp_bar_capture_discrimination as model
+from tools.research.p0_live_round2_prefire_postfire_ledger import scenario
 
 SCHEMA = "p0_gameforge_naval_r1_r2_capture_intake_v1"
 USER_TRANSCRIPTION = "user_transcribed_unverified"
@@ -34,7 +35,9 @@ TOP_KEYS = frozenset({
 })
 REF_KEYS = frozenset({"round1_end", "round2_prefire", "fleet_setup"})
 CONTEXT_KEYS = frozenset({
-    "battlefield_id", "tender_count", "forge_level", "workshop_details_captured",
+    "battlefield_id", "tender_count", "attacker_forge_level", "defender_forge_level",
+    "attacker_units", "defender_units", "ram_ship_attack_upgrade",
+    "ram_ship_armor_upgrade", "workshop_details_captured",
     "reinforcements_between_snapshots", "r2_snapshot_is_prefire",
 })
 OBS_KEYS = frozenset({
@@ -55,7 +58,10 @@ def template() -> dict:
         "source_refs": {"round1_end": "", "round2_prefire": "", "fleet_setup": ""},
         "context": {
             "battlefield_id": None, "tender_count": None,
-            "forge_level": None, "workshop_details_captured": None,
+            "attacker_forge_level": None, "defender_forge_level": None,
+            "attacker_units": {}, "defender_units": {},
+            "ram_ship_attack_upgrade": None, "ram_ship_armor_upgrade": None,
+            "workshop_details_captured": None,
             "reinforcements_between_snapshots": "unknown",
             "r2_snapshot_is_prefire": None,
         },
@@ -78,6 +84,29 @@ def _bad_keys(value, expected: frozenset, name: str, errors: list):
     if unexpected:
         errors.append(f"{name} unknown or forbidden fields: {unexpected}")
     return not unexpected
+
+
+def _expected_control_setup() -> dict:
+    """Read true original synthetic R1 configuration; never invent a proxy."""
+    setup = scenario("naval_tender", 0)
+    defender = setup["defender"]
+    ram = next(x for x in defender["units"] if x["unit_id"] == "ram_ship")
+    return {
+        "battlefield_id": setup["battlefield"],
+        "tender_count": 1,
+        "attacker_forge_level": setup["attacker"]["forge_level"],
+        "defender_forge_level": defender["forge_level"],
+        "attacker_units": {
+            unit["unit_id"]: unit["quantity"]
+            for unit in setup["attacker"]["units"]
+        },
+        "defender_units": {
+            **{unit["unit_id"]: unit["quantity"] for unit in defender["units"]},
+            "tender": 1,
+        },
+        "ram_ship_attack_upgrade": ram["attack_upgrade"],
+        "ram_ship_armor_upgrade": ram["armor_upgrade"],
+    }
 
 
 def _model_plan() -> tuple[dict, dict]:
@@ -220,16 +249,15 @@ def evaluate_capture(record: dict, plan: dict | None = None) -> dict:
         refs = {}
     context = record.get("context")
     if _bad_keys(context, CONTEXT_KEYS, "context", errors):
-        if context.get("battlefield_id") not in NAVAL_FIELDS:
-            errors.append("must identify one supported naval battlefield")
-        count = context.get("tender_count")
-        if type(count) is not int or count < 0:
-            errors.append("tender_count must be a nonnegative integer")
-        if count != 1:
-            errors.append("this synthetic research comparison requires exactly 1 Tender")
-        forge = context.get("forge_level")
-        if type(forge) is not int or not 0 <= forge <= 5:
-            errors.append("forge_level must be explicitly known as integer 0..5")
+        # The previous research had a SPECIFIC artificial battle, NOT just
+        # an interchangeable naval fleet with one support vessel. Reject
+        # different configurations rather than telling owners their real
+        # battle falsifies the original synthetic hypotheses.
+        expected = _expected_control_setup()
+        for key, expected_value in expected.items():
+            value = context.get(key)
+            if type(value) is not type(expected_value) or value != expected_value:
+                errors.append(f"context.{key} differs from synthetic source setup; no direct model screen")
         if context.get("workshop_details_captured") is not True:
             errors.append("workshop details must be documented before model screening")
         if context.get("reinforcements_between_snapshots") != "none":
@@ -292,7 +320,8 @@ def _out(status: str, errors: list, observations: list, comparison: dict | None)
         "conditional_model_comparison": comparison,
         "limitations": [
             "Source references are user-supplied strings, NOT verified image files or independently confirmed real Gameforge events.",
-            "Fleet equivalence, per-Wave mapping, percent denominator and model-to-game Slot addresses are assumptions even if submitter asserts them.",
+            "Even a matching manually reported synthetic fleet/upgrade setup does NOT verify actual screenshot contents, Wave mapping or game equivalence.",
+            "Per-Wave mapping, percent denominator and model-to-game Slot addresses remain unverified assumptions.",
             "A model bar match is NOT evidence of actual Gameforge healing allocation, RR timing, or combat targeting.",
             "Past 53%/65% Carrier sample is unrelated to this synthetic Tender=1 scenario.",
         ],
