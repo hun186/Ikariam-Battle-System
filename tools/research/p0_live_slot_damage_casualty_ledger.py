@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 from collections import defaultdict
+from copy import deepcopy
 import csv
 import json
 from pathlib import Path
@@ -103,6 +104,14 @@ def reconcile_round(side: str, round_number: int, before: dict, after: dict,
         )
         resolutions = sorted({str(e.get("details", {}).get("resolution"))
                               for e in entries})
+        # Preserve exact source-event provenance, not merely the collapsed
+        # resolution label: different bounded naval hypotheses share one
+        # naval_bounded_empirical_focus_pool resolution.
+        hypothesis_ids = sorted({
+            assumption
+            for event in entries
+            for assumption in event["details"].get("assumption_ids", [])
+        })
         overrides = [x for x in resolutions if x != BASELINE_RESOLUTION]
         if hp_residual and not overrides:
             raise AssertionError(
@@ -124,6 +133,11 @@ def reconcile_round(side: str, round_number: int, before: dict, after: dict,
             "hp_balance_residual": hp_residual,
             "grouped_event_count": len(entries),
             "resolutions": resolutions,
+            "assumption_ids": hypothesis_ids,
+            # Full untouched grouped source events (including source_unit_id,
+            # assumption_ids, pooled allocation diagnostics, phase and
+            # targeting metadata) enable downstream falsification.
+            "grouped_damage_events": deepcopy(entries),
             # Even an accidental zero residual in a bounded pooled /
             # model-specific override must not be certified as a validated
             # sequential per-shot ledger.
@@ -216,6 +230,48 @@ def report() -> dict:
     }
 
 
+
+
+def csv_rows(data: dict) -> list[dict]:
+    """Flatten cases without losing scenario identity or event provenance.
+
+    A Slot key repeats for 0 versus 50 support; every exported row MUST carry
+    the parent case identity, scenario configuration and the full event record.
+    """
+    rows = []
+    seen = set()
+    for case in data["cases"]:
+        for slot in case["rows"]:
+            record = {
+                "case_id": case["case_id"],
+                "domain": case["domain"],
+                "supporters": case["supporters"],
+                "provenance": case["provenance"],
+                "real_game_observations": case["real_game_observations"],
+                "independent_game_holdouts": case["independent_game_holdouts"],
+                **{k: v for k, v in slot.items()
+                   if k not in ("resolutions", "assumption_ids",
+                                "grouped_damage_events")},
+                "resolutions_json": json.dumps(slot["resolutions"], sort_keys=True),
+                "assumption_ids_json": json.dumps(slot["assumption_ids"], sort_keys=True),
+                "grouped_damage_events_json": json.dumps(
+                    slot["grouped_damage_events"], sort_keys=True,
+                    ensure_ascii=False,
+                ),
+            }
+            key = (
+                record["case_id"], record["side"], record["round"],
+                record["unit_id"], record["wave_id"], record["slot_id"],
+            )
+            if key in seen:
+                raise AssertionError(f"duplicate scenario-specific Slot evidence {key}")
+            seen.add(key)
+            rows.append(record)
+    if not rows:
+        raise AssertionError("no source-classified scenario rows to export")
+    return rows
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-json", type=Path, required=True)
@@ -227,7 +283,7 @@ def main() -> None:
     args.output_json.write_text(
         json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
-    rows = [row for case in data["cases"] for row in case["rows"]]
+    rows = csv_rows(data)
     with args.output_csv.open("w", encoding="utf-8", newline="") as output:
         writer = csv.DictWriter(output, fieldnames=list(rows[0]))
         writer.writeheader()
