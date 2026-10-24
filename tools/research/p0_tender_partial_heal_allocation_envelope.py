@@ -229,8 +229,13 @@ def build_report() -> dict:
     registry = UnitRegistry.load(include_barbarians=True)
     scenarios = []
     for name in POLICIES:
+        # Support waves live outside ordinary combat Slots and Reserve.
+        # They must remain in allocation/provenance accounting, but RR
+        # projections apply only to combat Waves with physical HP owners.
         by_wave = [_rr_counterfactual(state, row, policies[name][
-            (row["unit_id"], row["wave_id"])], registry) for row in rows if row["alive"]]
+            (row["unit_id"], row["wave_id"])], registry)
+            for row in rows
+            if row["alive"] and registry.get(row["unit_id"]).role == "combat"]
         for row in by_wave:
             if name == POLICIES[0]:
                 if (row["hypothetical_remaining_wounds"] !=
