@@ -125,6 +125,65 @@ def test_support_cannot_restore_previous_dead_units_at_round_start():
         )
 
 
+
+@pytest.mark.parametrize("side", ("attacker", "defender"))
+def test_cumulative_deaths_reject_missing_nonzero_global_unit_id(monkeypatch, side):
+    original_simulate = audit.simulate
+
+    def drop_record(cfg):
+        outcome = original_simulate(cfg)
+        assert outcome["rounds_completed"] == 2
+        totals = outcome["casualties"][side]
+        missing = next(uid for uid, count in totals.items() if count > 0)
+        # Keep both independently produced Round1/2 casualty reports intact:
+        # this must fail even when the global map omits the entire unit key.
+        assert sum(outcome["rounds"][round_number]["casualties"][side].get(
+            missing, 0) for round_number in (1, 2)) > 0
+        del totals[missing]
+        return outcome
+
+    monkeypatch.setattr(audit, "simulate", drop_record)
+    with pytest.raises(AssertionError, match="global casualty tally"):
+        audit.live_case("naval_tender", 1)
+
+
+def test_missing_first_round_damage_events_are_rejected_despite_r2_shots(monkeypatch):
+    original_simulate = audit.simulate
+
+    def drop_r1_damage(cfg):
+        outcome = original_simulate(cfg)
+        assert any(e["type"] == "damage" and e["round"] == 1
+                   for e in outcome["events"])
+        assert any(e["type"] == "damage" and e["round"] == 2
+                   for e in outcome["events"])
+        outcome["events"] = [
+            e for e in outcome["events"]
+            if not (e["type"] == "damage" and e["round"] == 1)
+        ]
+        return outcome
+
+    monkeypatch.setattr(audit, "simulate", drop_r1_damage)
+    with pytest.raises(AssertionError, match="missing actual R1 damage events"):
+        audit.live_case("naval_tender", 1)
+
+
+def test_missing_second_round_damage_events_are_rejected(monkeypatch):
+    original_simulate = audit.simulate
+
+    def drop_r2_damage(cfg):
+        outcome = original_simulate(cfg)
+        assert any(e["type"] == "damage" and e["round"] == 2
+                   for e in outcome["events"])
+        outcome["events"] = [
+            e for e in outcome["events"]
+            if not (e["type"] == "damage" and e["round"] == 2)
+        ]
+        return outcome
+
+    monkeypatch.setattr(audit, "simulate", drop_r2_damage)
+    with pytest.raises(AssertionError, match="did not fire in actual R2"):
+        audit.live_case("naval_tender", 1)
+
 def test_full_report_scenarios_have_provenance_and_mandatory_csv_case_identity():
     data = audit.report()
     assert data["summary"]["synthetic_cases"] == 6
