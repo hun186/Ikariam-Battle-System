@@ -17,7 +17,7 @@ def test_integer_full_budget_policy_priorities_and_largest_remainder():
          "eligible": False, "wounds_r1_end": 500},
     ]
     result = study.allocations(rows, 4000)
-    ram, steam, tender = (u, "wave-1") for u in ("ram_ship", "steam_ram", "tender")
+    ram, steam, tender = ((u, "wave-1") for u in ("ram_ship", "steam_ram", "tender"))
     assert result[study.POLICIES[0]] == {ram: 0, steam: 0, tender: 0}
     assert result[study.POLICIES[1]] == {ram: 4000, steam: 0, tender: 0}
     assert result[study.POLICIES[2]] == {ram: 1500, steam: 2500, tender: 0}
