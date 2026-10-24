@@ -310,8 +310,7 @@ def csv_rows(data: dict) -> list[dict]:
             rows.append({
                 "source_case_id": data["source"]["case_id"],
                 "rounding_assumption": analysis["assumed_game_bar_rounding"],
-                "capture_order": len([z for z in analysis["capture_plan"]["steps"]
-                                     if z["capture_channel_id"] <= cid]), # overridden below
+                "capture_order": 0,  # assigned sequentially from ordered steps below
                 "channel_id": cid, "unit_id": ch["unit_id"], "wave_id": ch["wave_id"],
                 "damage_position": ch["damage_position"],
                 "slot_id": ch["slot_id"],
