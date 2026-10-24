@@ -103,6 +103,36 @@ def test_report_is_reproducible_and_never_claims_game_observations():
     assert first["summary"]["slot_deaths"] > 0
 
 
+
+def test_missing_independent_unit_round_death_counts_is_not_accepted():
+    before, after, events, totals, registry = _state_and_events()
+    assert any(totals.values())
+    # Counts cannot silently be treated as optional, including empty {}.
+    with pytest.raises(AssertionError, match="required independent round unit"):
+        audit.reconcile_round("defender", 1, before, after, events, registry)
+    after["_round_casualties"] = {}
+    with pytest.raises(AssertionError, match="per-slot deaths disagree"):
+        audit.reconcile_round("defender", 1, before, after, events, registry)
+
+
+def test_nonsequential_model_label_never_claims_sequential_hp_truth():
+    before, after, events, totals, registry = _state_and_events()
+    # Turn one event into a model-specific *label only*. Even when the
+    # arithmetic residual remains zero, its provenance is not sequential.
+    target = next(event for event in events if event["round"] == 1
+                  and event["type"] == "damage"
+                  and event["details"].get("target_side") == "defender")
+    target["details"]["resolution"] = "bounded_experimental_focus_hypothesis"
+    after["_round_casualties"] = totals
+    rows = audit.reconcile_round("defender", 1, before, after, events, registry)
+    row = next(row for row in rows if (
+        row["unit_id"], row["wave_id"], row["slot_id"]
+    ) == audit._key_from_hit(target))
+    assert row["balance_status"] == audit.EXPERIMENTAL_EXEMPT
+    assert "bounded_experimental_focus_hypothesis" in row["resolutions"]
+
+
+
 def test_invalid_side_or_round_is_rejected():
     registry = UnitRegistry.load(include_barbarians=True)
     with pytest.raises(ValueError):
