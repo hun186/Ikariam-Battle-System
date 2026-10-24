@@ -103,7 +103,8 @@ def test_unmapped_partial_bars_allow_any_model_slot_subset():
 @pytest.mark.parametrize("patch", [
     "missing_ref", "duplicated_ref", "wrong_stage", "future_r2", "bad_tender",
     "unknown_forge", "wrong_attacker_forge", "wrong_battlefield", "wrong_initial_fleet",
-    "wrong_ram_workshop", "unknown_workshop", "reinforcements", "unasserted_equivalence",
+    "wrong_ram_workshop", "wrong_steam_attack_upgrade", "wrong_steam_armor_upgrade",
+    "missing_steam_upgrade", "unknown_workshop", "reinforcements", "unasserted_equivalence",
     "wrong_source", "duplicate_slot", "negative_bar", "boolean_bar",
     "wrong_slot_population", "invented_slot", "foreign_wave",
     "hidden_address_with_unmapped_mode", "extra_official_proof_field",
@@ -131,6 +132,12 @@ def test_reject_unverified_or_incompatible_observation(patch):
         data["context"]["defender_units"]["ram_ship"] += 1
     elif patch == "wrong_ram_workshop":
         data["context"]["ram_ship_attack_upgrade"] += 1
+    elif patch == "wrong_steam_attack_upgrade":
+        data["context"]["steam_ram_attack_upgrade"] += 1
+    elif patch == "wrong_steam_armor_upgrade":
+        data["context"]["steam_ram_armor_upgrade"] += 1
+    elif patch == "missing_steam_upgrade":
+        data["context"]["steam_ram_attack_upgrade"] = None
     elif patch == "unknown_workshop":
         data["context"]["workshop_details_captured"] = False
     elif patch == "reinforcements":
@@ -187,3 +194,68 @@ def test_supplied_counterfeit_model_comparison_is_rejected():
     p["source"]["source_game_observations"] = 1
     with pytest.raises(ValueError, match="differs"):
         intake.evaluate_capture(_synthetic_test_record(), p)
+
+
+
+def test_steam_ram_workshop_must_be_explicit_even_when_captured_flag_true():
+    data = _synthetic_test_record()
+    assert intake._expected_control_setup()["steam_ram_attack_upgrade"] == 0
+    assert intake._expected_control_setup()["steam_ram_armor_upgrade"] == 0
+    for field, value in (("steam_ram_attack_upgrade", 1),
+                         ("steam_ram_armor_upgrade", 5),
+                         ("steam_ram_attack_upgrade", None),
+                         ("steam_ram_armor_upgrade", True)):
+        corrupted = deepcopy(data)
+        corrupted["context"][field] = value
+        got = intake.evaluate_capture(corrupted)
+        assert got["status"] == "NOT_COMPARABLE"
+        assert any(field in msg for msg in got["input_requirements_missing_or_invalid"])
+        assert got["conditional_model_comparison"] is None
+
+
+def test_unmapped_impossible_population_fails_even_with_matching_hp_bars():
+    data = _synthetic_test_record(mapping=intake.UNMAPPED)
+    data["r2_prefire_bars"][0]["units_alive"] = 999
+    out = intake.evaluate_capture(data)
+    assert out["status"] == "NOT_COMPARABLE"
+    assert out["conditional_model_comparison"] is None
+    assert "injective" in " ".join(out["input_requirements_missing_or_invalid"])
+
+
+def test_unmapped_actual_population_preserved_and_bars_conditionally_match():
+    data = _synthetic_test_record(mapping=intake.UNMAPPED)
+    model_data = model.build_report()
+    for idx, ch in enumerate(model_data["channels"]):
+        data["r2_prefire_bars"][idx]["units_alive"] = ch["simulated_slot_population"]
+    res = intake.evaluate_capture(data)
+    assert res["status"] == "CONDITIONAL_SCREEN_ONLY"
+    baseline = model_data["case_order"][0]
+    assert baseline in res["conditional_model_comparison"][
+        "model_hypotheses_consistent_with_supplied_bars"]
+
+
+def test_unmapped_assignment_is_one_to_one_even_if_each_row_has_a_match():
+    channels = {
+        "a": {"simulated_slot_population": 5},
+        "b": {"simulated_slot_population": 1},
+    }
+    rows = [
+        {"units_alive": 5, "visible_percent": 80},
+        {"units_alive": 5, "visible_percent": 90},
+    ]
+    assert not intake._unmapped_wave_assignment(rows, ["a", "b"], channels)
+    rows[1]["units_alive"] = 1
+    assert intake._unmapped_wave_assignment(rows, ["a", "b"], channels)
+    predicted = {"a": {"floor": 80}, "b": {"floor": 90}}
+    assert intake._unmapped_wave_assignment(rows, ["a", "b"], channels, predicted, "floor")
+    rows[1]["visible_percent"] = 80
+    assert not intake._unmapped_wave_assignment(rows, ["a", "b"], channels, predicted, "floor")
+
+
+def test_unmapped_percent_without_units_still_supports_partial_slot_subset():
+    record = _synthetic_test_record(mapping=intake.UNMAPPED)
+    original = record["r2_prefire_bars"][-1]
+    record["r2_prefire_bars"] = [original]
+    assert original["units_alive"] is None
+    result = intake.evaluate_capture(record)
+    assert result["status"] == "CONDITIONAL_SCREEN_ONLY"
