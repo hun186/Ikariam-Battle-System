@@ -78,7 +78,7 @@ def _boundary_case(domain="naval_tender"):
 
 def test_corrupted_wound_after_unknown_partial_support_is_rejected():
     before, after, events, registry = _boundary_case()
-    eligible = next(w for w in after["waves"] if w["unit_id"] == "hoplite")
+    eligible = next(w for w in after["waves"] if w["unit_id"] == "ram_ship")
     eligible["reserve_damage"] += 1
     with pytest.raises(AssertionError, match="wound drift"):
         audit.reconcile_round_boundary(
@@ -115,8 +115,8 @@ def test_unknown_support_event_must_match_independent_eligible_damage():
 
 def test_support_cannot_restore_previous_dead_units_at_round_start():
     before, after, events, registry = _boundary_case()
-    hoplite = next(w for w in after["waves"] if w["unit_id"] == "hoplite")
-    hoplite["alive"] += 1
+    patient = next(w for w in after["waves"] if w["unit_id"] == "ram_ship")
+    patient["alive"] += 1
     with pytest.raises(AssertionError, match="illegally added/removed living"):
         audit.reconcile_round_boundary(
             before, after, domain="naval_tender", side="defender",
