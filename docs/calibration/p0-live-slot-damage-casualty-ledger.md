@@ -18,7 +18,7 @@ For current baseline sequential hits only, the internal HP conservation equation
 
     prior_slot_wounds + incoming_grouped_damage = dead * unit_HP + end_slot_wounds + discarded_overkill
 
-Experimentally bounded pooled naval focus and Swordsman M/I-Kill modes are **not official validated individual-hit formulae**. The ledger flags their unresolved nonzero balance as `experimental_focus_or_overkill_model_requires_separate_calibration` and never silently reports it as an exact sequential match. The original grouped event assumptions, residuals and provenance are archived alongside the full numeric Slot ledger.
+Experimentally bounded pooled naval focus and Swordsman M/I-Kill modes are **not official validated individual-hit formulae**. The ledger labels **every** such grouped-event row as `experimental_focus_or_overkill_model_requires_separate_calibration` **even when its numeric residual happens to be zero**. Their numerical residual remains visible, but a coincidental equality never certifies a per-projectile official formula. The separate per-round unit casualty totals are **mandatory**, not an optional check suppressed when empty. The original grouped event assumptions, residuals and provenance are archived alongside the full numeric Slot ledger.
 
 Negative tests mutate per-slot casualties, grouped event kills, incoming hit damage and target slot address; the affected invariant must reject each without changing production combat code. Structured JSON/CSV are generated only from actual simulator output, never invented observation rows.
 
