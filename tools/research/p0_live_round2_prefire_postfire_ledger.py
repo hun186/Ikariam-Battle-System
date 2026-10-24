@@ -91,25 +91,57 @@ def _validate_snapshot(state: dict, registry: UnitRegistry, label: str):
         key = _wave_key(slot)
         by_key[key].append(slot)
         unit = registry.get(slot["unit_id"])
+        hp = unit.hit_points
         if (type(slot["units"]) is not int or slot["units"] < 0
-                or slot["damage"] < 0
-                or (slot["units"] and slot["damage"] >= slot["units"] * unit.hit_points)
-                or not (0 <= slot["hit_points_percent"] <= 100)):
+                or type(slot["damage"]) is not int or slot["damage"] < 0
+                or hp is None
+                or (slot["units"] and slot["damage"] >= slot["units"] * hp)
+                or (not slot["units"] and slot["damage"])):
             raise AssertionError(f"{label}: illegal living slot HP or count {key}")
-        if slot["units"] and slot["hit_points_percent"] <= 0:
-            raise AssertionError(f"{label}: zero-HP survivors in {key}")
+        # Check the *exported* percent against the independently computed
+        # units/HP/damage, not merely whether it falls between 0 and 100.
+        expected_slot_percent = (
+            round(100 * (slot["units"] * hp - slot["damage"])
+                  / (slot["units"] * hp), 2)
+            if slot["units"] else 0
+        )
+        reported_slot_percent = slot["hit_points_percent"]
+        if (type(reported_slot_percent) not in (int, float)
+                or reported_slot_percent != expected_slot_percent):
+            raise AssertionError(
+                f"{label}: stale slot HP percentage {key}: "
+                f"expected {expected_slot_percent}, got {reported_slot_percent}"
+            )
         slot_units[key] += slot["units"]
     for wave in state["waves"]:
         key = _wave_key(wave)
         if key in totals:
             raise AssertionError(f"{label}: duplicated Wave ID {key}")
         hp = registry.get(wave["unit_id"]).hit_points
-        if (wave["reserve"] < 0 or wave["reserve_damage"] < 0
-                or wave["reserve_damage"] >= wave["reserve"] * hp
-                and wave["reserve"] > 0):
+        if (type(wave["reserve"]) is not int or wave["reserve"] < 0
+                or type(wave["reserve_damage"]) is not int
+                or wave["reserve_damage"] < 0
+                or (wave["reserve"] > 0 and (
+                    hp is None or hp <= 0
+                    or wave["reserve_damage"] >= wave["reserve"] * hp))
+                or (wave["reserve"] == 0 and wave["reserve_damage"] != 0)):
             raise AssertionError(f"{label}: illegal Reserve HP {key}")
-        if wave["reserve"] == 0 and wave["reserve_damage"] != 0:
-            raise AssertionError(f"{label}: empty Reserve owns persistent wounds {key}")
+        expected_reserve_percent = (
+            round(
+                100 * (wave["reserve"] * hp - wave["reserve_damage"])
+                / (wave["reserve"] * hp), 2
+            ) if wave["reserve"] else None
+        )
+        reported_reserve_percent = wave["reserve_hit_points_percent"]
+        if (expected_reserve_percent is None
+                and reported_reserve_percent is not None
+                or expected_reserve_percent is not None
+                and (type(reported_reserve_percent) not in (int, float)
+                     or reported_reserve_percent != expected_reserve_percent)):
+            raise AssertionError(
+                f"{label}: stale Reserve HP percentage {key}: "
+                f"expected {expected_reserve_percent}, got {reported_reserve_percent}"
+            )
         # Support lives outside combat slots and Reserve; it does not fire.
         deployed_support = (wave["alive"] if registry.get(wave["unit_id"]).role == "support"
                             else 0)
@@ -144,6 +176,47 @@ def _validate_transition(previous: dict, current: dict, losses: dict,
             k: v for k, v in losses.items() if v}:
         raise AssertionError(f"{label}: round casualties disagree with live Wave delta")
     return per_wave
+
+
+
+
+def _round2_wound_continuity(previous: dict, prefire: dict,
+                             registry: UnitRegistry, domain: str,
+                             side: str, supporters: int) -> dict:
+    """Independent R1-end -> R2-prefire per-Wave damage expectation.
+
+    When supported heal capacity fully clears all *eligible* defender wounds,
+    only those waves may drop to zero. Every other wave must retain its total
+    persistent damage through repack/RR, regardless of how individual Slots
+    and Reserve exchange that damage.
+    """
+    prior, after = _wave_map(previous), _wave_map(prefire)
+    if prior.keys() != after.keys():
+        raise AssertionError("Round2 wound audit cannot lose Wave identities")
+    audit = {}
+    for key in sorted(prior):
+        uid, wave_id = key
+        unit = registry.get(uid)
+        before = _wave_wounds(previous, key)
+        actual = _wave_wounds(prefire, key)
+        eligible = unit.role == "combat" and (
+            (domain == "land_doctor" and unit.unit_class == "human")
+            or (domain == "naval_tender" and unit.domain == "naval")
+        )
+        fully_repaired = side == "defender" and supporters > 0 and eligible
+        expected = 0 if fully_repaired else before
+        if actual != expected:
+            raise AssertionError(
+                f"{side} Round2 wave wound continuity {key}: "
+                f"expected {expected}, actual {actual} "
+                f"(healing_eligible={eligible}, full_clear={fully_repaired})"
+            )
+        audit[f"{uid}|{wave_id}"] = {
+            "unit_id": uid, "wave_id": wave_id,
+            "before_wounds": before, "after_wounds": actual,
+            "healing_eligible": eligible, "full_clear_expected": fully_repaired,
+        }
+    return audit
 
 
 def live_audit(domain: str, supporters: int) -> dict:
@@ -194,6 +267,9 @@ def live_audit(domain: str, supporters: int) -> dict:
         for key, row in _wave_map(r1).items():
             if _wave_map(pre2)[key]["alive"] != row["alive"]:
                 raise AssertionError(f"R2 prefire resurrected an R1 death: {key}")
+        wound_audit = _round2_wound_continuity(
+            r1, pre2, registry, domain, side, supporters
+        )
         losses_1 = _validate_transition(
             pre1, r1, result["rounds"][1]["casualties"][side], f"{side}/r1")
         losses_2 = _validate_transition(
@@ -205,6 +281,7 @@ def live_audit(domain: str, supporters: int) -> dict:
         if dict(overall) != result["casualties"][side]:
             raise AssertionError(f"{side}: global cumulative casualties incorrect")
         transition[side] = {
+            "round2_wound_continuity": wound_audit,
             "round_1_deaths_per_wave": losses_1,
             "round_2_deaths_per_wave": losses_2,
             "initial": initial, "round1_prefire": pre1, "round1_end": r1,
@@ -227,11 +304,23 @@ def live_audit(domain: str, supporters: int) -> dict:
         if len(heals) != 1 or heals[0]["details"].get("support_unit_id") != support_type:
             raise AssertionError("full-support Round2 repair missing")
         detail = heals[0]["details"]
+        # Cross-check reported healing against independent per-Wave damage
+        # deltas: do not trust the event's own totals as proof of repair.
+        wounded = transition["defender"]["round2_wound_continuity"]
+        expected_by_wave = [
+            {"unit_id": w["unit_id"], "wave_id": w["wave_id"],
+             "healing": w["before_wounds"]}
+            for w in wounded.values()
+            if w["healing_eligible"] and w["before_wounds"] > 0
+        ]
+        expected_by_wave.sort(key=lambda x: (x["unit_id"], x["wave_id"]))
+        total_expected = sum(x["healing"] for x in expected_by_wave)
         if (detail.get("exact_subset") != "capacity_covers_all_eligible_persistent_damage"
-                or detail.get("eligible_damage_before", 0) <= 0
-                or detail.get("healing", 0) != detail.get("eligible_damage_before")
-                or detail.get("capacity", 0) < detail["healing"]):
-            raise AssertionError("Round2 full-clear event not internally consistent")
+                or detail.get("eligible_damage_before") != total_expected
+                or detail.get("healing") != total_expected
+                or detail.get("capacity", 0) < total_expected
+                or detail.get("affected_waves") != expected_by_wave):
+            raise AssertionError("Round2 full-clear event contradicts independently reconciled Wave HP")
         if prefire_damage != 0:
             raise AssertionError("eligible patient retains HP wounds after full heal")
     elif previous_damage != prefire_damage:
