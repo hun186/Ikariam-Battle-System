@@ -58,7 +58,8 @@ def blank_template() -> dict:
 
 
 def _str_or_null(value) -> bool:
-    return value is None or (isinstance(value, str) and bool(value.strip()))
+    # Preserve intentionally blank fields as incomplete transcription data.
+    return value is None or isinstance(value, str)
 
 
 def _int_or_null(value, lo=0, hi=None) -> bool:
@@ -187,7 +188,8 @@ def archive(record) -> dict:
     ctx = record.get("battle_context")
     if _keys(ctx, CONTEXT_KEYS, "battle_context", errors):
         battlefield = ctx.get("battlefield_id")
-        if battlefield is not None and battlefield not in NAVAL_FIELDS:
+        if battlefield is not None and (
+                not isinstance(battlefield, str) or battlefield not in NAVAL_FIELDS):
             errors.append("battle_context.battlefield_id: unsupported naval battlefield")
         for name in ("attacker_forge_level", "defender_forge_level"):
             if not _int_or_null(ctx.get(name), 0, 5):
@@ -195,9 +197,13 @@ def archive(record) -> dict:
         _unit_counts(ctx.get("attacker_units"), "attacker_units", errors)
         _unit_counts(ctx.get("defender_units"), "defender_units", errors)
         _workshop(ctx.get("workshop_upgrades"), errors)
-        if ctx.get("reinforcements_between") not in (None, "none", "present", "unknown"):
+        reinforcements = ctx.get("reinforcements_between")
+        if reinforcements is not None and (
+                not isinstance(reinforcements, str) or
+                reinforcements not in ("none", "present", "unknown")):
             errors.append("battle_context.reinforcements_between: unsupported value")
-        if ctx.get("r2_prefire_confirmed") not in (None, True, False):
+        prefire = ctx.get("r2_prefire_confirmed")
+        if prefire is not None and type(prefire) is not bool:
             errors.append("battle_context.r2_prefire_confirmed: invalid bool")
     observations = record.get("observations")
     if not isinstance(observations, list):
@@ -208,9 +214,11 @@ def archive(record) -> dict:
         label = f"observations[{i}]"
         if not _keys(row, OBS_KEYS, label, errors):
             continue
-        if row.get("phase") not in PHASES:
+        phase = row.get("phase")
+        side = row.get("side")
+        if not isinstance(phase, str) or phase not in PHASES:
             errors.append(f"{label}.phase: unrecognized screenshot phase")
-        if row.get("side") not in SIDES:
+        if not isinstance(side, str) or side not in SIDES:
             errors.append(f"{label}.side: attacker or defender needed")
         if not isinstance(row.get("unit_id"), str) or not row["unit_id"].strip():
             errors.append(f"{label}.unit_id: nonblank unit identity needed")
