@@ -281,3 +281,41 @@ def test_nested_ordinary_local_file_is_supported(tmp_path):
     got = binder.bind_files(_invented_record(), manifest, tmp_path)
     assert got["status"] == "LOCAL_BYTES_FINGERPRINTED_UNAUTHENTICATED"
     assert got["files"][0]["relative_path"] == "nested/r1.png"
+
+
+def test_unreadable_or_digest_mismatched_stage_is_not_counted_as_bound(tmp_path):
+    _write_images(tmp_path)
+    record, manifest = _invented_record(), _manifest()
+    (tmp_path / "r1.png").unlink()
+    manifest["images"][1]["expected_sha256"] = "0" * 64
+    result = binder.bind_files(record, manifest, tmp_path)
+    assert result["status"] == "INVALID_OR_HASH_MISMATCH"
+    assert result["missing_or_unbound_source_refs"] == ["test-r1", "test-r2"]
+    assert result["local_file_bytes_read"] > 0
+    assert result["original_game_screenshots_authenticated"] is False
+
+
+def test_duplicate_stage_label_does_not_read_even_one_local_file(tmp_path):
+    _write_images(tmp_path)
+    record = _invented_record()
+    record["source_refs"]["r2_prefire"] = record["source_refs"]["r1_end"]
+    got = binder.bind_files(record, _manifest(), tmp_path)
+    assert got["status"] == "INVALID_OR_HASH_MISMATCH"
+    assert got["local_file_bytes_read"] == 0
+    assert got["files"] == []
+
+
+@pytest.mark.parametrize("mutation", ["wrong_schema", "wrong_kind", "forged_flag"])
+def test_incorrect_manifest_header_rejected_before_file_access(tmp_path, mutation):
+    _write_images(tmp_path)
+    raw = _manifest()
+    if mutation == "wrong_schema":
+        raw["schema"] = "p0_naval_capture_falsely_verified"
+    elif mutation == "wrong_kind":
+        raw["record_kind"] = "official_gameforge"
+    else:
+        raw["authenticated_gameforge_screenshot"] = True
+    out = binder.bind_files(_invented_record(), raw, tmp_path)
+    assert out["status"] == "INVALID_OR_HASH_MISMATCH"
+    assert out["local_file_bytes_read"] == 0
+    assert out["files"] == []
