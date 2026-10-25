@@ -62,6 +62,11 @@ def _str_or_null(value) -> bool:
     return value is None or isinstance(value, str)
 
 
+def _nonblank(value) -> bool:
+    """Do not treat whitespace-only evidence IDs or source labels as present."""
+    return isinstance(value, str) and bool(value.strip())
+
+
 def _int_or_null(value, lo=0, hi=None) -> bool:
     return value is None or (
         type(value) is int and value >= lo and (hi is None or value <= hi)
@@ -250,10 +255,10 @@ def archive(record) -> dict:
         return _report("INVALID", errors, [], None)
 
     missing = []
-    if not isinstance(record_id, str) or not record_id.strip():
+    if not _nonblank(record_id):
         missing.append("record_id")
     for key in sorted(REF_KEYS):
-        if not refs.get(key):
+        if not _nonblank(refs.get(key)):
             missing.append(f"source_refs.{key}")
     if not ctx.get("battlefield_id"):
         missing.append("battle_context.battlefield_id")
@@ -291,7 +296,7 @@ def archive(record) -> dict:
     for phase in PHASES - by_phase:
         missing.append(f"observations.{phase}")
     for i, row in enumerate(observations):
-        if not row.get("source_ref"):
+        if not _nonblank(row.get("source_ref")):
             missing.append(f"observations[{i}].source_ref")
         elif refs.get(row["phase"]) != row["source_ref"]:
             missing.append(f"observations[{i}].source_ref_mismatch")
@@ -299,9 +304,9 @@ def archive(record) -> dict:
             missing.append(f"observations[{i}].visible_percent")
         if row.get("units_alive") is None:
             missing.append(f"observations[{i}].units_alive")
-        if not row.get("wave_label"):
+        if not _nonblank(row.get("wave_label")):
             missing.append(f"observations[{i}].wave_label")
-        if not row.get("physical_slot_label"):
+        if not _nonblank(row.get("physical_slot_label")):
             missing.append(f"observations[{i}].physical_slot_label")
     # Strip no user-provided metadata, including missing/incomplete claims.
     # Hash deterministic canonical JSON, not unverifiable external media.
