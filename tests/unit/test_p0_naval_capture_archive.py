@@ -98,6 +98,10 @@ def test_matching_named_control_only_identifies_setup_never_game_mechanism():
             "tender": {"attack": 0, "armor": 0},
         },
     }
+    # This test changes the declared fleet; change its invented screenshot
+    # labels too, or the new archive correctly asks for a missing Carrier.
+    for row in record["observations"]:
+        row["unit_id"] = "ram_ship"
     got = archive.archive(record)
     assert got["status"] == "UNVERIFIED_ARCHIVE_READY"
     assert got["synthetic_setup_comparison"]["exact_original_synthetic_setup_fields_match"]
@@ -565,6 +569,9 @@ def test_attacker_workshop_changes_in_original_synthetic_fleet_break_setup_hint(
             "tender": {"attack": 0, "armor": 0},
         },
     }
+    # Align the *fake* observation unit IDs to the switched control fleet.
+    for row in raw["observations"]:
+        row["unit_id"] = "ram_ship"
     matched = archive.archive(raw)
     assert matched["status"] == "UNVERIFIED_ARCHIVE_READY"
     assert matched["synthetic_setup_comparison"]["exact_original_synthetic_setup_fields_match"]
