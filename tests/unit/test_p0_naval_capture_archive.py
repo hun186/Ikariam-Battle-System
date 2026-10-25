@@ -291,3 +291,48 @@ def test_complete_nested_quantities_and_workshop_levels_still_ready():
     assert got["status"] == "UNVERIFIED_ARCHIVE_READY"
     assert got["missing_for_followup"] == []
     assert got["user_submitted_record"] == record
+
+
+@pytest.mark.parametrize(("row_index", "condition"), [
+    (0, "explicit_null"), (0, "omitted_key"),
+    (1, "explicit_null"), (1, "omitted_key"),
+])
+def test_missing_per_slot_survivor_counts_preserved_as_incomplete(row_index, condition):
+    raw = invented_other_fleet()
+    row = raw["observations"][row_index]
+    if condition == "omitted_key":
+        del row["units_alive"]
+    else:
+        row["units_alive"] = None
+    original = deepcopy(raw)
+    result = archive.archive(raw)
+    assert result["status"] == "UNVERIFIED_ARCHIVE_INCOMPLETE"
+    assert result["missing_for_followup"] == [
+        f"observations[{row_index}].units_alive"
+    ]
+    assert result["user_submitted_record"] == original
+    assert raw == original
+    assert result["user_record_sha256"]
+    assert result["independently_verified_game_observations"] == 0
+    assert result["official_game_mechanism_verified"] is False
+    assert result["conditional_hp_model_comparison_performed"] is False
+
+
+def test_zero_and_invalid_per_slot_survivor_counts_fail_closed():
+    for invalid in (0, -1, False, True, 1.2, "12", []):
+        raw = invented_other_fleet()
+        raw["observations"][1]["units_alive"] = invalid
+        result = archive.archive(raw)
+        assert result["status"] == "INVALID"
+        assert result["user_submitted_record"] is None
+        assert result["user_record_sha256"] is None
+        assert any("observations[1].units_alive" in e for e in result["invalid_fields"])
+
+
+def test_complete_per_slot_survivors_still_ready():
+    data = invented_other_fleet()
+    result = archive.archive(data)
+    assert result["status"] == "UNVERIFIED_ARCHIVE_READY"
+    assert result["missing_for_followup"] == []
+    assert [x["units_alive"] for x in result["user_submitted_record"]["observations"]] == [3, 3]
+    assert result["game_screenshot_contents_verified"] is False
