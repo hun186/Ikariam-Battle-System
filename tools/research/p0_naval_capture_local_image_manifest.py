@@ -106,11 +106,11 @@ def _file_digest(root: Path, relative_path: str) -> dict:
             if not seen:
                 raise ValueError("empty image")
             suffix = Path(parts[-1]).suffix.lower()
-            if (suffix == ".png" and prefix.startswith(b"\\x89PNG\\r\\n\\x1a\\n")
+            if (suffix == ".png" and prefix.startswith(b"\x89PNG\r\n\x1a\n")
                     and len(prefix) >= 24 and prefix[12:16] == b"IHDR"):
                 kind = "png"
-            elif (suffix in (".jpg", ".jpeg") and prefix.startswith(b"\\xff\\xd8\\xff")
-                  and tail == b"\\xff\\xd9"):
+            elif (suffix in (".jpg", ".jpeg") and prefix.startswith(b"\xff\xd8\xff")
+                  and tail == b"\xff\xd9"):
                 kind = "jpeg"
             else:
                 raise ValueError("file extension and basic PNG/JPEG signature inconsistent")
