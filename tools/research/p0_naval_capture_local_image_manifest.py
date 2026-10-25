@@ -154,12 +154,14 @@ def bind_files(record: dict, manifest: dict, evidence_root: Path) -> dict:
         return report
     if not isinstance(manifest, dict) or set(manifest) != {"schema", "record_kind", "images"}:
         errors.append("manifest: only schema, record_kind, images allowed")
+        report["status"] = "INVALID_OR_HASH_MISMATCH"
         return report
     if manifest["schema"] != SCHEMA or manifest["record_kind"] != "user_supplied_unverified_files":
         errors.append("manifest: wrong schema or source classification")
     images = manifest["images"]
     if not isinstance(images, list) or len(images) > 3:
         errors.append("manifest: images must be an array of at most 3 entries")
+        report["status"] = "INVALID_OR_HASH_MISMATCH"
         return report
     refs = record.get("source_refs")
     if not isinstance(refs, dict):
