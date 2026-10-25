@@ -42,3 +42,13 @@ Reject unsupported fields that purport to prove official Gameforge mechanics, Na
 The output always states `independently_verified_game_observations=0`, `independent_holdouts=0`, `game_screenshot_contents_verified=false`, `official_game_mechanism_verified=false` and `conditional_hp_model_comparison_performed=false`. These counters describe what **this tool verifies**, not a claim that no real game was played.
 
 **No screenshots were obtained for this PR; no official healing, RR, Accuracy, low-HP kill, focus/overkill, Gameforge rounding or target-selection mechanics inferred; no production simulator formula changed.** Issue #73 remains OPEN. Merge only after exact-HEAD Hosted CI and formal Codex Review, with new explicit owner authorization.
+
+
+## Formal Codex Review round 1 — archive completeness repairs
+
+Formal Codex review of initial PR #88 HEAD `72a01e483fc943340760509dd78f6eb61aa24d36` **completed with two P2 findings**, despite prior Hosted CI being all green:
+
+1. **Omitted setup keys crash archive:** Missing `battle_context.battlefield_id`, `attacker_forge_level` or `defender_forge_level` were correctly allowed as partial user transcriptions, but the informational `_compare_setup()` read them by `ctx[...] ` and crashed with `KeyError` before writing the result. The comparison now uses `ctx.get(...)` and safe nested workshop/defender dict access. The result remains `UNVERIFIED_ARCHIVE_INCOMPLETE`, the omitted data is not invented, and the informational old-control match is **false**.
+2. **Nonempty containers concealed missing nested setup values:** A declared unit with `quantity=null`, a Workshop entry with `attack=null` / `armor=null`, or `workshop_upgrades={"carrier": {}}` was treated as fully complete because only the parent dict was checked. After validating allowed types, archival readiness now includes **per-unit quantity and per-Workshop attack and armor** follow-up diagnostics. Those are preserved as unknown and yield `UNVERIFIED_ARCHIVE_INCOMPLETE`, not `INVALID`, since the source record remains valuable.
+
+Regression tests cover omitted or explicit-null battlefield/Forges, nested unknown attack/defense population and upgrades, empty workshop entry, and unchanged complete records. These fixes are **research data-integrity only**; they do not authenticate images or modify the simulator. A new exact-HEAD Hosted CI and **fresh Codex Review** are required after these fixes. Do not mistake the first completed review for approval.
