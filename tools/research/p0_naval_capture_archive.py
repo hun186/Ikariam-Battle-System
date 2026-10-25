@@ -233,8 +233,12 @@ def archive(record) -> dict:
         # Slot. Two snapshots may share the label across phases.
         slot = row.get("physical_slot_label")
         wave = row.get("wave_label")
-        if isinstance(slot, str) and slot.strip() and isinstance(wave, str) and wave.strip():
-            key = (row.get("phase"), row.get("side"), row.get("unit_id"), wave, slot)
+        if (isinstance(phase, str) and phase in PHASES
+                and isinstance(side, str) and side in SIDES
+                and isinstance(row.get("unit_id"), str) and row["unit_id"].strip()
+                and isinstance(slot, str) and slot.strip()
+                and isinstance(wave, str) and wave.strip()):
+            key = (phase, side, row["unit_id"], wave, slot)
             if key in identities:
                 errors.append(f"{label}: duplicate labeled physical Slot in same phase")
             identities.add(key)
