@@ -213,3 +213,81 @@ def test_archive_does_not_mutate_input_and_accepts_no_named_physical_slot():
     assert row == previous
     assert "observations[0].physical_slot_label" in got["missing_for_followup"]
     assert got["user_submitted_record"]["observations"][0]["visible_percent"] == 53
+
+
+@pytest.mark.parametrize("field", [
+    "battlefield_id", "attacker_forge_level", "defender_forge_level",
+])
+def test_omitted_optional_setup_keys_remain_archivable_with_followup(field):
+    record = invented_other_fleet()
+    record["battle_context"].pop(field)
+    before = deepcopy(record)
+    outcome = archive.archive(record)
+    assert outcome["status"] == "UNVERIFIED_ARCHIVE_INCOMPLETE"
+    assert f"battle_context.{field}" in outcome["missing_for_followup"]
+    assert outcome["user_submitted_record"] == before
+    assert record == before
+    assert outcome["user_record_sha256"]
+    assert outcome["synthetic_setup_comparison"]["exact_original_synthetic_setup_fields_match"] is False
+    assert field in outcome["synthetic_setup_comparison"]["nonmatching_or_missing_fields"]
+    assert outcome["independently_verified_game_observations"] == 0
+    assert outcome["official_game_mechanism_verified"] is False
+
+
+@pytest.mark.parametrize("field", [
+    "battlefield_id", "attacker_forge_level", "defender_forge_level",
+])
+def test_explicit_null_setup_keys_not_crash_informational_comparison(field):
+    record = invented_other_fleet()
+    record["battle_context"][field] = None
+    got = archive.archive(record)
+    assert got["status"] == "UNVERIFIED_ARCHIVE_INCOMPLETE"
+    assert f"battle_context.{field}" in got["missing_for_followup"]
+    assert got["synthetic_setup_comparison"]["comparison_performed"] is False
+    assert got["synthetic_setup_comparison"]["exact_original_synthetic_setup_fields_match"] is False
+
+
+@pytest.mark.parametrize(("mutation", "expected_missing"), [
+    ("attacker_null_quantity", "battle_context.attacker_units.barbarian_wedge_paddler.quantity"),
+    ("defender_null_quantity", "battle_context.defender_units.carrier.quantity"),
+    ("missing_workshop_attack", "battle_context.workshop_upgrades.carrier.attack"),
+    ("missing_workshop_armor", "battle_context.workshop_upgrades.carrier.armor"),
+    ("null_workshop_attack", "battle_context.workshop_upgrades.carrier.attack"),
+    ("null_workshop_armor", "battle_context.workshop_upgrades.carrier.armor"),
+    ("empty_nested_workshop", "battle_context.workshop_upgrades.carrier.attack"),
+])
+def test_nested_unknown_values_force_incomplete_without_dropping_record(
+        mutation, expected_missing):
+    record = invented_other_fleet()
+    ctx = record["battle_context"]
+    if mutation == "attacker_null_quantity":
+        ctx["attacker_units"]["barbarian_wedge_paddler"] = None
+    elif mutation == "defender_null_quantity":
+        ctx["defender_units"]["carrier"] = None
+    elif mutation == "missing_workshop_attack":
+        ctx["workshop_upgrades"]["carrier"].pop("attack")
+    elif mutation == "missing_workshop_armor":
+        ctx["workshop_upgrades"]["carrier"].pop("armor")
+    elif mutation == "null_workshop_attack":
+        ctx["workshop_upgrades"]["carrier"]["attack"] = None
+    elif mutation == "null_workshop_armor":
+        ctx["workshop_upgrades"]["carrier"]["armor"] = None
+    else:
+        ctx["workshop_upgrades"]["carrier"] = {}
+    expected = deepcopy(record)
+    got = archive.archive(record)
+    assert got["status"] == "UNVERIFIED_ARCHIVE_INCOMPLETE"
+    assert expected_missing in got["missing_for_followup"]
+    assert got["user_submitted_record"] == expected
+    assert got["user_record_sha256"] and not got["user_record_digest_is_screenshot_hash"]
+    assert got["synthetic_setup_comparison"]["comparison_performed"] is False
+    assert got["official_game_mechanism_verified"] is False
+    assert got["independently_verified_game_observations"] == 0
+
+
+def test_complete_nested_quantities_and_workshop_levels_still_ready():
+    record = invented_other_fleet()
+    got = archive.archive(record)
+    assert got["status"] == "UNVERIFIED_ARCHIVE_READY"
+    assert got["missing_for_followup"] == []
+    assert got["user_submitted_record"] == record
