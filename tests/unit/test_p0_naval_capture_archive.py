@@ -433,3 +433,145 @@ def test_nonblank_valid_source_labels_and_slot_names_still_archive_ready():
     assert result["status"] == "UNVERIFIED_ARCHIVE_READY"
     assert result["missing_for_followup"] == []
     assert result["game_screenshot_contents_verified"] is False
+
+
+
+def test_pvp_same_ship_can_retain_distinct_attacker_and_defender_upgrades():
+    # Different Workshop levels for SAME ship type must never be flattened.
+    raw = invented_other_fleet()
+    ctx = raw["battle_context"]
+    ctx["attacker_units"] = {"carrier": 8}
+    ctx["workshop_upgrades"] = {
+        "attacker": {"carrier": {"attack": 0, "armor": 0}},
+        "defender": {
+            "carrier": {"attack": 1, "armor": 2},
+            "tender": {"attack": 0, "armor": 0},
+        },
+    }
+    raw["observations"].append({
+        "phase": "r2_prefire", "side": "attacker", "unit_id": "carrier",
+        "wave_label": "attacker-wave", "physical_slot_label": "attacker-slot",
+        "visible_percent": 91, "units_alive": 4,
+        "source_ref": raw["source_refs"]["r2_prefire"],
+    })
+    got = archive.archive(raw)
+    assert got["status"] == "UNVERIFIED_ARCHIVE_READY"
+    assert got["missing_for_followup"] == []
+    assert got["user_submitted_record"] == raw
+    assert got["user_submitted_record"]["battle_context"]["workshop_upgrades"]["attacker"]["carrier"] == {
+        "attack": 0, "armor": 0
+    }
+    assert got["user_submitted_record"]["battle_context"]["workshop_upgrades"]["defender"]["carrier"] == {
+        "attack": 1, "armor": 2
+    }
+    assert got["synthetic_setup_comparison"]["comparison_performed"] is False
+    assert not got["official_game_mechanism_verified"]
+
+
+@pytest.mark.parametrize(("side", "unit_id"), [
+    ("attacker", "barbarian_wedge_paddler"),
+    ("defender", "carrier"), ("defender", "tender"),
+])
+def test_entirely_missing_workshop_entry_for_declared_unit_is_followup(side, unit_id):
+    raw = invented_other_fleet()
+    del raw["battle_context"]["workshop_upgrades"][side][unit_id]
+    got = archive.archive(raw)
+    assert got["status"] == "UNVERIFIED_ARCHIVE_INCOMPLETE"
+    assert f"battle_context.workshop_upgrades.{side}.{unit_id}" in got["missing_for_followup"]
+    assert got["user_submitted_record"] == raw
+    assert got["user_record_sha256"]
+
+
+@pytest.mark.parametrize("missing_side", ["attacker", "defender"])
+def test_missing_side_workshop_dict_is_incomplete_not_flattened(missing_side):
+    raw = invented_other_fleet()
+    raw["battle_context"]["workshop_upgrades"].pop(missing_side)
+    got = archive.archive(raw)
+    assert got["status"] == "UNVERIFIED_ARCHIVE_INCOMPLETE"
+    assert f"battle_context.workshop_upgrades.{missing_side}" in got["missing_for_followup"]
+    assert got["user_submitted_record"] == raw
+    assert got["synthetic_setup_comparison"]["exact_original_synthetic_setup_fields_match"] is False
+
+
+@pytest.mark.parametrize("attribute", ["attack", "armor"])
+def test_missing_or_null_side_specific_workshop_fields_incomplete(attribute):
+    raw = invented_other_fleet()
+    raw["battle_context"]["workshop_upgrades"]["attacker"]["barbarian_wedge_paddler"].pop(attribute)
+    first = archive.archive(raw)
+    assert first["status"] == "UNVERIFIED_ARCHIVE_INCOMPLETE"
+    path = f"battle_context.workshop_upgrades.attacker.barbarian_wedge_paddler.{attribute}"
+    assert path in first["missing_for_followup"]
+    raw["battle_context"]["workshop_upgrades"]["attacker"]["barbarian_wedge_paddler"][attribute] = None
+    second = archive.archive(raw)
+    assert second["status"] == "UNVERIFIED_ARCHIVE_INCOMPLETE"
+    assert path in second["missing_for_followup"]
+
+
+@pytest.mark.parametrize("invalid", [
+    {"carrier": {"attack": 1, "armor": 2}},
+    {"spectator": {"carrier": {"attack": 1, "armor": 2}}},
+    {"attacker": {"carrier": {"attack": False, "armor": 0}}, "defender": {}},
+    {"attacker": [], "defender": {}},
+])
+def test_unscoped_or_malformed_workshop_rejected_instead_of_silent_ready(invalid):
+    raw = invented_other_fleet()
+    raw["battle_context"]["workshop_upgrades"] = invalid
+    got = archive.archive(raw)
+    assert got["status"] == "INVALID"
+    assert got["user_submitted_record"] is None
+    assert got["user_record_sha256"] is None
+
+
+def test_other_ship_workshop_values_do_not_hide_unrecorded_carrier():
+    raw = invented_other_fleet()
+    raw["battle_context"]["workshop_upgrades"]["defender"] = {
+        "ram_ship": {"attack": 0, "armor": 0},
+        "tender": {"attack": 0, "armor": 0},
+    }
+    got = archive.archive(raw)
+    assert got["status"] == "UNVERIFIED_ARCHIVE_INCOMPLETE"
+    assert "battle_context.workshop_upgrades.defender.carrier" in got["missing_for_followup"]
+    assert got["user_submitted_record"] == raw
+
+
+def test_observed_ship_not_declared_gets_side_population_and_upgrade_followups():
+    raw = invented_other_fleet()
+    raw["observations"][1]["unit_id"] = "ram_ship"
+    got = archive.archive(raw)
+    assert got["status"] == "UNVERIFIED_ARCHIVE_INCOMPLETE"
+    assert "battle_context.defender_units.ram_ship.quantity" in got["missing_for_followup"]
+    assert "battle_context.workshop_upgrades.defender.ram_ship" in got["missing_for_followup"]
+    assert got["user_submitted_record"] == raw
+
+
+def test_attacker_workshop_changes_in_original_synthetic_fleet_break_setup_hint():
+    source = archive._expected_control_setup()
+    raw = invented_other_fleet()
+    ctx = raw["battle_context"]
+    ctx.update({name: deepcopy(source[name]) for name in (
+        "battlefield_id", "attacker_forge_level", "defender_forge_level",
+        "attacker_units", "defender_units",
+    )})
+    ctx["workshop_upgrades"] = {
+        "attacker": {
+            unit_id: {"attack": 0, "armor": 0}
+            for unit_id in source["attacker_units"]
+        },
+        "defender": {
+            "ram_ship": {"attack": source["ram_ship_attack_upgrade"],
+                         "armor": source["ram_ship_armor_upgrade"]},
+            "steam_ram": {"attack": source["steam_ram_attack_upgrade"],
+                          "armor": source["steam_ram_armor_upgrade"]},
+            "tender": {"attack": 0, "armor": 0},
+        },
+    }
+    matched = archive.archive(raw)
+    assert matched["status"] == "UNVERIFIED_ARCHIVE_READY"
+    assert matched["synthetic_setup_comparison"]["exact_original_synthetic_setup_fields_match"]
+    attacker_id = next(iter(ctx["attacker_units"]))
+    ctx["workshop_upgrades"]["attacker"][attacker_id]["attack"] = 1
+    different = archive.archive(raw)
+    assert different["status"] == "UNVERIFIED_ARCHIVE_READY"
+    assert not different["synthetic_setup_comparison"]["exact_original_synthetic_setup_fields_match"]
+    assert f"attacker_workshop.{attacker_id}.attack" in different[
+        "synthetic_setup_comparison"]["nonmatching_or_missing_fields"]
