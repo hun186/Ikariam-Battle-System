@@ -105,20 +105,24 @@ def _compare_setup(ctx: dict) -> dict:
     """Informational exact-field comparison; NEVER screen HP on this alone."""
     expected = _expected_control_setup()
     def levels(uid, k):
-        w = ctx["workshop_upgrades"].get(uid)
+        workshop = ctx.get("workshop_upgrades", {})
+        w = workshop.get(uid) if isinstance(workshop, dict) else None
         return w.get(k) if isinstance(w, dict) else None
 
     actual = {
-        "battlefield_id": ctx["battlefield_id"],
-        "attacker_forge_level": ctx["attacker_forge_level"],
-        "defender_forge_level": ctx["defender_forge_level"],
-        "attacker_units": ctx["attacker_units"],
-        "defender_units": ctx["defender_units"],
+        "battlefield_id": ctx.get("battlefield_id"),
+        "attacker_forge_level": ctx.get("attacker_forge_level"),
+        "defender_forge_level": ctx.get("defender_forge_level"),
+        "attacker_units": ctx.get("attacker_units"),
+        "defender_units": ctx.get("defender_units"),
         "ram_ship_attack_upgrade": levels("ram_ship", "attack"),
         "ram_ship_armor_upgrade": levels("ram_ship", "armor"),
         "steam_ram_attack_upgrade": levels("steam_ram", "attack"),
         "steam_ram_armor_upgrade": levels("steam_ram", "armor"),
-        "tender_count": ctx["defender_units"].get("tender"),
+        "tender_count": (
+            ctx.get("defender_units", {}).get("tender")
+            if isinstance(ctx.get("defender_units"), dict) else None
+        ),
     }
     mismatch = [
         name for name, value in actual.items()
@@ -262,6 +266,21 @@ def archive(record) -> dict:
         missing.append("battle_context.defender_units")
     if not ctx.get("workshop_upgrades"):
         missing.append("battle_context.workshop_upgrades")
+    # Nonempty maps may still contain intentionally UNKNOWN nested values.
+    # They are valid to archive, but they are NOT complete self-reports.
+    for side in ("attacker_units", "defender_units"):
+        units = ctx.get(side)
+        if isinstance(units, dict):
+            for uid, quantity in units.items():
+                if quantity is None:
+                    missing.append(f"battle_context.{side}.{uid}.quantity")
+    workshops = ctx.get("workshop_upgrades")
+    if isinstance(workshops, dict):
+        for uid, levels in workshops.items():
+            if isinstance(levels, dict):
+                for field in sorted(WORKSHOP_KEYS):
+                    if levels.get(field) is None:
+                        missing.append(f"battle_context.workshop_upgrades.{uid}.{field}")
     if ctx.get("reinforcements_between") in (None, "unknown"):
         missing.append("battle_context.reinforcements_between")
     if ctx.get("r2_prefire_confirmed") is not True:
