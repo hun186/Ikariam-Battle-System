@@ -395,6 +395,9 @@ def test_parent_swapped_to_outside_symlink_before_child_open_fails_closed(
         return actual_open(path, flags, *args, **kwargs)
 
     monkeypatch.setattr(binder.os, "open", racing_open)
+    # The wrapped syscall retains the actual host openat/dir_fd capability.
+    monkeypatch.setattr(binder.os, "supports_dir_fd",
+                        set(binder.os.supports_dir_fd) | {racing_open})
     got = binder.bind_files(_invented_record(), manifest, tmp_path)
     assert swapped  # The replacement happened at the vulnerable lookup.
     assert got["status"] == "INVALID_OR_HASH_MISMATCH"
@@ -431,6 +434,9 @@ def test_parent_swapped_after_descriptor_open_still_hashes_original_child(
         return actual_open(path, flags, *args, **kwargs)
 
     monkeypatch.setattr(binder.os, "open", racing_open)
+    # The wrapped syscall retains the actual host openat/dir_fd capability.
+    monkeypatch.setattr(binder.os, "supports_dir_fd",
+                        set(binder.os.supports_dir_fd) | {racing_open})
     got = binder.bind_files(_invented_record(), manifest, tmp_path)
     assert swapped
     assert got["status"] == "LOCAL_BYTES_FINGERPRINTED_UNAUTHENTICATED"
@@ -468,6 +474,9 @@ def test_final_file_changed_to_symlink_before_open_fails_closed(
         return actual_open(path, flags, *args, **kwargs)
 
     monkeypatch.setattr(binder.os, "open", racing_open)
+    # The wrapped syscall retains the actual host openat/dir_fd capability.
+    monkeypatch.setattr(binder.os, "supports_dir_fd",
+                        set(binder.os.supports_dir_fd) | {racing_open})
     got = binder.bind_files(_invented_record(), manifest, tmp_path)
     assert swapped
     assert got["status"] == "INVALID_OR_HASH_MISMATCH"
