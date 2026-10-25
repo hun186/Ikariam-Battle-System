@@ -1,0 +1,44 @@
+# P0 — Naval R1/R2 source archive for *any* fleet (no model-matching claim)
+
+**Issue #73 · research-only**. This follows owner-merged [PR #87](https://github.com/hun186/Ikariam-Battle-System/pull/87) at Hosted `main` `dd7f5fb3cc6cb1abd526b7ffd464ce9e40f55acb`.
+
+## Why another stage is necessary
+
+PR #87's `p0_gameforge_naval_capture_intake.py` deliberately refuses conditional HP comparison unless source data **exactly matches** one invented **naval-max** Tender=1 research control (units, Forge, upgrades, timing and known model Wave labels). Actual Gameforge battles with different fleets or missing setup must **not** be treated as confirming/refuting that synthetic control. But their source transcriptions are still valuable and should not be discarded.
+
+This PR adds a separate, permissive **but provenance-safe archival stage**. It records **user-supplied metadata** about an arbitrary real naval battle, including incomplete observations, WITHOUT trying to fit any game damage/healing model. Neither file existence, underlying PNG bytes, screenshot authenticity nor in-game timestamps are inspected. The historical owner's 53%/65% Carrier bars are from a different **in-sample** case; this tool does not silently create or attach those screenshots.
+
+## Use
+
+```bash
+PYTHONPATH=. python tools/research/p0_naval_capture_archive.py \
+  --write-template research-output/EMPTY-naval-archive.json
+
+# Fill your own copy using user-transcribed observations and source references.
+PYTHONPATH=. python tools/research/p0_naval_capture_archive.py \
+  --input real-battle-transcription.json \
+  --output-json real-battle-unverified-archive.json
+```
+
+Template fields include `record_kind=empty_template_not_an_observation`, `record_id`, three optional source references (`r1_end`, `r2_prefire`, `fleet_setup`), `battle_context` and an initially **empty** observation array. A substantive record must explicitly use `record_kind=user_transcribed_unverified`. Each observation has a known `phase` (`r1_end` or `r2_prefire`), `side`, `unit_id`, `wave_label` (may be unknown), `physical_slot_label` (may be unknown), whole-number `visible_percent` or null, `units_alive` or null and a screenshot `source_ref` (may be unknown).
+
+### Status and evidence policy
+
+| Status | Meaning |
+| --- | --- |
+| `EMPTY_TEMPLATE` | An empty worksheet, **no battle** |
+| `UNVERIFIED_ARCHIVE_READY` | All expected **typed, self-declared** metadata present, **NOT an authenticated game observation** |
+| `UNVERIFIED_ARCHIVE_INCOMPLETE` | Typed user transcription retained, with explicit missing or conflicting phase/source/slot fields |
+| `INVALID` | Forbidden proof assertions, invalid types or values, inconsistent duplicated physical Slot identities; no submitted record copied into output |
+
+`user_submitted_record` includes the **actual input JSON unchanged**, not observations invented by the program. `missing_for_followup` lists precisely what a researcher can ask the player to supply. `user_record_sha256` is a stable canonical hash of the **JSON transcription text interpreted as data**, NOT a hash of an original Gameforge screenshot; changing the transcription changes the digest but does not make it authentic.
+
+The only automatic source-scope hint, `synthetic_setup_comparison`, reads PR #87's reference control fields and says whether the **submitted setup** matches them. This **does not execute HP model matching** or verify physical game addresses. Source records from entirely different naval fleets can still be archived with a nonmatch. If the user wants the 10 old Tender HP hypotheses screened, they must separately satisfy **all** PR #87 strict intake assumptions, real source identity and user asserted exact model Wave/Slot mapping.
+
+### Fail-closed integrity rules
+
+Reject unsupported fields that purport to prove official Gameforge mechanics, NaN/bool/negative survivor or percent values, invalid phases/sides, nonsensical workshop upgrade types and duplicate **labeled** Slot identities within the same side/wave/phase. A Slot may legitimately appear in both phases. An unlabeled or missing image reference produces a follow-up diagnostic, not a false synthetic game event. Valid input from a different fleet is not `INVALID`.
+
+The output always states `independently_verified_game_observations=0`, `independent_holdouts=0`, `game_screenshot_contents_verified=false`, `official_game_mechanism_verified=false` and `conditional_hp_model_comparison_performed=false`. These counters describe what **this tool verifies**, not a claim that no real game was played.
+
+**No screenshots were obtained for this PR; no official healing, RR, Accuracy, low-HP kill, focus/overkill, Gameforge rounding or target-selection mechanics inferred; no production simulator formula changed.** Issue #73 remains OPEN. Merge only after exact-HEAD Hosted CI and formal Codex Review, with new explicit owner authorization.
