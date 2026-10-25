@@ -32,7 +32,7 @@ An empty manifest contains schema p0_naval_capture_local_image_manifest_v1, reco
 | LOCAL_HASHES_MATCH_UNAUTHENTICATED | All supplied expected hashes match current file bytes. Still not a Gameforge certificate. |
 | UNVERIFIED_PARTIAL_SOURCE_BUNDLE | Archive fields or source files incomplete, with explicit missing reference labels. |
 | INVALID_OR_HASH_MISMATCH | Invalid binding, duplicate/ambiguous labels or paths, unsafe file, signature failure, excess size, or hash mismatch. CLI exit 2. |
-| INVALID | No valid nonempty archive record was provided. |
+| INVALID | No valid nonempty archive record was provided. CLI exit 2; automation must treat this as a rejection. |
 
 The result contains source-ref strings, relative paths, byte counts, local file SHA-256 values, raw input-record SHA-256 and diagnostic messages. It NEVER includes original PNG/JPEG bytes or a copied screenshot. The tool NEVER downloads from user-supplied references or uploads them to GitHub, and CI only produces an empty template artifact.
 

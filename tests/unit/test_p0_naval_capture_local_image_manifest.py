@@ -319,3 +319,48 @@ def test_incorrect_manifest_header_rejected_before_file_access(tmp_path, mutatio
     assert out["status"] == "INVALID_OR_HASH_MISMATCH"
     assert out["local_file_bytes_read"] == 0
     assert out["files"] == []
+
+@pytest.mark.parametrize("invalid_case", ["empty_archive", "invalid_manifest"])
+def test_cli_rejected_record_or_manifest_exits_nonzero(tmp_path, monkeypatch, invalid_case):
+    # Invented data ONLY: shell must not treat INVALID archive as a success.
+    record = archive.blank_template() if invalid_case == "empty_archive" else _invented_record()
+    manifest = _manifest() if invalid_case == "empty_archive" else binder.blank_manifest()
+    record_path = tmp_path / "record.json"
+    manifest_path = tmp_path / "manifest.json"
+    report_path = tmp_path / "report.json"
+    record_path.write_text(json.dumps(record), encoding="utf-8")
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    monkeypatch.setattr("sys.argv", [
+        "p0_naval_capture_local_image_manifest.py",
+        "--record", str(record_path), "--manifest", str(manifest_path),
+        "--evidence-root", str(tmp_path), "--output-json", str(report_path),
+    ])
+    with pytest.raises(SystemExit) as exc:
+        binder.main()
+    assert exc.value.code == 2
+    result = json.loads(report_path.read_text(encoding="utf-8"))
+    assert result["status"] == (
+        "INVALID" if invalid_case == "empty_archive" else "INVALID_OR_HASH_MISMATCH"
+    )
+    assert result["files"] == []
+    assert result["independently_verified_game_observations"] == 0
+
+
+def test_cli_incomplete_unverified_archive_still_exits_successfully(tmp_path, monkeypatch):
+    # Incomplete, valid research intake is not the same as a rejected source.
+    record_path, manifest_path = tmp_path / "record.json", tmp_path / "manifest.json"
+    output_path = tmp_path / "report.json"
+    record_path.write_text(json.dumps(_invented_record()), encoding="utf-8")
+    incomplete = _manifest()
+    incomplete["images"] = []
+    manifest_path.write_text(json.dumps(incomplete), encoding="utf-8")
+    monkeypatch.setattr("sys.argv", [
+        "p0_naval_capture_local_image_manifest.py",
+        "--record", str(record_path), "--manifest", str(manifest_path),
+        "--evidence-root", str(tmp_path), "--output-json", str(output_path),
+    ])
+    binder.main()
+    result = json.loads(output_path.read_text(encoding="utf-8"))
+    assert result["status"] == "UNVERIFIED_PARTIAL_SOURCE_BUNDLE"
+    assert len(result["missing_or_unbound_source_refs"]) == 3
+    assert result["official_game_mechanism_verified"] is False

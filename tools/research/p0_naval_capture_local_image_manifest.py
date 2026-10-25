@@ -265,7 +265,7 @@ def main():
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps({"status": result.get("status", "EMPTY_TEMPLATE"), "output": str(dest)}))
-    if args.write_template is None and result["status"] == "INVALID_OR_HASH_MISMATCH":
+    if args.write_template is None and result["status"] in ("INVALID", "INVALID_OR_HASH_MISMATCH"):
         raise SystemExit(2)
 
 
