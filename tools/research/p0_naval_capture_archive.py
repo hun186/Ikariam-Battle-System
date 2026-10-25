@@ -16,7 +16,7 @@ from tools.research.p0_gameforge_naval_capture_intake import (
     NAVAL_FIELDS, _expected_control_setup,
 )
 
-SCHEMA = "p0_naval_capture_archive_v1"
+SCHEMA = "p0_naval_capture_archive_v2"
 TEMPLATE = "empty_template_not_an_observation"
 TRANSCRIPTION = "user_transcribed_unverified"
 SOURCE_CLASS = "USER_SUBMITTED_NOT_INDEPENDENTLY_AUTHENTICATED"
@@ -49,7 +49,7 @@ def blank_template() -> dict:
             "battlefield_id": None,
             "attacker_forge_level": None, "defender_forge_level": None,
             "attacker_units": {}, "defender_units": {},
-            "workshop_upgrades": {},
+            "workshop_upgrades": {"attacker": {}, "defender": {}},
             "reinforcements_between": None,
             "r2_prefire_confirmed": None,
         },
@@ -93,25 +93,31 @@ def _unit_counts(raw, label, errors):
 
 
 def _workshop(raw, errors):
-    if not isinstance(raw, dict):
-        errors.append("battle_context.workshop_upgrades: expected object")
+    """Workshop levels belong to a SIDE and a unit, never a bare unit ID."""
+    if not _keys(raw, SIDES, "battle_context.workshop_upgrades", errors):
         return
-    for uid, levels in raw.items():
-        if not isinstance(uid, str) or not uid.strip():
-            errors.append("workshop: invalid unit id")
+    for side, side_units in raw.items():
+        prefix = f"battle_context.workshop_upgrades.{side}"
+        if not isinstance(side_units, dict):
+            errors.append(f"{prefix}: expected unit-id -> upgrades object")
             continue
-        if _keys(levels, WORKSHOP_KEYS, f"workshop.{uid}", errors):
-            for name in WORKSHOP_KEYS:
-                if not _int_or_null(levels.get(name), 0):
-                    errors.append(f"workshop.{uid}.{name}: invalid level")
+        for uid, levels in side_units.items():
+            if not isinstance(uid, str) or not uid.strip():
+                errors.append(f"{prefix}: invalid unit id")
+                continue
+            if _keys(levels, WORKSHOP_KEYS, f"{prefix}.{uid}", errors):
+                for name in WORKSHOP_KEYS:
+                    if not _int_or_null(levels.get(name), 0):
+                        errors.append(f"{prefix}.{uid}.{name}: invalid level")
 
 
 def _compare_setup(ctx: dict) -> dict:
     """Informational exact-field comparison; NEVER screen HP on this alone."""
     expected = _expected_control_setup()
-    def levels(uid, k):
-        workshop = ctx.get("workshop_upgrades", {})
-        w = workshop.get(uid) if isinstance(workshop, dict) else None
+    def levels(side, uid, k):
+        workshops = ctx.get("workshop_upgrades", {})
+        scoped = workshops.get(side) if isinstance(workshops, dict) else None
+        w = scoped.get(uid) if isinstance(scoped, dict) else None
         return w.get(k) if isinstance(w, dict) else None
 
     actual = {
@@ -120,10 +126,10 @@ def _compare_setup(ctx: dict) -> dict:
         "defender_forge_level": ctx.get("defender_forge_level"),
         "attacker_units": ctx.get("attacker_units"),
         "defender_units": ctx.get("defender_units"),
-        "ram_ship_attack_upgrade": levels("ram_ship", "attack"),
-        "ram_ship_armor_upgrade": levels("ram_ship", "armor"),
-        "steam_ram_attack_upgrade": levels("steam_ram", "attack"),
-        "steam_ram_armor_upgrade": levels("steam_ram", "armor"),
+        "ram_ship_attack_upgrade": levels("defender", "ram_ship", "attack"),
+        "ram_ship_armor_upgrade": levels("defender", "ram_ship", "armor"),
+        "steam_ram_attack_upgrade": levels("defender", "steam_ram", "attack"),
+        "steam_ram_armor_upgrade": levels("defender", "steam_ram", "armor"),
         "tender_count": (
             ctx.get("defender_units", {}).get("tender")
             if isinstance(ctx.get("defender_units"), dict) else None
@@ -133,6 +139,14 @@ def _compare_setup(ctx: dict) -> dict:
         name for name, value in actual.items()
         if type(value) is not type(expected[name]) or value != expected[name]
     ]
+    # The synthetic source side is Barbarian; its Workshop values are zero.
+    # A same-fleet attacker with nonzero/unknown upgrades is NOT equivalent.
+    attacker_units = expected["attacker_units"]
+    for uid in sorted(attacker_units):
+        for attribute in ("attack", "armor"):
+            if type(levels("attacker", uid, attribute)) is not int or (
+                    levels("attacker", uid, attribute) != 0):
+                mismatch.append(f"attacker_workshop.{uid}.{attribute}")
     return {
         "synthetic_source_scenario": "naval_tender_support_1_live_R1_R2",
         "exact_original_synthetic_setup_fields_match": not bool(mismatch),
@@ -281,11 +295,32 @@ def archive(record) -> dict:
                     missing.append(f"battle_context.{side}.{uid}.quantity")
     workshops = ctx.get("workshop_upgrades")
     if isinstance(workshops, dict):
-        for uid, levels in workshops.items():
-            if isinstance(levels, dict):
+        # Check every declared unit AND every observed unit, even when a
+        # populated workshop map only mentions unrelated ship types.
+        # Missing values are research follow-ups, never fabricated zeros.
+        for side in sorted(SIDES):
+            side_levels = workshops.get(side)
+            if not isinstance(side_levels, dict):
+                missing.append(f"battle_context.workshop_upgrades.{side}")
+                side_levels = {}
+            declared = ctx.get(f"{side}_units") or {}
+            required = set(declared)
+            required.update(
+                row["unit_id"] for row in observations
+                if row.get("side") == side
+            )
+            for uid in sorted(required):
+                if uid not in declared:
+                    missing.append(f"battle_context.{side}_units.{uid}.quantity")
+                per_unit = side_levels.get(uid)
+                if not isinstance(per_unit, dict):
+                    missing.append(f"battle_context.workshop_upgrades.{side}.{uid}")
+                    continue
                 for field in sorted(WORKSHOP_KEYS):
-                    if levels.get(field) is None:
-                        missing.append(f"battle_context.workshop_upgrades.{uid}.{field}")
+                    if per_unit.get(field) is None:
+                        missing.append(
+                            f"battle_context.workshop_upgrades.{side}.{uid}.{field}"
+                        )
     if ctx.get("reinforcements_between") in (None, "unknown"):
         missing.append("battle_context.reinforcements_between")
     if ctx.get("r2_prefire_confirmed") is not True:
