@@ -158,6 +158,8 @@ def bind_files(record: dict, manifest: dict, evidence_root: Path) -> dict:
         return report
     if manifest["schema"] != SCHEMA or manifest["record_kind"] != "user_supplied_unverified_files":
         errors.append("manifest: wrong schema or source classification")
+        report["status"] = "INVALID_OR_HASH_MISMATCH"
+        return report
     images = manifest["images"]
     if not isinstance(images, list) or len(images) > 3:
         errors.append("manifest: images must be an array of at most 3 entries")
@@ -170,8 +172,11 @@ def bind_files(record: dict, manifest: dict, evidence_root: Path) -> dict:
     declared = [v for v in refs.values() if _nonblank(v)]
     if len(set(declared)) != len(declared):
         errors.append("record: ambiguous duplicate source_ref across R1/R2/fleet stages")
+        report["status"] = "INVALID_OR_HASH_MISMATCH"
+        return report
     known = set(declared)
     seen_refs: set[str] = set()
+    bound_refs: set[str] = set()
     seen_paths: set[str] = set()
     for i, entry in enumerate(images):
         label = f"images[{i}]"
@@ -215,7 +220,11 @@ def bind_files(record: dict, manifest: dict, evidence_root: Path) -> dict:
         checked.append(checked_entry)
         if expected is not None and expected != verified["sha256_file_bytes"]:
             errors.append(f"{label}: expected SHA-256 does not match local bytes")
-    for ref in sorted(known - seen_refs):
+        else:
+            bound_refs.add(source)
+    # Mark a stage bound ONLY after its local bytes have been successfully
+    # read and its optional expected digest has matched.
+    for ref in sorted(known - bound_refs):
         missing.append(ref)
     if errors:
         report["status"] = "INVALID_OR_HASH_MISMATCH"
