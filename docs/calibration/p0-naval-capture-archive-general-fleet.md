@@ -68,3 +68,28 @@ Formal Codex review of former HEAD `0fa4f8f8fb19790439ab939c1617710c2e68b915` **
 The updated research archival rule uses one `_nonblank` predicate for record/source references and per-R1/R2 observation source/Wave/Slot labels. Whitespace-only fields remain **preserved verbatim** in user-supplied JSON and its transcription-only SHA-256 but count as **missing** for follow-up, producing `UNVERIFIED_ARCHIVE_INCOMPLETE`. Duplicate unknown labels do not silently prove unique physical-slot identity. The prior duplicate *nonblank* labeled Slot protection remains. New adversarial regression tests cover whitespace-only record IDs, three screenshot/fleet references, per-phase observation references, both Wave/Slot labels, coordinated whitespace source refs, duplicate whitespace-only Wave/Slot transcriptions and genuinely populated READY observations.
 
 There were **no new independent Gameforge observations or real PNG images**. All original 53%/65% Carrier history remains separate from invented test fixtures, the game simulator is unchanged, and a NEW exact-source Hosted CI and formal Codex review are required before any owner-authorized Merge. This third-round review **does not approve** the corrected source.
+
+
+### Formal Codex Review round 4 — side-scoped Workshop records and declared-unit coverage (two P2s)
+
+Formal Codex review of source `1229298b7b49e828b99aafff5bf8e9dd95f46426` **completed with TWO new P2 findings** (not a clean source approval):
+
+1. A single unscoped `workshop_upgrades: {"carrier": {"attack": 1, "armor": 2}}` loses ownership of a Carrier's upgrades if both **attacker and defender** field Carrier at different levels. The unmerged archival format now uses schema **`p0_naval_capture_archive_v2`** with explicit `workshop_upgrades.attacker.<unit_id>.attack/armor` and `workshop_upgrades.defender.<unit_id>.attack/armor`, retaining both independently, and rejects obsolete unscoped maps. Empty template includes both nested sides. The *informational only* synthetic setup comparison uses **defender-specific** Ram Ship/Steam Ram upgrade values and checks that the reference Barbarian attacker's own per-ship upgrades are zero; the archive still performs no combat-HP model comparison.
+2. A nonempty Workshop map could refer only to an unrelated ship, while omitting a declared or observed ship's upgrade entry entirely, yet erroneously qualify as `UNVERIFIED_ARCHIVE_READY`. The archive now checks each **attacker/defender declared ship** plus each observed ship against its **same-side** Workshop entries. Missing side maps, entire ship entries or nested attack/armor values produce specific paths in `missing_for_followup` and `UNVERIFIED_ARCHIVE_INCOMPLETE`; unknown ship population is also separately flagged. These records are preserved as unverified original user transcriptions, not rejected or invented values.
+
+Example of the **new v2 layout** (all values below illustrative, NOT real Gameforge observations):
+
+```json
+{
+  "battle_context": {
+    "workshop_upgrades": {
+      "attacker": {"carrier": {"attack": 0, "armor": 0}},
+      "defender": {"carrier": {"attack": 1, "armor": 2}}
+    }
+  }
+}
+```
+
+This JSON excerpt shows ONLY the relevant nested path, not a complete archive document. Complete records still require the remaining source references, round-phase observations, fleet context and known required unit Workshop entries. Since PR #88 has **never merged**, this is a schema correction to an unshipped draft, not migration of existing authenticated Gameforge evidence. Adversarial tests cover same-unit two-sided PvP upgrades, missing side/whole unit entries, differing versus matching simulated control setup and unrelated Workshop entries. First code regression pass discovered two **test-fixture** cases that changed the fleet from Carrier to Ram Ship while leaving synthetic observation unit IDs as Carrier; those invented transcriptions were correctly flagged INCOMPLETE. Tests were updated to align the fake observed ship identities with the declared source fleet.
+
+No real Gameforge PNG was authenticated or added, no independent holdouts or official combat rules were confirmed, and no production engine formulas were changed. Latest exact-source Hosted CI, formal Codex review and owner merge approval remain separate mandatory gates.
