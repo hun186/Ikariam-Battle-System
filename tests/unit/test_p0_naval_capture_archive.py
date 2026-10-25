@@ -21,7 +21,13 @@ def invented_other_fleet():
         "defender_forge_level": 3,
         "attacker_units": {"barbarian_wedge_paddler": 10},
         "defender_units": {"carrier": 5, "tender": 2},
-        "workshop_upgrades": {"carrier": {"attack": 1, "armor": 2}},
+        "workshop_upgrades": {
+            "attacker": {"barbarian_wedge_paddler": {"attack": 0, "armor": 0}},
+            "defender": {
+                "carrier": {"attack": 1, "armor": 2},
+                "tender": {"attack": 0, "armor": 0},
+            },
+        },
         "reinforcements_between": "none",
         "r2_prefire_confirmed": True,
     }
@@ -76,13 +82,20 @@ def test_matching_named_control_only_identifies_setup_never_game_mechanism():
                   "attacker_units", "defender_units"):
         setup[field] = existing[field]
     setup["workshop_upgrades"] = {
-        "ram_ship": {
-            "attack": existing["ram_ship_attack_upgrade"],
-            "armor": existing["ram_ship_armor_upgrade"],
+        "attacker": {
+            uid: {"attack": 0, "armor": 0}
+            for uid in existing["attacker_units"]
         },
-        "steam_ram": {
-            "attack": existing["steam_ram_attack_upgrade"],
-            "armor": existing["steam_ram_armor_upgrade"],
+        "defender": {
+            "ram_ship": {
+                "attack": existing["ram_ship_attack_upgrade"],
+                "armor": existing["ram_ship_armor_upgrade"],
+            },
+            "steam_ram": {
+                "attack": existing["steam_ram_attack_upgrade"],
+                "armor": existing["steam_ram_armor_upgrade"],
+            },
+            "tender": {"attack": 0, "armor": 0},
         },
     }
     got = archive.archive(record)
@@ -157,7 +170,7 @@ def test_invalid_or_forged_evidence_is_never_archived_as_confirmed(mutation):
     elif mutation == "bar_official_claim":
         row["official_hit_point_bar"] = True
     elif mutation == "extra_bad_workshop":
-        ctx["workshop_upgrades"]["carrier"]["official"] = 1
+        ctx["workshop_upgrades"]["defender"]["carrier"]["official"] = 1
     elif mutation == "invalid_negative_population":
         row["units_alive"] = -4
     elif mutation == "boolean_population":
@@ -250,11 +263,11 @@ def test_explicit_null_setup_keys_not_crash_informational_comparison(field):
 @pytest.mark.parametrize(("mutation", "expected_missing"), [
     ("attacker_null_quantity", "battle_context.attacker_units.barbarian_wedge_paddler.quantity"),
     ("defender_null_quantity", "battle_context.defender_units.carrier.quantity"),
-    ("missing_workshop_attack", "battle_context.workshop_upgrades.carrier.attack"),
-    ("missing_workshop_armor", "battle_context.workshop_upgrades.carrier.armor"),
-    ("null_workshop_attack", "battle_context.workshop_upgrades.carrier.attack"),
-    ("null_workshop_armor", "battle_context.workshop_upgrades.carrier.armor"),
-    ("empty_nested_workshop", "battle_context.workshop_upgrades.carrier.attack"),
+    ("missing_workshop_attack", "battle_context.workshop_upgrades.defender.carrier.attack"),
+    ("missing_workshop_armor", "battle_context.workshop_upgrades.defender.carrier.armor"),
+    ("null_workshop_attack", "battle_context.workshop_upgrades.defender.carrier.attack"),
+    ("null_workshop_armor", "battle_context.workshop_upgrades.defender.carrier.armor"),
+    ("empty_nested_workshop", "battle_context.workshop_upgrades.defender.carrier.attack"),
 ])
 def test_nested_unknown_values_force_incomplete_without_dropping_record(
         mutation, expected_missing):
@@ -265,15 +278,15 @@ def test_nested_unknown_values_force_incomplete_without_dropping_record(
     elif mutation == "defender_null_quantity":
         ctx["defender_units"]["carrier"] = None
     elif mutation == "missing_workshop_attack":
-        ctx["workshop_upgrades"]["carrier"].pop("attack")
+        ctx["workshop_upgrades"]["defender"]["carrier"].pop("attack")
     elif mutation == "missing_workshop_armor":
-        ctx["workshop_upgrades"]["carrier"].pop("armor")
+        ctx["workshop_upgrades"]["defender"]["carrier"].pop("armor")
     elif mutation == "null_workshop_attack":
-        ctx["workshop_upgrades"]["carrier"]["attack"] = None
+        ctx["workshop_upgrades"]["defender"]["carrier"]["attack"] = None
     elif mutation == "null_workshop_armor":
-        ctx["workshop_upgrades"]["carrier"]["armor"] = None
+        ctx["workshop_upgrades"]["defender"]["carrier"]["armor"] = None
     else:
-        ctx["workshop_upgrades"]["carrier"] = {}
+        ctx["workshop_upgrades"]["defender"]["carrier"] = {}
     expected = deepcopy(record)
     got = archive.archive(record)
     assert got["status"] == "UNVERIFIED_ARCHIVE_INCOMPLETE"
