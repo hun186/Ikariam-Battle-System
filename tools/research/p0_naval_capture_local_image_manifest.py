@@ -48,67 +48,85 @@ def _safe_relative(value: str) -> bool:
 
 
 def _file_digest(root: Path, relative_path: str) -> dict:
-    """Read bounded local regular file, no URLs, path traversal or symlinks."""
+    """Hash local bytes below the chosen root without following path-swap symlinks.
+
+    POSIX directory descriptors anchor each lookup to the directory actually
+    opened, not to a pathname checked earlier. Fail closed where these
+    guarantees are unavailable. This is byte integrity, not image provenance.
+    """
     if not _safe_relative(relative_path):
         raise ValueError("unsafe relative image path (no absolute, parent, URI, or backslashes)")
+    if (not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_DIRECTORY")
+            or os.open not in getattr(os, "supports_dir_fd", ())):
+        raise ValueError("secure directory-relative nofollow opens unavailable on this platform")
     if not root.is_dir() or root.is_symlink():
         raise ValueError("evidence root must be an existing nonsymlink directory")
-    current = root.resolve(strict=True)
+
+    flags = os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0)
+    flags |= getattr(os, "O_BINARY", 0)
+    directory_flags = flags | os.O_DIRECTORY
+    # Even if the named root is replaced after the prior is_dir check,
+    # O_NOFOLLOW refuses a replacement symlink at this final component.
+    root_fd = os.open(root, directory_flags)
+    parent_fd = root_fd
     parts = relative_path.split("/")
-    # Check intermediate directories; never accept symlinks anywhere within
-    # root. Linux O_NOFOLLOW additionally guards the opened final component.
-    for part in parts[:-1]:
-        current = current / part
-        mode = current.lstat().st_mode
-        if not stat.S_ISDIR(mode):
-            raise ValueError("evidence path parent must be an ordinary directory")
-    target = current / parts[-1]
-    if not stat.S_ISREG(target.lstat().st_mode):
-        raise ValueError("evidence source must be a local regular nonsymlink file")
-    flags = os.O_RDONLY | getattr(os, "O_BINARY", 0)
-    if hasattr(os, "O_NOFOLLOW"):
-        flags |= os.O_NOFOLLOW
-    fd = os.open(target, flags)
     try:
-        info = os.fstat(fd)
-        if not stat.S_ISREG(info.st_mode):
-            raise ValueError("evidence file changed to non-regular")
-        if info.st_size <= 0 or info.st_size > MAX_IMAGE_BYTES:
-            raise ValueError("empty or oversized evidence image")
-        hasher = sha256()
-        prefix = b""
-        tail = b""
-        seen = 0
-        while True:
-            block = os.read(fd, 65536)
-            if not block:
-                break
-            seen += len(block)
-            if seen > MAX_IMAGE_BYTES:
-                raise ValueError("image exceeds per-file size limit")
-            hasher.update(block)
-            if len(prefix) < 24:
-                prefix += block[:24 - len(prefix)]
-            tail = (tail + block)[-2:]
-        if not seen:
-            raise ValueError("empty image")
-        suffix = target.suffix.lower()
-        if (suffix == ".png" and prefix.startswith(b"\x89PNG\r\n\x1a\n")
-                and len(prefix) >= 24 and prefix[12:16] == b"IHDR"):
-            kind = "png"
-        elif suffix in (".jpg", ".jpeg") and prefix.startswith(b"\xff\xd8\xff") and tail == b"\xff\xd9":
-            kind = "jpeg"
-        else:
-            raise ValueError("file extension and basic PNG/JPEG signature inconsistent")
-        return {
-            "sha256_file_bytes": hasher.hexdigest(),
-            "byte_size": seen,
-            "basic_signature_matches_extension": True,
-            "format_signature_only": kind,
-            "image_decoded_or_visually_inspected": False,
-        }
+        # Never reconstruct a full child path: all later opens use the
+        # directory FD already opened on the preceding component.
+        for part in parts[:-1]:
+            child_fd = os.open(part, directory_flags, dir_fd=parent_fd)
+            if parent_fd != root_fd:
+                os.close(parent_fd)
+            parent_fd = child_fd
+        # Nonblocking protects against an attacker swapping in a FIFO just
+        # before opening; fstat below admits regular files only.
+        fd = os.open(parts[-1], flags | getattr(os, "O_NONBLOCK", 0),
+                     dir_fd=parent_fd)
+        try:
+            info = os.fstat(fd)
+            if not stat.S_ISREG(info.st_mode):
+                raise ValueError("evidence source must be a local regular nonsymlink file")
+            if info.st_size <= 0 or info.st_size > MAX_IMAGE_BYTES:
+                raise ValueError("empty or oversized evidence image")
+            hasher = sha256()
+            prefix = b""
+            tail = b""
+            seen = 0
+            while True:
+                block = os.read(fd, 65536)
+                if not block:
+                    break
+                seen += len(block)
+                if seen > MAX_IMAGE_BYTES:
+                    raise ValueError("image exceeds per-file size limit")
+                hasher.update(block)
+                if len(prefix) < 24:
+                    prefix += block[:24 - len(prefix)]
+                tail = (tail + block)[-2:]
+            if not seen:
+                raise ValueError("empty image")
+            suffix = Path(parts[-1]).suffix.lower()
+            if (suffix == ".png" and prefix.startswith(b"\\x89PNG\\r\\n\\x1a\\n")
+                    and len(prefix) >= 24 and prefix[12:16] == b"IHDR"):
+                kind = "png"
+            elif (suffix in (".jpg", ".jpeg") and prefix.startswith(b"\\xff\\xd8\\xff")
+                  and tail == b"\\xff\\xd9"):
+                kind = "jpeg"
+            else:
+                raise ValueError("file extension and basic PNG/JPEG signature inconsistent")
+            return {
+                "sha256_file_bytes": hasher.hexdigest(),
+                "byte_size": seen,
+                "basic_signature_matches_extension": True,
+                "format_signature_only": kind,
+                "image_decoded_or_visually_inspected": False,
+            }
+        finally:
+            os.close(fd)
     finally:
-        os.close(fd)
+        if parent_fd != root_fd:
+            os.close(parent_fd)
+        os.close(root_fd)
 
 
 def bind_files(record: dict, manifest: dict, evidence_root: Path) -> dict:
