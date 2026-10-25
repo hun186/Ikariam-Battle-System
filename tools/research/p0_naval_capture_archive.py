@@ -297,6 +297,8 @@ def archive(record) -> dict:
             missing.append(f"observations[{i}].source_ref_mismatch")
         if row.get("visible_percent") is None:
             missing.append(f"observations[{i}].visible_percent")
+        if row.get("units_alive") is None:
+            missing.append(f"observations[{i}].units_alive")
         if not row.get("wave_label"):
             missing.append(f"observations[{i}].wave_label")
         if not row.get("physical_slot_label"):
