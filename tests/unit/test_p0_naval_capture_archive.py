@@ -336,3 +336,87 @@ def test_complete_per_slot_survivors_still_ready():
     assert result["missing_for_followup"] == []
     assert [x["units_alive"] for x in result["user_submitted_record"]["observations"]] == [3, 3]
     assert result["game_screenshot_contents_verified"] is False
+
+
+
+@pytest.mark.parametrize(("kind", "expected_path"), [
+    ("record_id", "record_id"),
+    ("round1_ref", "source_refs.r1_end"),
+    ("round2_ref", "source_refs.r2_prefire"),
+    ("fleet_ref", "source_refs.fleet_setup"),
+    ("r1_observation_ref", "observations[0].source_ref"),
+    ("r2_observation_ref", "observations[1].source_ref"),
+    ("r1_wave", "observations[0].wave_label"),
+    ("r2_wave", "observations[1].wave_label"),
+    ("r1_slot", "observations[0].physical_slot_label"),
+    ("r2_slot", "observations[1].physical_slot_label"),
+])
+def test_whitespace_only_evidence_labels_remain_archivable_but_incomplete(kind, expected_path):
+    record = invented_other_fleet()
+    if kind == "record_id":
+        record["record_id"] = " \t "
+    elif kind == "round1_ref":
+        record["source_refs"]["r1_end"] = "   "
+    elif kind == "round2_ref":
+        record["source_refs"]["r2_prefire"] = "\t "
+    elif kind == "fleet_ref":
+        record["source_refs"]["fleet_setup"] = "\n\t "
+    elif kind == "r1_observation_ref":
+        record["observations"][0]["source_ref"] = " \t"
+    elif kind == "r2_observation_ref":
+        record["observations"][1]["source_ref"] = "   "
+    elif kind == "r1_wave":
+        record["observations"][0]["wave_label"] = "   "
+    elif kind == "r2_wave":
+        record["observations"][1]["wave_label"] = "\t"
+    elif kind == "r1_slot":
+        record["observations"][0]["physical_slot_label"] = " \t"
+    else:
+        record["observations"][1]["physical_slot_label"] = "   "
+    original = deepcopy(record)
+    got = archive.archive(record)
+    assert got["status"] == "UNVERIFIED_ARCHIVE_INCOMPLETE"
+    assert expected_path in got["missing_for_followup"]
+    assert got["user_submitted_record"] == original
+    assert got["user_record_sha256"] and not got["user_record_digest_is_screenshot_hash"]
+    assert got["official_game_mechanism_verified"] is False
+    assert got["independently_verified_game_observations"] == 0
+    assert record == original
+
+
+def test_matching_whitespace_source_references_still_unfilled():
+    record = invented_other_fleet()
+    for name in ("r1_end", "r2_prefire", "fleet_setup"):
+        record["source_refs"][name] = " \t "
+    for row in record["observations"]:
+        row["source_ref"] = " \t "
+    got = archive.archive(record)
+    assert got["status"] == "UNVERIFIED_ARCHIVE_INCOMPLETE"
+    assert all(f"source_refs.{phase}" in got["missing_for_followup"]
+               for phase in ("r1_end", "r2_prefire", "fleet_setup"))
+    assert all(f"observations[{i}].source_ref" in got["missing_for_followup"]
+               for i in (0, 1))
+    assert got["user_submitted_record"] == record
+    assert got["synthetic_setup_comparison"]["comparison_performed"] is False
+
+
+def test_duplicate_whitespace_only_wave_and_slot_labels_cannot_make_archive_ready():
+    record = invented_other_fleet()
+    sample = record["observations"][1]
+    sample["wave_label"] = "   "
+    sample["physical_slot_label"] = " \t "
+    record["observations"].append(deepcopy(sample))
+    result = archive.archive(record)
+    assert result["status"] == "UNVERIFIED_ARCHIVE_INCOMPLETE"
+    for row_id in (1, 2):
+        assert f"observations[{row_id}].wave_label" in result["missing_for_followup"]
+        assert f"observations[{row_id}].physical_slot_label" in result["missing_for_followup"]
+    assert result["user_submitted_record"] == record
+
+
+def test_nonblank_valid_source_labels_and_slot_names_still_archive_ready():
+    record = invented_other_fleet()
+    result = archive.archive(record)
+    assert result["status"] == "UNVERIFIED_ARCHIVE_READY"
+    assert result["missing_for_followup"] == []
+    assert result["game_screenshot_contents_verified"] is False
