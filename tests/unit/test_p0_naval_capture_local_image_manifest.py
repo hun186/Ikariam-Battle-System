@@ -364,3 +364,121 @@ def test_cli_incomplete_unverified_archive_still_exits_successfully(tmp_path, mo
     assert result["status"] == "UNVERIFIED_PARTIAL_SOURCE_BUNDLE"
     assert len(result["missing_or_unbound_source_refs"]) == 3
     assert result["official_game_mechanism_verified"] is False
+
+
+@pytest.mark.skipif(
+    not (hasattr(binder.os, "O_NOFOLLOW") and hasattr(binder.os, "O_DIRECTORY")
+         and binder.os.open in getattr(binder.os, "supports_dir_fd", ())),
+    reason="openat nofollow tests require POSIX dir_fd support",
+)
+def test_parent_swapped_to_outside_symlink_before_child_open_fails_closed(
+        tmp_path, monkeypatch):
+    """Invented outside bytes must not be read when a directory changes."""
+    _write_images(tmp_path)
+    nested = tmp_path / "nested"
+    nested.mkdir()
+    (nested / "r1.png").write_bytes(FAKE_PNG_HEADER)
+    outside = tmp_path.parent / (tmp_path.name + "-outside")
+    outside.mkdir()
+    (outside / "r1.png").write_bytes(FAKE_PNG_HEADER + b"OUTSIDE-BYTES")
+    manifest = _manifest()
+    manifest["images"][0]["relative_path"] = "nested/r1.png"
+    actual_open = binder.os.open
+    swapped = False
+
+    def racing_open(path, flags, *args, **kwargs):
+        nonlocal swapped
+        if path == "nested" and "dir_fd" in kwargs and not swapped:
+            nested.rename(tmp_path / "nested-original")
+            nested.symlink_to(outside, target_is_directory=True)
+            swapped = True
+        return actual_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(binder.os, "open", racing_open)
+    # The wrapped syscall retains the actual host openat/dir_fd capability.
+    monkeypatch.setattr(binder.os, "supports_dir_fd",
+                        set(binder.os.supports_dir_fd) | {racing_open})
+    got = binder.bind_files(_invented_record(), manifest, tmp_path)
+    assert swapped  # The replacement happened at the vulnerable lookup.
+    assert got["status"] == "INVALID_OR_HASH_MISMATCH"
+    assert "test-r1" in got["missing_or_unbound_source_refs"]
+    assert not any(row["source_ref"] == "test-r1" for row in got["files"])
+
+
+@pytest.mark.skipif(
+    not (hasattr(binder.os, "O_NOFOLLOW") and hasattr(binder.os, "O_DIRECTORY")
+         and binder.os.open in getattr(binder.os, "supports_dir_fd", ())),
+    reason="openat nofollow tests require POSIX dir_fd support",
+)
+def test_parent_swapped_after_descriptor_open_still_hashes_original_child(
+        tmp_path, monkeypatch):
+    """Rename+symlink cannot redirect an already-open directory descriptor."""
+    _write_images(tmp_path)
+    nested = tmp_path / "nested"
+    nested.mkdir()
+    (nested / "r1.png").write_bytes(FAKE_PNG_HEADER)
+    outside = tmp_path.parent / (tmp_path.name + "-outside")
+    outside.mkdir()
+    (outside / "r1.png").write_bytes(FAKE_PNG_HEADER + b"OUTSIDE-BYTES")
+    manifest = _manifest()
+    manifest["images"][0]["relative_path"] = "nested/r1.png"
+    actual_open = binder.os.open
+    swapped = False
+
+    def racing_open(path, flags, *args, **kwargs):
+        nonlocal swapped
+        if path == "r1.png" and "dir_fd" in kwargs and not swapped:
+            nested.rename(tmp_path / "nested-original")
+            nested.symlink_to(outside, target_is_directory=True)
+            swapped = True
+        return actual_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(binder.os, "open", racing_open)
+    # The wrapped syscall retains the actual host openat/dir_fd capability.
+    monkeypatch.setattr(binder.os, "supports_dir_fd",
+                        set(binder.os.supports_dir_fd) | {racing_open})
+    got = binder.bind_files(_invented_record(), manifest, tmp_path)
+    assert swapped
+    assert got["status"] == "LOCAL_BYTES_FINGERPRINTED_UNAUTHENTICATED"
+    assert got["files"][0]["sha256_file_bytes"] == sha256(FAKE_PNG_HEADER).hexdigest()
+    assert got["files"][0]["sha256_file_bytes"] != sha256(
+        FAKE_PNG_HEADER + b"OUTSIDE-BYTES").hexdigest()
+    assert got["official_game_mechanism_verified"] is False
+
+
+@pytest.mark.skipif(
+    not (hasattr(binder.os, "O_NOFOLLOW") and hasattr(binder.os, "O_DIRECTORY")
+         and binder.os.open in getattr(binder.os, "supports_dir_fd", ())),
+    reason="openat nofollow tests require POSIX dir_fd support",
+)
+def test_final_file_changed_to_symlink_before_open_fails_closed(
+        tmp_path, monkeypatch):
+    _write_images(tmp_path)
+    nested = tmp_path / "nested"
+    nested.mkdir()
+    target = nested / "r1.png"
+    target.write_bytes(FAKE_PNG_HEADER)
+    outside = tmp_path.parent / (tmp_path.name + "-outside.png")
+    outside.write_bytes(FAKE_PNG_HEADER + b"OUTSIDE-BYTES")
+    manifest = _manifest()
+    manifest["images"][0]["relative_path"] = "nested/r1.png"
+    actual_open = binder.os.open
+    swapped = False
+
+    def racing_open(path, flags, *args, **kwargs):
+        nonlocal swapped
+        if path == "r1.png" and "dir_fd" in kwargs and not swapped:
+            target.unlink()
+            target.symlink_to(outside)
+            swapped = True
+        return actual_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(binder.os, "open", racing_open)
+    # The wrapped syscall retains the actual host openat/dir_fd capability.
+    monkeypatch.setattr(binder.os, "supports_dir_fd",
+                        set(binder.os.supports_dir_fd) | {racing_open})
+    got = binder.bind_files(_invented_record(), manifest, tmp_path)
+    assert swapped
+    assert got["status"] == "INVALID_OR_HASH_MISMATCH"
+    assert "test-r1" in got["missing_or_unbound_source_refs"]
+    assert not any(row["source_ref"] == "test-r1" for row in got["files"])
