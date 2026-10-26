@@ -240,6 +240,24 @@ def bind_files(record: dict, manifest: dict, evidence_root: Path) -> dict:
             errors.append(f"{label}: expected SHA-256 does not match local bytes")
         else:
             bound_refs.add(source)
+    # Different local file paths can be copies or hard links of the SAME
+    # image bytes. Such byte-identical inputs cannot independently distinguish
+    # R1-end from R2-prefire (or setup) source stages even if the submitter
+    # supplied a matching expected hash for each. Reject ALL ambiguous stage
+    # bindings, without asserting that legitimate scenes cannot look alike.
+    digest_refs: dict[str, set[str]] = {}
+    for file_entry in checked:
+        digest_refs.setdefault(file_entry["sha256_file_bytes"], set()).add(
+            file_entry["source_ref"]
+        )
+    for stage_refs in digest_refs.values():
+        if len(stage_refs) > 1:
+            errors.append(
+                "identical image bytes attached to distinct source stages: "
+                + ", ".join(sorted(stage_refs))
+                + "; confirm separate captures (same SHA-256)"
+            )
+            bound_refs.difference_update(stage_refs)
     # Mark a stage bound ONLY after its local bytes have been successfully
     # read and its optional expected digest has matched.
     for ref in sorted(known - bound_refs):
