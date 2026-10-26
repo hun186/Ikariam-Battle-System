@@ -482,3 +482,78 @@ def test_final_file_changed_to_symlink_before_open_fails_closed(
     assert got["status"] == "INVALID_OR_HASH_MISMATCH"
     assert "test-r1" in got["missing_or_unbound_source_refs"]
     assert not any(row["source_ref"] == "test-r1" for row in got["files"])
+
+
+@pytest.mark.parametrize("reverse_manifest", [False, True])
+def test_copied_same_image_bytes_cannot_count_as_distinct_temporal_stages(
+        tmp_path, reverse_manifest):
+    """Copies under different safe paths and stages are ambiguous, not evidence."""
+    _write_images(tmp_path)
+    (tmp_path / "r2-copy.png").write_bytes(FAKE_PNG_HEADER)
+    manifest = _manifest()
+    manifest["images"][1]["relative_path"] = "r2-copy.png"
+    if reverse_manifest:
+        manifest["images"].reverse()
+    out = binder.bind_files(_invented_record(), manifest, tmp_path)
+    assert out["status"] == "INVALID_OR_HASH_MISMATCH"
+    assert out["missing_or_unbound_source_refs"] == ["test-r1", "test-r2"]
+    assert len(out["files"]) == 3  # Keep digests to support local follow-up.
+    assert any("identical image bytes" in msg and "test-r1" in msg
+               and "test-r2" in msg
+               for msg in out["invalid_manifest_or_file_errors"])
+    assert out["original_game_screenshots_authenticated"] is False
+    assert out["independently_verified_game_observations"] == 0
+
+
+def test_matching_expected_hashes_do_not_legitimize_duplicate_stages(tmp_path):
+    _write_images(tmp_path)
+    duplicate = tmp_path / "r2-copy.png"
+    duplicate.write_bytes(FAKE_PNG_HEADER)
+    manifest = _manifest()
+    manifest["images"][1]["relative_path"] = duplicate.name
+    for row in manifest["images"]:
+        row["expected_sha256"] = sha256(
+            (tmp_path / row["relative_path"]).read_bytes()
+        ).hexdigest()
+    out = binder.bind_files(_invented_record(), manifest, tmp_path)
+    assert out["status"] == "INVALID_OR_HASH_MISMATCH"
+    assert out["missing_or_unbound_source_refs"] == ["test-r1", "test-r2"]
+    assert all(entry["supplied_hash_matches_actual_bytes"] is True
+               for entry in out["files"])
+
+
+def test_different_source_bytes_with_same_png_signature_remain_separable(
+        tmp_path):
+    _write_images(tmp_path)
+    (tmp_path / "r2-distinct.png").write_bytes(FAKE_PNG_HEADER + b"second-phase")
+    manifest = _manifest()
+    manifest["images"][1]["relative_path"] = "r2-distinct.png"
+    out = binder.bind_files(_invented_record(), manifest, tmp_path)
+    assert out["status"] == "LOCAL_BYTES_FINGERPRINTED_UNAUTHENTICATED"
+    assert out["missing_or_unbound_source_refs"] == []
+    assert out["source_provenance_independently_verified"] is False
+
+
+def test_cli_duplicate_stage_image_bytes_exits_2_with_diagnostics(
+        tmp_path, monkeypatch):
+    _write_images(tmp_path)
+    (tmp_path / "duplicate.png").write_bytes(FAKE_PNG_HEADER)
+    manifest = _manifest()
+    manifest["images"][1]["relative_path"] = "duplicate.png"
+    archive_path = tmp_path / "record.json"
+    manifest_path = tmp_path / "manifest.json"
+    report_path = tmp_path / "report.json"
+    archive_path.write_text(json.dumps(_invented_record()), encoding="utf-8")
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    monkeypatch.setattr("sys.argv", [
+        "p0_naval_capture_local_image_manifest.py",
+        "--record", str(archive_path), "--manifest", str(manifest_path),
+        "--evidence-root", str(tmp_path), "--output-json", str(report_path),
+    ])
+    with pytest.raises(SystemExit) as err:
+        binder.main()
+    assert err.value.code == 2
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["status"] == "INVALID_OR_HASH_MISMATCH"
+    assert report["missing_or_unbound_source_refs"] == ["test-r1", "test-r2"]
+    assert len(report["files"]) == 3
