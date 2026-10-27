@@ -30,7 +30,8 @@ def compare(record):
         "manual_transcription_digest_is_image_digest": False,
         "source_class": archive_module.SOURCE_CLASS,
         "candidate_label_matches": [], "unmatched_r1_labels": [],
-        "unmatched_r2_labels": [], "missing_for_followup": [],
+        "unmatched_r2_labels": [], "ambiguous_physical_slot_labels": [],
+        "missing_for_followup": [],
         "comparability_blockers": [],
         "matching_is_independent_physical_ship_identity": False,
         "screenshot_source_provenance_verified": False,
@@ -79,6 +80,8 @@ def compare(record):
         return out
 
     rows = {"r1_end": {}, "r2_prefire": {}}
+    # The same physical slot may have overlapping user-declared wave/unit rows.
+    slot_membership = {}
     for i, row in enumerate(record["observations"]):
         values = [row.get(field) for field in FIELDS]
         if not all(_nonblank(value) for value in values):
@@ -90,7 +93,34 @@ def compare(record):
         if not _nonblank(row.get("source_ref")) or row["source_ref"] != refs[phase]:
             missing.add(f"observations[{i}].source_ref_mismatch")
             continue
-        rows[phase][tuple(values)] = (i, row)
+        key = tuple(values)
+        rows[phase][key] = (i, row)
+        slot_membership.setdefault((phase, key[0], key[3]), set()).add(key)
+
+    ambiguous_slot_ids = set()
+    for (phase, side, slot), membership in sorted(slot_membership.items()):
+        if len(membership) < 2:
+            continue
+        ambiguous_slot_ids.add((side, slot))
+        out["ambiguous_physical_slot_labels"].append({
+            "phase": phase, "side": side, "physical_slot_label": slot,
+            "competing_unit_wave_labels": [
+                {"unit_id": key[1], "wave_label": key[2]}
+                for key in sorted(membership)
+            ],
+        })
+    if ambiguous_slot_ids:
+        out["comparability_blockers"].append(
+            "physical_slot_label: overlapping unit/wave identities at one "
+            "stage/side/slot; ambiguous slots excluded from both stages"
+        )
+        # An ambiguity at EITHER stage makes both snapshots' slot comparison
+        # unsafe; independently labeled other slots remain candidate data.
+        for phase in rows:
+            rows[phase] = {
+                key: item for key, item in rows[phase].items()
+                if (key[0], key[3]) not in ambiguous_slot_ids
+            }
 
     left, right = rows["r1_end"], rows["r2_prefire"]
     for key in sorted(left.keys() - right.keys()):
@@ -122,6 +152,7 @@ def compare(record):
         })
     out["missing_for_followup"] = sorted(missing)
     if (out["candidate_label_matches"] and not out["missing_for_followup"]
+            and not out["comparability_blockers"]
             and not out["unmatched_r1_labels"] and not out["unmatched_r2_labels"]):
         out["status"] = SUCCESS
     return out
