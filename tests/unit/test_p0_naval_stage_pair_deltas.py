@@ -219,3 +219,37 @@ def test_both_stages_two_waves_one_slot_are_not_two_independent_pairs():
     assert not result["candidate_label_matches"]
     assert {item["phase"] for item in result["ambiguous_physical_slot_labels"]} == {
         "r1_end", "r2_prefire"}
+
+
+def test_two_unit_labels_one_physical_slot_are_ambiguous():
+    rec = invented_record()
+    extra = deepcopy(rec["observations"][0])
+    extra["unit_id"] = "tender"
+    rec["battle_context"]["defender_units"]["tender"] = 1
+    rec["battle_context"]["workshop_upgrades"]["defender"]["tender"] = {
+        "attack": 0, "armor": 0}
+    rec["observations"].append(extra)
+    assert archive.archive(rec)["status"] == "UNVERIFIED_ARCHIVE_READY"
+    result = pairs.compare(rec)
+    assert result["status"] == pairs.PARTIAL
+    assert not result["candidate_label_matches"]
+    values = result["ambiguous_physical_slot_labels"][0][
+        "competing_unit_wave_labels"]
+    assert {item["unit_id"] for item in values} == {"carrier", "tender"}
+
+
+def test_nonambiguous_slot_still_returns_a_provisional_delta():
+    rec = invented_record()
+    rec["observations"].extend([
+        {**deepcopy(rec["observations"][0]), "wave_label": "wave-two"},
+        {**deepcopy(rec["observations"][0]), "physical_slot_label": "slot-R",
+         "visible_percent": 77},
+        {**deepcopy(rec["observations"][1]), "physical_slot_label": "slot-R",
+         "visible_percent": 88},
+    ])
+    result = pairs.compare(rec)
+    assert result["status"] == pairs.PARTIAL
+    assert len(result["candidate_label_matches"]) == 1
+    paired = result["candidate_label_matches"][0]
+    assert paired["physical_slot_label"] == "slot-R"
+    assert paired["visible_percentage_point_delta_r2_minus_r1"] == 11
