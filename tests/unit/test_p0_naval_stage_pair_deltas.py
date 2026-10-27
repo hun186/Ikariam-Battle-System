@@ -192,3 +192,30 @@ def test_cli_invalid_archive_exits_2_with_diagnostics(tmp_path, monkeypatch):
         pairs.main()
     assert exc.value.code == 2
     assert json.loads(dst.read_text(encoding="utf-8"))["status"] == pairs.INVALID
+
+
+def test_one_stage_multiple_waves_one_slot_is_ambiguous():
+    rec = invented_record()
+    duplicate = deepcopy(rec["observations"][0])
+    duplicate["wave_label"] = "wave-two"
+    rec["observations"].append(duplicate)
+    assert archive.archive(rec)["status"] == "UNVERIFIED_ARCHIVE_READY"
+    result = pairs.compare(rec)
+    assert result["status"] == pairs.PARTIAL
+    assert not result["candidate_label_matches"]
+    assert len(result["ambiguous_physical_slot_labels"]) == 1
+    assert result["ambiguous_physical_slot_labels"][0]["phase"] == "r1_end"
+    assert not result["official_healing_or_damage_mechanism_verified"]
+
+
+def test_both_stages_two_waves_one_slot_are_not_two_independent_pairs():
+    rec = invented_record()
+    for row in deepcopy(rec["observations"]):
+        row["wave_label"] = "wave-two"
+        rec["observations"].append(row)
+    assert archive.archive(rec)["status"] == "UNVERIFIED_ARCHIVE_READY"
+    result = pairs.compare(rec)
+    assert result["status"] == pairs.PARTIAL
+    assert not result["candidate_label_matches"]
+    assert {item["phase"] for item in result["ambiguous_physical_slot_labels"]} == {
+        "r1_end", "r2_prefire"}
