@@ -30,7 +30,8 @@ def compare(record):
         "manual_transcription_digest_is_image_digest": False,
         "source_class": archive_module.SOURCE_CLASS,
         "candidate_label_matches": [], "unmatched_r1_labels": [],
-        "unmatched_r2_labels": [], "missing_for_followup": [],
+        "unmatched_r2_labels": [], "ambiguous_physical_slots": [],
+        "missing_for_followup": [],
         "comparability_blockers": [],
         "matching_is_independent_physical_ship_identity": False,
         "screenshot_source_provenance_verified": False,
@@ -42,6 +43,7 @@ def compare(record):
             "Only user-supplied labels and integer subtraction are compared.",
             "Displayed slot HP percentages are NOT measured individual ship HP.",
             "Exact wave/slot labels do not independently prove physical identity.",
+            "Multiple unit/wave rows occupying one self-labeled slot in a phase are ambiguous, not separately confirmed physical groups.",
             "A JSON transcription digest is NOT screenshot byte SHA-256.",
             "An increased percent does NOT prove Tender healing or Heal/RR order.",
             "No screenshot was loaded, inspected or authenticated.",
@@ -92,12 +94,47 @@ def compare(record):
             continue
         rows[phase][tuple(values)] = (i, row)
 
+    # The v2 archive permits separate unit/wave rows to name the same physical
+    # slot in one side and phase. Such rows are independently well-typed but
+    # cannot both establish unique slot ownership. Do NOT choose one wave
+    # and report a misleading cross-round HP/casualty delta for that slot.
+    slot_owners = {}
+    for phase, entries in rows.items():
+        for key, (index, _) in entries.items():
+            side, unit_id, wave, slot = key
+            locator = (phase, side, slot)
+            slot_owners.setdefault(locator, []).append(
+                (index, unit_id, wave))
+    ambiguous = set()
+    for locator, owners in sorted(slot_owners.items()):
+        if len({(unit_id, wave) for _, unit_id, wave in owners}) <= 1:
+            continue
+        ambiguous.add(locator)
+        phase, side, slot = locator
+        out["ambiguous_physical_slots"].append({
+            "phase": phase,
+            "side": side,
+            "physical_slot_label": slot,
+            "observation_indices": sorted(i for i, _, _ in owners),
+            "competing_unit_wave_labels": [
+                {"unit_id": unit_id, "wave_label": wave}
+                for unit_id, wave in sorted(
+                    {(unit_id, wave) for _, unit_id, wave in owners})
+            ],
+            "physical_slot_ownership_verified": False,
+        })
     left, right = rows["r1_end"], rows["r2_prefire"]
     for key in sorted(left.keys() - right.keys()):
         out["unmatched_r1_labels"].append(dict(zip(FIELDS, key)))
     for key in sorted(right.keys() - left.keys()):
         out["unmatched_r2_labels"].append(dict(zip(FIELDS, key)))
     for key in sorted(left.keys() & right.keys()):
+        side, _, _, slot = key
+        if (("r1_end", side, slot) in ambiguous
+                or ("r2_prefire", side, slot) in ambiguous):
+            # A collision in EITHER snapshot invalidates an otherwise
+            # apparently identical wave/slot pairing.
+            continue
         ai, a = left[key]
         bi, b = right[key]
         if any(type(row.get(field)) is not int for row in (a, b)
@@ -122,7 +159,8 @@ def compare(record):
         })
     out["missing_for_followup"] = sorted(missing)
     if (out["candidate_label_matches"] and not out["missing_for_followup"]
-            and not out["unmatched_r1_labels"] and not out["unmatched_r2_labels"]):
+            and not out["unmatched_r1_labels"] and not out["unmatched_r2_labels"]
+            and not out["ambiguous_physical_slots"]):
         out["status"] = SUCCESS
     return out
 
