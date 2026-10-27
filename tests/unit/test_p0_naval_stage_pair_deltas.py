@@ -253,3 +253,35 @@ def test_nonambiguous_slot_still_returns_a_provisional_delta():
     paired = result["candidate_label_matches"][0]
     assert paired["physical_slot_label"] == "slot-R"
     assert paired["visible_percentage_point_delta_r2_minus_r1"] == 11
+
+
+def test_slot_collision_diagnostics_do_not_depend_on_row_order():
+    rec = invented_record()
+    rec["observations"].append({
+        **deepcopy(rec["observations"][0]), "wave_label": "another-wave"})
+    before = pairs.compare(rec)
+    rec["observations"].reverse()
+    after = pairs.compare(rec)
+    assert before["ambiguous_physical_slot_labels"] == after[
+        "ambiguous_physical_slot_labels"]
+    assert not before["candidate_label_matches"]
+    assert not after["candidate_label_matches"]
+
+
+def test_same_slot_label_on_opposing_sides_is_safe_to_compare():
+    rec = invented_record()
+    for phase, source in (("r1_end", "INVENTED_R1"),
+                          ("r2_prefire", "INVENTED_R2")):
+        rec["observations"].append({
+            "phase": phase, "side": "attacker",
+            "unit_id": "barbarian_wedge_paddler",
+            "wave_label": "attacker-wave",
+            "physical_slot_label": "invented-L",
+            "visible_percent": 90, "units_alive": 5,
+            "source_ref": source,
+        })
+    assert archive.archive(rec)["status"] == "UNVERIFIED_ARCHIVE_READY"
+    result = pairs.compare(rec)
+    assert result["status"] == pairs.SUCCESS
+    assert len(result["candidate_label_matches"]) == 2
+    assert result["ambiguous_physical_slot_labels"] == []
