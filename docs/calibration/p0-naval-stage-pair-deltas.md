@@ -12,7 +12,18 @@ A valid nonempty PR #88 archive transcription is required. Comparison only
 proceeds for distinct nonblank declared R1 and R2 source labels, a record
 explicitly claiming R2-prefire timing, and explicit no reinforcements.
 Rows must match ALL FOUR user-declared strings: side, unit_id, wave_label
-and physical_slot_label. Each row must contain the two integer observations
+and physical_slot_label.
+If one phase and one side assign the **same physical slot label** to
+different units or Waves, the tool cannot claim those overlapping rows are
+separately identified physical groups. They appear under the report field
+`ambiguous_physical_slot_labels`, and that side/slot is excluded from BOTH
+phase comparisons. Other independently labeled slots may still yield
+provisional numeric deltas, but the overall status stays PARTIAL.
+
+A collision may reflect legitimate mixed ship/Wave occupancy in Gameforge,
+not fraud or an impossible formation. The guard only prevents counting
+ambiguous overlapping labels as distinct, independently comparable groups.
+Different sides may use the same displayed slot label without a collision. Each row must contain the two integer observations
 units_alive and visible_percent. Missing or mismatched rows are retained as
 follow-up diagnostics; no wave/slot identity is guessed.
 
