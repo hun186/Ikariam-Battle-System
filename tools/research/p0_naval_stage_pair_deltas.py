@@ -81,8 +81,16 @@ def compare(record):
         return out
 
     rows = {"r1_end": {}, "r2_prefire": {}}
+    # Collect physical-slot identity claims from ALL archive-validated
+    # observations, not only the subset eligible for R1/R2 pairing. A
+    # mismatched or missing source_ref must never hide a competing Wave.
+    slot_owners = {}
     for i, row in enumerate(record["observations"]):
         values = [row.get(field) for field in FIELDS]
+        if _nonblank(values[0]) and _nonblank(values[3]):
+            locator = (row["phase"], values[0], values[3])
+            slot_owners.setdefault(locator, []).append(
+                (i, values[1], values[2]))
         if not all(_nonblank(value) for value in values):
             for field, value in zip(FIELDS, values):
                 if not _nonblank(value):
@@ -98,13 +106,6 @@ def compare(record):
     # slot in one side and phase. Such rows are independently well-typed but
     # cannot both establish unique slot ownership. Do NOT choose one wave
     # and report a misleading cross-round HP/casualty delta for that slot.
-    slot_owners = {}
-    for phase, entries in rows.items():
-        for key, (index, _) in entries.items():
-            side, unit_id, wave, slot = key
-            locator = (phase, side, slot)
-            slot_owners.setdefault(locator, []).append(
-                (index, unit_id, wave))
     ambiguous = set()
     for locator, owners in sorted(slot_owners.items()):
         if len({(unit_id, wave) for _, unit_id, wave in owners}) <= 1:
@@ -119,7 +120,8 @@ def compare(record):
             "competing_unit_wave_labels": [
                 {"unit_id": unit_id, "wave_label": wave}
                 for unit_id, wave in sorted(
-                    {(unit_id, wave) for _, unit_id, wave in owners})
+                    {(unit_id, wave) for _, unit_id, wave in owners},
+                    key=lambda identity: (str(identity[0]), str(identity[1])))
             ],
             "physical_slot_ownership_verified": False,
         })
