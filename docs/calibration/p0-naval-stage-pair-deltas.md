@@ -22,6 +22,11 @@ uncontested slots still permit provisional arithmetic. Reusing a slot label
 on the opposing side or a different phase is not in itself a conflict.
 This is a conservative transcription-consistency rule, NOT an official
 Gameforge formation restriction.
+Ownership conflicts are indexed from ALL archive-validated rows before
+source-ref eligibility checks; a conflicting row whose source_ref is missing
+or wrong, or whose Wave label is unknown, still disqualifies that physical
+slot's apparent delta. Source refs remain required for individual row pairing.
+Partial observations do not become authenticated evidence through this guard.
 Each row must contain the two integer observations
 units_alive and visible_percent. Missing or mismatched rows are retained as
 follow-up diagnostics; no wave/slot identity is guessed.
