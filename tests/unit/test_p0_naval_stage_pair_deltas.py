@@ -292,3 +292,56 @@ def test_ambiguous_slot_diagnostics_do_not_depend_on_input_order():
     assert first["candidate_label_matches"] == second["candidate_label_matches"] == []
     assert (first["ambiguous_physical_slots"][0]["competing_unit_wave_labels"]
             == second["ambiguous_physical_slots"][0]["competing_unit_wave_labels"])
+
+
+@pytest.mark.parametrize("conflict_phase", ["r1_end", "r2_prefire"])
+@pytest.mark.parametrize("bad_source", [None, "MISMATCHED-REFERENCE"])
+def test_p2_conflict_without_source_ref_still_blocks_matching_slot(
+        conflict_phase, bad_source):
+    rec = invented_record()
+    conflicting = deepcopy(rec["observations"][
+        0 if conflict_phase == "r1_end" else 1])
+    conflicting["wave_label"] = "other-wave"
+    conflicting["source_ref"] = bad_source
+    rec["observations"].append(conflicting)
+    assert archive.archive(rec)["status"] == "UNVERIFIED_ARCHIVE_INCOMPLETE"
+    got = pairs.compare(rec)
+    assert got["status"] == pairs.PARTIAL
+    assert got["candidate_label_matches"] == []
+    assert len(got["ambiguous_physical_slots"]) == 1
+    conflict = got["ambiguous_physical_slots"][0]
+    assert conflict["phase"] == conflict_phase
+    assert conflict["observation_indices"] == (
+        [0, 2] if conflict_phase == "r1_end" else [1, 2])
+    assert {q["wave_label"] for q in conflict["competing_unit_wave_labels"]} == {
+        "invented-wave", "other-wave"}
+    assert got["independently_verified_game_observations"] == 0
+
+
+def test_p2_unknown_wave_at_occupied_slot_blocks_apparent_pair():
+    rec = invented_record()
+    uncertain = deepcopy(rec["observations"][0])
+    uncertain["wave_label"] = None
+    rec["observations"].append(uncertain)
+    assert archive.archive(rec)["status"] == "UNVERIFIED_ARCHIVE_INCOMPLETE"
+    got = pairs.compare(rec)
+    assert got["status"] == pairs.PARTIAL
+    assert got["candidate_label_matches"] == []
+    labels = got["ambiguous_physical_slots"][0]["competing_unit_wave_labels"]
+    assert {row["wave_label"] for row in labels} == {None, "invented-wave"}
+
+
+def test_p2_bad_source_collision_does_not_discard_clean_other_slot():
+    rec = invented_record()
+    for item in deepcopy(rec["observations"]):
+        item["physical_slot_label"] = "clean-R"
+        rec["observations"].append(item)
+    conflicting = deepcopy(rec["observations"][0])
+    conflicting["wave_label"] = "untrusted-wave"
+    conflicting["source_ref"] = "WRONG"
+    rec["observations"].append(conflicting)
+    got = pairs.compare(rec)
+    assert got["status"] == pairs.PARTIAL
+    assert len(got["candidate_label_matches"]) == 1
+    assert got["candidate_label_matches"][0]["physical_slot_label"] == "clean-R"
+    assert got["ambiguous_physical_slots"][0]["physical_slot_label"] == "invented-L"
