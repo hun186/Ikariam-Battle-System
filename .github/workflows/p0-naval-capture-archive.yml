@@ -30,7 +30,7 @@ jobs:
           python -m pip install -r requirements.txt pytest
       - name: Archive boundary and preceding intake regression
         run: |
-          python -m pytest -q tests/unit/test_p0_naval_capture_archive.py tests/unit/test_p0_gameforge_naval_capture_intake.py tests/unit/test_p0_naval_hp_bar_capture_discrimination.py tests/unit/test_p0_naval_stage_pair_deltas.py
+          python -m pytest -q tests/unit/test_p0_naval_capture_archive.py tests/unit/test_p0_gameforge_naval_capture_intake.py tests/unit/test_p0_naval_hp_bar_capture_discrimination.py tests/unit/test_p0_naval_stage_pair_deltas.py tests/unit/test_p0_naval_local_stage_delta_bundle.py
       - name: Generate EMPTY capture template only
         run: |
           PYTHONPATH=. python tools/research/p0_naval_capture_archive.py --write-template research-output/p0-naval-archive-EMPTY-TEMPLATE.json
