@@ -254,7 +254,7 @@ async function harness(caseValue){
   const elements=new Map();
   function el(id){
     if(!elements.has(id))elements.set(id,{id,innerHTML:'',value:'',textContent:'',
-      style:{},classList:{toggle(){}},disabled:false,
+      style:{},classList:{toggle(){},add(){},remove(){}},disabled:false,
       addEventListener(){},scrollIntoView(){}});
     return elements.get(id);
   }
@@ -263,7 +263,7 @@ async function harness(caseValue){
     setItem:(key,value)=>{assert.equal(key,M.STORAGE);writes++;stored=value;}};
   vm.runInNewContext(inline,{window:{ReportCases:M},document,localStorage,
     fetch:async()=>({ok:true,json:async()=>metadata}),console,
-    setTimeout,Date,Math,Number,String,Error,JSON});
+    setTimeout,Date,Math,Number,String,Error,JSON,process});
   for(let i=0;i<8;i++)await new Promise(resolve=>setImmediate(resolve));
   return {el,read:()=>JSON.parse(stored)[0],writes:()=>writes,stored:()=>stored};
 }
