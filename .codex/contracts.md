@@ -55,3 +55,8 @@ The setup workbench hides unit name/basic metadata by default behind the global 
 ### RR-before-deployment-selection invariant
 
 Persistent damage is wave-owned. Every supported refill/repack/handoff/fallback preserves the complete surviving wave as the RR population before deployment selection. Ordinary placement parks aggregate damage until final RR; a true state split materializes the selected segment's proportional RR share using the same allocator. Same-unit waves from different state/batch identities retain separate ammo and damage pools unless an explicit handoff contract says otherwise.
+
+
+## Browser Battle Report Case Library (v1)
+
+Dedicated `/battle-cases.html` page and `/battle-cases-model.js` static model; root and public copies identical. No server-side case database: `localStorage` key `ikariam-report-cases-v1` and portable, validated single-case JSON schema `ikariam-report-cases-v1`. Cases capture explicit battlefield ID, arbitrary numbered snapshots, their actual source phase (round end / prefire), attacker/defender physical slots and user-visible HP, plus separate hidden-Reserve hypotheses. Every Reserve defaults to assumed, NOT observed, full HP (100%); manual alternate must be `calculated` with detailed independent calculation evidence. Earliest captured round default Reserve must be explicitly confirmed full for a reliable baseline; external precision calculation is a separate still-unverified branch. Validate against public battlefield metadata and reject duplicate slot positions, malformed inputs/import schema and incompatible geometry. No screenshot authentication or official healing assertions. No `/api/simulate` POST contract change.
