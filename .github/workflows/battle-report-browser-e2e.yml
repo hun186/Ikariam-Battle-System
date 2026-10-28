@@ -1,0 +1,55 @@
+name: Battle-report Case Real Chromium Acceptance
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'battle-cases.html'
+      - 'battle-cases-model.js'
+      - 'public/battle-cases.html'
+      - 'public/battle-cases-model.js'
+      - 'asgi.py'
+      - 'tools/report_case_browser_e2e.py'
+      - '.github/workflows/battle-report-browser-e2e.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chromium-case-crud:
+    name: Real Chromium case editor / backup round-trip
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact PR source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Setup Python 3.11
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install dependencies and Chromium
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install 'uvicorn>=0.30,<1' 'playwright==1.56.0'
+          python -m playwright install --with-deps chromium
+      - name: Start source ASGI app
+        run: |
+          uvicorn asgi:application --host 127.0.0.1 --port 8871 > /tmp/ikariam-case-asgi.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8871/api/simulate > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/ikariam-case-asgi.log
+          exit 1
+      - name: Exercise real browser user flows
+        run: python tools/report_case_browser_e2e.py --base-url http://127.0.0.1:8871
+      - name: Upload synthetic browser screenshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: battle-report-chromium-synthetic-screenshots
+          path: artifacts/browser-report-acceptance/*.png
+          if-no-files-found: warn
+          retention-days: 7
