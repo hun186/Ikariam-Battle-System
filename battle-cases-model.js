@@ -59,6 +59,8 @@ return problems.slice(0,50);
 function readiness(c){
 const problems=validateCase(c);
 if(problems.length)return {ready:false,code:'INVALID',issues:problems};
+const hasVisibleSlot=c.rounds.some(r=>SIDES.some(s=>r[s].slots.some(x=>x.unit&&x.count!==null&&x.hp!==null)));
+if(!hasVisibleSlot)problems.push('尚未記錄任何有兵種、數量及可見 HP 的戰場格位；可以儲存草稿，但不能當分析案例');
 const first=[...c.rounds].sort((a,b)=>a.number-b.number)[0];
 SIDES.forEach(side=>{
 const reserve=first[side].reserve.filter(v=>v.count!==0);

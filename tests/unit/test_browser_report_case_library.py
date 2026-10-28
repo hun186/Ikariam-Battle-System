@@ -76,7 +76,11 @@ const M=require(process.argv[2]);
 let c=M.create('sample','naval-small');
 assert.equal(M.validateCase(c).length,0);
 assert.equal(c.rounds.length,1);
+assert.equal(M.readiness(c).ready,false); // empty draft is not evidence
 let a=c.rounds[0].attacker;
+const observed=M.newSlot('first',1);
+observed.unit='ram_ship';observed.count=4;observed.hp=80;
+a.slots.push(observed);
 let reserve=M.newReserve();
 reserve.unit='balloon_carrier';
 reserve.count=3;

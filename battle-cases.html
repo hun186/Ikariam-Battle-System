@@ -215,7 +215,7 @@ function render(){
  $('editMode').classList.toggle('active',edit);$('readMode').classList.toggle('active',!edit);
  const state=M.readiness(c);
  $('readiness').textContent=state.ready?
-   '起始 Reserve 資料已按使用者聲明記錄。仍不是 Gameforge 官方驗證；請保留原始截圖。':
+   '已記錄可見格位，起始 Reserve 條件也由使用者確認；仍不是 Gameforge 官方驗證，請保留原始截圖。':
    '資料待覆核：'+state.issues.join('；');
  $('readiness').classList.toggle('danger',!state.ready);
  renderBoard();
