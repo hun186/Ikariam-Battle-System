@@ -304,3 +304,74 @@ function clickAdd(h){
                              str(ROOT / "battle-cases.html")],
                             capture_output=True, text=True, check=False)
     assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node required for JSON backup round-trip")
+def test_large_case_compact_export_utf8_backup_round_trip(tmp_path):
+    """Codex P2: an exported valid 1.5 MB+ case must restore on a second machine."""
+    js = tmp_path / "large_backup.cjs"
+    js.write_text(r"""
+const assert=require('node:assert/strict');
+const M=require(process.argv[2]);
+const {Blob}=require('node:buffer');
+let c=M.create('大型案例（原始戰報）','naval-small');
+const evidence='多回合獨立精算依據及資料來源：'+
+  '本資料為外部計算，並非遊戲戰報直接顯示後備血量。'.repeat(60);
+const calculation=evidence.slice(0,1300);
+assert.equal(calculation.length,1300);
+for(let i=0;i<5;i++){
+  const round=i?M.newRound(80+i):c.rounds[0];
+  round.number=80+i;
+  if(i)c.rounds.push(round);
+  const slot=M.newSlot('first',1);
+  Object.assign(slot,{unit:'ram_ship',count:40,hp:95});
+  round.attacker.slots.push(slot);
+  for(const side of M.SIDES){
+    for(let j=0;j<100;j++){
+      const rv=M.newReserve();
+      Object.assign(rv,{unit:'balloon_carrier',count:j+1,source:'calculated',
+                        hp:73,calculation});
+      round[side].reserve.push(rv);
+    }
+  }
+}
+assert.deepEqual(M.validateCase(c),[]);
+const compact=JSON.stringify(c);
+const pretty=JSON.stringify(c,null,2)+'\n';
+assert(new Blob([pretty]).size>1_500_000,'fixture must reproduce old failure');
+assert(new Blob([compact]).size>1_500_000,
+  'include a legitimate large file, not only pretty-print growth');
+const exported=M.exportCase(c);
+assert.equal(exported,JSON.stringify(c)+'\n');
+assert(new Blob([exported]).size<=M.MAX_JSON_BYTES);
+const restored=M.importCase(exported);
+assert.deepEqual(restored,c);
+assert.deepEqual(M.importCase(pretty),c);
+assert(M.importCase(exported).rounds[0].attacker.reserve[0].source==='calculated');
+assert(M.importCase(exported).rounds[0].attacker.reserve[0].hp===73);
+// Byte (not UTF-16 code-unit) limit: raw input over guard rejects even if parsable.
+const over=M.MAX_JSON_BYTES+1;
+const oversized='中'.repeat(Math.ceil(over/3));
+assert(oversized.length<M.MAX_JSON_BYTES);
+assert.throws(()=>M.importCase(oversized),/64 MiB/);
+// A valid but absurdly large export must fail explicitly rather than yield an
+// advertised backup that the import path will later reject.
+assert.equal(M.MAX_JSON_BYTES,64*1024*1024);
+""", encoding="utf-8")
+    result = subprocess.run(["node", str(js), str(ROOT / "battle-cases-model.js")],
+                            capture_output=True, text=True, check=False)
+    assert result.returncode == 0, result.stderr
+
+
+def test_export_and_import_share_one_json_byte_limit_and_ui_route():
+    html = (ROOT / "battle-cases.html").read_text(encoding="utf-8")
+    model = (ROOT / "battle-cases-model.js").read_text(encoding="utf-8")
+    assert "const blob=new Blob([M.exportCase(c,fields)]" in html
+    assert "if(f.size>M.MAX_JSON_BYTES)" in html
+    assert "function checkJsonSize(s)" in model
+    assert "checkJsonSize(serialized)" in model
+    assert "checkJsonSize(s)" in model
+    assert 'JSON.stringify(c,null,2)' not in html
+    assert "1500000" not in html and "1500000" not in model
+    assert html == (ROOT / "public/battle-cases.html").read_text(encoding="utf-8")
+    assert model == (ROOT / "public/battle-cases-model.js").read_text(encoding="utf-8")

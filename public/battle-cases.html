@@ -105,7 +105,7 @@ function syncList(){
 }
 function selectCase(id){activeId=id;roundId=active()?.rounds.slice().sort((a,b)=>a.number-b.number)[0]?.id||null;selected=null;render();}
 function download(c){
- const blob=new Blob([JSON.stringify(c,null,2)+'\n'],{type:'application/json;charset=utf-8'});
+ const blob=new Blob([M.exportCase(c,fields)],{type:'application/json;charset=utf-8'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ikariam-report-case-'+c.id+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),500);
 }
 function unitOptions(chosen){
@@ -238,9 +238,11 @@ function listen(){
  $('caseList').onchange=e=>selectCase(e.target.value);
  $('removeCase').onclick=()=>{const c=active();if(!c||!confirm('確定刪除案例「'+c.name+'」？此瀏覽器無法復原，請先匯出備份。'))return;
    cases=cases.filter(x=>x.id!==c.id);activeId=cases[0]?.id||null;roundId=active()?.rounds[0]?.id||null;selected=null;persist();render();};
- $('exportCase').onclick=()=>{const c=active();if(!c)return;const bad=M.validateCase(c,fields);if(bad.length){notify('匯出前請修正：'+bad[0],true);return;}download(c);};
+ $('exportCase').onclick=()=>{const c=active();if(!c)return;
+  try{download(c);}catch(error){notify('匯出失敗：'+error.message,true);}
+ };
  $('importCase').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
- try{if(f.size>1500000)throw Error('檔案超過 1.5 MB');
+ try{if(f.size>M.MAX_JSON_BYTES)throw Error('檔案超過 64 MiB 單一案例上限');
   const source=await f.text();const c=M.importCase(source,fields);
   if(cases.length>=50)throw Error('本機案例數量已達 50');
   c.id=M.uid();c.name=(c.name.slice(0,114)+'（匯入）');c.created=new Date().toISOString();c.updated=c.created;

@@ -2,6 +2,9 @@
 (function(root,fn){const x=fn();root.ReportCases=x;if(typeof module==='object'&&module.exports)module.exports=x;})(typeof globalThis!=='undefined'?globalThis:this,function(){
 'use strict';
 const SCHEMA='ikariam-report-cases-v1',STORAGE='ikariam-report-cases-v1',SIDES=['attacker','defender'];
+// Single byte-based limit for both export and import. Browser localStorage normally
+// caps saved cases well below this guard; avoid silent non-restorable JSON backups.
+const MAX_JSON_BYTES=64*1024*1024;
 const LINES=['first','second','third','flank','balloon','anti-balloon'];
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,12);
 const text=(v,max=120)=>typeof v==='string'&&v.length<=max;
@@ -74,11 +77,24 @@ if(reserve.some(v=>!v.unit||v.count===null))problems.push('截錄起點 '+side+'
 });
 return {ready:problems.length===0,code:problems.length?'REVIEW_REQUIRED':'BASELINE_USER_CONFIRMED_NOT_GAME_VERIFIED',issues:problems};
 }
-function importCase(s,fields){
-if(typeof s!=='string'||s.length>1500000)err('匯入檔太大（上限 1.5MB）');
-const data=JSON.parse(s),problems=validateCase(data,fields);
-if(problems.length)err(problems.slice(0,5).join('；'));
-return data;
+function byteSize(s){return new Blob([s],{type:'application/json;charset=utf-8'}).size;}
+function checkJsonSize(s){
+  if(typeof s!=='string'||s.length>MAX_JSON_BYTES||byteSize(s)>MAX_JSON_BYTES)
+    err('JSON 超過單一案例備份上限 64 MiB；請分拆較小案例');
 }
-return {SCHEMA,STORAGE,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation};
+function exportCase(c,fields){
+  const problems=validateCase(c,fields);
+  if(problems.length)err('案例無法匯出：'+problems.slice(0,5).join('；'));
+  // Compact JSON avoids making a readable, valid source exceed its own restore limit.
+  const serialized=JSON.stringify(c)+'\n';
+  checkJsonSize(serialized); // Refuse to generate a file that cannot be imported.
+  return serialized;
+}
+function importCase(s,fields){
+  checkJsonSize(s);
+  const data=JSON.parse(s),problems=validateCase(data,fields);
+  if(problems.length)err(problems.slice(0,5).join('；'));
+  return data;
+}
+return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation};
 });
