@@ -185,7 +185,7 @@ function renderDrawer(){
   '<label>本回合死亡數（可留空）<input id="editDeaths" type="number" min="0" max="1000000" value="'+(slot.deaths??'')+'"></label></div>'+
   '<div class="bar"><button class="primary" id="saveDrawer" type="button">套用至格位</button><button id="clearDrawer" class="delete" type="button">清除此格</button><button id="closeDrawer" type="button">取消</button></div><div id="drawerMessage" class="status"></div>';
  }
- $('closeDrawer').onclick=()=>{selected=null;renderBoard();};
+ $('closeDrawer').onclick=()=>{selected=null;render();};
  if(isReserve)$('editOrigin').onchange=()=>{const cal=$('editOrigin').value==='calculated';$('editHp').readOnly=!cal;$('editCalculation').disabled=!cal;if(!cal)$('editHp').value='100';};
  $('saveDrawer').onclick=()=>{
    try{
@@ -265,8 +265,13 @@ function listen(){
   const slot=e.target.closest('[data-pos]'),add=e.target.closest('[data-add-reserve]'),remove=e.target.closest('[data-delete-reserve]'),editRes=e.target.closest('[data-edit-reserve]');
   if(!edit)return;
   if(slot){selected={side:slot.dataset.side,line:slot.dataset.line,pos:Number(slot.dataset.pos)};renderBoard();}
-  if(add){const side=add.dataset.addReserve;const item=M.newReserve();mutate(c=>{const round=currentRound();round[side].reserve.push(item);
-    M.invalidateReserveConfirmation(round,side);});selected={side,reserveId:item.id};renderBoard();}
+  if(add){const side=add.dataset.addReserve,round=currentRound();
+    // Validate before mutating localStorage: an invalid 101st entry would make the whole case unloadable.
+    if(round[side].reserve.length>=100){notify('此方本回合 Reserve 已達 100 筆上限，請先整理既有資料。',true);return;}
+    const item=M.newReserve();mutate(c=>{round[side].reserve.push(item);
+      M.invalidateReserveConfirmation(round,side);});
+    selected={side,reserveId:item.id};render(); // Refresh readiness AND keep the add-entry drawer open.
+  }
   if(editRes){selected={side:editRes.dataset.side,reserveId:editRes.dataset.editReserve};renderBoard();}
   if(remove){const side=remove.dataset.side,id=remove.dataset.deleteReserve;
     mutate(c=>{const round=currentRound();round[side].reserve=round[side].reserve.filter(x=>x.id!==id);

@@ -214,3 +214,93 @@ def test_codex_p2_ui_bindings_keep_model_guards_active():
     assert "saveCaseName();saveInput('caseNotes','notes');" in html
     assert html.count("M.invalidateReserveConfirmation(round,side);") == 3
     assert 'if(round.id===firstRoundId())round.baseline_confirmed[side]=false' not in html
+
+
+def test_codex_p2_reserve_add_refresh_and_limit_bindings():
+    html = (ROOT / "battle-cases.html").read_text(encoding="utf-8")
+    assert "if(round[side].reserve.length>=100)" in html
+    assert "selected={side,reserveId:item.id};render();" in html
+    assert "$('closeDrawer').onclick=()=>{selected=null;render();};" in html
+    assert html.index("if(round[side].reserve.length>=100)") < html.index(
+        "round[side].reserve.push(item);")
+    assert (ROOT / "public/battle-cases.html").read_text(encoding="utf-8") == html
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node required for real UI event-handler regression")
+def test_codex_p2_reserve_add_live_event_and_full_limit_guard(tmp_path):
+    """Run the shipped inline UI in a lightweight browser DOM harness, then click Add/Cancel."""
+    script = r"""
+const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs');
+const M=require(process.argv[2]);
+const html=fs.readFileSync(process.argv[3],'utf8');
+const inline=html.match(/<script>\s*([\s\S]*?)<\/script>/)[1];
+const metadata={battlefields:[{id:'naval-small',domain:'naval',display_name:'Naval Small',
+  lines:{first:{physical_order:[4,2,1,3,5]}}}],units:[{id:'ram_ship',domain:'naval',display_name:'Ram Ship'}]};
+function sample(reserveCount){
+  const c=M.create('Test captured round','naval-small');
+  const visible=M.newSlot('first',1);
+  Object.assign(visible,{unit:'ram_ship',count:4,hp:80});
+  c.rounds[0].attacker.slots.push(visible);
+  for(let i=0;i<reserveCount;i++){
+    const item=M.newReserve();item.unit='ram_ship';item.count=1;
+    c.rounds[0].attacker.reserve.push(item);
+  }
+  c.rounds[0].baseline_confirmed.attacker=true;
+  assert.equal(M.readiness(c).ready,true);
+  return c;
+}
+async function harness(caseValue){
+  let stored=JSON.stringify([caseValue]), writes=0;
+  const elements=new Map();
+  function el(id){
+    if(!elements.has(id))elements.set(id,{id,innerHTML:'',value:'',textContent:'',
+      style:{},classList:{toggle(){}},disabled:false,
+      addEventListener(){},scrollIntoView(){}});
+    return elements.get(id);
+  }
+  const document={getElementById:el};
+  const localStorage={getItem:key=>key===M.STORAGE?stored:null,
+    setItem:(key,value)=>{assert.equal(key,M.STORAGE);writes++;stored=value;}};
+  vm.runInNewContext(inline,{window:{ReportCases:M},document,localStorage,
+    fetch:async()=>({ok:true,json:async()=>metadata}),console,
+    setTimeout,Date,Math,Number,String,Error,JSON});
+  for(let i=0;i<8;i++)await new Promise(resolve=>setImmediate(resolve));
+  return {el,read:()=>JSON.parse(stored)[0],writes:()=>writes,stored:()=>stored};
+}
+function clickAdd(h){
+  h.el('battleBoard').onclick({target:{closest:(selector)=>
+    selector==='[data-add-reserve]'?{dataset:{addReserve:'attacker'}}:null}});
+}
+(async()=>{
+  // Adding Reserve immediately invalidates the former confirmed baseline,
+  // and the on-screen readiness status reflects it before editing or cancel.
+  const h=await harness(sample(1));
+  assert.match(h.el('readiness').textContent,/已記錄可見格位/);
+  clickAdd(h);
+  assert.equal(h.read().rounds[0].attacker.reserve.length,2);
+  assert.equal(h.read().rounds[0].baseline_confirmed.attacker,false);
+  assert.match(h.el('readiness').textContent,/資料待覆核/);
+  assert.match(h.el('readiness').textContent,/100%/);
+  assert.match(h.el('slotEditor').innerHTML,/Reserve 編輯/);
+  h.el('closeDrawer').onclick();
+  assert.match(h.el('readiness').textContent,/資料待覆核/);
+  // At exactly the accepted schema maximum, click must not mutate,
+  // invalidate the confirmed baseline, or write an invalid JSON document.
+  const full=await harness(sample(100));
+  assert.match(full.el('readiness').textContent,/已記錄可見格位/);
+  const before=full.stored(),writes=full.writes();
+  clickAdd(full);
+  assert.equal(full.stored(),before);
+  assert.equal(full.writes(),writes);
+  assert.equal(full.read().rounds[0].attacker.reserve.length,100);
+  assert.equal(full.read().rounds[0].baseline_confirmed.attacker,true);
+  assert.equal(M.validateCase(full.read(),metadata.battlefields).length,0);
+  assert.match(full.el('storageStatus').textContent,/100 筆上限/);
+})().catch(e=>{console.error(e);process.exitCode=1;});
+"""
+    js = tmp_path / "reserve_click.cjs"
+    js.write_text(script, encoding="utf-8")
+    result = subprocess.run(["node", str(js), str(ROOT / "battle-cases-model.js"),
+                             str(ROOT / "battle-cases.html")],
+                            capture_output=True, text=True, check=False)
+    assert result.returncode == 0, result.stderr
