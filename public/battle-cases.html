@@ -94,6 +94,11 @@ function persist(){
 }
 function mutate(fn){const c=active();if(!c)return;fn(c);c.updated=new Date().toISOString();persist();}
 function saveInput(id,prop){const e=$(id);e.addEventListener('change',()=>{mutate(c=>{c[prop]=e.value;});render();});}
+function saveCaseName(){const e=$('caseName');e.addEventListener('change',()=>{
+ const previous=active()?.name||'';
+ try{const accepted=M.validName(e.value);mutate(c=>{c.name=accepted;});render();}
+ catch(error){e.value=previous;notify('未儲存案例名稱：'+error.message,true);}
+});}
 function syncList(){
   $('caseList').innerHTML=cases.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('');
   if(activeId)$('caseList').value=activeId;
@@ -123,7 +128,9 @@ function lineGroup(r,side,line,positions){
  return '<div class="formation-line">'+positions.map(pos=>sideSlot(r,side,line,pos)).join('')+'</div>';
 }
 function sectionLine(r,side,geometry,line,title,section){
- const pos=geometry?.[line]?.physical_order||[];
+ // physical_order lists DAMAGE labels in left-to-right order, not slot IDs.
+ // The simulator uses physical slot indices 1..N for that same visual order.
+ const pos=M.physicalPositions(geometry?.[line]?.physical_order);
  return '<div class="line-col"><div class="line-head">'+title+'</div>'+lineGroup(r,side,line,section==='left'?pos.slice(0,Math.ceil(pos.length/2)):section==='right'?pos.slice(Math.ceil(pos.length/2)):pos)+'</div>';
 }
 function formation(r,side){
@@ -188,7 +195,7 @@ function renderDrawer(){
       if(origin==='calculated'&&(hp===null||cal.trim().length<20))throw Error('精算 HP 必須填 0–100% 與至少 20 字具體計算依據');
       mutate(c=>{const round=currentRound(),target=round[side].reserve.find(x=>x.id===s.reserveId);
         Object.assign(target,{unit,wave,count,hp,source:origin,calculation:cal});
-        if(round.id===firstRoundId())round.baseline_confirmed[side]=false;});
+        M.invalidateReserveConfirmation(round,side);});
     }else{
       const hp=cleanInt($('editHp').value,100),deaths=cleanInt($('editDeaths').value,1000000);
       mutate(c=>{const group=currentRound()[side].slots;
@@ -240,7 +247,7 @@ function listen(){
   cases.push(c);activeId=c.id;roundId=c.rounds[0].id;edit=true;persist();render();
  }catch(err){notify('匯入失敗：'+err.message,true);}};
  $('editMode').onclick=()=>{edit=true;render();};$('readMode').onclick=()=>{edit=false;selected=null;render();};
- saveInput('caseName','name');saveInput('caseNotes','notes');
+ saveCaseName();saveInput('caseNotes','notes');
  $('caseField').onchange=e=>{const next=e.target.value;if(active().rounds.some(r=>sides.some(s=>r[s].slots.length))&&!confirm('更換戰場將清除所有已填入的格位位置（Reserve 保留）。確定？')){render();return;}
    mutate(c=>{c.battlefield=next;c.rounds.forEach(r=>sides.forEach(s=>{r[s].slots=[];}));});selected=null;render();};
  $('addRound').onclick=()=>{const c=active();if(c.rounds.length>=100){notify('已達 100 回合限制',true);return;}
@@ -259,11 +266,11 @@ function listen(){
   if(!edit)return;
   if(slot){selected={side:slot.dataset.side,line:slot.dataset.line,pos:Number(slot.dataset.pos)};renderBoard();}
   if(add){const side=add.dataset.addReserve;const item=M.newReserve();mutate(c=>{const round=currentRound();round[side].reserve.push(item);
-    if(round.id===firstRoundId())round.baseline_confirmed[side]=false;});selected={side,reserveId:item.id};renderBoard();}
+    M.invalidateReserveConfirmation(round,side);});selected={side,reserveId:item.id};renderBoard();}
   if(editRes){selected={side:editRes.dataset.side,reserveId:editRes.dataset.editReserve};renderBoard();}
   if(remove){const side=remove.dataset.side,id=remove.dataset.deleteReserve;
     mutate(c=>{const round=currentRound();round[side].reserve=round[side].reserve.filter(x=>x.id!==id);
-    if(round.id===firstRoundId())round.baseline_confirmed[side]=false;});selected=null;render();}
+    M.invalidateReserveConfirmation(round,side);});selected=null;render();}
  };
  $('battleBoard').onchange=e=>{
   const cb=e.target.closest('[data-confirm-side]');if(!edit||!cb)return;

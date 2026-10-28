@@ -119,7 +119,11 @@ c.rounds.push(earlier);
 assert.equal(M.readiness(c).ready,false);
 assert(M.readiness(c).issues.some(s=>s.includes('R50')));
 earlier.baseline_confirmed.attacker=true;
-assert.equal(M.readiness(c).ready,true); // earliest baseline R50 confirmed; R90 still conditional
+assert.equal(M.readiness(c).ready,false); // R50 lacks visible formation slot
+const r50Observed=M.newSlot('first',1);
+r50Observed.unit='ram_ship';r50Observed.count=3;r50Observed.hp=75;
+earlier.attacker.slots.push(r50Observed);
+assert.equal(M.readiness(c).ready,true); // earliest baseline R50 has visible slot and confirmed Reserve
 // Real validation forbids duplicate round numbers and slot identity collisions.
 later.number=50;
 assert(M.validateCase(c).some(s=>s.includes('重複')));
@@ -140,6 +144,73 @@ assert.equal(Object.hasOwn(c,'verified_gameforge'),false);
 
 def test_editing_first_captured_reserve_invalidates_prior_full_hp_confirmation():
     html = (ROOT / "battle-cases.html").read_text(encoding="utf-8")
-    assert "if(round.id===firstRoundId())round.baseline_confirmed[side]=false" in html
+    assert html.count("M.invalidateReserveConfirmation(round,side);") == 3
     assert "source:origin,calculation:cal" in html
     assert "if(!cal)$('editHp').value='100'" in html
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node required for report-case model regression")
+def test_codex_p2_physical_indices_and_baseline_staleness_and_case_rename(tmp_path):
+    """Reproduces all four P2 findings with observed data and untrusted input."""
+    script = r"""
+const assert=require('node:assert/strict');
+const M=require(process.argv[2]);
+const physicalOrder=[4,2,1,3,5]; // Naval Small: damage positions, left to right.
+assert.deepEqual(M.physicalPositions(physicalOrder),[1,2,3,4,5]);
+const fields=[{id:'naval-small',lines:{first:{physical_order:physicalOrder},
+  flank:{physical_order:[2,1]}}}];
+let c=M.create('round-80 sample','naval-small');
+let r80=c.rounds[0];r80.number=80;
+const visible=M.newSlot('first',1);
+visible.unit='balloon_carrier';visible.count=3;visible.hp=99;
+r80.attacker.slots.push(visible);
+const reserve=M.newReserve();
+reserve.unit='balloon_carrier';reserve.count=8;
+r80.attacker.reserve.push(reserve);
+r80.baseline_confirmed.attacker=true;
+assert.equal(M.validateCase(c,fields).length,0);
+assert.equal(M.readiness(c).ready,true);
+// Physical slot 1 is valid even though the first damage label is 4.
+const stored=M.importCase(JSON.stringify(c),fields);
+assert.equal(stored.rounds[0].attacker.slots[0].pos,1);
+const bad=M.newSlot('first',6);
+c.rounds[0].defender.slots.push(bad);
+assert(M.validateCase(c,fields).some(x=>x.includes('格位位置')));
+c.rounds[0].defender.slots.pop();
+// A former earliest round can become earliest again after an earlier snapshot is removed.
+const earlier=M.newRound(50);c.rounds.push(earlier);
+assert.equal(M.readiness(c).ready,false); // Empty R50 is NOT a valid baseline.
+r80.attacker.reserve[0].count=9;
+M.invalidateReserveConfirmation(r80,'attacker');
+assert.equal(r80.baseline_confirmed.attacker,false);
+c.rounds=c.rounds.filter(x=>x.id!==earlier.id);
+assert.equal(M.readiness(c).ready,false);
+assert(M.readiness(c).issues.some(x=>x.includes('100%')));
+// A later observed slot cannot make an EMPTY earlier snapshot research ready.
+let r50=M.newRound(50);c.rounds.push(r50);
+assert.equal(M.readiness(c).ready,false);
+assert(M.readiness(c).issues.some(x=>x.includes('R50')));
+c.rounds=c.rounds.filter(x=>x.id!==r50.id);
+// Guard in normal name editing path: reject blank values before ANY persisted mutation.
+const before=JSON.stringify(c);
+assert.throws(()=>M.validName('    '),/案例名稱/);
+assert.throws(()=>M.validName('x'.repeat(121)),/案例名稱/);
+assert.equal(JSON.stringify(c),before);
+assert.equal(M.validName('  記錄  '),'記錄');
+assert.equal(M.create('  案例  ').name,'案例');
+"""
+    js = tmp_path / "p2_cases.cjs"
+    js.write_text(script, encoding="utf-8")
+    cmd = subprocess.run(["node", str(js), str(ROOT / "battle-cases-model.js")],
+                         capture_output=True, text=True, check=False)
+    assert cmd.returncode == 0, cmd.stderr
+
+
+def test_codex_p2_ui_bindings_keep_model_guards_active():
+    html = (ROOT / "battle-cases.html").read_text(encoding="utf-8")
+    assert "const pos=M.physicalPositions(geometry?.[line]?.physical_order);" in html
+    assert "const accepted=M.validName(e.value);" in html
+    assert "e.value=previous;notify('未儲存案例名稱：" in html
+    assert "saveCaseName();saveInput('caseNotes','notes');" in html
+    assert html.count("M.invalidateReserveConfirmation(round,side);") == 3
+    assert 'if(round.id===firstRoundId())round.baseline_confirmed[side]=false' not in html

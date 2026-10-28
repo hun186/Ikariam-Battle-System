@@ -8,7 +8,10 @@ const text=(v,max=120)=>typeof v==='string'&&v.length<=max;
 const num=(v,hi)=>v===null||(Number.isInteger(v)&&v>=0&&v<=hi);
 const err=(s)=>{throw Error(s)};
 function newRound(n=1){return {id:uid(),number:n,phase:'round_end',source:'',baseline_confirmed:{attacker:false,defender:false},attacker:{slots:[],reserve:[]},defender:{slots:[],reserve:[]}};}
-function create(name='新案例',battlefield='naval-small'){const now=new Date().toISOString();return {schema:SCHEMA,id:uid(),name,battlefield,notes:'',created:now,updated:now,rounds:[newRound()]};}
+function validName(value){if(!text(value,120)||!value.trim())err('案例名稱不可空白或超過 120 字');return value.trim();}
+function physicalPositions(damageOrder){return Array.isArray(damageOrder)?damageOrder.map((_,index)=>index+1):[];}
+function invalidateReserveConfirmation(round,side){if(!SIDES.includes(side)||!round||!round.baseline_confirmed)err('Reserve 回合或陣營無效');round.baseline_confirmed[side]=false;}
+function create(name='新案例',battlefield='naval-small'){const now=new Date().toISOString();return {schema:SCHEMA,id:uid(),name:validName(name),battlefield,notes:'',created:now,updated:now,rounds:[newRound()]};}
 function newSlot(line,pos){return {line,pos,unit:'',wave:'',count:null,hp:null,deaths:null};}
 function newReserve(){return {id:uid(),unit:'',wave:'',count:null,hp:100,source:'assumed_full',calculation:''};}
 function validateCase(c,fields=null){
@@ -37,7 +40,7 @@ const used=new Set(),reserveIds=new Set();
 group.slots.forEach((slot,j)=>{
 if(!exact(slot,['line','pos','unit','wave','count','hp','deaths'])){problems.push(prefix+' 格位結構無效');return;}
 const key=slot.line+':'+slot.pos;
-if(!LINES.includes(slot.line)||!Number.isInteger(slot.pos)||slot.pos<1||slot.pos>100||used.has(key)||field&&(!field.lines[slot.line]||!field.lines[slot.line].physical_order.includes(slot.pos)))problems.push(prefix+' 格位位置無效／重複');
+if(!LINES.includes(slot.line)||!Number.isInteger(slot.pos)||slot.pos<1||slot.pos>100||used.has(key)||field&&(!field.lines[slot.line]||slot.pos>field.lines[slot.line].physical_order.length))problems.push(prefix+' 格位位置無效／重複');
 used.add(key);
 if(!text(slot.unit)||!text(slot.wave)||!num(slot.count,1000000)||!num(slot.hp,100)||!num(slot.deaths,1000000))problems.push(prefix+' 格位數量／百分比無效');
 });
@@ -59,9 +62,9 @@ return problems.slice(0,50);
 function readiness(c){
 const problems=validateCase(c);
 if(problems.length)return {ready:false,code:'INVALID',issues:problems};
-const hasVisibleSlot=c.rounds.some(r=>SIDES.some(s=>r[s].slots.some(x=>x.unit&&x.count!==null&&x.hp!==null)));
-if(!hasVisibleSlot)problems.push('尚未記錄任何有兵種、數量及可見 HP 的戰場格位；可以儲存草稿，但不能當分析案例');
 const first=[...c.rounds].sort((a,b)=>a.number-b.number)[0];
+const firstHasVisibleSlot=SIDES.some(side=>first[side].slots.some(slot=>slot.unit&&slot.count!==null&&slot.hp!==null));
+if(!firstHasVisibleSlot)problems.push('截錄起點 R'+first.number+' 尚無具兵種、數量及可見 HP 的格位，不能把後續回合當起始證據');
 SIDES.forEach(side=>{
 const reserve=first[side].reserve.filter(v=>v.count!==0);
 if(reserve.some(v=>v.source==='assumed_full')&&!first.baseline_confirmed[side])
@@ -77,5 +80,5 @@ const data=JSON.parse(s),problems=validateCase(data,fields);
 if(problems.length)err(problems.slice(0,5).join('；'));
 return data;
 }
-return {SCHEMA,STORAGE,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,importCase,uid};
+return {SCHEMA,STORAGE,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation};
 });
