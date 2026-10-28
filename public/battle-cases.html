@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ikariam 戰報案例庫｜Battle Reports</title>
+<style>
+:root{--ink:#263448;--muted:#5b6974;--paper:#f4e9cc;--light:#fffaf0;--line:#aa9368;--deep:#18394a;--red:#8d4137;--ok:#2b684f}
+*{box-sizing:border-box}body{margin:0;background:#d9c79f;color:var(--ink);font:15px/1.45 system-ui,"Segoe UI",sans-serif}button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer}
+header{padding:20px max(14px,calc((100% - 1340px)/2));color:white;background:linear-gradient(#28576d,#17394b);border-bottom:5px solid #c99d45}
+header h1{font:700 clamp(25px,4vw,38px) Georgia,serif;margin:0}header p{color:#e4eaf0;margin:5px 0 0}
+main{max-width:1400px;margin:auto;padding:16px 14px 48px}.topnav{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+a{color:#245d80}header a{color:#fff}.topnav a{background:var(--light);border:1px solid var(--line);border-radius:6px;padding:8px 12px;font-weight:bold;text-decoration:none}
+.panel{background:linear-gradient(130deg,#fffdf5,#efe0ba);border:1px solid var(--line);border-radius:9px;margin-bottom:14px;padding:16px;box-shadow:0 3px 14px #47381a19}
+h2{font:700 22px Georgia,serif;margin:0 0 9px}h3{margin:0 0 8px;font-size:17px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.bar{display:flex;align-items:end;flex-wrap:wrap;gap:9px}.bar>*{flex:none}label{font-weight:650;font-size:12px;display:grid;gap:5px}input,select,textarea{border:1px solid #a89472;border-radius:5px;padding:8px;background:white;min-width:0}input[type=checkbox]{width:17px;height:17px}.wide{width:100%}textarea{resize:vertical}
+button,.btn{border:1px solid #7b6548;background:#f5e5c5;padding:8px 11px;border-radius:6px;font-weight:700}button.primary{background:var(--deep);color:white;border-color:var(--deep)}button.delete{color:#7c2c25}button:disabled{opacity:.5;cursor:not-allowed}
+.info{background:#f7efd9;border-left:4px solid #ac7e39;padding:10px 12px;font-size:13px;margin:10px 0}.danger{background:#fff0e8;border-left-color:#a73f3f}.ok{color:var(--ok)}.muted{color:var(--muted);font-size:12px}.hidden{display:none!important}.case-head{display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap}.case-head strong{font:700 22px Georgia,serif}
+.rounds{display:flex;flex-wrap:wrap;gap:5px;margin:12px 0}.rounds button.active,.toggle button.active{background:var(--deep);color:white}
+.board-wrap{overflow:hidden}.battle-board{display:grid;gap:13px}.battle-half{display:grid;grid-template-columns:minmax(215px,260px) minmax(0,1fr);gap:12px;background:#f7ecd3;border:1px solid #c9ae83;border-radius:8px;padding:12px}.battle-half.defender{background:#eff1e7}
+.army-title{grid-column:1/-1;font:700 19px Georgia,serif;border-bottom:1px solid #bea781;padding-bottom:7px}.reserve-box{padding:10px;background:#fff9eb;border:1px dashed #aa916d;border-radius:6px}.reserve-box h3{margin:0 0 5px}
+.reserve-entry{border:1px solid #bca57e;border-radius:7px;padding:9px;margin:8px 0;background:white}.reserve-name{font-weight:700}.reserve-tag{display:inline-block;background:#fcebcf;padding:2px 5px;font-size:11px;border-radius:3px}.reserve-tag.calculated{background:#ddebea}
+.reserve-controls{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}.reserve-controls button{padding:4px 7px;font-size:12px}.reserve-warning{font-size:12px;color:#8d4137;font-weight:700;margin:8px 0}
+.confirm{display:flex;gap:6px;align-items:flex-start;font-size:12px;margin:9px 0}.confirm input{flex:none}
+.formation{overflow-x:auto;min-width:0}.formation-inner{min-width:720px}.formation-row{display:grid;grid-template-columns:minmax(100px,1fr) minmax(330px,3.4fr) minmax(100px,1fr);gap:8px;align-items:start;margin:8px 0}
+.formation-line{min-height:93px;display:flex;align-items:stretch;justify-content:center;gap:5px;min-width:0}.formation-line.empty{border:1px dashed #b6aa8e;border-radius:4px}
+.line-head{font-weight:650;text-align:center;font-size:11px;letter-spacing:.02em;color:#7e694e;margin-bottom:3px}
+.line-col{min-width:0}.slot{width:70px;min-height:92px;flex:0 0 70px;display:grid;align-content:start;gap:2px;padding:5px 3px;border:1px solid #9a8869;background:#fffaf1;box-shadow:0 1px 2px #8b775e55;text-align:center;border-radius:5px;font-size:11px}
+.slot.empty-slot{background:#f3ebd8;border-style:dashed;color:#867d70}.slot.selected{outline:3px solid #2d7894}.slot .unit-icon{font-size:18px}.slot .slot-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:750}.slot .slot-hp{font-weight:750;color:#23714c}.hp-track{background:#e7d0c0;border-radius:3px;height:5px;overflow:hidden}.hp-fill{height:100%;background:#408b65}
+.capture-editor{border:2px solid #ba904e;background:#fffaf1;padding:12px;border-radius:7px;margin-top:12px}.capture-editor .grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.status{min-height:25px;font-size:13px;font-weight:700;margin-top:8px}
+@media(max-width:1080px){.battle-half{grid-template-columns:minmax(0,1fr)}.battle-half.defender .reserve-box{order:2}.battle-half.defender .formation{order:1}.formation-inner{min-width:720px}}
+@media(max-width:600px){main{padding:9px}.panel{padding:12px}.formation-inner{min-width:700px}.bar{gap:6px}.bar button{font-size:13px;padding:7px}}
+</style>
+</head>
+<body>
+<header><h1>戰報案例庫 · Battle Reports</h1><p>沿用戰場格位佈局，逐回合記錄、修改及比較。手動轉錄不等於遊戲官方實測驗證。</p></header>
+<main>
+<nav class="topnav"><a href="/">← 返回戰鬥模擬器</a><span class="muted">資料只在此瀏覽器保存；換電腦前請匯出 JSON 備份。</span></nav>
+<section class="panel">
+<h2>案例管理</h2>
+<div class="bar">
+<label>已保存案例<select id="caseList" style="min-width:220px"></select></label>
+<button id="addCase" class="primary" type="button">＋ 新增案例</button>
+<button id="removeCase" class="delete" type="button">刪除案例</button>
+<button id="exportCase" type="button">匯出 JSON 備份</button>
+<label class="btn">匯入 JSON<input id="importCase" type="file" accept=".json,application/json" hidden></label>
+</div>
+<div id="storageStatus" class="status" role="status" aria-live="polite"></div>
+</section>
+<section id="caseEditor" class="panel hidden">
+<div class="case-head"><strong id="caseHeading"></strong><div class="bar toggle"><button id="editMode" class="active" type="button">編輯戰報</button><button id="readMode" type="button">檢視戰報</button></div></div>
+<div class="grid">
+<label>案例名稱<input id="caseName" maxlength="120"></label>
+<label>戰場大小（依模擬器現有幾何）<select id="caseField"></select></label>
+<label>案例摘要／來源<textarea id="caseNotes" rows="2" maxlength="4000" placeholder="戰鬥對象、版本、熔爐與升級；來源截圖另行妥善保存"></textarea></label>
+</div>
+<div class="info danger"><b>重要：遊戲戰報不會顯示 Reserve（後備）血量。</b> 新增 Reserve 預設為 <b>100%（假設，非戰報觀測）</b>。必須確認「本案例第一個截錄回合」的 Reserve 確實滿血，才能把它當可靠的起始狀態；即使此回合不是戰鬥真正的第 1 回合也一樣。若另有精密計算才可修改血量，且需留下具體計算依據。部署中的格位可直接填戰報看得到的傷害。</div>
+<div class="bar">
+<button id="addRound" type="button">＋ 新增截錄回合</button>
+<button id="removeRound" class="delete" type="button">刪除目前回合</button>
+<label>時點<select id="roundPhase"><option value="round_end">回合結束</option><option value="round_prefire">下一回合開火前</option></select></label>
+</div>
+<div id="roundTabs" class="rounds"></div>
+<label class="wide">本回合證據備註（截圖檔名、遊戲版本、死亡／補兵線索、可見時間點）
+<textarea id="roundSource" class="wide" rows="2" maxlength="2500" placeholder="例如第 80 回合結束截圖；請不要將推測血量寫成畫面實測"></textarea></label>
+<div id="readiness" class="info" aria-live="polite"></div>
+</section>
+<section id="boardPanel" class="panel hidden">
+<h2 id="roundHeading">戰場格位</h2>
+<p class="muted">攻防雙方與 Reserve、前排／側翼、遠程、後排排列與模擬器幾何相對應；點選格位填寫船種／數量／可見 HP／死亡數，檢視模式呈現相同位置。</p>
+<div id="battleBoard" class="battle-board"></div>
+<div id="slotEditor" class="capture-editor hidden" aria-live="polite"></div>
+</section>
+</main>
+<script src="/battle-cases-model.js"></script>
+<script>
+(function(){
+'use strict';
+const M=window.ReportCases;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const sides=['attacker','defender'];
+const lineLabels={first:'前排',flank:'側翼',second:'第二排',third:'第三排',balloon:'空中攻擊', 'anti-balloon':'防空'};
+const glyphs={first:'🛡',flank:'⚔',second:'🎯',third:'💥',balloon:'✈','anti-balloon':'🛩'};
+let fields=[],units=[],cases=[],activeId=null,roundId=null,edit=true,selected=null,storageOkay=true;
+function active(){return cases.find(c=>c.id===activeId);}
+function currentRound(){return active()?.rounds.find(x=>x.id===roundId);}
+function field(){return fields.find(x=>x.id===active()?.battlefield);}
+function notify(s,failed=false){const el=$('storageStatus');el.textContent=s;el.style.color=failed?'#8d4137':'#285f46';}
+function persist(){
+  if(!storageOkay){notify('此瀏覽器無法持久保存，請匯出 JSON 備份。',true);return;}
+  try{localStorage.setItem(M.STORAGE,JSON.stringify(cases));notify('已儲存於此瀏覽器；請定期匯出 JSON 備份。');}
+  catch(e){storageOkay=false;notify('儲存失敗（容量或瀏覽器限制），請立即匯出 JSON！',true);}
+}
+function mutate(fn){const c=active();if(!c)return;fn(c);c.updated=new Date().toISOString();persist();}
+function saveInput(id,prop){const e=$(id);e.addEventListener('change',()=>{mutate(c=>{c[prop]=e.value;});render();});}
+function syncList(){
+  $('caseList').innerHTML=cases.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('');
+  if(activeId)$('caseList').value=activeId;
+}
+function selectCase(id){activeId=id;roundId=active()?.rounds.slice().sort((a,b)=>a.number-b.number)[0]?.id||null;selected=null;render();}
+function download(c){
+ const blob=new Blob([JSON.stringify(c,null,2)+'\n'],{type:'application/json;charset=utf-8'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ikariam-report-case-'+c.id+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),500);
+}
+function unitOptions(chosen){
+ const list=units.filter(u=>u.domain===field()?.domain||!u.domain).slice().sort((a,b)=>a.display_name.localeCompare(b.display_name));
+ return '<option value="">未指定</option>'+list.map(u=>'<option value="'+esc(u.id)+'"'+(u.id===chosen?' selected':'')+'>'+esc(u.display_name||u.id)+'</option>').join('');
+}
+function unitName(id){return units.find(x=>x.id===id)?.display_name||id||'空格';}
+function hpBar(percent){return percent===null?'':('<div class="hp-track"><div class="hp-fill" style="width:'+percent+'%"></div></div>');}
+function sideSlot(r,side,line,pos){
+  const slot=r[side].slots.find(x=>x.line===line&&x.pos===pos);
+  const chosen=selected&&selected.side===side&&selected.line===line&&selected.pos===pos;
+  const label=slot?.unit?unitName(slot.unit):'＋ 空格';
+  return '<button class="slot'+(!slot?.unit?' empty-slot':'')+(chosen?' selected':'')+'" type="button" data-side="'+side+'" data-line="'+line+'" data-pos="'+pos+'"'+(!edit?' disabled':'')+' title="'+esc(side+' '+line+' 位置 '+pos)+'">'+
+   '<span class="unit-icon">'+(glyphs[line]||'◈')+'</span><span class="slot-label">'+esc(label)+'</span><span>格位 '+pos+(slot?.count!==null&&slot?.count!==undefined?' · '+slot.count:'')+'</span>'+
+   (slot?.hp!==null&&slot?.hp!==undefined?'<span class="slot-hp">HP '+slot.hp+'%</span>':'<span>HP 未填</span>')+
+   hpBar(slot?.hp??null)+(slot?.deaths!==null&&slot?.deaths!==undefined?'<span>死亡 '+slot.deaths+'</span>':'')+'</button>';
+}
+function lineGroup(r,side,line,positions){
+ if(!positions.length)return '<div class="formation-line empty"></div>';
+ return '<div class="formation-line">'+positions.map(pos=>sideSlot(r,side,line,pos)).join('')+'</div>';
+}
+function sectionLine(r,side,geometry,line,title,section){
+ const pos=geometry?.[line]?.physical_order||[];
+ return '<div class="line-col"><div class="line-head">'+title+'</div>'+lineGroup(r,side,line,section==='left'?pos.slice(0,Math.ceil(pos.length/2)):section==='right'?pos.slice(Math.ceil(pos.length/2)):pos)+'</div>';
+}
+function formation(r,side){
+ const lines=field()?.lines||{};
+ return '<div class="formation"><div class="formation-inner">'+
+  '<div class="formation-row">'+sectionLine(r,side,lines,'flank','左側翼','left')+sectionLine(r,side,lines,'first','前排 · First')+sectionLine(r,side,lines,'flank','右側翼','right')+'</div>'+
+  '<div class="formation-row"><div></div>'+sectionLine(r,side,lines,'second','第二排 · Second')+'<div></div></div>'+
+  '<div class="formation-row">'+sectionLine(r,side,lines,'balloon','空中攻擊')+sectionLine(r,side,lines,'third','第三排 · Third')+sectionLine(r,side,lines,'anti-balloon','防空')+'</div></div></div>';
+}
+function firstRoundId(){return active()?.rounds.slice().sort((a,b)=>a.number-b.number)[0]?.id;}
+function reserveBox(r,side){
+ const initial=r.id===firstRoundId();
+ const rows=r[side].reserve.map(item=>{
+ const mode=item.source==='calculated';
+ return '<div class="reserve-entry" data-reserve="'+esc(item.id)+'">'+
+  '<div class="reserve-name">'+esc(unitName(item.unit))+' · '+(item.count===null?'數量未填':item.count)+' 隻</div>'+
+  '<div>HP '+item.hp+'% <span class="reserve-tag'+(mode?' calculated':'')+'">'+(mode?'外部精算':'預設 100%（未觀測）')+'</span></div>'+
+  (mode?'<small class="muted">計算依據：'+esc(item.calculation)+'</small>':'')+
+  (edit?'<div class="reserve-controls"><button type="button" data-edit-reserve="'+esc(item.id)+'" data-side="'+side+'">編輯 Reserve</button><button class="delete" type="button" data-delete-reserve="'+esc(item.id)+'" data-side="'+side+'">刪除</button></div>':'')+'</div>';
+ }).join('');
+ const confirmed=r.baseline_confirmed[side];
+ return '<div class="reserve-box"><h3>Reserve · 後備</h3><div class="muted">戰報不顯示 Reserve HP；此處與格位可見 HP 不同。</div>'+rows+
+ (edit?'<button type="button" data-add-reserve="'+side+'">＋ 新增 Reserve</button>':'')+
+ (initial?'<label class="confirm"><input data-confirm-side="'+side+'" type="checkbox"'+(confirmed?' checked':'')+(!edit?' disabled':'')+'><span>我已確認：本案例起始截錄回合 R'+r.number+' 此方預設 Reserve 確實均為滿血（100%）。非滿血的精算值需另附計算依據，不能當作可見戰報值。</span></label>':'')+
+ '<div class="reserve-warning">'+(initial&&!confirmed&&r[side].reserve.some(x=>x.source==='assumed_full')?'尚未確認起始 Reserve 滿血；不可做可靠起始 HP 分析。':'Reserve HP 均屬假設或外部精算，不是畫面觀測。')+'</div></div>';
+}
+function renderBoard(){
+ const r=currentRound();if(!r)return;
+ $('roundHeading').textContent='R'+r.number+' · '+(r.phase==='round_end'?'回合結束':'回合開火前')+' 戰場';
+ $('battleBoard').innerHTML=sides.map(side=>'<section class="battle-half '+side+'"><div class="army-title">'+(side==='attacker'?'⚔ 攻擊方':'🛡 防守方')+'</div>'+reserveBox(r,side)+formation(r,side)+'</section>').join('');
+ if(selected&&edit)renderDrawer();else $('slotEditor').classList.add('hidden');
+}
+function cleanInt(v,max){if(v==='')return null;const n=Number(v);if(!Number.isInteger(n)||n<0||n>max)throw Error('請輸入 0–'+max+' 的整數或留空');return n;}
+function renderDrawer(){
+ const r=currentRound();if(!r||!selected){$('slotEditor').classList.add('hidden');return;}
+ const s=selected,side=s.side, slot=r[side].slots.find(x=>x.line===s.line&&x.pos===s.pos)||M.newSlot(s.line,s.pos);
+ const isReserve=!!s.reserveId,rv=isReserve?r[side].reserve.find(x=>x.id===s.reserveId):null;
+ const o=$('slotEditor');o.classList.remove('hidden');
+ if(isReserve&&!rv){selected=null;o.classList.add('hidden');return;}
+ if(isReserve){
+ o.innerHTML='<h3>Reserve 編輯 · '+esc(side)+'</h3><p class="reserve-warning">Reserve HP 不可從戰報直接讀取。只有真正經過精確計算才能改填，且需留下計算方法及依據。</p>'+
+  '<div class="grid"><label>兵種<select id="editUnit">'+unitOptions(rv.unit)+'</select></label><label>Wave／批次<input id="editWave" maxlength="120" value="'+esc(rv.wave)+'"></label><label>Reserve 數量<input id="editCount" type="number" min="0" max="1000000" value="'+(rv.count??'')+'"></label>'+
+  '<label>HP 資料來源<select id="editOrigin"><option value="assumed_full"'+(rv.source==='assumed_full'?' selected':'')+'>預設 100%（未觀測）</option><option value="calculated"'+(rv.source==='calculated'?' selected':'')+'>外部精確計算（須說明）</option></select></label>'+
+  '<label>Reserve HP %<input id="editHp" type="number" min="0" max="100" value="'+rv.hp+'"'+(rv.source==='calculated'?'':' readonly')+'></label>'+
+  '<label>計算依據（至少 20 字）<textarea id="editCalculation" maxlength="1500" rows="3"'+(rv.source==='calculated'?'':' disabled')+'>'+esc(rv.calculation)+'</textarea></label></div>'+
+  '<div class="bar"><button class="primary" id="saveDrawer" type="button">套用 Reserve</button><button id="closeDrawer" type="button">取消</button></div><div id="drawerMessage" class="status"></div>';
+ }else{
+ o.innerHTML='<h3>填寫 '+(side==='attacker'?'攻擊':'防守')+'方 · '+esc(lineLabels[s.line]||s.line)+' 第 '+s.pos+' 格</h3><p class="muted">這個格位 HP 可直接輸入實戰截圖上看得到的百分比；不會推測單艘單位的剩餘 HP。</p>'+
+  '<div class="grid"><label>兵種<select id="editUnit">'+unitOptions(slot.unit)+'</select></label><label>Wave／批次<input id="editWave" maxlength="120" value="'+esc(slot.wave)+'"></label>'+
+  '<label>場上數量<input id="editCount" type="number" min="0" max="1000000" value="'+(slot.count??'')+'"></label>'+
+  '<label>可見 HP %<input id="editHp" type="number" min="0" max="100" value="'+(slot.hp??'')+'"></label>'+
+  '<label>本回合死亡數（可留空）<input id="editDeaths" type="number" min="0" max="1000000" value="'+(slot.deaths??'')+'"></label></div>'+
+  '<div class="bar"><button class="primary" id="saveDrawer" type="button">套用至格位</button><button id="clearDrawer" class="delete" type="button">清除此格</button><button id="closeDrawer" type="button">取消</button></div><div id="drawerMessage" class="status"></div>';
+ }
+ $('closeDrawer').onclick=()=>{selected=null;renderBoard();};
+ if(isReserve)$('editOrigin').onchange=()=>{const cal=$('editOrigin').value==='calculated';$('editHp').readOnly=!cal;$('editCalculation').disabled=!cal;if(!cal)$('editHp').value='100';};
+ $('saveDrawer').onclick=()=>{
+   try{
+    const unit=$('editUnit').value,wave=$('editWave').value,count=cleanInt($('editCount').value,1000000);
+    if(isReserve){
+      const origin=$('editOrigin').value,hp=origin==='assumed_full'?100:cleanInt($('editHp').value,100),cal=origin==='calculated'?$('editCalculation').value:'';
+      if(origin==='calculated'&&(hp===null||cal.trim().length<20))throw Error('精算 HP 必須填 0–100% 與至少 20 字具體計算依據');
+      mutate(c=>{const target=currentRound()[side].reserve.find(x=>x.id===s.reserveId);
+        Object.assign(target,{unit,wave,count,hp,source:origin,calculation:cal});});
+    }else{
+      const hp=cleanInt($('editHp').value,100),deaths=cleanInt($('editDeaths').value,1000000);
+      mutate(c=>{const group=currentRound()[side].slots;
+       let target=group.find(x=>x.line===s.line&&x.pos===s.pos);
+       if(!target){target=M.newSlot(s.line,s.pos);group.push(target);}
+       Object.assign(target,{unit,wave,count,hp,deaths});});
+    }
+    selected=null;render();
+   }catch(e){$('drawerMessage').textContent=e.message;$('drawerMessage').style.color='#a33';}
+ };
+ if(!isReserve)$('clearDrawer').onclick=()=>{mutate(c=>{const a=currentRound()[side].slots;const index=a.findIndex(x=>x.line===s.line&&x.pos===s.pos);if(index>=0)a.splice(index,1);});selected=null;render();};
+ o.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function render(){
+ const c=active(),r=currentRound();syncList();
+ $('caseEditor').classList.toggle('hidden',!c);$('boardPanel').classList.toggle('hidden',!r);
+ if(!c||!r)return;
+ $('caseHeading').textContent=c.name;
+ $('caseName').value=c.name;$('caseNotes').value=c.notes;
+ $('caseField').innerHTML=fields.map(f=>'<option value="'+esc(f.id)+'">'+esc(f.display_name||f.id)+'</option>').join('');$('caseField').value=c.battlefield;
+ $('roundTabs').innerHTML=c.rounds.slice().sort((a,b)=>a.number-b.number).map(x=>'<button class="'+(x.id===roundId?'active':'')+'" type="button" data-round-id="'+esc(x.id)+'">R'+x.number+'</button>').join('');
+ $('roundPhase').value=r.phase;$('roundSource').value=r.source;
+ ['caseName','caseField','caseNotes','roundPhase','roundSource','addRound','removeRound'].forEach(id=>$(id).disabled=!edit);
+ $('editMode').classList.toggle('active',edit);$('readMode').classList.toggle('active',!edit);
+ const state=M.readiness(c);
+ $('readiness').textContent=state.ready?
+   '起始 Reserve 資料已按使用者聲明記錄。仍不是 Gameforge 官方驗證；請保留原始截圖。':
+   '資料待覆核：'+state.issues.join('；');
+ $('readiness').classList.toggle('danger',!state.ready);
+ renderBoard();
+}
+function listen(){
+ $('addCase').onclick=()=>{
+  if(cases.length>=50){notify('最多 50 個本機案例，請先匯出後整理。',true);return;}
+  const name=prompt('案例名稱','新戰報案例');if(name===null)return;
+  if(!name.trim()||name.length>120){notify('請輸入 1–120 字案例名稱。',true);return;}
+  const c=M.create(name.trim(),fields.find(f=>f.domain==='naval')?.id||fields[0]?.id||'naval-small');
+  cases.push(c);activeId=c.id;roundId=c.rounds[0].id;edit=true;persist();render();
+ };
+ $('caseList').onchange=e=>selectCase(e.target.value);
+ $('removeCase').onclick=()=>{const c=active();if(!c||!confirm('確定刪除案例「'+c.name+'」？此瀏覽器無法復原，請先匯出備份。'))return;
+   cases=cases.filter(x=>x.id!==c.id);activeId=cases[0]?.id||null;roundId=active()?.rounds[0]?.id||null;selected=null;persist();render();};
+ $('exportCase').onclick=()=>{const c=active();if(!c)return;const bad=M.validateCase(c,fields);if(bad.length){notify('匯出前請修正：'+bad[0],true);return;}download(c);};
+ $('importCase').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+ try{if(f.size>1500000)throw Error('檔案超過 1.5 MB');
+  const source=await f.text();const c=M.importCase(source,fields);
+  if(cases.length>=50)throw Error('本機案例數量已達 50');
+  c.id=M.uid();c.name=c.name+'（匯入）';c.created=new Date().toISOString();c.updated=c.created;
+  cases.push(c);activeId=c.id;roundId=c.rounds[0].id;edit=true;persist();render();
+ }catch(err){notify('匯入失敗：'+err.message,true);}};
+ $('editMode').onclick=()=>{edit=true;render();};$('readMode').onclick=()=>{edit=false;selected=null;render();};
+ saveInput('caseName','name');saveInput('caseNotes','notes');
+ $('caseField').onchange=e=>{const next=e.target.value;if(active().rounds.some(r=>sides.some(s=>r[s].slots.length))&&!confirm('更換戰場將清除所有已填入的格位位置（Reserve 保留）。確定？')){render();return;}
+   mutate(c=>{c.battlefield=next;c.rounds.forEach(r=>sides.forEach(s=>{r[s].slots=[];}));});selected=null;render();};
+ $('addRound').onclick=()=>{const c=active();if(c.rounds.length>=100){notify('已達 100 回合限制',true);return;}
+ const max=Math.max(...c.rounds.map(x=>x.number)),value=prompt('新增截錄回合編號（可從中途開始，不一定是第 1 回合）',String(max+1));
+ if(value===null)return;const n=Number(value);
+ if(!Number.isInteger(n)||n<1||n>1000||c.rounds.some(x=>x.number===n)){notify('請輸入未使用的 1–1000 回合編號。',true);return;}
+ const round=M.newRound(n);mutate(c=>c.rounds.push(round));roundId=round.id;selected=null;render();};
+ $('removeRound').onclick=()=>{const c=active();if(c.rounds.length===1){notify('至少要保留一個截錄回合',true);return;}
+ const r=currentRound();if(!confirm('刪除截錄 R'+r.number+'？'))return;
+ mutate(c=>{c.rounds=c.rounds.filter(x=>x.id!==r.id);});roundId=active().rounds[0].id;selected=null;render();};
+ $('roundTabs').onclick=e=>{const b=e.target.closest('[data-round-id]');if(b){roundId=b.dataset.roundId;selected=null;render();}};
+ $('roundPhase').onchange=e=>{mutate(c=>{currentRound().phase=e.target.value;});render();};
+ $('roundSource').onchange=e=>{mutate(c=>{currentRound().source=e.target.value;});render();};
+ $('battleBoard').onclick=e=>{
+  const slot=e.target.closest('[data-pos]'),add=e.target.closest('[data-add-reserve]'),remove=e.target.closest('[data-delete-reserve]'),editRes=e.target.closest('[data-edit-reserve]');
+  if(!edit)return;
+  if(slot){selected={side:slot.dataset.side,line:slot.dataset.line,pos:Number(slot.dataset.pos)};renderBoard();}
+  if(add){const side=add.dataset.addReserve;const item=M.newReserve();mutate(c=>currentRound()[side].reserve.push(item));selected={side,reserveId:item.id};renderBoard();}
+  if(editRes){selected={side:editRes.dataset.side,reserveId:editRes.dataset.editReserve};renderBoard();}
+  if(remove){const side=remove.dataset.side,id=remove.dataset.deleteReserve;
+    mutate(c=>{currentRound()[side].reserve=currentRound()[side].reserve.filter(x=>x.id!==id);});selected=null;render();}
+ };
+ $('battleBoard').onchange=e=>{
+  const cb=e.target.closest('[data-confirm-side]');if(!edit||!cb)return;
+  const side=cb.dataset.confirmSide,value=cb.checked;
+  mutate(c=>{currentRound().baseline_confirmed[side]=value;});render();
+ };
+}
+async function start(){
+listen();
+try{const response=await fetch('/api/simulate');if(!response.ok)throw Error('GET /api/simulate '+response.status);
+ const meta=await response.json();fields=meta.battlefields||[];units=[...(meta.units||[]),...(meta.barbarian_units||[])];
+ if(!fields.length)throw Error('沒有戰場幾何 metadata');
+}catch(e){notify('無法讀取戰場幾何，請檢查伺服器：'+e.message,true);return;}
+try{
+ const raw=JSON.parse(localStorage.getItem(M.STORAGE)||'[]');
+ if(!Array.isArray(raw))throw Error('儲存格式無效');
+ cases=raw.filter(x=>M.validateCase(x,fields).length===0).slice(0,50);
+ if(cases.length!==raw.length)notify('部分舊資料格式不符，未載入；請檢查原本的 JSON 備份。',true);
+}catch(e){storageOkay=false;cases=[];notify('本機儲存不可讀，請匯入先前 JSON 備份。',true);}
+activeId=cases[0]?.id||null;roundId=cases[0]?.rounds[0]?.id||null;render();
+}
+start();
+})();
+</script>
+</body></html>

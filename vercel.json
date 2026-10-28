@@ -1,7 +1,21 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    { "source": "/api/simulate", "destination": "/api/simulate.py" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/battle-cases.html",
+      "destination": "/battle-cases.html"
+    },
+    {
+      "source": "/battle-cases-model.js",
+      "destination": "/battle-cases-model.js"
+    },
+    {
+      "source": "/api/simulate",
+      "destination": "/api/simulate.py"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }
