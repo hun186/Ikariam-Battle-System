@@ -58,8 +58,8 @@ def test_asgi_serves_new_battle_case_static_assets(path, needle):
 @pytest.mark.skipif(shutil.which("node") is None, reason="node needed for JS model and syntax regression")
 def test_battle_case_scripts_parse_as_javascript(tmp_path):
     html = (ROOT / "battle-cases.html").read_text(encoding="utf-8")
-    blocks = re.findall(r"<script(?:\s[^>]*)?>([\s\S]*?)</script>", html)
-    assert len(blocks) == 1
+    blocks = [part for part in re.findall(r"<script(?:\s[^>]*)?>([\s\S]*?)</script>", html) if part.strip()]
+    assert len(blocks) == 1  # external src script intentionally has no inline body
     inline = tmp_path / "case-frontend.js"
     inline.write_text(blocks[0], encoding="utf-8")
     for file in [inline, ROOT / "battle-cases-model.js"]:
