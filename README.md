@@ -45,3 +45,8 @@ python simulator.py --scenario sample_scenario.json
 ```
 
 Future Function B remains deferred. It must call `ikariam_battle.simulate()` and distinguish completed outcomes from inconclusive or assumption-bearing results.
+
+
+### 戰報案例庫（瀏覽器本機版）
+
+從主畫面的「戰報案例庫」進入 `/battle-cases.html`，可按戰場格位記錄攻守雙方、多個截錄回合的戰報，並新增、編輯、刪除及匯入／匯出 JSON 案例。資料只保存在目前瀏覽器的 localStorage，**不會自動同步到其他電腦或永久儲存在 Vercel**；請定期匯出備份。遊戲戰報不顯示 Reserve 血量，預設 100% 僅是假設；案例的最早截錄回合（不一定是遊戲第 1 回合）須先確認 Reserve 滿血。只有另有精確計算及具體依據，才能將 Reserve HP 改為其他數值；它仍不是直接實測。詳見 `docs/calibration/browser-battle-report-case-library.md`。
