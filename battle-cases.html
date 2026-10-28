@@ -186,8 +186,9 @@ function renderDrawer(){
     if(isReserve){
       const origin=$('editOrigin').value,hp=origin==='assumed_full'?100:cleanInt($('editHp').value,100),cal=origin==='calculated'?$('editCalculation').value:'';
       if(origin==='calculated'&&(hp===null||cal.trim().length<20))throw Error('精算 HP 必須填 0–100% 與至少 20 字具體計算依據');
-      mutate(c=>{const target=currentRound()[side].reserve.find(x=>x.id===s.reserveId);
-        Object.assign(target,{unit,wave,count,hp,source:origin,calculation:cal});});
+      mutate(c=>{const round=currentRound(),target=round[side].reserve.find(x=>x.id===s.reserveId);
+        Object.assign(target,{unit,wave,count,hp,source:origin,calculation:cal});
+        if(round.id===firstRoundId())round.baseline_confirmed[side]=false;});
     }else{
       const hp=cleanInt($('editHp').value,100),deaths=cleanInt($('editDeaths').value,1000000);
       mutate(c=>{const group=currentRound()[side].slots;
@@ -235,7 +236,7 @@ function listen(){
  try{if(f.size>1500000)throw Error('檔案超過 1.5 MB');
   const source=await f.text();const c=M.importCase(source,fields);
   if(cases.length>=50)throw Error('本機案例數量已達 50');
-  c.id=M.uid();c.name=c.name+'（匯入）';c.created=new Date().toISOString();c.updated=c.created;
+  c.id=M.uid();c.name=(c.name.slice(0,114)+'（匯入）');c.created=new Date().toISOString();c.updated=c.created;
   cases.push(c);activeId=c.id;roundId=c.rounds[0].id;edit=true;persist();render();
  }catch(err){notify('匯入失敗：'+err.message,true);}};
  $('editMode').onclick=()=>{edit=true;render();};$('readMode').onclick=()=>{edit=false;selected=null;render();};
@@ -257,10 +258,12 @@ function listen(){
   const slot=e.target.closest('[data-pos]'),add=e.target.closest('[data-add-reserve]'),remove=e.target.closest('[data-delete-reserve]'),editRes=e.target.closest('[data-edit-reserve]');
   if(!edit)return;
   if(slot){selected={side:slot.dataset.side,line:slot.dataset.line,pos:Number(slot.dataset.pos)};renderBoard();}
-  if(add){const side=add.dataset.addReserve;const item=M.newReserve();mutate(c=>currentRound()[side].reserve.push(item));selected={side,reserveId:item.id};renderBoard();}
+  if(add){const side=add.dataset.addReserve;const item=M.newReserve();mutate(c=>{const round=currentRound();round[side].reserve.push(item);
+    if(round.id===firstRoundId())round.baseline_confirmed[side]=false;});selected={side,reserveId:item.id};renderBoard();}
   if(editRes){selected={side:editRes.dataset.side,reserveId:editRes.dataset.editReserve};renderBoard();}
   if(remove){const side=remove.dataset.side,id=remove.dataset.deleteReserve;
-    mutate(c=>{currentRound()[side].reserve=currentRound()[side].reserve.filter(x=>x.id!==id);});selected=null;render();}
+    mutate(c=>{const round=currentRound();round[side].reserve=round[side].reserve.filter(x=>x.id!==id);
+    if(round.id===firstRoundId())round.baseline_confirmed[side]=false;});selected=null;render();}
  };
  $('battleBoard').onchange=e=>{
   const cb=e.target.closest('[data-confirm-side]');if(!edit||!cb)return;

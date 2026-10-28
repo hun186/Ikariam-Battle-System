@@ -115,7 +115,7 @@ c.rounds.push(earlier);
 assert.equal(M.readiness(c).ready,false);
 assert(M.readiness(c).issues.some(s=>s.includes('R50')));
 earlier.baseline_confirmed.attacker=true;
-assert.equal(M.readiness(c).ready,false); // calculated R90 no longer first; R50 confirmed
+assert.equal(M.readiness(c).ready,true); // earliest baseline R50 confirmed; R90 still conditional
 // Real validation forbids duplicate round numbers and slot identity collisions.
 later.number=50;
 assert(M.validateCase(c).some(s=>s.includes('重複')));
@@ -133,3 +133,9 @@ assert.equal(Object.hasOwn(c,'verified_gameforge'),false);
     result = subprocess.run(["node", str(js), str(ROOT / "battle-cases-model.js")],
                             capture_output=True, text=True, check=False)
     assert result.returncode == 0, result.stderr
+
+def test_editing_first_captured_reserve_invalidates_prior_full_hp_confirmation():
+    html = (ROOT / "battle-cases.html").read_text(encoding="utf-8")
+    assert "if(round.id===firstRoundId())round.baseline_confirmed[side]=false" in html
+    assert "source:origin,calculation:cal" in html
+    assert "if(!cal)$('editHp').value='100'" in html
