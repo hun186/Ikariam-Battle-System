@@ -75,12 +75,20 @@ forged extra fields. It rehashes the **current** local image bytes and
 rechecks the prior reviewer worksheet; changed originals invalidate
 the old review.
 
-Each binding reports whether a real model slot actually exists and
-its quantity/model HP context. Numeric differences stay **null** by
-design: even a matching model slot or reviewer-reported 'readable'
-photo does NOT independently verify real-game slot identity, unit
-continuity, starting state or UI HP-bar equivalence. Statuses remain
-`NOT_ASSESSABLE_*`. A missing engine slot remains unassessable.
+Each binding reports whether an actual model slot exists and its
+quantity/model HP context. The tool computes **only** a descriptive
+`ENGINE_MINUS_USER_TYPED_COUNT_UNVERIFIED` count difference when
+the case has a contiguous same-phase, reviewer-reported-readable
+pair, a real completed model round without an unsupported-mechanic
+boundary, a matching explicit engine wave/physical address, identical
+typed target engine unit and Wave labels, an incomplete-but-labelled
+earlier same identity, and a valid typed target quantity. No missing
+round offset or Wave equivalence is guessed. If any gate fails, count
+difference is **null**, with a specific `NOT_ASSESSABLE_*` reason.
+Even a matching quantity is not empirical verification. **HP
+percentage-point difference is always null**: Gameforge's UI HP bar
+semantics are not established equal to the engine's slot aggregate.
+A missing engine slot remains unassessable.
 Source provenance, independent observations, holdouts and model
 calibration stay false/zero. This is an exploratory alignment record,
 not a published empirical model accuracy metric.
