@@ -11,6 +11,7 @@ import pytest
 
 from tools.research import p0_report_case_local_image_binding as binder
 from tools.research import p0_report_case_pending_image_coverage as coverage
+from tools.research import p0_report_case_manual_visual_review as manual
 
 NODE = shutil.which("node")
 FAKE_PNG_A = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR" + bytes(20)
@@ -600,3 +601,199 @@ def test_pending_coverage_cli_never_overwrites_evidence_and_exits_on_invalid(
     assert run.returncode == 2
     assert json.loads(new_report.read_text())["status"] == "INVALID"
     assert result["original_game_screenshots_authenticated"] is False
+
+
+
+def test_manual_visual_review_worksheet_uses_canonical_pending_addresses_and_hashes(
+    capture_case, tmp_path
+):
+    _, case = capture_case
+    blob, entered = _with_pending_slots(case)
+    _images(tmp_path)
+    sheet = manual.review_worksheet(blob, _manifest(entered), tmp_path)
+    assert sheet["record_kind"] == "user_reported_visual_review_not_authenticated"
+    assert sheet["case_backup_bytes_sha256"] == sha256(blob).hexdigest()
+    assert len(sheet["review_items"]) == 2
+    r1, r2 = sheet["review_items"]
+    assert (r1["earlier_round"], r1["target_round"], r1["review_reason"]) == (
+        50, 80, "INCOMPLETE"
+    )
+    assert (r1["side"], r1["line"], r1["physical_position"]) == (
+        "attacker", "first", 1
+    )
+    assert r1["round_number_gap"] == 30
+    assert r1["same_capture_phase"] is True
+    assert r1["earlier_image_sha256"] == sha256(FAKE_PNG_A).hexdigest()
+    assert r1["target_image_sha256"] == sha256(FAKE_PNG_B).hexdigest()
+    assert (r2["earlier_round"], r2["target_round"], r2["review_reason"]) == (
+        80, 81, "ONE_SIDED"
+    )
+    assert r2["same_capture_phase"] is False
+    assert all(x["review_status"] == "NOT_REVIEWED" for x in sheet["review_items"])
+    assert "UNVERIFIED local-filename.png" not in json.dumps(sheet)
+    assert str(tmp_path) not in json.dumps(sheet)
+    no_claim = manual.assess_review(blob, _manifest(entered), tmp_path, sheet)
+    assert no_claim["status"] == "NO_REVIEWER_REPORTS_NOT_AUTHENTICATED"
+    assert no_claim["pending_review_items"] == 2
+    assert no_claim["independently_verified_game_observations"] == 0
+    assert no_claim["model_calibration_verified"] is False
+
+    edited = deepcopy(sheet)
+    edited["review_items"][0]["review_status"] = "REVIEWER_REPORTS_IMAGES_READABLE"
+    edited["review_items"][1]["review_status"] = "REVIEWER_REPORTS_TRANSCRIPTION_CONFLICT"
+    assessed = manual.assess_review(blob, _manifest(entered), tmp_path, edited)
+    assert assessed["status"] == "USER_REPORTED_VISUAL_REVIEW_NOT_AUTHENTICATED"
+    assert assessed["review_status_counts"]["REVIEWER_REPORTS_IMAGES_READABLE"] == 1
+    assert assessed["review_status_counts"]["REVIEWER_REPORTS_TRANSCRIPTION_CONFLICT"] == 1
+    assert assessed["original_game_screenshots_authenticated"] is False
+    assert assessed["source_provenance_independently_verified"] is False
+    assert assessed["image_decoded_or_visually_inspected_by_tool"] is False
+    assert assessed["official_game_mechanism_verified"] is False
+    assert assessed["combat_causality_inferred"] is False
+    assert edited["review_items"][0]["review_status"] == "REVIEWER_REPORTS_IMAGES_READABLE"
+
+
+@pytest.mark.parametrize("change", [
+    "source_capture_id", "target_capture_id", "review_reason", "phase",
+    "pos", "file_hash", "case_hash", "forge_authority", "orphan_item",
+    "missing_item", "unexpected_status", "bool_status", "extra_row_key",
+])
+def test_manual_review_rejects_forged_provenance_and_stale_slot_details(
+    capture_case, tmp_path, change
+):
+    _, c = capture_case
+    blob, entered = _with_pending_slots(c)
+    _images(tmp_path)
+    manifest = _manifest(entered)
+    sheet = manual.review_worksheet(blob, manifest, tmp_path)
+    altered = deepcopy(sheet)
+    row = altered["review_items"][0]
+    if change == "source_capture_id":
+        row["earlier_capture_id"] = "forged"
+    elif change == "target_capture_id":
+        row["target_capture_id"] = "forged"
+    elif change == "review_reason":
+        row["review_reason"] = "FIELDS_COMPARABLE"
+    elif change == "phase":
+        row["same_capture_phase"] = False
+    elif change == "pos":
+        row["physical_position"] = 2
+    elif change == "file_hash":
+        row["target_image_sha256"] = "0" * 64
+    elif change == "case_hash":
+        altered["case_backup_bytes_sha256"] = "0" * 64
+    elif change == "forge_authority":
+        altered["original_game_screenshots_authenticated"] = True
+    elif change == "orphan_item":
+        altered["review_items"].append(deepcopy(row))
+    elif change == "missing_item":
+        altered["review_items"].pop()
+    elif change == "unexpected_status":
+        row["review_status"] = "GAMEFORGE_VERIFIED"
+    elif change == "bool_status":
+        row["review_status"] = True
+    elif change == "extra_row_key":
+        row["official_verified"] = True
+    with pytest.raises(ValueError):
+        manual.assess_review(blob, manifest, tmp_path, altered)
+
+
+def test_manual_review_stale_image_bytes_and_case_changes_fail_closed(
+    capture_case, tmp_path
+):
+    _, c = capture_case
+    blob, entered = _with_pending_slots(c)
+    _images(tmp_path)
+    manifest = _manifest(entered)
+    sheet = manual.review_worksheet(blob, manifest, tmp_path)
+    sheet["review_items"][0]["review_status"] = "REVIEWER_REPORTS_IMAGES_READABLE"
+    (tmp_path / "r80.png").write_bytes(FAKE_PNG_B + b"later local edit")
+    with pytest.raises(ValueError):
+        manual.assess_review(blob, manifest, tmp_path, sheet)
+    (tmp_path / "r80.png").write_bytes(FAKE_PNG_B)
+    altered = deepcopy(entered)
+    altered["notes"] = "changed manual description"
+    with pytest.raises(ValueError):
+        manual.assess_review(json.dumps(altered).encode(), manifest, tmp_path, sheet)
+    manifest["captures"] = manifest["captures"][:2]
+    with pytest.raises(ValueError):
+        manual.assess_review(blob, manifest, tmp_path, sheet)
+
+
+def test_manual_review_partial_image_bundle_rejects_positive_claims(
+    capture_case, tmp_path
+):
+    _, c = capture_case
+    blob, entered = _with_pending_slots(c)
+    _images(tmp_path)
+    manifest = _manifest(entered)
+    manifest["captures"] = manifest["captures"][:1]
+    sheet = manual.review_worksheet(blob, manifest, tmp_path)
+    assert all(x["target_image_sha256"] is None for x in sheet["review_items"])
+    draft = manual.assess_review(blob, manifest, tmp_path, sheet)
+    assert draft["status"] == "NO_REVIEWER_REPORTS_NOT_AUTHENTICATED"
+    sheet["review_items"][0]["review_status"] = "REVIEWER_REPORTS_IMAGES_READABLE"
+    with pytest.raises(ValueError, match="both source images required"):
+        manual.assess_review(blob, manifest, tmp_path, sheet)
+    # A deliberately synthetic blank transcription does not have fields to check.
+    all_blank, fresh = capture_case
+    fresh_manifest = _manifest(fresh)
+    one = manual.review_worksheet(all_blank, fresh_manifest, tmp_path)
+    assert all(x["review_reason"] == "NO_ENTERED_VISIBLE_SLOTS"
+               for x in one["review_items"])
+    one["review_items"][0]["review_status"] = "REVIEWER_REPORTS_IMAGES_READABLE"
+    with pytest.raises(ValueError, match="no visible field"):
+        manual.assess_review(all_blank, fresh_manifest, tmp_path, one)
+
+
+def test_manual_visual_review_cli_two_phase_private_and_exclusive(
+    capture_case, tmp_path
+):
+    _, c = capture_case
+    blob, entered = _with_pending_slots(c)
+    _images(tmp_path)
+    case_path = tmp_path / "private-case.json"
+    manifest_path = tmp_path / "private-manifest.json"
+    sheet_path = tmp_path / "review-worksheet.json"
+    audit_path = tmp_path / "manual-audit.json"
+    case_path.write_bytes(blob)
+    manifest_path.write_text(json.dumps(_manifest(entered)), encoding="utf-8")
+    common = [sys.executable, "-m", "tools.research.p0_report_case_manual_visual_review",
+              "--case", str(case_path), "--manifest", str(manifest_path),
+              "--evidence-root", str(tmp_path)]
+    make = common + ["--write-review-worksheet", str(sheet_path)]
+    run = subprocess.run(make, capture_output=True, text=True, timeout=25)
+    assert run.returncode == 0, run.stderr
+    assert json.loads(run.stdout)["status"] == "DRAFT_USER_VISUAL_REVIEW_NOT_AUTHENTICATED"
+    draft = json.loads(sheet_path.read_text(encoding="utf-8"))
+    assert len(draft["review_items"]) == 2
+    assert case_path.read_bytes() == blob
+    assert "UNVERIFIED local-filename.png" not in sheet_path.read_text()
+    draft["review_items"][0]["review_status"] = "REVIEWER_REPORTS_IMAGES_READABLE"
+    sheet_path.write_text(json.dumps(draft), encoding="utf-8")
+    check = common + ["--review-worksheet", str(sheet_path),
+                      "--output-json", str(audit_path)]
+    run = subprocess.run(check, capture_output=True, text=True, timeout=25)
+    assert run.returncode == 0, run.stderr
+    report = json.loads(audit_path.read_text())
+    assert report["status"] == "USER_REPORTED_VISUAL_REVIEW_NOT_AUTHENTICATED"
+    assert report["model_calibration_verified"] is False
+    original = {path: path.read_bytes() for path in (
+        case_path, manifest_path, tmp_path / "r50.png", sheet_path, audit_path
+    )}
+    for existing in (case_path, sheet_path, tmp_path / "r50.png", audit_path):
+        fail = subprocess.run(common + ["--write-review-worksheet", str(existing)],
+                              capture_output=True, text=True, timeout=25)
+        assert fail.returncode == 2
+        assert "refusing to overwrite" in fail.stderr
+    assert subprocess.run(check, capture_output=True, timeout=25).returncode == 2
+    assert {p: p.read_bytes() for p in original} == original
+    spoof = deepcopy(draft)
+    spoof["official_gameforge_verified"] = True
+    sheet_path.write_text(json.dumps(spoof), encoding="utf-8")
+    invalid_output = tmp_path / "no-report-on-invalid-input.json"
+    reject = subprocess.run(common + [
+        "--review-worksheet", str(sheet_path), "--output-json", str(invalid_output)
+    ], capture_output=True, timeout=25)
+    assert reject.returncode == 2
+    assert not invalid_output.exists()
