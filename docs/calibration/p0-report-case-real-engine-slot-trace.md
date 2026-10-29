@@ -14,6 +14,15 @@ From the repository root (Python 3.11+):
       --scenario explicit-scenario.json \
       --output-json NEW-real-engine-trace.json
 
+The trace also preserves BOTH the requested `scenario_battlefield`
+and the actual engine `engine_effective_battlefield` resolved after
+settlement/garrison open-field overrides. When the effective geometry
+differs from the browser case battlefield, the optional mapping **fails
+closed**, even when both inputs claimed `land-mini`, because the
+physical-position numbering/capacities are not equivalent. A real
+land-mini → land-max override is covered by an actual-engine
+regression test.
+
 The output contains SHA-256 of exact scenario bytes, engine source
 `ikariam_battle/engine.py` bytes, serialized actual engine result bytes,
 real policy/status/rounds completed, actual assumptions and unsupported
