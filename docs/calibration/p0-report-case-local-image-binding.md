@@ -53,6 +53,15 @@ on unsupported systems, including most native Windows setups.
          --evidence-root private-game-images \
          --output-json private-byte-receipt.json
 
+**Write output to a NEW unused filename.** The CLI atomically refuses to
+overwrite any existing path (including previous receipts, case backups,
+manifests, screenshot image files, symlinks and hard links). On rejection it
+exits 2 without modifying the old file. Save new verification runs to a
+different filename, not over the prior output. This explicitly addresses
+formal Codex P2 findings: template creation had a missing status key;
+the first implementation could also replace source evidence when
+`--output-json` accidentally pointed to an original screenshot.
+
 Inspect the generated receipt before sharing: it contains capture IDs,
 relative paths, actual SHA-256 values and file sizes, but no image bytes,
 absolute local paths or original user-entered `round.source` note text.
