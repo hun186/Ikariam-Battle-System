@@ -156,7 +156,7 @@ invalid schema; true Chromium tests exercise R50→R80→R81→R82,
 read-only table and click-to-round navigation. Hosted exact-HEAD
 CI and formal Codex Review are mandatory for PR #106.
 
-### Per-physical-slot transcription review checklist (Draft PR #107)
+### Per-physical-slot transcription review checklist (owner-merged PR #107)
 
 The captured-pair coverage table's new `待查欄位` control opens a purely
 **read-only, ephemeral** checklist for one adjacent **captured** pair,
@@ -189,6 +189,46 @@ evidence before combat mechanics can be calibrated. Exact-HEAD Hosted
 CI must cover Node adversarial pair-ID/mismatch/zero/non-mutation checks,
 root/public parity, and real Chromium pair inspection and click behavior;
 formal Codex Review required before owner-authorized merge.
+
+### Read-only cross-round pending-field CSV handoff (Draft PR #108)
+
+The captured-round coverage panel includes a **CSV export of the entire
+case's *noncomparable* adjacent-captured-pair review queue**, suitable
+for opening in Excel and giving a researcher a list of source screenshots
+and visible fields to check. It uses the existing
+`summarizeCapturedTimeline()` adjacency plus the exact
+`inspectCapturedCoveragePair()` statuses, and a shared safe CSV serializer:
+`ONE_SIDED`, `INCOMPLETE`, `LABEL_CHANGED`, `PHASE_MISMATCH` and
+`NO_ENTERED_VISIBLE_SLOTS`. `FIELDS_COMPARABLE` rows are deliberately
+absent; if the entire case has no typed-field review needs, export is
+disabled/rejected **without claiming the original Gameforge screenshots
+were authenticated**.
+
+One row records the case identity and battlefield, earlier/target
+**captured** round numbers, round-number gap, both transcription phases,
+physical side/line/slot if entered (blank for wholly empty pairs), both
+sets of *typed visible* unit/Wave/count/HP, status and original-source
+cross-check reminder. Entered zero is preserved and missing values
+remain empty. All rows are explicitly
+`USER_TRANSCRIPTION_UNVERIFIED` and
+`SOURCE_IMAGE_NOT_VERIFIED_NO_COMBAT_CAUSALITY`. The CSV does not
+include original images, screenshots' authenticity, Reserve HP,
+inferred death counts, actual combat damage, healing or Accuracy. No
+skipped game rounds are filled. This is *not* a task-completion/verified
+status tracker and must **not** replace JSON-v1 case backups or the
+private original evidence files.
+
+It reuses the UTF-8 BOM, escaping of quotes/control newlines, spreadsheet
+formula-injection guard (including leading whitespace), sanitized
+filename and 64 MiB export ceiling. The operation never updates the
+case, timestamps, localStorage or the underlying battle simulator.
+Regressions parse CSV using Python's csv.DictReader after Node export
+with deliberately unsorted R50/R80/R81/R82/R90/R100, injection labels,
+valid zero/blank, fully comparable refusal, invalid case and
+empty capture pair. Genuine Chromium must download only the
+R81→R82 pending row in the synthetic browser case and verify its source
+fields and unchanged localStorage. PR #108 requires exact-HEAD Hosted
+CI and formal Codex Review; **never merge without owner permission**.
 
 ### Reserve HP evidence constraint
 
