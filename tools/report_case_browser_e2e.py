@@ -276,6 +276,38 @@ def run(base_url: str, evidence_dir: Path) -> None:
             original_coverage_storage = page.evaluate(
                 "() => localStorage.getItem('ikariam-report-cases-v1')"
             )
+            # Original screenshots are NOT attached. Export existing note text
+            # for every captured round, including blanks, without verification.
+            expect(page.locator("#exportSourceManifestCsv")).to_be_enabled()
+            with page.expect_download() as source_notes_event:
+                page.locator("#exportSourceManifestCsv").click()
+            manifest_file = source_notes_event.value
+            assert manifest_file.suggested_filename.startswith(
+                "ikariam-source-notes-manifest-"
+            )
+            assert manifest_file.suggested_filename.endswith(".csv")
+            manifest_bytes = Path(manifest_file.path()).read_bytes()
+            assert manifest_bytes.startswith(b"\xef\xbb\xbf")
+            manifest_rows = list(csv.DictReader(io.StringIO(
+                manifest_bytes.decode("utf-8-sig"), newline=""
+            )))
+            assert [row["capture_round"] for row in manifest_rows] == [
+                "50", "80", "81", "82"
+            ]
+            manifest_by_round = {row["capture_round"]: row for row in manifest_rows}
+            assert manifest_by_round["80"]["source_note_status"] == (
+                "SOURCE_NOTE_TYPED_UNVERIFIED"
+            )
+            assert "所有圖片均為合成測試" in manifest_by_round["80"]["source_note_text"]
+            assert manifest_by_round["82"]["source_note_status"] == "SOURCE_NOTE_MISSING"
+            assert manifest_by_round["82"]["source_note_text"] == ""
+            assert all(row["original_image_in_export"] == "ORIGINAL_IMAGE_NOT_INCLUDED"
+                       for row in manifest_rows)
+            assert all(row["source_authentication"] == "NOT_AUTHENTICATED"
+                       for row in manifest_rows)
+            assert page.evaluate(
+                "() => localStorage.getItem('ikariam-report-cases-v1')"
+            ) == original_coverage_storage, "source-note manifest wrote to case storage"
             expect(page.locator("#exportCoverageReviewCsv")).to_be_enabled()
             # Export only the unresolved R81→R82 draft, not comparable R50/R80/R81.
             with page.expect_download() as review_queue_download:
