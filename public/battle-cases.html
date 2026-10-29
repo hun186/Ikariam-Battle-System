@@ -67,7 +67,9 @@ button,.btn{border:1px solid #7b6548;background:#f5e5c5;padding:8px 11px;border-
 <label class="wide">本回合證據備註（截圖檔名、遊戲版本、死亡／補兵線索、可見時間點）
 <textarea id="roundSource" class="wide" rows="2" maxlength="2500" placeholder="例如第 80 回合結束截圖；請不要將推測血量寫成畫面實測"></textarea></label>
 <div id="readiness" class="info" aria-live="polite"></div>
-<details id="roundComparison" class="info"><summary>與上一個截錄回合比較（僅人工轉錄數值）</summary><div id="roundComparisonContent" class="round-comparison-content" aria-live="polite"></div></details>
+<details id="roundComparison" class="info"><summary>截錄回合格位對照（僅人工轉錄數值）</summary>
+<label for="comparisonSource">比較來源回合<select id="comparisonSource" aria-label="較早截錄回合"></select></label>
+<div id="roundComparisonContent" class="round-comparison-content" aria-live="polite"></div></details>
 </section>
 <section id="boardPanel" class="panel hidden">
 <h2 id="roundHeading">戰場格位</h2>
@@ -88,6 +90,8 @@ const lineLabels={first:'前排',flank:'側翼',second:'第二排',third:'第三
 const glyphs={first:'🛡',flank:'⚔',second:'🎯',third:'💥',balloon:'✈','anti-balloon':'🛩'};
 const roundEntryLabels={EMPTY:'未填',DRAFT:'待補可見欄位',PARTIAL:'部分可見欄位已填',FIELDS_ENTERED:'可見欄位已填'};
 let fields=[],units=[],cases=[],activeId=null,roundId=null,edit=true,selected=null,storageOkay=true;
+// Comparison source selection is ephemeral UI state; never add it to case JSON.
+let comparisonCaseId=null,comparisonTargetId=null,comparisonSourceId=null;
 function active(){return cases.find(c=>c.id===activeId);}
 function currentRound(){return active()?.rounds.find(x=>x.id===roundId);}
 function field(){return fields.find(x=>x.id===active()?.battlefield);}
@@ -220,7 +224,19 @@ const compareReason={
  FIELDS_COMPARABLE:'欄位數值可對照（非因果）'
 };
 function renderRoundComparison(c,r){
- const data=M.compareCapturedRounds(c,r.id),root=$('roundComparisonContent');
+ const earlier=c.rounds.filter(x=>x.number<r.number).sort((a,b)=>b.number-a.number);
+ // Reset on case/target switch (import copies round IDs), or when source was deleted.
+ if(comparisonCaseId!==c.id||comparisonTargetId!==r.id){
+   comparisonCaseId=c.id;comparisonTargetId=r.id;comparisonSourceId=null;
+ }
+ if(!earlier.some(x=>x.id===comparisonSourceId))
+   comparisonSourceId=earlier[0]?.id||null;
+ const select=$('comparisonSource');
+ select.innerHTML=earlier.length?earlier.map(x=>'<option value="'+esc(x.id)+'">R'+x.number+'</option>').join(''):
+   '<option value="">沒有較早的截錄回合</option>';
+ select.disabled=!earlier.length;
+ select.value=comparisonSourceId||'';
+ const data=M.compareCapturedRounds(c,r.id,comparisonSourceId),root=$('roundComparisonContent');
  if(data.sourceRound===null){
    root.textContent='目前沒有更早的截錄回合可比較；本功能不推算缺少的回合。';
    return;
@@ -234,7 +250,8 @@ function renderRoundComparison(c,r){
     '<td>'+fmt(x.prior)+'</td><td>'+fmt(x.current)+'</td>'+
     '<td>'+delta(x.countDelta)+'</td><td>'+delta(x.hpPointDelta)+'</td>'+
     '<td>'+esc(compareReason[x.code])+'</td></tr>').join('');
- root.innerHTML='<p class="muted">R'+data.sourceRound+' → R'+data.targetRound+'；'+
+ root.innerHTML='<p class="muted">R'+data.sourceRound+' → R'+data.targetRound+
+    '（回合編號相隔 '+(data.targetRound-data.sourceRound)+'；不代表期間回合均有截錄）。'+
     comparable+' 格的人工輸入欄位可對照／'+data.rows.length+' 格曾有輸入。'+
     '兵數差≠死亡數；HP 百分點差≠治療／傷害量。Reserve HP 不可從戰報觀測，未納入；相同 Wave 標籤不證明兩回合為同一群實體單位。'+
     '來源未經獨立驗證，未填格位也不代表無兵。</p>'+
@@ -267,6 +284,12 @@ function render(){
  renderBoard();
 }
 function listen(){
+ $('comparisonSource').onchange=e=>{
+   const c=active(),r=currentRound();
+   if(!c||!r)return;
+   comparisonSourceId=e.target.value;
+   renderRoundComparison(c,r); // Strictly read-only; no mutate/persist.
+ };
  $('addCase').onclick=()=>{
   if(cases.length>=50){notify('最多 50 個本機案例，請先匯出後整理。',true);return;}
   const name=prompt('案例名稱','新戰報案例');if(name===null)return;
