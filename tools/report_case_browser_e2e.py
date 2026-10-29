@@ -114,6 +114,24 @@ def run(base_url: str, evidence_dir: Path) -> None:
             page.get_by_role("button", name="R81", exact=True).click()
             expect(first_tile).to_contain_text("HP 76%")
 
+            # Reuse R81's labels for a later R82 DRAFT, never its observations.
+            prompted_click(page, "#addRound", "82")
+            expect(page.locator("#roundHeading")).to_contain_text("R82")
+            page.once("dialog", lambda dialog: dialog.accept())
+            page.locator("#reuseEarlierLabels").click()
+            expect(page.locator("#storageStatus")).to_contain_text("R81")
+            expect(first_tile).to_contain_text("HP 未填")
+            first_tile.click()
+            assert page.locator("#editUnit").input_value() == unit
+            assert page.locator("#editWave").input_value() == "browser-e2e"
+            for key in ("#editCount", "#editHp", "#editDeaths"):
+                assert page.locator(key).input_value() == "", key
+            page.locator("#closeDrawer").click()
+            # Refuse to overwrite even a label-only draft on a repeat click.
+            page.once("dialog", lambda dialog: dialog.accept())
+            page.locator("#reuseEarlierLabels").click()
+            expect(page.locator("#storageStatus")).to_contain_text("已有格位資料")
+
             # Adding an earlier R50 re-evaluates baseline readiness.
             prompted_click(page, "#addRound", "50")
             expect(page.locator("#roundHeading")).to_contain_text("R50")
@@ -131,15 +149,24 @@ def run(base_url: str, evidence_dir: Path) -> None:
             payload = Path(download.path()).read_bytes()
             saved = json.loads(payload.decode("utf-8"))
             assert saved["id"] == original_id
-            assert sorted(r["number"] for r in saved["rounds"]) == [50, 80, 81]
+            assert sorted(r["number"] for r in saved["rounds"]) == [50, 80, 81, 82]
             rounds = {r["number"]: r for r in saved["rounds"]}
             assert rounds[80]["attacker"]["slots"][0]["pos"] == 1
             assert rounds[80]["attacker"]["slots"][0]["hp"] == 83
             assert rounds[80]["attacker"]["reserve"][0]["source"] == "assumed_full"
             assert rounds[80]["attacker"]["reserve"][0]["hp"] == 100
             assert rounds[50]["baseline_confirmed"]["attacker"] is True
+            r82 = rounds[82]
+            assert r82["source"] == ""
+            assert r82["phase"] == "round_end"
+            assert r82["baseline_confirmed"] == {"attacker": False, "defender": False}
+            assert not r82["attacker"]["reserve"] and not r82["defender"]["reserve"]
+            assert r82["attacker"]["slots"][0] == {
+                "line": "first", "pos": 1, "unit": unit, "wave": "browser-e2e",
+                "count": None, "hp": None, "deaths": None,
+            }
             assert 100 < len(payload) <= 64 * 1024 * 1024
-            print("PASS: real browser R80/R81/R50, physical slots, Reserve, JSON download")
+            print("PASS: real browser R50/R80/R81/R82, label-only drafts, Reserve, JSON download")
 
             page.locator("#importCase").set_input_files({
                 "name": download.suggested_filename,
@@ -169,7 +196,7 @@ def run(base_url: str, evidence_dir: Path) -> None:
 
             # Do not mistake a successful file-picker interaction for lossless restore.
             # Re-export the IMPORTED case after localStorage reload, and compare all
-            # nested rounds (R50/R80/R81), slots, Reserve, counts, deaths, notes,
+            # nested rounds (R50/R80/R81/R82), slots, Reserve, counts, deaths, notes,
             # chronology, confirmation flags and source provenance as parsed JSON.
             with page.expect_download() as restored_download_event:
                 page.locator("#exportCase").click()
@@ -186,7 +213,7 @@ def run(base_url: str, evidence_dir: Path) -> None:
                 "Imported case lost/changed data across upload, delete, reload and "
                 "download: full nested case JSON differs from the original backup"
             )
-            print("PASS: complete 3-round JSON backup round-trip after localStorage reload")
+            print("PASS: complete 4-round JSON backup round-trip after localStorage reload")
 
             page.set_viewport_size({"width": 390, "height": 844})
             expect(page.locator("#caseList")).to_be_visible()
