@@ -26,8 +26,12 @@ unless independently corroborated.
 
 Engine round 0 represents an initial model state, NOT end of game round
 0. Engine round N is normally a completed round-end snapshot, but
-an unsupported-mechanic boundary may stop mid-round. Do not infer an
-unexecuted game action from such a truncated trace.
+an unsupported-mechanic boundary may stop mid-round. Every model
+snapshot from a round with a recorded unsupported-mechanic event is
+explicitly labeled `unsupported_boundary_not_round_end`, **NOT** a
+completed `round_end_model_snapshot`, including cases where the engine
+preserves the round-start deployment after a cross-wave rebuild guard.
+Do not infer an unexecuted game action from such a truncated trace.
 
 The engine's `hit_points_percent` is an internal aggregate metric.
 There is **no authenticated equivalence** to the game UI HP bar
@@ -81,8 +85,9 @@ quantity/model HP context. The tool computes **only** a descriptive
 the case has a contiguous same-phase, reviewer-reported-readable
 pair, a real completed model round without an unsupported-mechanic
 boundary, a matching explicit engine wave/physical address, identical
-typed target engine unit and Wave labels, an incomplete-but-labelled
-earlier same identity, and a valid typed target quantity. No missing
+typed target engine unit and Wave labels, an earlier capture with **BOTH nonblank unit and Wave**
+labels exactly matching the target, and a valid typed target quantity.
+Blank earlier labels are unknown identity and must fail closed. No missing
 round offset or Wave equivalence is guessed. If any gate fails, count
 difference is **null**, with a specific `NOT_ASSESSABLE_*` reason.
 Even a matching quantity is not empirical verification. **HP
