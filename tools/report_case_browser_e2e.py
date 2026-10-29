@@ -276,9 +276,25 @@ def run(base_url: str, evidence_dir: Path) -> None:
             original_coverage_storage = page.evaluate(
                 "() => localStorage.getItem('ikariam-report-cases-v1')"
             )
+            # Inspect the exact physical slot in the draft R81→R82 pair.
+            coverage_rows.nth(2).locator('button[data-coverage-review]').click()
+            detail = page.locator("#coverageReviewDetail")
+            expect(detail).to_contain_text("R81 → R82 待查欄位（1 筆）")
+            expect(detail).to_contain_text("攻 前排 格位 1")
+            expect(detail).to_contain_text("兵種／Wave／數量／HP 未填齊")
+            expect(detail).to_contain_text("不可推算補值")
+            expect(detail).to_contain_text("HP 未填")
+            assert page.evaluate(
+                "() => localStorage.getItem('ikariam-report-cases-v1')"
+            ) == original_coverage_storage, "reviewing a gap persisted case data"
+            # The R50→R80 pair is comparable, but never 'authenticated'.
+            coverage_rows.nth(0).locator('button[data-coverage-review]').click()
+            expect(detail).to_contain_text("沒有這組截錄的欄位限制項目")
+            expect(detail).to_contain_text("不代表截圖來源已經核實")
             page.locator(
                 f'#captureCoverageContent button[data-coverage-target="{r81_id}"]'
             ).click()
+            expect(page.locator("#coverageReviewDetail")).to_be_empty()
             expect(page.locator("#roundHeading")).to_contain_text("R81")
             assert page.evaluate(
                 "() => localStorage.getItem('ikariam-report-cases-v1')"
