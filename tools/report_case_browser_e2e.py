@@ -260,6 +260,30 @@ def run(base_url: str, evidence_dir: Path) -> None:
             assert page.evaluate(
                 "() => localStorage.getItem('ikariam-report-cases-v1')"
             ) == before_timeline, "timeline CSV export changed case storage"
+
+            # Coverage ledger lists typed input status, not verified battlefield losses.
+            page.locator("#captureCoverage summary").click()
+            coverage_rows = page.locator("#captureCoverageContent tbody tr")
+            expect(coverage_rows).to_have_count(3)
+            expect(coverage_rows.nth(0)).to_contain_text("R50 → R80")
+            expect(coverage_rows.nth(1)).to_contain_text("R80 → R81")
+            expect(coverage_rows.nth(2)).to_contain_text("R81 → R82")
+            assert coverage_rows.nth(0).locator("td").nth(0).inner_text() == "30"
+            assert coverage_rows.nth(0).locator("td").nth(1).inner_text() == "1"
+            assert coverage_rows.nth(1).locator("td").nth(1).inner_text() == "1"
+            assert coverage_rows.nth(2).locator("td").nth(3).inner_text() == "1"
+            assert coverage_rows.nth(2).locator("td").nth(1).inner_text() == "0"
+            original_coverage_storage = page.evaluate(
+                "() => localStorage.getItem('ikariam-report-cases-v1')"
+            )
+            page.locator(
+                f'#captureCoverageContent button[data-coverage-target="{r81_id}"]'
+            ).click()
+            expect(page.locator("#roundHeading")).to_contain_text("R81")
+            assert page.evaluate(
+                "() => localStorage.getItem('ikariam-report-cases-v1')"
+            ) == original_coverage_storage, "coverage navigation persisted source data"
+            page.get_by_role("button", name="R50", exact=True).click()
             page.screenshot(path=str(evidence_dir / "battle-report-desktop-synthetic.png"), full_page=True)
 
             with page.expect_download() as d:
