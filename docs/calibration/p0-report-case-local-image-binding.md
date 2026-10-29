@@ -25,7 +25,42 @@ on unsupported systems, including most native Windows setups.
        python -m tools.research.p0_report_case_local_image_binding \
          --write-template private-image-manifest.json
 
-3. Edit it locally. Change `record_kind` to
+### Case-bound worksheet (recommended; Draft PR #112)
+
+Instead of manually copying opaque capture IDs, generate a **case-bound
+draft worksheet** from the actual browser JSON backup. The canonical JS
+validator rejects invalid cases *before creating any worksheet*:
+
+    python -m tools.research.p0_report_case_local_image_binding \
+      --case private-browser-case.json \
+      --write-case-worksheet NEW-private-capture-worksheet.json
+
+This produces exactly the normal manifest top-level keys and captures
+**all manually captured rounds, sorted numerically**, with each row's
+`capture_id`, `capture_round`, `capture_phase`, and deliberately
+`relative_path=null`, `expected_sha256=null`. For example, an R80
+end-of-round transcription appears with its actual opaque ID and
+`capture_round=80`, `capture_phase=round_end`. It does NOT copy
+private `round.source` note text, inspect images or claim that any
+file exists. The generated `record_kind` is
+`draft_capture_worksheet_not_evidence`: passing the unedited worksheet
+to the image binder is **INVALID** and reads zero local image bytes.
+
+To finalize, enter real relative PNG/JPEG paths for whichever captured
+rounds actually have files; delete unfilled rows when only a partial
+bundle is available. Then explicitly change `record_kind` to
+`user_supplied_unverified_files`. The binder checks that the optional
+`capture_round` **and** `capture_phase` match the original case for
+each `capture_id`; it rejects incorrect or partially supplied metadata
+before reading images. Old manifests using only `capture_id`,
+`relative_path` and `expected_sha256` remain valid.
+
+As with other CLI outputs, an existing worksheet, screenshot,
+case backup or symlink/hard link is never overwritten, even when
+chosen as `--write-case-worksheet` output. Do not share worksheets
+containing private case IDs without reviewing them.
+
+3. For the older empty-template route, edit it locally. Change `record_kind` to
    `user_supplied_unverified_files`, set `case_id` to the JSON case ID,
    and fill entries with exact `rounds[].id` capture IDs (not merely round
    numbers), relative file paths below the evidence root, and an optional
