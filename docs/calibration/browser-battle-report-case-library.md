@@ -38,7 +38,7 @@ Round tabs show a **derived progress hint** per captured R number. `EMPTY` means
 
 The selected round additionally displays entered visible slots, pending slots and Reserve row count. **Reserve HP is never treated as visible**, and source notes / baseline confirmation do not promote a round to verified. The display is computed from existing v1 data without modifying storage or export format. Real Chromium acceptance covers R80 filled, R82 label-only draft, and out-of-order R50. This is research transcription assistance only.
 
-### Read-only earlier captured-round field comparison (PR #102 merged; selectable source Draft PR #103)
+### Read-only earlier captured-round field comparison (owner-merged PR #102/#103)
 
 The editor's collapsible comparison defaults to the chronological **nearest earlier
 captured** round, not JSON array order or necessarily an adjacent game round.
@@ -61,7 +61,41 @@ identity, replenishment or official mechanics. Same Wave text does not prove
 same real Wave across rounds. Reserve HP is never compared, case JSON v1 is
 unchanged, and the operation cannot change stored data or engine results.
 Missing original screenshots prevent empirical calibration of Issue #73.
-PR #102 passed exact-source Hosted CI and clean formal Codex Review before owner Merge. For selectable-source PR #103, adversarial model tests plus real Chromium R50/R81 manual source-switch, R82 draft handling and reset/read-mode checks must pass on its exact new HEAD.
+PR #102 passed exact-source Hosted CI and clean formal Codex Review before owner Merge. PR #103 passed exact-source Hosted CI (14/14) and clean Codex Review before owner-authorized Squash Merge into `main` (`611765320122b50073d1ef2b88375505d9d81818`).
+
+### Derived typed comparison CSV export (Draft PR #104)
+
+The browser may download **only the currently selected earlier/target captured
+pair** as a UTF-8-with-BOM CSV for spreadsheet analysis. It uses the **same
+`compareCapturedRounds()` result** as the visible table. Each physical
+side/line/position with any entered data becomes one row. Explicit
+`comparison_status` can be `FIELDS_COMPARABLE`, `ONE_SIDED`,
+`INCOMPLETE`, `LABEL_CHANGED` or `PHASE_MISMATCH`. Numeric
+`typed_count_delta` and `typed_hp_percentage_point_delta` are
+**empty for all non-comparable rows**, not zero. Entered numeric 0 is distinct
+from an empty/missing field. Every row is marked
+`USER_TRANSCRIPTION_UNVERIFIED` and
+`TYPED_FIELDS_ONLY_NOT_COMBAT_CAUSALITY`, and includes case ID/name,
+battlefield, captured round numbers, gap and phase, physical position, plus
+typed visible unit/Wave/count/HP fields. The gap is **not** a continuous
+battle observation. There are NO Reserve fields, original screenshot
+content, official Gameforge source claims, inferred kills, heal amounts,
+combat mechanics or provenance authentication.
+
+Untrusted CSV strings are quoted/double-quote-escaped, control newlines
+and tabs are normalized, and strings beginning with spreadsheet-formula
+prefixes (=, +, -, @), including after leading whitespace, are prefixed
+with an apostrophe. Actual finite integer numeric cells (including
+negative deltas) remain numeric. Filenames sanitize imported case IDs.
+CSV export is disabled with no prior round or no entered visible slots;
+it does not mutate the case, timestamps, localStorage or JSON-v1 schema.
+**CSV is a derived analysis view, NOT a replaceable JSON backup or
+independently corroborated game evidence.** User must keep the existing
+case JSON backup and original screenshot sources separately.
+
+Adversarial Node/Python CSV parser regressions and real Chromium selected
+R50→R81, draft R50→R82, no-prior R50, and untouched case-backup
+round-trip must pass Hosted CI on PR #104's exact reviewable HEAD.
 
 ### Reserve HP evidence constraint
 
