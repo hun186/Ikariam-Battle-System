@@ -1064,7 +1064,7 @@ process.stdout.write(csv);
     assert rows[1]["pending_visible_slots"]=="0"
     assert rows[1]["entry_status"]=="FIELDS_ENTERED"
     assert rows[2]["source_note_text"]=="  "
-    assert rows[2]["entry_status"]=="DRAFT"
+    assert rows[2]["entry_status"]=="EMPTY"
     assert rows[3]["pending_visible_slots"]=="1"
     assert rows[3]["entry_status"]=="DRAFT"
     assert all(x["evidence_class"]=="USER_TRANSCRIPTION_UNVERIFIED" for x in rows)
