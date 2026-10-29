@@ -159,6 +159,34 @@ def run(base_url: str, evidence_dir: Path) -> None:
             add_reserve(page, unit, count=4)
             page.locator('#battleBoard input[data-confirm-side="attacker"]').check()
             expect(page.locator("#readiness")).to_contain_text("已記錄可見格位")
+
+            # Select a NON-nearest source R50 when comparing R81; no case mutation.
+            r50_id = page.locator('#roundTabs [aria-label="R50"]').get_attribute("data-round-id")
+            r80_id = page.locator('#roundTabs [aria-label="R80"]').get_attribute("data-round-id")
+            r81_id = page.locator('#roundTabs [aria-label="R81"]').get_attribute("data-round-id")
+            assert r50_id and r80_id and r81_id
+            page.get_by_role("button", name="R81", exact=True).click()
+            expect(page.locator("#comparisonSource")).to_have_value(r80_id)
+            page.locator("#comparisonSource").select_option(r50_id)
+            expect(page.locator("#roundComparisonContent")).to_contain_text("R50 → R81")
+            expect(page.locator("#roundComparisonContent")).to_contain_text("回合編號相隔 31")
+            compared_cells = page.locator("#roundComparisonContent tbody tr").first.locator("td")
+            assert compared_cells.nth(2).inner_text() == "+1"
+            assert compared_cells.nth(3).inner_text() == "-18"
+            page.locator("#readMode").click()
+            expect(page.locator("#comparisonSource")).to_have_value(r50_id)
+            page.locator("#editMode").click()
+            expect(page.locator("#comparisonSource")).to_have_value(r50_id)
+            page.get_by_role("button", name="R82", exact=True).click()
+            expect(page.locator("#comparisonSource")).to_have_value(r81_id)
+            page.locator("#comparisonSource").select_option(r50_id)
+            expect(page.locator("#roundComparisonContent")).to_contain_text("R50 → R82")
+            expect(page.locator("#roundComparisonContent")).to_contain_text("兵種／Wave／數量／HP 未填齊")
+            page.get_by_role("button", name="R81", exact=True).click()
+            page.get_by_role("button", name="R82", exact=True).click()
+            expect(page.locator("#comparisonSource")).to_have_value(r81_id)
+            page.get_by_role("button", name="R50", exact=True).click()
+            expect(page.locator("#comparisonSource")).to_be_disabled()
             page.screenshot(path=str(evidence_dir / "battle-report-desktop-synthetic.png"), full_page=True)
 
             with page.expect_download() as d:
