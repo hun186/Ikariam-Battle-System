@@ -259,7 +259,7 @@ def main() -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n",
                     encoding="utf-8")
-    print(json.dumps({"status": result["status"]}))
+    print(json.dumps({"status": result.get("status", "EMPTY_TEMPLATE")}))
     if args.write_template is None and result["status"] in (
         "INVALID", "INVALID_OR_HASH_MISMATCH"
     ):
