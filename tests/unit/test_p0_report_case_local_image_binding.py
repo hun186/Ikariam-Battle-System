@@ -220,13 +220,13 @@ def test_blank_manifest_and_no_images_are_not_evidence(capture_case, tmp_path):
 def test_cli_writes_private_local_receipt_and_exits_nonzero_for_invalid(capture_case, tmp_path):
     blob, c = capture_case
     _images(tmp_path)
-    script = Path(binder.__file__)
     manifest_path = tmp_path / "manifest.json"
     case_path = tmp_path / "case.json"
     result_path = tmp_path / "local-receipt.json"
     case_path.write_bytes(blob)
     manifest_path.write_text(json.dumps(_manifest(c)), encoding="utf-8")
-    args = [sys.executable, str(script), "--case", str(case_path),
+    args = [sys.executable, "-m", "tools.research.p0_report_case_local_image_binding",
+            "--case", str(case_path),
             "--manifest", str(manifest_path),
             "--evidence-root", str(tmp_path),
             "--output-json", str(result_path)]
@@ -243,7 +243,8 @@ def test_cli_writes_private_local_receipt_and_exits_nonzero_for_invalid(capture_
     assert run.returncode == 2, run.stderr
     assert json.loads(result_path.read_text(encoding="utf-8"))["status"] == "INVALID_OR_HASH_MISMATCH"
     templ = tmp_path / "empty-template.json"
-    run = subprocess.run([sys.executable, str(script), "--write-template", str(templ)],
+    run = subprocess.run([sys.executable, "-m", "tools.research.p0_report_case_local_image_binding",
+                          "--write-template", str(templ)],
                          capture_output=True, text=True, timeout=10)
     assert run.returncode == 0
     assert json.loads(templ.read_text()) == binder.blank_manifest()
