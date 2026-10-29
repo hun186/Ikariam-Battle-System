@@ -163,16 +163,29 @@ def compare_to_captures(
             reason = "ENGINE_ROUND_OR_SLOT_NOT_AVAILABLE"
         elif item["review_reason"] in ("NO_ENTERED_VISIBLE_SLOTS", "LABEL_CHANGED"):
             reason = "UNSTABLE_TARGET_IDENTITY"
-        elif model["unit_id"] != _target_unit(case_obj, row):
-            reason = "ENGINE_UNIT_DIFFERS_FROM_TYPED_TARGET"
-        elif item["review_reason"] in ("ONE_SIDED", "INCOMPLETE", "PHASE_MISMATCH"):
-            # A target may be typed, but no inference about previous wave
-            # continuity is permitted. Caller may still inspect the model.
+        elif item["review_reason"] != "INCOMPLETE":
+            # A physical target without an earlier matching address cannot
+            # support even a scoped target-count diagnostic.
             reason = "TYPED_PAIR_NOT_CONTINUOUSLY_COMPARABLE"
+        elif _target_slot(case_obj, row) is None:
+            reason = "TARGET_TYPED_SLOT_NOT_FOUND"
+        elif (
+            _target_slot(case_obj, row)["unit"] != model["unit_id"]
+            or _target_slot(case_obj, row)["wave"] != model["wave_id"]
+        ):
+            # No inferred user-Wave -> engine-Wave equivalence permitted.
+            reason = "MODEL_UNIT_OR_WAVE_DIFFERS_FROM_TYPED_TARGET"
+        elif _earlier_labels_conflict(case_obj, item, row):
+            reason = "KNOWN_EARLIER_TARGET_IDENTITY_DIFFERENCE"
+        elif type(_target_slot(case_obj, row)["count"]) is not int:
+            reason = "TARGET_TYPED_COUNT_INCOMPLETE"
         elif type(model["units"]) is not int or model["units"] < 0:
             reason = "MODEL_SLOT_COUNT_UNAVAILABLE"
         else:
-            reason = "NO_GAME_SOURCE_AUTHENTICATION"
+            # This is a NUMERICAL DIAGNOSTIC, not Gameforge validation.
+            # The explicit user map, readable claim and complete typed
+            # target alone do not prove the scenario or screenshot.
+            reason = None
         matched.append({
             "review_item_index": i,
             "target_capture_id": row["target_capture_id"],
@@ -188,8 +201,14 @@ def compare_to_captures(
             ),
             "engine_hp_metric_not_game_ui_bar": True,
             "user_reported_review_status": item["reviewer_reported_status"],
-            "diagnostic_status": "NOT_ASSESSABLE_" + reason,
-            "count_difference": None,
+            "diagnostic_status": (
+                "ENGINE_MINUS_USER_TYPED_COUNT_UNVERIFIED"
+                if reason is None else "NOT_ASSESSABLE_" + reason
+            ),
+            "count_difference": (
+                model["units"] - _target_slot(case_obj, row)["count"]
+                if reason is None else None
+            ),
             "hp_percentage_point_difference": None,
             "game_mechanism_verified": False,
         })
@@ -216,13 +235,28 @@ def compare_to_captures(
     }
 
 
-def _target_unit(case: dict, row: dict) -> str | None:
-    for r in case["rounds"]:
-        if r["id"] == row["target_capture_id"]:
-            for s in r[row["side"]]["slots"]:
+def _target_slot(case: dict, row: dict) -> dict | None:
+    for capture in case["rounds"]:
+        if capture["id"] == row["target_capture_id"]:
+            for s in capture[row["side"]]["slots"]:
                 if s["line"] == row["line"] and s["pos"] == row["physical_position"]:
-                    return s["unit"]
+                    return s
     return None
+
+
+def _earlier_labels_conflict(case: dict, item: dict, row: dict) -> bool:
+    target = _target_slot(case, row)
+    if target is None:
+        return True
+    for capture in case["rounds"]:
+        if capture["id"] == item["earlier_capture_id"]:
+            for s in capture[row["side"]]["slots"]:
+                if s["line"] == row["line"] and s["pos"] == row["physical_position"]:
+                    return bool(
+                        s["unit"] and s["unit"] != target["unit"]
+                        or s["wave"] and s["wave"] != target["wave"]
+                    )
+    return True
 
 
 def main() -> None:
