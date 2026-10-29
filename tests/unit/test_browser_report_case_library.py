@@ -1,5 +1,7 @@
 """Browser report-case regression: local-only schema, reserve provenance and HTML parity."""
 import asyncio
+import csv
+import io
 import json
 from pathlib import Path
 import re
@@ -552,6 +554,83 @@ def test_compare_source_ui_is_an_ephemeral_safe_selector():
     assert "select.disabled=!earlier.length" in html
     assert "renderRoundComparison(c,r); // Strictly read-only; no mutate/persist." in html
     assert "回合編號相隔 " in html
+    assert html == (ROOT/"public/battle-cases.html").read_text(encoding="utf-8")
+    assert (ROOT/"battle-cases-model.js").read_bytes() == (ROOT/"public/battle-cases-model.js").read_bytes()
+
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node required for comparison CSV regression")
+def test_comparison_csv_provenance_injection_guard_and_noncomparable_rows(tmp_path):
+    script=r"""
+const assert=require('node:assert/strict');
+const M=require(process.argv[2]);
+const c=M.create(' =NOW()','naval-small');
+c.id='=HYPERLINK("https://bad.example","id")';
+const old=c.rounds[0];old.number=50;
+const future=M.newRound(81);c.rounds.push(future);
+const wave='=HYPERLINK("https://bad.example","wave")\nNEXT';
+const a=M.newSlot('first',1);Object.assign(a,{unit:'ram_ship',wave,count:7,hp:94});
+old.attacker.slots.push(a);
+const b=M.newSlot('first',1);Object.assign(b,{unit:'ram_ship',wave,count:8,hp:76});
+future.attacker.slots.push(b);
+const newOnly=M.newSlot('second',2);
+Object.assign(newOnly,{unit:'ram_ship',wave:'  +SUM(1,1)',count:0,hp:0});
+future.defender.slots.push(newOnly);
+assert.deepEqual(M.validateCase(c),[]);
+const original=JSON.stringify(c);
+const result=M.exportCapturedComparisonCsv(c,future.id,old.id);
+assert(result.startsWith('\uFEFF'),'UTF-8 BOM for spreadsheet consumers');
+assert(!result.includes('\nNEXT'),'CSV untrusted newline must not form a new row');
+assert(!result.toLowerCase().includes('reserve'),'Reserve must not be present');
+assert.equal(JSON.stringify(c),original,'CSV export must be read-only');
+assert.throws(()=>M.exportCapturedComparisonCsv(c,old.id),/較早/);
+assert.throws(()=>M.exportCapturedComparisonCsv(c,future.id,'absent'),/較早/);
+const empty=M.create('empty','naval-small');
+empty.rounds[0].number=1;
+empty.rounds.push(M.newRound(2));
+assert.throws(()=>M.exportCapturedComparisonCsv(empty,empty.rounds[1].id),/沒有已輸入/);
+old.phase='round_prefire';
+const mismatched=M.exportCapturedComparisonCsv(c,future.id,old.id);
+assert(mismatched.includes('PHASE_MISMATCH'));
+assert(!mismatched.includes(',-18,'),'phase mismatch must suppress typed numeric deltas');
+process.stdout.write(result);
+"""
+    js=tmp_path/"typed_comparison_csv.cjs"
+    js.write_text(script,encoding="utf-8")
+    result=subprocess.run(["node",str(js),str(ROOT/"battle-cases-model.js")],
+                          capture_output=True,text=True,check=False)
+    assert result.returncode==0,result.stderr
+    text=result.stdout
+    assert text.startswith("\ufeff")
+    rows=list(csv.DictReader(io.StringIO(text.lstrip("\ufeff"),newline="")))
+    assert len(rows)==2
+    assert rows[0]["evidence_class"]=="USER_TRANSCRIPTION_UNVERIFIED"
+    assert rows[0]["case_name"].startswith("' =NOW()")
+    assert rows[0]["case_id"].startswith("'=HYPERLINK(")
+    assert rows[0]["earlier_round"]=="50" and rows[0]["target_round"]=="81"
+    assert rows[0]["round_number_gap"]=="31"
+    assert rows[0]["comparison_status"]=="FIELDS_COMPARABLE"
+    assert rows[0]["earlier_wave"].startswith("'=HYPERLINK(")
+    assert "\n" not in rows[0]["earlier_wave"]
+    assert rows[0]["earlier_count"]=="7" and rows[0]["target_count"]=="8"
+    assert rows[0]["typed_count_delta"]=="1"
+    assert rows[0]["typed_hp_percentage_point_delta"]=="-18"
+    assert rows[1]["comparison_status"]=="ONE_SIDED"
+    assert rows[1]["target_wave"].startswith("'  +SUM")
+    assert rows[1]["target_count"]=="0" and rows[1]["target_hp_percent"]=="0"
+    assert rows[1]["typed_count_delta"]=="" and rows[1]["typed_hp_percentage_point_delta"]==""
+    assert rows[1]["interpretation"]=="TYPED_FIELDS_ONLY_NOT_COMBAT_CAUSALITY"
+    assert all(not any("reserve" in key.lower() for key in row) for row in rows)
+
+
+def test_comparison_csv_ui_and_public_mirror_are_consistent():
+    html=(ROOT/"battle-cases.html").read_text(encoding="utf-8")
+    assert 'id="exportComparisonCsv"' in html
+    assert "M.exportCapturedComparisonCsv(c,r.id,comparisonSourceId,fields)" in html
+    assert "$('exportComparisonCsv').disabled=true;" in html
+    assert "$('exportComparisonCsv').disabled=!data.rows.length;" in html
+    assert "'text/csv;charset=utf-8'" in html
+    assert "safeId=c.id.replace(/[^A-Za-z0-9_-]/g,'_')" in html
     assert html == (ROOT/"public/battle-cases.html").read_text(encoding="utf-8")
     assert (ROOT/"battle-cases-model.js").read_bytes() == (ROOT/"public/battle-cases-model.js").read_bytes()
 
