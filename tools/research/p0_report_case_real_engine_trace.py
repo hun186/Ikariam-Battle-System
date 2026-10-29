@@ -80,6 +80,12 @@ def engine_trace(scenario_bytes: bytes) -> dict:
         "engine_file_sha256": sha256(engine_path.read_bytes()).hexdigest(),
         "engine_output_sha256": sha256(_bytes_json(outcome)).hexdigest(),
         "scenario_battlefield": scenario.get("battlefield"),
+        # Actual deployment geometry may differ from requested battlefield
+        # when a garrison/open-field condition selects land-max.
+        "engine_effective_battlefield": (
+            (outcome.get("garrison_status") or {}).get("effective_battlefield")
+            or scenario.get("battlefield")
+        ),
         "engine_policy": outcome.get("policy"),
         "engine_status": outcome.get("status"),
         "engine_rounds_completed": outcome.get("rounds_completed"),
@@ -109,7 +115,11 @@ def compare_to_captures(
     )
     case_obj = json.loads(case_bytes)
     if trace["scenario_battlefield"] != case_obj["battlefield"]:
-        raise ValueError("different model and case battlefield IDs")
+        raise ValueError("different requested model and case battlefield IDs")
+    if trace["engine_effective_battlefield"] != case_obj["battlefield"]:
+        # The same number cannot represent the same physical slot across
+        # land-mini and land-max geometry. Stop *before* reading a map.
+        raise ValueError("effective engine deployment battlefield differs from case")
     if not isinstance(mapping, dict) or set(mapping) != {
         "schema", "case_id", "case_sha256", "scenario_sha256", "bindings"
     } or mapping["schema"] != MAP_SCHEMA:
