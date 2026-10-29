@@ -23,10 +23,10 @@ function reuseEarlierSlotLabels(c,targetId){
   if(!c||!Array.isArray(c.rounds))err('案例不正確');
   const target=c.rounds.find(r=>r.id===targetId);
   if(!target)err('指定的截錄回合不存在');
-  if(SIDES.some(side=>!target[side]||!Array.isArray(target[side].slots)||target[side].slots.length))
-    err('目前回合已有格位資料，不能覆蓋');
   const earlier=c.rounds.filter(r=>r.number<target.number).sort((a,b)=>b.number-a.number)[0];
   if(!earlier)err('沒有更早的截錄回合可供參考');
+  if(SIDES.some(side=>!target[side]||!Array.isArray(target[side].slots)||target[side].slots.length))
+    err('目前回合已有格位資料，不能覆蓋');
   const staged={};
   for(const side of SIDES){
     staged[side]=earlier[side].slots.filter(s=>s.unit||s.wave).map(s=>{
