@@ -1005,6 +1005,87 @@ def test_review_queue_export_button_is_safe_and_mirrored():
     assert (ROOT/"battle-cases-model.js").read_bytes() == (ROOT/"public/battle-cases-model.js").read_bytes()
 
 
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node required for source manifest CSV test")
+def test_captured_source_note_manifest_matches_rounds_and_never_authenticates(tmp_path):
+    script=r"""
+const assert=require('node:assert/strict');
+const M=require(process.argv[2]);
+const c=M.create('synthetic source report','naval-small');
+c.name=' =HYPERLINK("https://bad.example","case")';
+c.id='@SUM(2,3)';
+const r50=c.rounds[0];r50.number=50;
+const r80=M.newRound(80),r81=M.newRound(81),r82=M.newRound(82);
+c.rounds.push(r82,r81,r80); // intentionally reverse chronological order
+r50.source='=HYPERLINK("https://bad.example","shot")\nSECOND LINE';
+r80.source='  +SUM(3,4)\timage-name.png';
+r81.source='  '; // whitespace only is NOT a source note
+const filled=M.newSlot('first',1);
+Object.assign(filled,{unit:'ram_ship',wave:'W1',count:0,hp:0});
+r80.attacker.slots.push(filled);
+const draft=M.newSlot('first',1);
+Object.assign(draft,{unit:'ram_ship',wave:'W1',count:null,hp:null});
+r82.attacker.slots.push(draft);
+assert.deepEqual(M.validateCase(c),[]);
+const original=JSON.stringify(c);
+const csv=M.exportCapturedSourceManifestCsv(c);
+assert(csv.startsWith('\uFEFF'));
+assert.equal(JSON.stringify(c),original,'source-note export mutates case');
+assert.deepEqual(M.importCase(M.exportCase(c)),c,'unchanged case JSON');
+assert(csv.includes('ORIGINAL_IMAGE_NOT_INCLUDED'));
+assert(csv.includes('NOT_AUTHENTICATED'));
+assert(!csv.includes('\nSECOND LINE'),'untrusted newline may not create CSV row');
+const invalid=structuredClone(c);
+invalid.rounds[0].number=80; // collides with existing round number
+assert.throws(()=>M.exportCapturedSourceManifestCsv(invalid),/來源備註清單/);
+const one=M.create('one round','naval-small');
+assert(M.exportCapturedSourceManifestCsv(one).includes('SOURCE_NOTE_MISSING'),
+ 'one capture still has useful provenance gap');
+process.stdout.write(csv);
+"""
+    js=tmp_path/"capture_source_manifest.cjs"
+    js.write_text(script,encoding="utf-8")
+    result=subprocess.run(["node",str(js),str(ROOT/"battle-cases-model.js")],
+                          capture_output=True,text=True,check=False)
+    assert result.returncode==0,result.stderr
+    rows=list(csv.DictReader(io.StringIO(result.stdout.lstrip("\ufeff"),newline="")))
+    assert len(rows)==4
+    assert [row["capture_round"] for row in rows]==["50","80","81","82"]
+    assert [row["source_note_status"] for row in rows]==[
+        "SOURCE_NOTE_TYPED_UNVERIFIED","SOURCE_NOTE_TYPED_UNVERIFIED",
+        "SOURCE_NOTE_MISSING","SOURCE_NOTE_MISSING"]
+    assert rows[0]["case_id"].startswith("'@SUM")
+    assert rows[0]["case_name"].startswith("' =HYPERLINK")
+    assert rows[0]["source_note_text"].startswith("'=HYPERLINK")
+    assert "\n" not in rows[0]["source_note_text"]
+    assert rows[1]["source_note_text"].startswith("'  +SUM")
+    assert "\t" not in rows[1]["source_note_text"]
+    assert rows[1]["entered_visible_slots"]=="1"
+    assert rows[1]["pending_visible_slots"]=="0"
+    assert rows[1]["entry_status"]=="FIELDS_ENTERED"
+    assert rows[2]["source_note_text"]=="  "
+    assert rows[2]["entry_status"]=="DRAFT"
+    assert rows[3]["pending_visible_slots"]=="1"
+    assert rows[3]["entry_status"]=="DRAFT"
+    assert all(x["evidence_class"]=="USER_TRANSCRIPTION_UNVERIFIED" for x in rows)
+    assert all(x["original_image_in_export"]=="ORIGINAL_IMAGE_NOT_INCLUDED" for x in rows)
+    assert all(x["source_authentication"]=="NOT_AUTHENTICATED" for x in rows)
+    assert all(x["interpretation"]=="NOTE_TEXT_ONLY_NOT_PROOF_OF_SOURCE_OR_COMBAT_CAUSALITY"
+               for x in rows)
+
+
+def test_source_note_manifest_ui_and_static_mirror():
+    html=(ROOT/"battle-cases.html").read_text(encoding="utf-8")
+    assert 'id="exportSourceManifestCsv"' in html
+    assert "M.exportCapturedSourceManifestCsv(c,fields)" in html
+    assert "$('exportSourceManifestCsv').disabled=!c;" in html
+    assert "safeId=c.id.replace(/[^A-Za-z0-9_-]/g,'_')" in html
+    assert "來源備註 CSV 匯出失敗" in html
+    assert "不含原始圖片" in html
+    assert html==(ROOT/"public/battle-cases.html").read_text(encoding="utf-8")
+    assert (ROOT/"battle-cases-model.js").read_bytes()==(ROOT/"public/battle-cases-model.js").read_bytes()
+
+
 def test_draft_label_ui_is_visible_and_public_page_stays_identical():
     html = (ROOT / "battle-cases.html").read_text(encoding="utf-8")
     assert 'id="reuseEarlierLabels"' in html
