@@ -565,6 +565,7 @@ def test_comparison_csv_provenance_injection_guard_and_noncomparable_rows(tmp_pa
 const assert=require('node:assert/strict');
 const M=require(process.argv[2]);
 const c=M.create(' =NOW()','naval-small');
+c.name=' =NOW()'; // imported v1 backups can preserve intentional leading space
 c.id='=HYPERLINK("https://bad.example","id")';
 const old=c.rounds[0];old.number=50;
 const future=M.newRound(81);c.rounds.push(future);
