@@ -55,6 +55,48 @@ function roundEntrySummary(round){
     (pendingSlots||reserveRows||(round.source||'').trim()?'DRAFT':'EMPTY');
   return {code,enteredSlots,pendingSlots,reserveRows};
 }
+// Read-only comparison of manually entered fields at the same physical address.
+// Identical user-entered unit/Wave labels cannot authenticate a continuous wave.
+function compareCapturedRounds(c,targetId){
+  const problems=validateCase(c);
+  if(problems.length)err('戰報案例格式無效：'+problems[0]);
+  const target=c.rounds.find(r=>r.id===targetId);
+  if(!target)err('指定的截錄回合不存在');
+  const prior=c.rounds.filter(r=>r.number<target.number).sort((a,b)=>b.number-a.number)[0];
+  if(!prior)return {sourceRound:null,targetRound:target.number,samePhase:false,rows:[]};
+  const samePhase=prior.phase===target.phase,rows=[];
+  const key=s=>s.line+':'+s.pos;
+  const active=s=>s.unit||s.wave||s.count!==null||s.hp!==null||s.deaths!==null;
+  for(const side of SIDES){
+    const oldSlots=new Map(prior[side].slots.filter(active).map(s=>[key(s),s]));
+    const newSlots=new Map(target[side].slots.filter(active).map(s=>[key(s),s]));
+    const addresses=[...new Set([...oldSlots.keys(),...newSlots.keys()])];
+    addresses.sort((a,b)=>{
+      const [la,pa]=a.split(':'),[lb,pb]=b.split(':');
+      return LINES.indexOf(la)-LINES.indexOf(lb)||Number(pa)-Number(pb);
+    });
+    for(const addr of addresses){
+      const oldSlot=oldSlots.get(addr)||null,newSlot=newSlots.get(addr)||null;
+      const snapshot=s=>s?{unit:s.unit,wave:s.wave,count:s.count,hp:s.hp}:null;
+      let code='ONE_SIDED',countDelta=null,hpPointDelta=null;
+      if(oldSlot&&newSlot){
+        if(!samePhase)code='PHASE_MISMATCH';
+        else if(!oldSlot.unit||!oldSlot.wave||!newSlot.unit||!newSlot.wave||
+                oldSlot.count===null||oldSlot.hp===null||
+                newSlot.count===null||newSlot.hp===null)code='INCOMPLETE';
+        else if(oldSlot.unit!==newSlot.unit||oldSlot.wave!==newSlot.wave)code='LABEL_CHANGED';
+        else{
+          code='FIELDS_COMPARABLE';
+          countDelta=newSlot.count-oldSlot.count;
+          hpPointDelta=newSlot.hp-oldSlot.hp;
+        }
+      }
+      const [line,pos]=addr.split(':');
+      rows.push({side,line,pos:Number(pos),code,prior:snapshot(oldSlot),current:snapshot(newSlot),countDelta,hpPointDelta});
+    }
+  }
+  return {sourceRound:prior.number,targetRound:target.number,samePhase,rows};
+}
 function validateCase(c,fields=null){
 const problems=[];
 if(!c||typeof c!=='object'||Array.isArray(c))return ['案例不是物件'];
@@ -134,5 +176,5 @@ function importCase(s,fields){
   if(problems.length)err(problems.slice(0,5).join('；'));
   return data;
 }
-return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary};
+return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds};
 });
