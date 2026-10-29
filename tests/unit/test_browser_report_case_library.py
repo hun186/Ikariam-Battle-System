@@ -716,6 +716,75 @@ def test_timeline_csv_ui_button_and_public_parity():
     assert (ROOT/"battle-cases-model.js").read_bytes() == (ROOT/"public/battle-cases-model.js").read_bytes()
 
 
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node required for coverage ledger test")
+def test_captured_coverage_counts_only_entered_positions_without_causal_inference(tmp_path):
+    script=r"""
+const assert=require('node:assert/strict');
+const M=require(process.argv[2]);
+const c=M.create('synthetic coverage ledger','naval-small');
+const r50=c.rounds[0];r50.number=50;
+const r80=M.newRound(80),r81=M.newRound(81),r82=M.newRound(82);
+const r90=M.newRound(90),r100=M.newRound(100);
+c.rounds.push(r100,r82,r81,r90,r80); // intentionally unsorted
+const put=(round,side,line,pos,unit,wave,count,hp)=>{
+ const s=M.newSlot(line,pos);Object.assign(s,{unit,wave,count,hp});round[side].slots.push(s);
+};
+put(r50,'attacker','first',1,'ram_ship','W1',7,94);
+put(r80,'attacker','first',1,'ram_ship','W1',9,83);
+put(r80,'attacker','second',1,'ram_ship','W1',2,75);
+put(r81,'attacker','first',1,'ram_ship','W1',8,76);
+put(r81,'attacker','second',1,'ram_ship','W2',3,50);
+put(r82,'attacker','first',1,'ram_ship','W1',null,null); // draft
+assert.deepEqual(M.validateCase(c),[]);
+const original=JSON.stringify(c);
+const result=M.summarizeCapturedTimeline(c);
+assert.deepEqual(result.map(x=>[x.sourceRound,x.targetRound,x.roundNumberGap]),[
+ [50,80,30],[80,81,1],[81,82,1],[82,90,8],[90,100,10]
+]);
+assert.equal(result.length,5,'one summary per adjacent capture pair');
+assert.equal(result[0].counts.FIELDS_COMPARABLE,1);
+assert.equal(result[0].counts.ONE_SIDED,1);
+assert.equal(result[0].enteredPositionRows,2);
+assert.equal(result[1].counts.FIELDS_COMPARABLE,1);
+assert.equal(result[1].counts.LABEL_CHANGED,1);
+assert.equal(result[2].counts.INCOMPLETE,1);
+assert.equal(result[2].counts.ONE_SIDED,1);
+assert.equal(result[3].counts.ONE_SIDED,1);
+assert.equal(result[4].counts.NO_ENTERED_VISIBLE_SLOTS,1);
+assert.equal(result[4].enteredPositionRows,0);
+assert.equal(result[4].counts.FIELDS_COMPARABLE,0);
+assert.equal(JSON.stringify(c),original,'summary cannot modify source or timestamp');
+assert.deepEqual(M.importCase(M.exportCase(c)),c,'unchanged backup schema');
+r82.phase='round_prefire';
+const phase=M.summarizeCapturedTimeline(c);
+assert.equal(phase[2].counts.PHASE_MISMATCH,1);
+assert.equal(phase[2].counts.INCOMPLETE,0);
+assert.equal(phase[2].counts.ONE_SIDED,1);
+const invalid=structuredClone(c);invalid.rounds[0].attacker.slots[0].hp=101;
+assert.throws(()=>M.summarizeCapturedTimeline(invalid),/無法彙整截錄資料/);
+assert.deepEqual(M.summarizeCapturedTimeline(M.create('single')) ,[]);
+"""
+    js=tmp_path/"captured_coverage.cjs"
+    js.write_text(script,encoding="utf-8")
+    result=subprocess.run(["node",str(js),str(ROOT/"battle-cases-model.js")],
+                          capture_output=True,text=True,check=False)
+    assert result.returncode==0,result.stderr
+
+
+def test_captured_coverage_panel_is_read_only_and_root_public_identical():
+    html=(ROOT/"battle-cases.html").read_text(encoding="utf-8")
+    assert 'id="captureCoverage"' in html
+    assert 'id="captureCoverageContent"' in html
+    assert "M.summarizeCapturedTimeline(c,fields)" in html
+    assert "data-coverage-target" in html
+    assert 'roundId=b.dataset.coverageTarget;selected=null;render(); // Read-only navigation.' in html
+    assert "['NO_ENTERED_VISIBLE_SLOTS','雙方均無輸入']" in html
+    assert "只統計相鄰「截錄回合」" in html
+    assert html == (ROOT/"public/battle-cases.html").read_text(encoding="utf-8")
+    assert (ROOT/"battle-cases-model.js").read_bytes() == (ROOT/"public/battle-cases-model.js").read_bytes()
+
+
 def test_draft_label_ui_is_visible_and_public_page_stays_identical():
     html = (ROOT / "battle-cases.html").read_text(encoding="utf-8")
     assert 'id="reuseEarlierLabels"' in html
