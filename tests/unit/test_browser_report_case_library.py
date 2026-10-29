@@ -983,7 +983,15 @@ assert(csv.startsWith('\uFEFF'));
 assert.equal(JSON.stringify(c),before,'no storage mutation');
 assert(elapsedMs<8000,
   '100-round CSV should not do cubic repeated whole-timeline scans: '+elapsedMs+'ms');
-process.stdout.write(JSON.stringify({elapsedMs,rows:693}));
+const joinedStart=performance.now();
+const joined=M.exportCapturedJoinedReviewCsv(c);
+const joinedMs=performance.now()-joinedStart;
+assert.equal(joined.match(/"INCOMPLETE"/g).length,693);
+assert(joined.includes('ORIGINAL_IMAGE_NOT_INCLUDED'));
+assert(joinedMs<8000,
+  'joined 100-round CSV must not rebuild whole case for each pair: '+joinedMs+'ms');
+assert.equal(JSON.stringify(c),before,'joined CSV must not mutate original case');
+process.stdout.write(JSON.stringify({elapsedMs,joinedMs,rows:693}));
 """
     js=tmp_path/"review_queue_100rounds.cjs"
     js.write_text(script,encoding="utf-8")
