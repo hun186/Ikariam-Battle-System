@@ -37,6 +37,13 @@ SHA-256 values, capture IDs, phase/round, side/line/physical position,
 pending review reason, and current user-typed target slot details.
 It does not copy source-note free text or image bytes.
 
+The worksheet is written as compact UTF-8 JSON (not verbose pretty-printed
+JSON) and its **serialized byte length is checked before file creation**
+against the same 64 MiB limit used when it is read back for assessment.
+If a very large valid case would exceed that limit even in compact form,
+the CLI rejects worksheet creation rather than reporting success with an
+unimportable result. No original file is overwritten.
+
 The resulting worksheet marks
 `model_source_class=USER_ENTERED_MODEL_CANDIDATE_NOT_ENGINE_ATTESTED`
 and `model_run_label=null`. To propose candidate predictions, fill
@@ -81,9 +88,12 @@ count/HP percentage-point difference, ALL are required:
    count and HP percentage. The location-less no-fields row cannot pass.
 4. Candidate target slot contains all corresponding fields with
    valid count/HP and exactly matching unit and Wave labels.
-5. A label-changed pending pair cannot become a claimed stable wave,
-   and a missing pair or manually reported conflict is never treated
-   as comparable.
+5. The tool **independently checks any known earlier unit and Wave labels**,
+   even when canonical `INCOMPLETE` takes precedence because earlier count
+   or HP is missing. If any known earlier label differs from the target,
+   the row is `NOT_ASSESSABLE_KNOWN_EARLIER_TARGET_LABEL_CHANGE`.
+   A missing earlier/target identity, label-changed pair or manually
+   reported transcription conflict is never treated as comparable.
 
 This calculation does **not** reconstruct any unseen battle rounds,
 verify recorded phases against real game clocks, validate source
