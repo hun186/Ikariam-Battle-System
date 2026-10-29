@@ -40,6 +40,14 @@ def engine_trace(scenario_bytes: bytes) -> dict:
     if not isinstance(rounds, list):
         raise ValueError("engine result has no round snapshots")
     engine_path = Path(__file__).resolve().parents[2] / "ikariam_battle" / "engine.py"
+    # A preserved snapshot at an unsupported mechanic boundary is not
+    # a completed model round, even when its numeric round is >0.
+    unsupported = [
+        {"round": e.get("round"), "phase": e.get("phase"),
+         "rule_id": (e.get("details") or {}).get("rule_id")}
+        for e in outcome.get("events", []) if e.get("type") == "unsupported_mechanic"
+    ]
+    blocked_rounds = {e["round"] for e in unsupported}
     snapshots = []
     for round_state in rounds:
         number = round_state.get("round")
@@ -57,7 +65,11 @@ def engine_trace(scenario_bytes: bytes) -> dict:
                     raise ValueError("engine slot projection fields unavailable")
                 snapshots.append({
                     "engine_round": number,
-                    "engine_phase": "initial" if number == 0 else "round_end_model_snapshot",
+                    "engine_phase": (
+                        "initial" if number == 0 else
+                        "unsupported_boundary_not_round_end"
+                        if number in blocked_rounds else "round_end_model_snapshot"
+                    ),
                     "side": side,
                     **{key: s[key] for key in fields},
                 })
@@ -73,11 +85,7 @@ def engine_trace(scenario_bytes: bytes) -> dict:
         "engine_rounds_completed": outcome.get("rounds_completed"),
         "engine_applied_assumptions": outcome.get("assumptions", []),
         "engine_warnings": outcome.get("warnings", []),
-        "engine_unsupported_events": [
-            {"round": e.get("round"), "phase": e.get("phase"),
-             "rule_id": (e.get("details") or {}).get("rule_id")}
-            for e in outcome.get("events", []) if e.get("type") == "unsupported_mechanic"
-        ],
+        "engine_unsupported_events": unsupported,
         "engine_slots": snapshots,
         "engine_execution_recorded": True,
         "scenario_reconstructed_from_original_game": False,
@@ -176,7 +184,7 @@ def compare_to_captures(
             # No inferred user-Wave -> engine-Wave equivalence permitted.
             reason = "MODEL_UNIT_OR_WAVE_DIFFERS_FROM_TYPED_TARGET"
         elif _earlier_labels_conflict(case_obj, item, row):
-            reason = "KNOWN_EARLIER_TARGET_IDENTITY_DIFFERENCE"
+            reason = "EARLIER_UNIT_OR_WAVE_MISSING_OR_CHANGED"
         elif type(_target_slot(case_obj, row)["count"]) is not int:
             reason = "TARGET_TYPED_COUNT_INCOMPLETE"
         elif type(model["units"]) is not int or model["units"] < 0:
@@ -252,9 +260,13 @@ def _earlier_labels_conflict(case: dict, item: dict, row: dict) -> bool:
         if capture["id"] == item["earlier_capture_id"]:
             for s in capture[row["side"]]["slots"]:
                 if s["line"] == row["line"] and s["pos"] == row["physical_position"]:
+                    # Missing labels are UNKNOWN, not evidence of a
+                    # continuous identical Wave. Require both earlier
+                    # labels to be nonblank and exactly equal.
                     return bool(
-                        s["unit"] and s["unit"] != target["unit"]
-                        or s["wave"] and s["wave"] != target["wave"]
+                        not s["unit"] or not s["wave"]
+                        or s["unit"] != target["unit"]
+                        or s["wave"] != target["wave"]
                     )
     return True
 
