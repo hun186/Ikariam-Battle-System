@@ -41,6 +41,20 @@ function reuseEarlierSlotLabels(c,targetId){
   for(const side of SIDES)target[side].slots=staged[side];
   return {sourceRound:earlier.number,copiedSlots:count};
 }
+// Display-only progress of manually ENTERED visible fields; neither observation
+// authenticity nor every physical battlefield position can be inferred here.
+function roundEntrySummary(round){
+  if(!round||SIDES.some(side=>!round[side]||!Array.isArray(round[side].slots)||!Array.isArray(round[side].reserve)))
+    err('截錄回合資料不正確');
+  const slots=SIDES.flatMap(side=>round[side].slots);
+  const entries=slots.filter(s=>s.unit||s.wave||s.count!==null||s.hp!==null||s.deaths!==null);
+  const enteredSlots=entries.filter(s=>s.unit&&s.count!==null&&s.hp!==null).length;
+  const pendingSlots=entries.length-enteredSlots;
+  const reserveRows=SIDES.reduce((n,side)=>n+round[side].reserve.length,0);
+  const code=enteredSlots?(pendingSlots?'PARTIAL':'FIELDS_ENTERED'):
+    (pendingSlots||reserveRows||(round.source||'').trim()?'DRAFT':'EMPTY');
+  return {code,enteredSlots,pendingSlots,reserveRows};
+}
 function validateCase(c,fields=null){
 const problems=[];
 if(!c||typeof c!=='object'||Array.isArray(c))return ['案例不是物件'];
@@ -120,5 +134,5 @@ function importCase(s,fields){
   if(problems.length)err(problems.slice(0,5).join('；'));
   return data;
 }
-return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels};
+return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary};
 });
