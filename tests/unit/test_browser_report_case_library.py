@@ -785,6 +785,97 @@ def test_captured_coverage_panel_is_read_only_and_root_public_identical():
     assert (ROOT/"battle-cases-model.js").read_bytes() == (ROOT/"public/battle-cases-model.js").read_bytes()
 
 
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node required for coverage inspection")
+def test_coverage_review_items_exact_adjacent_pairs_and_unverified_hints(tmp_path):
+    script=r"""
+const assert=require('node:assert/strict');
+const M=require(process.argv[2]);
+const c=M.create('synthetic review','naval-small');
+const r50=c.rounds[0];r50.number=50;
+const r80=M.newRound(80),r81=M.newRound(81),r82=M.newRound(82);
+const r90=M.newRound(90),r100=M.newRound(100);
+c.rounds.push(r100,r81,r90,r80,r82); // out-of-order JSON
+const put=(r,side,line,pos,wave,count,hp)=>{
+ const s=M.newSlot(line,pos);
+ Object.assign(s,{unit:'ram_ship',wave,count,hp});
+ r[side].slots.push(s);
+};
+put(r50,'attacker','first',1,'W1',7,94);
+put(r80,'attacker','first',1,'W1',9,83);
+put(r80,'attacker','second',1,'W1',2,75);
+put(r81,'attacker','first',1,'<script>alert(1)</script>',8,76);
+put(r81,'attacker','second',1,'W1',null,null);
+put(r82,'attacker','first',1,'<script>alert(1)</script>',8,76);
+put(r82,'attacker','second',1,'W1',0,0);
+assert.deepEqual(M.validateCase(c),[]);
+const before=JSON.stringify(c);
+const p1=M.inspectCapturedCoveragePair(c,r50.id,r80.id);
+assert.equal(p1.sourceRound,50);
+assert.equal(p1.targetRound,80);
+assert.equal(p1.roundNumberGap,30);
+assert.equal(p1.items.length,1); // comparable position omitted
+assert.deepEqual(
+ [p1.items[0].code,p1.items[0].side,p1.items[0].line,p1.items[0].pos],
+ ['ONE_SIDED','attacker','second',1]);
+assert.equal(p1.items[0].prior,null);
+assert.equal(p1.items[0].current.count,2);
+assert(p1.items[0].hint.includes('未填不代表無兵'));
+const p2=M.inspectCapturedCoveragePair(c,r80.id,r81.id);
+assert.deepEqual(p2.items.map(x=>x.code),['LABEL_CHANGED','INCOMPLETE']);
+assert.equal(p2.items[0].current.wave,'<script>alert(1)</script>');
+assert(p2.items[0].hint.includes('不能假定同批部隊'));
+assert(p2.items[1].hint.includes('不可推算補值'));
+const p3=M.inspectCapturedCoveragePair(c,r81.id,r82.id);
+assert.equal(p3.items.length,1);
+assert.equal(p3.items[0].code,'INCOMPLETE');
+assert.equal(p3.items[0].current.hp,0,'entered zero must not be treated as missing');
+const p4=M.inspectCapturedCoveragePair(c,r82.id,r90.id);
+assert.deepEqual(p4.items.map(x=>x.code),['ONE_SIDED','ONE_SIDED']);
+const p5=M.inspectCapturedCoveragePair(c,r90.id,r100.id);
+assert.equal(p5.items.length,1);
+assert.equal(p5.items[0].code,'NO_ENTERED_VISIBLE_SLOTS');
+assert.equal(p5.items[0].side,null);
+assert.equal(p5.items[0].pos,null);
+assert(p5.items[0].hint.includes('兩次截錄'));
+assert.throws(()=>M.inspectCapturedCoveragePair(c,r50.id,r81.id),/相鄰/);
+assert.throws(()=>M.inspectCapturedCoveragePair(c,r81.id,r50.id),/相鄰/);
+assert.throws(()=>M.inspectCapturedCoveragePair(c,'missing',r81.id),/相鄰/);
+const other=M.create('unrelated','naval-small');
+assert.throws(()=>M.inspectCapturedCoveragePair(c,other.rounds[0].id,r80.id),/相鄰/);
+assert.equal(JSON.stringify(c),before,'inspection must never mutate original case');
+assert.deepEqual(M.importCase(M.exportCase(c)),c);
+r81.phase='round_prefire';
+const phase=M.inspectCapturedCoveragePair(c,r80.id,r81.id);
+assert.deepEqual(phase.items.map(x=>x.code),['PHASE_MISMATCH','PHASE_MISMATCH']);
+assert(phase.items[0].hint.includes('時點'));
+const invalid=structuredClone(c);
+invalid.rounds[0].attacker.slots[0].hp=101;
+assert.throws(()=>M.inspectCapturedCoveragePair(invalid,r50.id,r80.id),/無法彙整截錄資料/);
+const single=M.create('one','naval-small');
+assert.throws(()=>M.inspectCapturedCoveragePair(single,'x','y'),/相鄰/);
+"""
+    js=tmp_path/"coverage_review_items.cjs"
+    js.write_text(script,encoding="utf-8")
+    result=subprocess.run(["node",str(js),str(ROOT/"battle-cases-model.js")],
+                          capture_output=True,text=True,check=False)
+    assert result.returncode==0,result.stderr
+
+
+def test_coverage_review_details_are_escaped_ephemeral_and_mirrored():
+    html=(ROOT/"battle-cases.html").read_text(encoding="utf-8")
+    assert 'id="coverageReviewDetail"' in html
+    assert "M.inspectCapturedCoveragePair(c,sourceId,targetId,fields)" in html
+    assert 'data-coverage-review="' in html
+    assert "esc(x.hint)" in html
+    assert "esc((s.unit||'兵種未填')" in html
+    assert "esc(compareReason[x.code]||'沒有可見格位輸入')" in html
+    assert "if(pair)renderCoverageReviewDetail(c,pair.sourceId,pair.targetId);" in html
+    assert "UI-only inspection, never mutate or persist" in html
+    assert html == (ROOT/"public/battle-cases.html").read_text(encoding="utf-8")
+    assert (ROOT/"battle-cases-model.js").read_bytes() == (ROOT/"public/battle-cases-model.js").read_bytes()
+
+
 def test_draft_label_ui_is_visible_and_public_page_stays_identical():
     html = (ROOT / "battle-cases.html").read_text(encoding="utf-8")
     assert 'id="reuseEarlierLabels"' in html

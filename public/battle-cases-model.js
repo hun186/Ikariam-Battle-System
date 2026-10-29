@@ -131,6 +131,34 @@ function summarizeCapturedTimeline(c,fields=null){
   }
   return summaries;
 }
+// Read-only checklist of *typed-field review needs* for adjacent CAPTURED rounds.
+// Source images remain externally held; no missing tile is assumed empty.
+// Deliberately excludes comparable slots from the review queue: they are still
+// UNVERIFIED user transcriptions, not authenticated or causal observations.
+function inspectCapturedCoveragePair(c,sourceId,targetId,fields=null){
+  const pair=summarizeCapturedTimeline(c,fields).find(
+    p=>p.sourceId===sourceId&&p.targetId===targetId);
+  if(!pair)err('只能檢視本案例相鄰的較早與較晚截錄回合');
+  const data=compareCapturedRounds(c,targetId,sourceId);
+  const hint={
+    ONE_SIDED:'核對兩次原始截圖是否能辨識此位置；未填不代表無兵',
+    INCOMPLETE:'核對來源中實際可見的兵種、Wave、數量及 HP；不可推算補值',
+    LABEL_CHANGED:'核對兩次截圖上的兵種或 Wave 標籤；不能假定同批部隊',
+    PHASE_MISMATCH:'核對兩次截錄時點；不同時點不能直接比較數值',
+    NO_ENTERED_VISIBLE_SLOTS:'兩次截錄都沒有已輸入可見格位；請核對來源是否有可轉錄內容'
+  };
+  const review=data.rows.length?data.rows.filter(row=>row.code!=='FIELDS_COMPARABLE'):[
+    {code:'NO_ENTERED_VISIBLE_SLOTS',side:null,line:null,pos:null,prior:null,current:null}
+  ];
+  return {
+    sourceRound:data.sourceRound,targetRound:data.targetRound,
+    roundNumberGap:pair.roundNumberGap,
+    items:review.map(row=>({
+      code:row.code,side:row.side,line:row.line,pos:row.pos,
+      prior:row.prior,current:row.current,hint:hint[row.code]
+    }))
+  };
+}
 // Research export: derivative of typed *visible* field comparisons only.
 // Never encode inferred kills, healing, Reserve HP, screenshots or official truth.
 // Escape spreadsheet-formula entry points in ALL user-controlled CSV text.
@@ -278,5 +306,5 @@ function importCase(s,fields){
   if(problems.length)err(problems.slice(0,5).join('；'));
   return data;
 }
-return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds,summarizeCapturedTimeline,exportCapturedComparisonCsv,exportCapturedTimelineCsv};
+return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds,summarizeCapturedTimeline,inspectCapturedCoveragePair,exportCapturedComparisonCsv,exportCapturedTimelineCsv};
 });

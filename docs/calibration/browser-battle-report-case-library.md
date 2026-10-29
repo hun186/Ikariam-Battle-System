@@ -129,7 +129,7 @@ import/export invariance, plus real Chromium full-timeline download
 are acceptance tests for PR #105. Neither test fixtures nor synthetic
 screenshots count as new Gameforge observation for Issue #73.
 
-### Read-only captured-pair input coverage ledger (Draft PR #106)
+### Read-only captured-pair input coverage ledger (owner-merged PR #106)
 
 The case editor now provides an **in-browser collapsible read-only overview**
 of each consecutive **captured-snapshot pair**, using the exact same
@@ -155,6 +155,40 @@ label and phase mismatch, partial draft, blank snapshots, and
 invalid schema; true Chromium tests exercise R50→R80→R81→R82,
 read-only table and click-to-round navigation. Hosted exact-HEAD
 CI and formal Codex Review are mandatory for PR #106.
+
+### Per-physical-slot transcription review checklist (Draft PR #107)
+
+The captured-pair coverage table's new `待查欄位` control opens a purely
+**read-only, ephemeral** checklist for one adjacent **captured** pair,
+showing the exact side/line/physical position, both sets of existing typed
+unit/Wave/count/visible-HP fields, the reason that the pair is not
+numerically comparable, and a specific reminder to cross-check original
+screenshots. The model's `inspectCapturedCoveragePair()` only permits
+an existing chronologically adjacent source/target ID from the **same
+validated case**. This prevents arbitrary, future, foreign or nonadjacent
+pair IDs being treated as coverage-ledger review items.
+
+Only existing `ONE_SIDED`, `INCOMPLETE`, `LABEL_CHANGED`,
+`PHASE_MISMATCH`, or `NO_ENTERED_VISIBLE_SLOTS` codes are reported.
+If both screenshots have no entered visible slots, one explicitly
+location-less missing-data reminder appears. If every entered physical
+position is comparable, the panel says there are no *typed-field*
+restrictions **but does not claim authentic Gameforge evidence**.
+All user-entered text is HTML escaped; clicking an inspection control
+does not alter current round, timestamps, localStorage, JSON backup or
+other recorded fields. Clicking a round-navigation control still
+navigates normally and clears the ephemeral detail panel.
+
+One-sided placement is not evidence of zero units or absent troops;
+different Wave labels do not prove wave identity, and a gap between two
+captured rounds cannot establish events inside the gap. Do not derive
+casualty, damage, heal, Reserve HP or official Accuracy rules. The
+checklist has no field to mark real screenshots independently verified.
+Original screenshots remain external and Issue #73 still needs source
+evidence before combat mechanics can be calibrated. Exact-HEAD Hosted
+CI must cover Node adversarial pair-ID/mismatch/zero/non-mutation checks,
+root/public parity, and real Chromium pair inspection and click behavior;
+formal Codex Review required before owner-authorized merge.
 
 ### Reserve HP evidence constraint
 

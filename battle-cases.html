@@ -266,13 +266,35 @@ function renderCaptureCoverage(c){
    '<td>'+item.roundNumberGap+'</td>'+
    cols.map(([status])=>'<td>'+item.counts[status]+'</td>').join('')+
    '<td><button type="button" data-coverage-target="'+esc(item.targetId)+
-     '" aria-label="檢查截錄 R'+item.targetRound+'">檢查 R'+item.targetRound+'</button></td>'+
+     '" aria-label="檢查截錄 R'+item.targetRound+'">檢查 R'+item.targetRound+'</button> '+
+     '<button type="button" data-coverage-review="'+esc(item.targetId)+
+     '" aria-label="檢視 R'+item.sourceRound+' 至 R'+item.targetRound+' 的待查欄位">待查欄位</button></td>'+
    '</tr>').join('');
  root.innerHTML='<table><thead><tr><th scope="col">截錄組合</th>'+
    '<th scope="col">編號間隔</th>'+
    cols.map(([,label])=>'<th scope="col">'+label+'</th>').join('')+
    '<th scope="col">前往</th></tr></thead><tbody>'+rows+'</tbody></table>'+
-   '<p class="muted">計數只針對曾輸入的相同實體位置；缺失格位不能當成空軍、零死亡或零補兵。雙方均無輸入的組合保留一筆提醒，非格位數量。</p>';
+   '<p class="muted">計數只針對曾輸入的相同實體位置；缺失格位不能當成空軍、零死亡或零補兵。雙方均無輸入的組合保留一筆提醒，非格位數量。</p>'+
+   '<div id="coverageReviewDetail" aria-live="polite"></div>';
+}
+function renderCoverageReviewDetail(c,sourceId,targetId){
+ const result=M.inspectCapturedCoveragePair(c,sourceId,targetId,fields);
+ const root=$('coverageReviewDetail');
+ const describe=s=>!s?'—':esc((s.unit||'兵種未填')+' / Wave '+(s.wave||'未填')+
+   ' / 數量 '+(s.count===null?'未填':s.count)+
+   ' / HP '+(s.hp===null?'未填':s.hp+'%'));
+ const items=result.items.map(x=>{
+   const address=x.side===null?'截錄組合無可見格位輸入':
+     esc((x.side==='attacker'?'攻':'守')+' '+(lineLabels[x.line]||x.line)+' 格位 '+x.pos);
+   return '<li><strong>'+address+'｜'+esc(compareReason[x.code]||'沒有可見格位輸入')+'</strong>'+
+     '<div>較早截錄：'+describe(x.prior)+'；較晚截錄：'+describe(x.current)+'</div>'+
+     '<div class="muted">'+esc(x.hint)+'</div></li>';
+ }).join('');
+ root.innerHTML='<h3>R'+result.sourceRound+' → R'+result.targetRound+
+   ' 待查欄位（'+result.items.length+' 筆）</h3>'+
+   (result.items.length?'<ul>'+items+'</ul>':
+   '<p>沒有這組截錄的欄位限制項目；這不代表截圖來源已經核實或實戰機制已證明。</p>')+
+   '<p class="muted">僅供核對人工轉錄欄位與原始截圖；缺失、變更或時點不一致均不能推論戰損、補血或 Reserve HP。</p>';
 }
 function renderRoundComparison(c,r){
  const earlier=c.rounds.filter(x=>x.number<r.number).sort((a,b)=>b.number-a.number);
@@ -340,8 +362,16 @@ function render(){
 }
 function listen(){
  $('captureCoverageContent').onclick=e=>{
-   const b=e.target.closest('button[data-coverage-target]'),c=active();
-   if(!b||!c||!c.rounds.some(r=>r.id===b.dataset.coverageTarget))return;
+   const c=active();if(!c)return;
+   const inspect=e.target.closest('button[data-coverage-review]');
+   if(inspect){
+     const pair=M.summarizeCapturedTimeline(c,fields).find(
+       p=>p.targetId===inspect.dataset.coverageReview);
+     if(pair)renderCoverageReviewDetail(c,pair.sourceId,pair.targetId);
+     return; // UI-only inspection, never mutate or persist.
+   }
+   const b=e.target.closest('button[data-coverage-target]');
+   if(!b||!c.rounds.some(r=>r.id===b.dataset.coverageTarget))return;
    roundId=b.dataset.coverageTarget;selected=null;render(); // Read-only navigation.
  };
  $('exportComparisonCsv').onclick=()=>{
