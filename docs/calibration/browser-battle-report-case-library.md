@@ -225,7 +225,16 @@ case, timestamps, localStorage or the underlying battle simulator.
 Regressions parse CSV using Python's csv.DictReader after Node export
 with deliberately unsorted R50/R80/R81/R82/R90/R100, injection labels,
 valid zero/blank, fully comparable refusal, invalid case and
-empty capture pair. Genuine Chromium must download only the
+empty capture pair.
+Formal Codex review of the initial export found a P2 browser-freeze risk:
+calling `inspectCapturedCoveragePair()` inside each export iteration
+recomputed the entire timeline. The implementation now performs one
+chronological adjacency summary, projects each corresponding pair's
+`compareCapturedRounds()` rows through the same pure shared
+`reviewItemsFromComparison()` helper as the browser inspector, and
+never regenerates whole-case adjacency within the export loop. An added
+100-round × 7 pending slots performance regression enforces the
+bounded-time behavior on supported case sizes. Genuine Chromium must download only the
 R81→R82 pending row in the synthetic browser case and verify its source
 fields and unchanged localStorage. PR #108 requires exact-HEAD Hosted
 CI and formal Codex Review; **never merge without owner permission**.
