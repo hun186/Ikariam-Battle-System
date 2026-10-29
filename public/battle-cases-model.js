@@ -57,12 +57,19 @@ function roundEntrySummary(round){
 }
 // Read-only comparison of manually entered fields at the same physical address.
 // Identical user-entered unit/Wave labels cannot authenticate a continuous wave.
-function compareCapturedRounds(c,targetId){
+// sourceId null/undefined means nearest earlier captured round (legacy default).
+function compareCapturedRounds(c,targetId,sourceId=null){
   const problems=validateCase(c);
   if(problems.length)err('戰報案例格式無效：'+problems[0]);
   const target=c.rounds.find(r=>r.id===targetId);
   if(!target)err('指定的截錄回合不存在');
-  const prior=c.rounds.filter(r=>r.number<target.number).sort((a,b)=>b.number-a.number)[0];
+  let prior;
+  if(sourceId===null){
+    prior=c.rounds.filter(r=>r.number<target.number).sort((a,b)=>b.number-a.number)[0];
+  }else{
+    prior=c.rounds.find(r=>r.id===sourceId);
+    if(!prior||prior.number>=target.number)err('比較來源必須是本案例較早的截錄回合');
+  }
   if(!prior)return {sourceRound:null,targetRound:target.number,samePhase:false,rows:[]};
   const samePhase=prior.phase===target.phase,rows=[];
   const key=s=>s.line+':'+s.pos;
