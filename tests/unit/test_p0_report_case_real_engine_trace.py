@@ -208,7 +208,7 @@ def test_local_engine_trace_cli_is_real_and_never_clobbers_input(engine_input,tm
     result=json.loads(output_path.read_bytes())
     assert result["capture_alignment"] is None
     assert result["engine_execution"]["scenario_sha256"]==sha256(engine_input).hexdigest()
-    assert result["engine_execution"]["engine_executed" ] if False else True
+    assert result["engine_execution"]["engine_execution_recorded"] is True
     before_scenario=scenario_path.read_bytes()
     before_output=output_path.read_bytes()
     assert subprocess.run(command,capture_output=True,timeout=35).returncode==2
