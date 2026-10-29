@@ -289,3 +289,35 @@ def test_earlier_unknown_unit_or_wave_never_qualifies_as_continuous_identity(
     assert row["count_difference"] is None
     assert row["hp_percentage_point_difference"] is None
     assert result["original_game_screenshots_authenticated"] is False
+
+
+
+def test_real_open_field_override_rejects_same_number_different_geometry(
+    local_synthetic_case
+):
+    _, case_bytes, manifest, root, review_bytes, mapping, _ = local_synthetic_case
+    scenario = {
+        "battlefield": "land-mini",
+        "town_hall_level": 1,
+        "policy": "experimental", "max_rounds": 2,
+        "attacker": {"units": [{"unit_id": "hoplite", "quantity": 600}]},
+        "defender": {"units": [{"unit_id": "hoplite", "quantity": 600}]},
+    }
+    actual = simulate(scenario)
+    assert actual["garrison_status"]["effective_battlefield"] == "land-max"
+    trace = adapter.engine_trace(json.dumps(scenario).encode("utf-8"))
+    assert trace["scenario_battlefield"] == "land-mini"
+    assert trace["engine_effective_battlefield"] == "land-max"
+    altered_map = deepcopy(mapping)
+    altered_map["scenario_sha256"] = trace["scenario_sha256"]
+    with pytest.raises(ValueError, match="effective engine deployment battlefield"):
+        adapter.compare_to_captures(
+            trace, case_bytes, manifest, root, review_bytes, altered_map,
+        )
+    assert trace["scenario_reconstructed_from_original_game"] is False
+
+
+def test_no_open_field_override_preserves_requested_and_effective_geometry(engine_input):
+    result = adapter.engine_trace(engine_input)
+    assert result["scenario_battlefield"] == "land-mini"
+    assert result["engine_effective_battlefield"] == "land-mini"
