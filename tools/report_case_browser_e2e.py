@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import csv
+import io
 import json
 from pathlib import Path
 
@@ -173,6 +175,35 @@ def run(base_url: str, evidence_dir: Path) -> None:
             compared_cells = page.locator("#roundComparisonContent tbody tr").first.locator("td")
             assert compared_cells.nth(2).inner_text() == "+1"
             assert compared_cells.nth(3).inner_text() == "-18"
+
+            # Current source is R50, not the nearest R80; download exactly that pair.
+            before_csv = page.evaluate(
+                "() => localStorage.getItem('ikariam-report-cases-v1')"
+            )
+            with page.expect_download() as comparison_event:
+                page.locator("#exportComparisonCsv").click()
+            comparison_download = comparison_event.value
+            assert comparison_download.suggested_filename.endswith("-R50-R81.csv")
+            comparison_bytes = Path(comparison_download.path()).read_bytes()
+            assert comparison_bytes.startswith(b"\xef\xbb\xbf")
+            comparison_rows = list(csv.DictReader(io.StringIO(
+                comparison_bytes.decode("utf-8-sig"), newline=""
+            )))
+            assert len(comparison_rows) == 1
+            first_comparison = comparison_rows[0]
+            assert first_comparison["evidence_class"] == "USER_TRANSCRIPTION_UNVERIFIED"
+            assert first_comparison["earlier_round"] == "50"
+            assert first_comparison["target_round"] == "81"
+            assert first_comparison["round_number_gap"] == "31"
+            assert first_comparison["comparison_status"] == "FIELDS_COMPARABLE"
+            assert first_comparison["earlier_count"] == "7"
+            assert first_comparison["target_count"] == "8"
+            assert first_comparison["typed_count_delta"] == "1"
+            assert first_comparison["typed_hp_percentage_point_delta"] == "-18"
+            assert not any("reserve" in name.lower() for name in first_comparison)
+            assert page.evaluate(
+                "() => localStorage.getItem('ikariam-report-cases-v1')"
+            ) == before_csv, "read-only CSV export modified case storage"
             page.locator("#readMode").click()
             expect(page.locator("#comparisonSource")).to_have_value(r50_id)
             page.locator("#editMode").click()
@@ -182,11 +213,22 @@ def run(base_url: str, evidence_dir: Path) -> None:
             page.locator("#comparisonSource").select_option(r50_id)
             expect(page.locator("#roundComparisonContent")).to_contain_text("R50 → R82")
             expect(page.locator("#roundComparisonContent")).to_contain_text("兵種／Wave／數量／HP 未填齊")
+            with page.expect_download() as draft_csv_event:
+                page.locator("#exportComparisonCsv").click()
+            draft_csv = list(csv.DictReader(io.StringIO(
+                Path(draft_csv_event.value.path()).read_bytes().decode("utf-8-sig"),
+                newline=""
+            )))
+            assert len(draft_csv) == 1
+            assert draft_csv[0]["comparison_status"] == "INCOMPLETE"
+            assert draft_csv[0]["typed_count_delta"] == ""
+            assert draft_csv[0]["typed_hp_percentage_point_delta"] == ""
             page.get_by_role("button", name="R81", exact=True).click()
             page.get_by_role("button", name="R82", exact=True).click()
             expect(page.locator("#comparisonSource")).to_have_value(r81_id)
             page.get_by_role("button", name="R50", exact=True).click()
             expect(page.locator("#comparisonSource")).to_be_disabled()
+            expect(page.locator("#exportComparisonCsv")).to_be_disabled()
             page.screenshot(path=str(evidence_dir / "battle-report-desktop-synthetic.png"), full_page=True)
 
             with page.expect_download() as d:

@@ -69,6 +69,8 @@ button,.btn{border:1px solid #7b6548;background:#f5e5c5;padding:8px 11px;border-
 <div id="readiness" class="info" aria-live="polite"></div>
 <details id="roundComparison" class="info"><summary>截錄回合格位對照（僅人工轉錄數值）</summary>
 <label for="comparisonSource">比較來源回合<select id="comparisonSource" aria-label="較早截錄回合"></select></label>
+<button id="exportComparisonCsv" type="button">匯出目前對照 CSV（人工轉錄，非實測）</button>
+<p class="muted">CSV 僅列出可見格位的輸入值與比較限制；請用 JSON 備份保留原始案例與來源註記。CSV 不包含 Reserve HP，也不是官方實戰證據。</p>
 <div id="roundComparisonContent" class="round-comparison-content" aria-live="polite"></div></details>
 </section>
 <section id="boardPanel" class="panel hidden">
@@ -116,6 +118,15 @@ function selectCase(id){activeId=id;roundId=active()?.rounds.slice().sort((a,b)=
 function download(c){
  const blob=new Blob([M.exportCase(c,fields)],{type:'application/json;charset=utf-8'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ikariam-report-case-'+c.id+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),500);
+}
+function downloadComparison(c,r){
+ const data=M.compareCapturedRounds(c,r.id,comparisonSourceId);
+ const csv=M.exportCapturedComparisonCsv(c,r.id,comparisonSourceId,fields);
+ const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ const safeId=c.id.replace(/[^A-Za-z0-9_-]/g,'_').slice(0,64)||'case';
+ a.href=url;a.download='ikariam-typed-comparison-'+safeId+'-R'+data.sourceRound+'-R'+data.targetRound+'.csv';
+ a.click();setTimeout(()=>URL.revokeObjectURL(url),500);
 }
 function unitOptions(chosen){
  const list=units.filter(u=>u.domain===field()?.domain||!u.domain).slice().sort((a,b)=>a.display_name.localeCompare(b.display_name));
@@ -238,9 +249,11 @@ function renderRoundComparison(c,r){
  select.value=comparisonSourceId||'';
  const data=M.compareCapturedRounds(c,r.id,comparisonSourceId),root=$('roundComparisonContent');
  if(data.sourceRound===null){
+   $('exportComparisonCsv').disabled=true;
    root.textContent='目前沒有更早的截錄回合可比較；本功能不推算缺少的回合。';
    return;
  }
+ $('exportComparisonCsv').disabled=!data.rows.length;
  const comparable=data.rows.filter(x=>x.code==='FIELDS_COMPARABLE').length;
  const fmt=s=>!s?'—':esc((s.unit||'兵種未填')+' / Wave '+(s.wave||'未填')+
                        ' / 數量 '+(s.count===null?'未填':s.count)+
@@ -284,6 +297,10 @@ function render(){
  renderBoard();
 }
 function listen(){
+ $('exportComparisonCsv').onclick=()=>{
+   const c=active(),r=currentRound();if(!c||!r)return;
+   try{downloadComparison(c,r);}catch(error){notify('CSV 匯出失敗：'+error.message,true);}
+ };
  $('comparisonSource').onchange=e=>{
    const c=active(),r=currentRound();
    if(!c||!r)return;
