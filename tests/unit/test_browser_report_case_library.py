@@ -876,6 +876,96 @@ def test_coverage_review_details_are_escaped_ephemeral_and_mirrored():
     assert (ROOT/"battle-cases-model.js").read_bytes() == (ROOT/"public/battle-cases-model.js").read_bytes()
 
 
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node required for review queue CSV")
+def test_review_queue_csv_only_pending_captured_slots_escapes_spreadsheets(tmp_path):
+    script=r"""
+const assert=require('node:assert/strict');
+const M=require(process.argv[2]);
+const c=M.create('safe','naval-small');
+c.name=' =SUM(1,1)';
+c.id='=HYPERLINK("https://example.invalid","case")';
+const r50=c.rounds[0];r50.number=50;
+const r80=M.newRound(80),r81=M.newRound(81),r82=M.newRound(82);
+const r90=M.newRound(90),r100=M.newRound(100);
+c.rounds.push(r100,r81,r90,r80,r82); // JSON array is deliberately unsorted
+const put=(r,side,line,pos,wave,count,hp)=>{
+ const s=M.newSlot(line,pos);
+ Object.assign(s,{unit:'ram_ship',wave,count,hp});r[side].slots.push(s);
+};
+put(r50,'attacker','first',1,'W1',7,94);
+put(r80,'attacker','first',1,'W1',9,83);
+put(r80,'attacker','second',1,'  +SUM(1,1)',2,75);
+put(r81,'attacker','first',1,'=HYPERLINK("url","wave")',8,76);
+put(r81,'attacker','second',1,'  +SUM(1,1)',null,null);
+put(r82,'attacker','first',1,'=HYPERLINK("url","wave")',8,76);
+put(r82,'attacker','second',1,'  +SUM(1,1)',0,0);
+assert.deepEqual(M.validateCase(c),[]);
+const before=JSON.stringify(c);
+const csv=M.exportCapturedReviewQueueCsv(c);
+assert(csv.startsWith('\uFEFF'));
+assert(csv.includes('SOURCE_IMAGE_NOT_VERIFIED_NO_COMBAT_CAUSALITY'));
+assert(!csv.toLowerCase().includes('reserve'));
+assert.equal(JSON.stringify(c),before);
+assert.deepEqual(M.importCase(M.exportCase(c)),c);
+assert.throws(()=>M.exportCapturedReviewQueueCsv(M.create('only one','naval-small')),
+  /至少需要兩個/);
+const clean=M.create('comparable-only','naval-small');
+const clean2=M.newRound(2);clean.rounds.push(clean2);
+put(clean.rounds[0],'attacker','first',1,'W',1,100);
+put(clean2,'attacker','first',1,'W',1,100);
+assert.throws(()=>M.exportCapturedReviewQueueCsv(clean),/沒有需核對/);
+const bad=structuredClone(c);bad.rounds[0].attacker.slots[0].count=-1;
+assert.throws(()=>M.exportCapturedReviewQueueCsv(bad),/無法彙整截錄資料/);
+const empty=M.create('two blank','naval-small');
+empty.rounds.push(M.newRound(2));
+assert(M.exportCapturedReviewQueueCsv(empty).includes('NO_ENTERED_VISIBLE_SLOTS'));
+process.stdout.write(csv);
+"""
+    js=tmp_path/"review_queue_csv.cjs"
+    js.write_text(script,encoding="utf-8")
+    result=subprocess.run(["node",str(js),str(ROOT/"battle-cases-model.js")],
+                          capture_output=True,text=True,check=False)
+    assert result.returncode==0,result.stderr
+    rows=list(csv.DictReader(io.StringIO(result.stdout.lstrip("\ufeff"),newline="")))
+    assert len(rows)==7,rows
+    assert [(r["earlier_round"],r["target_round"]) for r in rows] == [
+        ("50","80"),("80","81"),("80","81"),("81","82"),
+        ("82","90"),("82","90"),("90","100")
+    ]
+    assert [r["review_reason"] for r in rows] == [
+        "ONE_SIDED","LABEL_CHANGED","INCOMPLETE","INCOMPLETE",
+        "ONE_SIDED","ONE_SIDED","NO_ENTERED_VISIBLE_SLOTS"
+    ]
+    assert rows[0]["case_id"].startswith("'=HYPERLINK")
+    assert rows[0]["case_name"].startswith("' =SUM(")
+    assert rows[0]["round_number_gap"]=="30"
+    assert rows[0]["earlier_count"]=="" and rows[0]["target_count"]=="2"
+    assert rows[0]["target_wave"].startswith("'  +SUM")
+    assert rows[1]["target_wave"].startswith("'=HYPERLINK")
+    assert rows[1]["earlier_phase"]=="round_end"
+    assert rows[1]["target_phase"]=="round_end"
+    assert rows[3]["target_count"]=="0" and rows[3]["target_hp_percent"]=="0"
+    assert rows[6]["side"]=="" and rows[6]["physical_position"]==""
+    assert rows[6]["earlier_count"]=="" and rows[6]["target_hp_percent"]==""
+    assert "沒有已輸入" in rows[6]["source_check_instruction"]
+    assert all(r["evidence_class"]=="USER_TRANSCRIPTION_UNVERIFIED" for r in rows)
+    assert all(r["interpretation"]=="SOURCE_IMAGE_NOT_VERIFIED_NO_COMBAT_CAUSALITY" for r in rows)
+    assert all("reserve" not in k.lower() for r in rows for k in r)
+
+
+def test_review_queue_export_button_is_safe_and_mirrored():
+    html=(ROOT/"battle-cases.html").read_text(encoding="utf-8")
+    assert 'id="exportCoverageReviewCsv"' in html
+    assert "M.exportCapturedReviewQueueCsv(c,fields)" in html
+    assert "$('exportCoverageReviewCsv').disabled=!hasReviewItems;" in html
+    assert "code!=='FIELDS_COMPARABLE'&&count>0" in html
+    assert "safeId=c.id.replace(/[^A-Za-z0-9_-]/g,'_')" in html
+    assert "待查格位 CSV 匯出失敗" in html
+    assert html == (ROOT/"public/battle-cases.html").read_text(encoding="utf-8")
+    assert (ROOT/"battle-cases-model.js").read_bytes() == (ROOT/"public/battle-cases-model.js").read_bytes()
+
+
 def test_draft_label_ui_is_visible_and_public_page_stays_identical():
     html = (ROOT / "battle-cases.html").read_text(encoding="utf-8")
     assert 'id="reuseEarlierLabels"' in html
