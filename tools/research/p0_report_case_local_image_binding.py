@@ -55,6 +55,33 @@ def blank_manifest() -> dict:
     }
 
 
+def case_worksheet(case_bytes: bytes) -> dict:
+    """Create a case-bound DRAFT, not a usable proof or valid image manifest.
+
+    Numeric captured rounds and pre/postfire phase are copied from the
+    canonical JS-validated v1 backup. No source note or image file is read.
+    All relative paths are deliberately null until manually supplied.
+    """
+    case = _inspect_case(case_bytes)
+    if case is None:
+        raise ValueError("canonical browser case v1 validation unavailable or rejected case")
+    return {
+        "schema": SCHEMA,
+        "record_kind": "draft_capture_worksheet_not_evidence",
+        "case_id": case["id"],
+        "captures": [
+            {
+                "capture_id": row["id"],
+                "capture_round": row["number"],
+                "capture_phase": row["phase"],
+                "relative_path": None,
+                "expected_sha256": None,
+            }
+            for row in sorted(case["rounds"], key=lambda x: x["number"])
+        ],
+    }
+
+
 def _read_limited(path: Path, limit: int) -> bytes:
     if path.stat().st_size > limit:
         raise ValueError("input exceeds file-size limit")
@@ -154,10 +181,13 @@ def bind_case_images(case_bytes: bytes, manifest: dict, evidence_root: Path) -> 
     digests: dict[str, set[str]] = {}
     for i, entry in enumerate(entries):
         label = f"captures[{i}]"
-        if not isinstance(entry, dict) or set(entry) != {
-            "capture_id", "relative_path", "expected_sha256"
-        }:
-            errors.append(f"{label}: requires exactly capture_id, relative_path, expected_sha256")
+        legacy = {"capture_id", "relative_path", "expected_sha256"}
+        with_stage = legacy | {"capture_round", "capture_phase"}
+        if not isinstance(entry, dict) or set(entry) not in (legacy, with_stage):
+            errors.append(
+                f"{label}: requires capture_id, relative_path, expected_sha256 "
+                "and optionally BOTH capture_round and capture_phase"
+            )
             continue
         capture_id = entry["capture_id"]
         relative = entry["relative_path"]
@@ -169,6 +199,13 @@ def bind_case_images(case_bytes: bytes, manifest: dict, evidence_root: Path) -> 
             errors.append(f"{label}: duplicate capture_id")
             continue
         seen_ids.add(capture_id)
+        if "capture_round" in entry and (
+            type(entry["capture_round"]) is not int
+            or entry["capture_round"] != known[capture_id]["number"]
+            or entry["capture_phase"] != known[capture_id]["phase"]
+        ):
+            errors.append(f"{label}: captured round/phase mismatch against original case")
+            continue
         if not isinstance(relative, str) or not _safe_relative(relative):
             errors.append(f"{label}: unsafe relative image path")
             continue
@@ -229,6 +266,7 @@ def bind_case_images(case_bytes: bytes, manifest: dict, evidence_root: Path) -> 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--write-template", type=Path)
+    parser.add_argument("--write-case-worksheet", type=Path)
     parser.add_argument("--case", type=Path)
     parser.add_argument("--manifest", type=Path)
     parser.add_argument("--evidence-root", type=Path)
@@ -236,10 +274,21 @@ def main() -> None:
     args = parser.parse_args()
     if args.write_template is not None:
         if any(v is not None for v in (
-            args.case, args.manifest, args.evidence_root, args.output_json
+            args.write_case_worksheet, args.case, args.manifest,
+            args.evidence_root, args.output_json
         )):
             parser.error("--write-template must be used alone")
         path, result = args.write_template, blank_manifest()
+    elif args.write_case_worksheet is not None:
+        if (args.case is None or any(v is not None for v in (
+            args.manifest, args.evidence_root, args.output_json
+        ))):
+            parser.error("--write-case-worksheet requires only --case")
+        try:
+            result = case_worksheet(_read_limited(args.case, MAX_CASE_BYTES))
+        except (OSError, ValueError) as exc:
+            parser.exit(2, f"cannot create worksheet: {type(exc).__name__}\\n")
+        path = args.write_case_worksheet
     else:
         if any(v is None for v in (
             args.case, args.manifest, args.evidence_root, args.output_json
@@ -266,8 +315,12 @@ def main() -> None:
             output.write(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
     except FileExistsError:
         parser.exit(2, "refusing to overwrite an existing output file\n")
-    print(json.dumps({"status": result.get("status", "EMPTY_TEMPLATE")}))
-    if args.write_template is None and result["status"] in (
+    if args.write_case_worksheet is not None:
+        summary = "DRAFT_CAPTURE_WORKSHEET_NOT_EVIDENCE"
+    else:
+        summary = result.get("status", "EMPTY_TEMPLATE")
+    print(json.dumps({"status": summary}))
+    if args.write_template is None and args.write_case_worksheet is None and result["status"] in (
         "INVALID", "INVALID_OR_HASH_MISMATCH"
     ):
         raise SystemExit(2)
