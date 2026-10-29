@@ -43,6 +43,8 @@ try{
         round_number_gap:p.roundNumberGap,same_capture_phase:p.samePhase,
         side:r.side,line:r.line,physical_position:r.pos,
         review_reason:r.code,
+        earlier_typed_unit:r.prior?.unit??null,
+        earlier_typed_wave:r.prior?.wave??null,
         target_typed_unit:r.current?.unit??null,
         target_typed_wave:r.current?.wave??null,
         target_typed_count:r.current?.count??null,
@@ -97,6 +99,7 @@ def create_model_worksheet(
         rows.append({
             **reviewed,
             **{k: target[k] for k in (
+                "earlier_typed_unit", "earlier_typed_wave",
                 "target_typed_unit", "target_typed_wave",
                 "target_typed_count", "target_typed_hp_percent",
             )},
@@ -163,6 +166,17 @@ def assess_model_candidate(
             reason = "DIFFERENT_CAPTURE_PHASE"
         elif original["review_reason"] in ("NO_ENTERED_VISIBLE_SLOTS", "LABEL_CHANGED"):
             reason = "TARGET_IDENTITY_NOT_STABLE_OR_MISSING"
+        elif (
+            original["earlier_typed_unit"] and original["target_typed_unit"]
+            and original["earlier_typed_unit"] != original["target_typed_unit"]
+        ) or (
+            original["earlier_typed_wave"] and original["target_typed_wave"]
+            and original["earlier_typed_wave"] != original["target_typed_wave"]
+        ):
+            # Canonical INCOMPLETE may take precedence over LABEL_CHANGED
+            # when earlier count/HP is null. Known identity changes still
+            # forbid comparison even if the target snapshot is complete.
+            reason = "KNOWN_EARLIER_TARGET_LABEL_CHANGE"
         elif not all(
             original[k] is not None and original[k] != ""
             for k in ("target_typed_unit", "target_typed_wave",
@@ -225,6 +239,14 @@ def assess_model_candidate(
     }
 
 
+def serialize_output(value: dict, *, is_model_worksheet: bool) -> bytes:
+    """Serialize UTF-8 before exclusive file creation; never emit unusable drafts."""
+    payload = json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8") + b"\n"
+    if is_model_worksheet and len(payload) > MAX_WORKSHEET_BYTES:
+        raise ValueError("serialized model worksheet exceeds its own import limit")
+    return payload
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--case", type=Path, required=True)
@@ -260,11 +282,19 @@ def main() -> None:
             status = value["status"]
     except (OSError, ValueError, TypeError) as exc:
         parser.exit(2, f"invalid model candidate or stale source: {type(exc).__name__}\n")
+    # Strict two-phase contract: never emit a successful worksheet larger
+    # than the very same MAX_WORKSHEET_BYTES accepted on the second pass.
+    # Compact JSON also keeps large canonical-valid 100-round cases importable.
+    try:
+        payload = serialize_output(value, is_model_worksheet=(
+            args.write_model_worksheet is not None
+        ))
+    except ValueError:
+        parser.exit(2, "candidate worksheet exceeds accepted input byte limit\n")
     destination.parent.mkdir(parents=True, exist_ok=True)
     try:
-        with destination.open("x", encoding="utf-8") as file:
-            json.dump(value, file, ensure_ascii=False, indent=2)
-            file.write("\n")
+        with destination.open("xb") as file:
+            file.write(payload)
     except FileExistsError:
         parser.exit(2, "refusing to overwrite existing evidence or research output\n")
     print(json.dumps({"status": status}))
