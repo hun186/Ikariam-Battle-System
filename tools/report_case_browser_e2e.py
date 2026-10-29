@@ -309,6 +309,37 @@ def run(base_url: str, evidence_dir: Path) -> None:
                 "() => localStorage.getItem('ikariam-report-cases-v1')"
             ) == original_coverage_storage, "source-note manifest wrote to case storage"
             expect(page.locator("#exportCoverageReviewCsv")).to_be_enabled()
+            expect(page.locator("#exportJoinedReviewCsv")).to_be_enabled()
+            # Join both captured-round source notes for the ONE pending pair.
+            with page.expect_download() as joined_review_event:
+                page.locator("#exportJoinedReviewCsv").click()
+            joined_download = joined_review_event.value
+            assert joined_download.suggested_filename.startswith(
+                "ikariam-pending-review-with-notes-"
+            )
+            joined_bytes = Path(joined_download.path()).read_bytes()
+            assert joined_bytes.startswith(b"\xef\xbb\xbf")
+            joined_rows = list(csv.DictReader(io.StringIO(
+                joined_bytes.decode("utf-8-sig"), newline=""
+            )))
+            assert len(joined_rows) == 1, joined_rows
+            joined_row = joined_rows[0]
+            assert (joined_row["earlier_round"], joined_row["target_round"]) == (
+                "81", "82"
+            )
+            assert joined_row["review_reason"] == "INCOMPLETE"
+            assert joined_row["earlier_source_note_status"] == "SOURCE_NOTE_MISSING"
+            assert joined_row["target_source_note_status"] == "SOURCE_NOTE_MISSING"
+            assert joined_row["earlier_source_note_text"] == ""
+            assert joined_row["target_source_note_text"] == ""
+            assert joined_row["original_image_in_export"] == "ORIGINAL_IMAGE_NOT_INCLUDED"
+            assert joined_row["source_authentication"] == "NOT_AUTHENTICATED"
+            assert joined_row["interpretation"] == (
+                "NOTE_TEXT_ONLY_NOT_PROOF_OF_SOURCE_OR_COMBAT_CAUSALITY"
+            )
+            assert page.evaluate(
+                "() => localStorage.getItem('ikariam-report-cases-v1')"
+            ) == original_coverage_storage, "joined CSV download persisted case data"
             # Export only the unresolved R81→R82 draft, not comparable R50/R80/R81.
             with page.expect_download() as review_queue_download:
                 page.locator("#exportCoverageReviewCsv").click()
