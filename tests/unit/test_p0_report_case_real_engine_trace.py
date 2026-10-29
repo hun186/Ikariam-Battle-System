@@ -228,3 +228,64 @@ def test_no_case_evidence_does_not_magically_produce_capture_alignment(engine_in
     assert trace["scenario_reconstructed_from_original_game"] is False
     assert trace["independently_verified_game_observations"] == 0
     assert trace["independent_holdouts"] == 0
+
+
+
+def test_actual_engine_unsupported_boundary_never_labeled_round_end():
+    scenario = {
+        "battlefield": "land-mini", "policy": "experimental", "max_rounds": 2,
+        "attacker": {"units": [
+            {"unit_id": "hoplite", "quantity": 30,
+             "wave_id": "initial", "entry_batch_id": "a0", "arrival_round": 0},
+            {"unit_id": "hoplite", "quantity": 90,
+             "wave_id": "arriving", "entry_batch_id": "a2", "arrival_round": 2},
+        ]},
+        "defender": {"units": [{"unit_id": "hoplite", "quantity": 120}]},
+    }
+    actual = simulate(scenario)
+    unsupported = [
+        e for e in actual["events"]
+        if e["type"] == "unsupported_mechanic"
+        and e["round"] == 2
+    ]
+    assert unsupported, "synthetic scenario must hit actual engine unsupported boundary"
+    trace = adapter.engine_trace(json.dumps(scenario).encode())
+    assert any(e["round"] == 2 for e in trace["engine_unsupported_events"])
+    interrupted = [x for x in trace["engine_slots"] if x["engine_round"] == 2]
+    assert interrupted, "engine should expose preserved boundary snapshot"
+    assert all(x["engine_phase"] == "unsupported_boundary_not_round_end"
+               for x in interrupted)
+    assert not any(x["engine_phase"] == "round_end_model_snapshot"
+                   for x in interrupted)
+    assert all(x["engine_phase"] == "initial"
+               for x in trace["engine_slots"] if x["engine_round"] == 0)
+
+
+@pytest.mark.parametrize("missing_label", ["unit", "wave"])
+def test_earlier_unknown_unit_or_wave_never_qualifies_as_continuous_identity(
+    local_synthetic_case, missing_label
+):
+    trace, case_bytes, manifest, root, review, mapping, model = local_synthetic_case
+    changed = json.loads(case_bytes)
+    first = next(r for r in changed["rounds"] if r["number"] == 1)
+    first["attacker"]["slots"][0][missing_label] = ""
+    new_bytes = json.dumps(changed).encode()
+    latest_review = manual.review_worksheet(new_bytes, manifest, root)
+    assert latest_review["review_items"][0]["review_reason"] == "INCOMPLETE"
+    latest_review["review_items"][0]["review_status"] = (
+        "REVIEWER_REPORTS_IMAGES_READABLE"
+    )
+    new_review = json.dumps(latest_review).encode()
+    new_map = deepcopy(mapping)
+    new_map["case_sha256"] = sha256(new_bytes).hexdigest()
+    result = adapter.compare_to_captures(
+        trace, new_bytes, manifest, root, new_review, new_map
+    )
+    row = result["bindings"][0]
+    assert row["engine_slot_found"] is True
+    assert row["diagnostic_status"] == (
+        "NOT_ASSESSABLE_EARLIER_UNIT_OR_WAVE_MISSING_OR_CHANGED"
+    )
+    assert row["count_difference"] is None
+    assert row["hp_percentage_point_difference"] is None
+    assert result["original_game_screenshots_authenticated"] is False
