@@ -104,6 +104,46 @@ function compareCapturedRounds(c,targetId,sourceId=null){
   }
   return {sourceRound:prior.number,targetRound:target.number,samePhase,rows};
 }
+// Research export: derivative of typed *visible* field comparisons only.
+// Never encode inferred kills, healing, Reserve HP, screenshots or official truth.
+// Escape spreadsheet-formula entry points in ALL user-controlled CSV text.
+function exportCapturedComparisonCsv(c,targetId,sourceId=null,fields=null){
+  const issues=validateCase(c,fields);
+  if(issues.length)err('無法匯出比較：'+issues[0]);
+  const data=compareCapturedRounds(c,targetId,sourceId);
+  if(data.sourceRound===null)err('沒有較早的截錄回合，無法匯出比較');
+  if(!data.rows.length)err('兩個回合沒有已輸入的可見格位，無法匯出比較');
+  const prior=c.rounds.find(r=>r.number===data.sourceRound);
+  const target=c.rounds.find(r=>r.number===data.targetRound);
+  const headers=[
+    'evidence_class','case_id','case_name','battlefield',
+    'earlier_round','target_round','round_number_gap',
+    'earlier_phase','target_phase','side','line','physical_position',
+    'comparison_status','earlier_unit','earlier_wave','earlier_count','earlier_hp_percent',
+    'target_unit','target_wave','target_count','target_hp_percent',
+    'typed_count_delta','typed_hp_percentage_point_delta','interpretation'
+  ];
+  const csvCell=v=>{
+    if(v===null||v===undefined)return '';
+    if(typeof v==='number')return String(v); // validated numeric fields (including negative deltas)
+    let s=String(v).replace(/[\x00-\x1f\x7f]/g,' '); // no embedded CR/LF/TAB row injection
+    if(/^\s*[=+\-@]/u.test(s))s="'"+s; // spreadsheet formula injection guard
+    return '"'+s.replace(/"/g,'""')+'"';
+  };
+  const body=data.rows.map(row=>[
+    'USER_TRANSCRIPTION_UNVERIFIED',c.id,c.name,c.battlefield,
+    data.sourceRound,data.targetRound,data.targetRound-data.sourceRound,
+    prior.phase,target.phase,row.side,row.line,row.pos,
+    row.code,row.prior?.unit??'',row.prior?.wave??'',
+    row.prior?.count??null,row.prior?.hp??null,
+    row.current?.unit??'',row.current?.wave??'',
+    row.current?.count??null,row.current?.hp??null,
+    row.countDelta,row.hpPointDelta,'TYPED_FIELDS_ONLY_NOT_COMBAT_CAUSALITY'
+  ]);
+  const csv='\uFEFF'+[headers,...body].map(a=>a.map(csvCell).join(',')).join('\r\n')+'\r\n';
+  if(new Blob([csv]).size>MAX_JSON_BYTES)err('比較 CSV 超過 64 MiB 上限');
+  return csv;
+}
 function validateCase(c,fields=null){
 const problems=[];
 if(!c||typeof c!=='object'||Array.isArray(c))return ['案例不是物件'];
@@ -183,5 +223,5 @@ function importCase(s,fields){
   if(problems.length)err(problems.slice(0,5).join('；'));
   return data;
 }
-return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds};
+return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds,exportCapturedComparisonCsv};
 });
