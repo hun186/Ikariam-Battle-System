@@ -276,6 +276,37 @@ def run(base_url: str, evidence_dir: Path) -> None:
             original_coverage_storage = page.evaluate(
                 "() => localStorage.getItem('ikariam-report-cases-v1')"
             )
+            expect(page.locator("#exportCoverageReviewCsv")).to_be_enabled()
+            # Export only the unresolved R81→R82 draft, not comparable R50/R80/R81.
+            with page.expect_download() as review_queue_download:
+                page.locator("#exportCoverageReviewCsv").click()
+            review_download = review_queue_download.value
+            assert review_download.suggested_filename.startswith(
+                "ikariam-typed-review-queue-"
+            )
+            assert review_download.suggested_filename.endswith(".csv")
+            review_bytes = Path(review_download.path()).read_bytes()
+            assert review_bytes.startswith(b"\xef\xbb\xbf")
+            review_rows = list(csv.DictReader(io.StringIO(
+                review_bytes.decode("utf-8-sig"), newline=""
+            )))
+            assert len(review_rows) == 1, review_rows
+            row = review_rows[0]
+            assert (row["earlier_round"], row["target_round"]) == ("81", "82")
+            assert row["review_reason"] == "INCOMPLETE"
+            assert (row["side"], row["line"], row["physical_position"]) == (
+                "attacker", "first", "1"
+            )
+            assert row["earlier_count"] == "8"
+            assert row["earlier_hp_percent"] == "76"
+            assert row["target_count"] == "" and row["target_hp_percent"] == ""
+            assert row["interpretation"] == (
+                "SOURCE_IMAGE_NOT_VERIFIED_NO_COMBAT_CAUSALITY"
+            )
+            assert "不可推算補值" in row["source_check_instruction"]
+            assert page.evaluate(
+                "() => localStorage.getItem('ikariam-report-cases-v1')"
+            ) == original_coverage_storage, "review-queue download persisted case data"
             # Inspect the exact physical slot in the draft R81→R82 pair.
             coverage_rows.nth(2).locator('button[data-coverage-review]').click()
             detail = page.locator("#coverageReviewDetail")
