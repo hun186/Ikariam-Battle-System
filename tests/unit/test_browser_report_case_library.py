@@ -636,6 +636,86 @@ def test_comparison_csv_ui_and_public_mirror_are_consistent():
     assert (ROOT/"battle-cases-model.js").read_bytes() == (ROOT/"public/battle-cases-model.js").read_bytes()
 
 
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node required for multi-round timeline CSV")
+def test_timeline_csv_uses_chronological_captured_pairs_and_marks_empty_pairs(tmp_path):
+    script=r"""
+const assert=require('node:assert/strict');
+const M=require(process.argv[2]);
+const c=M.create('=2+3','naval-small');
+const r80=c.rounds[0];r80.number=80;
+const r50=M.newRound(50),r81=M.newRound(81),r82=M.newRound(82);
+c.rounds.push(r82,r50,r81); // deliberately nonchronological storage
+const wave='=HYPERLINK("https://example.invalid","wave")';
+for(const [r,n,h] of [[r50,7,94],[r80,9,83],[r81,8,76]]){
+  const slot=M.newSlot('first',1);
+  Object.assign(slot,{unit:'ram_ship',wave,count:n,hp:h});
+  r.attacker.slots.push(slot);
+}
+const draft=M.newSlot('first',1);
+Object.assign(draft,{unit:'ram_ship',wave,count:null,hp:null});
+r82.attacker.slots.push(draft);
+const added=M.newSlot('second',2);
+Object.assign(added,{unit:'ram_ship',wave:'  +SUM(1,1)',count:0,hp:0});
+r80.defender.slots.push(added);
+const snapshot=JSON.stringify(c);
+const all=M.exportCapturedTimelineCsv(c);
+const pair=M.exportCapturedComparisonCsv(c,r81.id,r80.id);
+assert(all.startsWith('\uFEFF')&&pair.startsWith('\uFEFF'));
+assert.equal(JSON.stringify(c),snapshot,'timeline is read-only');
+assert.deepEqual(M.importCase(M.exportCase(c)),c,'unchanged v1 backup');
+assert(!all.toLowerCase().includes('reserve'));
+assert(all.includes('USER_TRANSCRIPTION_UNVERIFIED'));
+assert(all.includes('TYPED_FIELDS_ONLY_NOT_COMBAT_CAUSALITY'));
+const firstOnly=M.create('single','naval-small');
+assert.throws(()=>M.exportCapturedTimelineCsv(firstOnly),/至少需要兩個/);
+const none=M.create('empty','naval-small');
+none.rounds[0].number=5;none.rounds.push(M.newRound(10));
+assert(M.exportCapturedTimelineCsv(none).includes('NO_ENTERED_VISIBLE_SLOTS'),
+  'empty captures must produce explicit evidence gap row');
+const bad=structuredClone(c);bad.rounds[0].attacker.slots[0].count=-5;
+assert.throws(()=>M.exportCapturedTimelineCsv(bad),/無法匯出時間序列/);
+process.stdout.write(all);
+"""
+    js=tmp_path/"captured_timeline_csv.cjs"
+    js.write_text(script,encoding="utf-8")
+    result=subprocess.run(["node",str(js),str(ROOT/"battle-cases-model.js")],
+                          capture_output=True,text=True,check=False)
+    assert result.returncode==0,result.stderr
+    rows=list(csv.DictReader(io.StringIO(result.stdout.lstrip("\ufeff"),newline="")))
+    assert len(rows)==5,rows
+    assert [(x["earlier_round"],x["target_round"]) for x in rows] == [
+        ("50","80"),("50","80"),("80","81"),("80","81"),("81","82")
+    ],rows
+    # Physical address order is per side; same source renderer across pair/timeline.
+    assert rows[0]["comparison_status"]=="FIELDS_COMPARABLE"
+    assert rows[0]["typed_count_delta"]=="2"
+    assert rows[0]["typed_hp_percentage_point_delta"]=="-11"
+    assert rows[0]["earlier_wave"].startswith("'=HYPERLINK(")
+    assert rows[0]["case_name"].startswith("'=2+3")
+    assert rows[1]["comparison_status"]=="ONE_SIDED"
+    assert rows[1]["target_wave"].startswith("'  +SUM")
+    assert rows[1]["target_count"]=="0" and rows[1]["target_hp_percent"]=="0"
+    assert rows[1]["typed_count_delta"]=="" and rows[1]["typed_hp_percentage_point_delta"]==""
+    assert rows[2]["typed_count_delta"]=="-1" and rows[2]["typed_hp_percentage_point_delta"]=="-7"
+    assert rows[3]["comparison_status"]=="ONE_SIDED"
+    assert rows[4]["comparison_status"]=="INCOMPLETE"
+    assert rows[4]["typed_count_delta"]=="" and rows[4]["typed_hp_percentage_point_delta"]==""
+    assert all(r["evidence_class"]=="USER_TRANSCRIPTION_UNVERIFIED" for r in rows)
+    assert all(r["interpretation"]=="TYPED_FIELDS_ONLY_NOT_COMBAT_CAUSALITY" for r in rows)
+    assert all("reserve" not in k.lower() for r in rows for k in r)
+
+
+def test_timeline_csv_ui_button_and_public_parity():
+    html=(ROOT/"battle-cases.html").read_text(encoding="utf-8")
+    assert 'id="exportTimelineCsv"' in html
+    assert "M.exportCapturedTimelineCsv(c,fields)" in html
+    assert "$('exportTimelineCsv').disabled=!c||c.rounds.length<2;" in html
+    assert "safeId=c.id.replace(/[^A-Za-z0-9_-]/g,'_')" in html
+    assert html == (ROOT/"public/battle-cases.html").read_text(encoding="utf-8")
+    assert (ROOT/"battle-cases-model.js").read_bytes() == (ROOT/"public/battle-cases-model.js").read_bytes()
+
+
 def test_draft_label_ui_is_visible_and_public_page_stays_identical():
     html = (ROOT / "battle-cases.html").read_text(encoding="utf-8")
     assert 'id="reuseEarlierLabels"' in html
