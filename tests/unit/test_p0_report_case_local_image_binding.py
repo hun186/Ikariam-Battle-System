@@ -239,12 +239,66 @@ def test_cli_writes_private_local_receipt_and_exits_nonzero_for_invalid(capture_
     tampered = _manifest(c)
     tampered["captures"][0]["expected_sha256"] = "0" * 64
     manifest_path.write_text(json.dumps(tampered), encoding="utf-8")
-    run = subprocess.run(args, capture_output=True, text=True, timeout=20)
+    invalid_receipt = tmp_path / "invalid-receipt.json"
+    run = subprocess.run(args[:-1] + [str(invalid_receipt)],
+                         capture_output=True, text=True, timeout=20)
     assert run.returncode == 2, run.stderr
-    assert json.loads(result_path.read_text(encoding="utf-8"))["status"] == "INVALID_OR_HASH_MISMATCH"
+    assert json.loads(invalid_receipt.read_text(encoding="utf-8"))["status"] == "INVALID_OR_HASH_MISMATCH"
+    assert json.loads(result_path.read_text(encoding="utf-8"))["status"] == (
+        "LOCAL_BYTES_FINGERPRINTED_UNAUTHENTICATED"
+    )
     templ = tmp_path / "empty-template.json"
     run = subprocess.run([sys.executable, "-m", "tools.research.p0_report_case_local_image_binding",
                           "--write-template", str(templ)],
                          capture_output=True, text=True, timeout=10)
     assert run.returncode == 0
     assert json.loads(templ.read_text()) == binder.blank_manifest()
+
+
+def test_cli_never_overwrites_input_images_manifest_or_existing_receipt(capture_case, tmp_path):
+    blob, case = capture_case
+    _images(tmp_path)
+    case_file = tmp_path / "report-backup.json"
+    manifest_file = tmp_path / "source-manifest.json"
+    case_file.write_bytes(blob)
+    manifest_file.write_text(json.dumps(_manifest(case)), encoding="utf-8")
+    fake_original = tmp_path / "r50.png"
+    duplicate_hardlink = tmp_path / "hardlink-evidence.png"
+    duplicate_hardlink.hardlink_to(fake_original)
+    duplicate_symlink = tmp_path / "symlink-evidence.png"
+    duplicate_symlink.symlink_to(fake_original)
+    prior_receipt = tmp_path / "earlier-receipt.json"
+    prior_receipt.write_bytes(b"KEEP THIS OLD RECEIPT")
+    original = {
+        "case": case_file.read_bytes(),
+        "manifest": manifest_file.read_bytes(),
+        "image": fake_original.read_bytes(),
+        "existing_receipt": prior_receipt.read_bytes(),
+    }
+    base = [
+        sys.executable, "-m", "tools.research.p0_report_case_local_image_binding",
+        "--case", str(case_file), "--manifest", str(manifest_file),
+        "--evidence-root", str(tmp_path), "--output-json",
+    ]
+    for output in (
+        case_file, manifest_file, fake_original,
+        duplicate_symlink, duplicate_hardlink, prior_receipt,
+    ):
+        run = subprocess.run(base + [str(output)], capture_output=True,
+                             text=True, timeout=20)
+        assert run.returncode == 2, (str(output), run.stderr)
+        assert "refusing to overwrite" in run.stderr
+        assert case_file.read_bytes() == original["case"]
+        assert manifest_file.read_bytes() == original["manifest"]
+        assert fake_original.read_bytes() == original["image"]
+        assert prior_receipt.read_bytes() == original["existing_receipt"]
+        assert duplicate_symlink.is_symlink()
+    # Template creation must obey the same no-overwrite contract.
+    template = tmp_path / "blank-template.json"
+    command = [sys.executable, "-m", "tools.research.p0_report_case_local_image_binding",
+               "--write-template", str(template)]
+    assert subprocess.run(command, capture_output=True, timeout=10).returncode == 0
+    before = template.read_bytes()
+    run = subprocess.run(command, capture_output=True, timeout=10)
+    assert run.returncode == 2
+    assert template.read_bytes() == before
