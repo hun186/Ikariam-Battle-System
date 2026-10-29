@@ -95,7 +95,7 @@ case JSON backup and original screenshot sources separately.
 
 PR #104 passed exact HEAD GitHub Actions 14/14 and clean formal Codex Review before owner-authorized Squash Merge into main `96de242b77806eda8ebe6be927f1d29fb954a9ba` (2026-10-29 17:33 Taiwan).
 
-### Whole-case adjacent **captured** timeline CSV (Draft PR #105)
+### Whole-case adjacent **captured** timeline CSV (owner-merged PR #105)
 
 One additional case-level button exports all chronologically adjacent **captured
 snapshots** (not every true in-game round) into one Excel-compatible CSV.
@@ -128,6 +128,33 @@ Node/Python adversarial CSV decoding, empty-pair, out-of-order and
 import/export invariance, plus real Chromium full-timeline download
 are acceptance tests for PR #105. Neither test fixtures nor synthetic
 screenshots count as new Gameforge observation for Issue #73.
+
+### Read-only captured-pair input coverage ledger (Draft PR #106)
+
+The case editor now provides an **in-browser collapsible read-only overview**
+of each consecutive **captured-snapshot pair**, using the exact same
+`compareCapturedRounds()` status codes that supply the two CSV exports.
+`summarizeCapturedTimeline()` validates the case, sorts a copy of the
+entered rounds chronologically and counts **only physical positions with
+some manually entered fields** per pair:
+`FIELDS_COMPARABLE`, `ONE_SIDED`, `INCOMPLETE`, `LABEL_CHANGED`,
+`PHASE_MISMATCH`, `NO_ENTERED_VISIBLE_SLOTS`. Completely empty
+pairs count as one explicit *missing-data alert*, not one observed slot.
+The table also shows round-number gaps (not actual observed intervening
+rounds), with a button to navigate directly to the selected target capture.
+
+The counts are **NOT an evidence authenticity or model accuracy score**.
+`ONE_SIDED` means an address was entered for only one snapshot, not
+that the in-game tile was empty. User-typed matching unit/Wave labels
+do not prove identity across screenshots. No HP, casualty, healing,
+Reserve HP, production combat formula or original-screenshot authenticity
+is derived. No `localStorage`, timestamp or v1 JSON state changes.
+The panel cannot replace the original screenshots and explicit
+case backup. Adversarial Node tests include unsorted R50/R80/R81/R82,
+label and phase mismatch, partial draft, blank snapshots, and
+invalid schema; true Chromium tests exercise R50→R80→R81→R82,
+read-only table and click-to-round navigation. Hosted exact-HEAD
+CI and formal Codex Review are mandatory for PR #106.
 
 ### Reserve HP evidence constraint
 
