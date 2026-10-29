@@ -494,6 +494,68 @@ def test_round_comparison_panel_is_read_only_escaped_and_static_parity():
     assert (ROOT/"battle-cases-model.js").read_bytes() == (ROOT/"public/battle-cases-model.js").read_bytes()
 
 
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node needed for selectable round comparison")
+def test_explicit_earlier_comparison_source_rejects_stale_future_and_cross_case_ids(tmp_path):
+    script=r"""
+const assert=require('node:assert/strict');
+const M=require(process.argv[2]);
+const c=M.create('user transcription','naval-small');
+const r50=c.rounds[0];r50.number=50;
+const r80=M.newRound(80),r81=M.newRound(81),r82=M.newRound(82);
+c.rounds.push(r82,r80,r81); // intentionally unsorted
+const a=M.newSlot('first',1);
+Object.assign(a,{unit:'ram_ship',wave:'user-label',count:7,hp:94});
+r50.attacker.slots.push(a);
+const b=M.newSlot('first',1);
+Object.assign(b,{unit:'ram_ship',wave:'user-label',count:9,hp:83});
+r80.attacker.slots.push(b);
+const d=M.newSlot('first',1);
+Object.assign(d,{unit:'ram_ship',wave:'user-label',count:8,hp:76});
+r81.attacker.slots.push(d);
+assert.equal(M.compareCapturedRounds(c,r81.id).sourceRound,80,'legacy nearest earlier');
+assert.equal(M.compareCapturedRounds(c,r81.id,null).sourceRound,80);
+const selected=M.compareCapturedRounds(c,r81.id,r50.id);
+assert.equal(selected.sourceRound,50);
+assert.equal(selected.rows.length,1);
+assert.equal(selected.rows[0].countDelta,1);
+assert.equal(selected.rows[0].hpPointDelta,-18);
+assert.equal(M.compareCapturedRounds(c,r82.id,r50.id).sourceRound,50);
+assert.equal(M.compareCapturedRounds(c,r50.id).sourceRound,null);
+assert.throws(()=>M.compareCapturedRounds(c,r50.id,r80.id),/較早/);
+assert.throws(()=>M.compareCapturedRounds(c,r81.id,r81.id),/較早/);
+assert.throws(()=>M.compareCapturedRounds(c,r81.id,r82.id),/較早/);
+assert.throws(()=>M.compareCapturedRounds(c,r81.id,'missing'),/較早/);
+const other=M.create('another case','naval-small');
+assert.throws(()=>M.compareCapturedRounds(c,r81.id,other.rounds[0].id),/較早/);
+const before=JSON.stringify(c);
+M.compareCapturedRounds(c,r81.id,r50.id);
+assert.equal(JSON.stringify(c),before,'comparison must not mutate case or add metadata');
+assert.deepEqual(M.validateCase(c),[]);
+assert.deepEqual(M.importCase(M.exportCase(c)),c);
+r50.phase='round_prefire'; // no arithmetic across unlike phases
+assert.equal(M.compareCapturedRounds(c,r81.id,r50.id).rows[0].code,'PHASE_MISMATCH');
+"""
+    js=tmp_path/"selectable_round_source.cjs"
+    js.write_text(script,encoding="utf-8")
+    result=subprocess.run(["node",str(js),str(ROOT/"battle-cases-model.js")],
+                          capture_output=True,text=True,check=False)
+    assert result.returncode==0,result.stderr
+
+
+def test_compare_source_ui_is_an_ephemeral_safe_selector():
+    html=(ROOT/"battle-cases.html").read_text(encoding="utf-8")
+    assert 'id="comparisonSource"' in html
+    assert "comparisonCaseId!==c.id||comparisonTargetId!==r.id" in html
+    assert "comparisonSourceId=earlier[0]?.id||null" in html
+    assert "M.compareCapturedRounds(c,r.id,comparisonSourceId)" in html
+    assert "select.disabled=!earlier.length" in html
+    assert "renderRoundComparison(c,r); // Strictly read-only; no mutate/persist." in html
+    assert "回合編號相隔 " in html
+    assert html == (ROOT/"public/battle-cases.html").read_text(encoding="utf-8")
+    assert (ROOT/"battle-cases-model.js").read_bytes() == (ROOT/"public/battle-cases-model.js").read_bytes()
+
+
 def test_draft_label_ui_is_visible_and_public_page_stays_identical():
     html = (ROOT / "battle-cases.html").read_text(encoding="utf-8")
     assert 'id="reuseEarlierLabels"' in html
