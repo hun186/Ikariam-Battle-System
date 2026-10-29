@@ -190,7 +190,7 @@ CI must cover Node adversarial pair-ID/mismatch/zero/non-mutation checks,
 root/public parity, and real Chromium pair inspection and click behavior;
 formal Codex Review required before owner-authorized merge.
 
-### Read-only cross-round pending-field CSV handoff (Draft PR #108)
+### Read-only cross-round pending-field CSV handoff (owner-merged PR #108)
 
 The captured-round coverage panel includes a **CSV export of the entire
 case's *noncomparable* adjacent-captured-pair review queue**, suitable
@@ -238,6 +238,45 @@ bounded-time behavior on supported case sizes. Genuine Chromium must download on
 R81→R82 pending row in the synthetic browser case and verify its source
 fields and unchanged localStorage. PR #108 requires exact-HEAD Hosted
 CI and formal Codex Review; **never merge without owner permission**.
+
+### Source-note-only captured-round manifest CSV (Draft PR #109)
+
+The captured-round coverage panel offers a second **source handoff**
+file: a single-row-per-captured-round CSV containing the **existing**
+free-text `round.source` value (screenshot filename / game version /
+transcription context where manually entered), together with
+`case_id`, case name, battlefield, `capture_round`, the unique capture
+ID, phase, and the existing `roundEntrySummary()` entered/pending
+visible-slot counts and entry status. It is sorted by numeric capture
+round regardless of original JSON array order. Users can join the
+separate pending-slot CSV to this source-note index by
+`case_id + capture_round` (the pending CSV has both earlier and target
+round numbers). One captured round is enough to export.
+
+`SOURCE_NOTE_TYPED_UNVERIFIED` means only that **some non-whitespace
+source note was typed**; `SOURCE_NOTE_MISSING` means the note is blank
+or whitespace-only, including when user-typed formation fields exist.
+Both states always carry `USER_TRANSCRIPTION_UNVERIFIED`,
+`ORIGINAL_IMAGE_NOT_INCLUDED`, `NOT_AUTHENTICATED`, and
+`NOTE_TEXT_ONLY_NOT_PROOF_OF_SOURCE_OR_COMBAT_CAUSALITY`.
+It never attaches, reads, checks the existence of, hashes, authenticates
+or claims to corroborate screenshot PNGs or reports. It does NOT infer
+combat results, Reserve HP, healing, or casualties. `round.source`
+may contain a local path or private filename; users must check the CSV
+before distributing it. Unlike the source-note text, actual image
+evidence remains external.
+
+CSV uses the existing shared UTF-8 BOM serialization, Unicode/text
+formula-prefix guard, control newline/tab normalization, sanitized
+filename and 64 MiB cap. It validates the v1 case; exporting never
+modifies timestamps, localStorage, the JSON backup, case schema, or the
+simulator. Node/Python CSV-parser regression covers out-of-order
+R50/R80/R81/R82, empty vs whitespace notes, escaped formula strings,
+typed zero, injected newline, invalid schema and the unchanged
+JSON round trip; genuine Chromium validates R80 synthetic source note,
+blank R82, explicit source-authentication disclaimers and unchanged
+localStorage. Exact-HEAD Hosted CI and formal Codex Review are required
+before owner-authorized merge.
 
 ### Reserve HP evidence constraint
 
