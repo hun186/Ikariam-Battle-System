@@ -263,7 +263,7 @@ def main() -> None:
     # an existence-check followed by write_text() would be race-prone.
     try:
         with path.open("x", encoding="utf-8") as output:
-            output.write(json.dumps(result, ensure_ascii=False, indent=2) + "\\n")
+            output.write(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
     except FileExistsError:
         parser.exit(2, "refusing to overwrite an existing output file\n")
     print(json.dumps({"status": result.get("status", "EMPTY_TEMPLATE")}))
