@@ -306,6 +306,76 @@ function clickAdd(h){
     assert result.returncode == 0, result.stderr
 
 
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node required for round-label draft contract")
+def test_reuse_earlier_slot_labels_never_duplicates_observed_data(tmp_path):
+    """Nearest chronological source only; no copied HP, deaths, counts or Reserve."""
+    script = r"""
+const assert=require('node:assert/strict');
+const M=require(process.argv[2]);
+const c=M.create('source snapshots','naval-small');
+const r80=c.rounds[0];r80.number=80;
+const early=M.newSlot('first',1);
+Object.assign(early,{unit:'ram_ship',wave:'R80',count:11,hp:91,deaths:2});
+r80.attacker.slots.push(early);
+const reserve=M.newReserve();
+Object.assign(reserve,{unit:'ram_ship',wave:'R80',count:9});
+r80.attacker.reserve.push(reserve);r80.baseline_confirmed.attacker=true;
+const noEarlier=JSON.stringify(c);
+assert.throws(()=>M.reuseEarlierSlotLabels(c,r80.id),/沒有更早/);
+assert.equal(JSON.stringify(c),noEarlier);
+
+const r82=M.newRound(82);r82.source='不同於 R81 的合成截圖來源';
+c.rounds.push(r82);
+const r81=M.newRound(81);
+const candidate=M.newSlot('first',3);
+Object.assign(candidate,{unit:'balloon_carrier',wave:'R81',count:7,hp:83,deaths:5});
+r81.defender.slots.push(candidate);
+c.rounds.push(r81); // chronology is by round number, not array order
+const result=M.reuseEarlierSlotLabels(c,r82.id);
+assert.deepEqual(result,{sourceRound:81,copiedSlots:1});
+assert.deepEqual(r82.attacker,{slots:[],reserve:[]});
+assert.deepEqual(r82.defender.slots,[{
+  line:'first',pos:3,unit:'balloon_carrier',wave:'R81',
+  count:null,hp:null,deaths:null,
+}]);
+assert.equal(r82.defender.reserve.length,0);
+assert.equal(r82.source,'不同於 R81 的合成截圖來源');
+assert.deepEqual(r82.baseline_confirmed,{attacker:false,defender:false});
+assert.equal(r82.phase,'round_end');
+assert.equal(M.validateCase(c).length,0);
+assert.equal(r81.defender.slots[0].hp,83);
+r82.defender.slots[0].wave='edited';
+assert.equal(r81.defender.slots[0].wave,'R81'); // not shared objects
+const beforeRepeat=JSON.stringify(c);
+assert.throws(()=>M.reuseEarlierSlotLabels(c,r82.id),/已有格位/);
+assert.equal(JSON.stringify(c),beforeRepeat);
+
+// Do not silently skip the nearest earlier EMPTY snapshot to copy stale labels.
+const r84=M.newRound(84);
+r84.attacker.slots.push(M.newSlot('first',1)); // no unit or wave
+const r85=M.newRound(85);c.rounds.push(r84,r85);
+const beforeEmpty=JSON.stringify(c);
+assert.throws(()=>M.reuseEarlierSlotLabels(c,r85.id),/沒有兵種或 Wave/);
+assert.equal(JSON.stringify(c),beforeEmpty);
+assert.equal(M.validateCase(c).length,0);
+"""
+    js = tmp_path / "draft_labels.cjs"
+    js.write_text(script, encoding="utf-8")
+    result = subprocess.run(["node", str(js), str(ROOT / "battle-cases-model.js")],
+                            capture_output=True, text=True, check=False)
+    assert result.returncode == 0, result.stderr
+
+
+def test_draft_label_ui_is_visible_and_public_page_stays_identical():
+    html = (ROOT / "battle-cases.html").read_text(encoding="utf-8")
+    assert 'id="reuseEarlierLabels"' in html
+    assert "M.reuseEarlierSlotLabels(c,r.id)" in html
+    assert "reuseEarlierLabels','removeRound" in html
+    assert "HP 未填（非觀測草稿）" in html
+    assert "不複製兵量、HP、死亡" in html
+    assert html == (ROOT / "public/battle-cases.html").read_text(encoding="utf-8")
+
+
 @pytest.mark.skipif(shutil.which("node") is None, reason="Node required for JSON backup round-trip")
 def test_large_case_compact_export_utf8_backup_round_trip(tmp_path):
     """Codex P2: an exported valid 1.5 MB+ case must restore on a second machine."""

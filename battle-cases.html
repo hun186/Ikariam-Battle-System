@@ -57,10 +57,12 @@ button,.btn{border:1px solid #7b6548;background:#f5e5c5;padding:8px 11px;border-
 <div class="info danger"><b>重要：遊戲戰報不會顯示 Reserve（後備）血量。</b> 新增 Reserve 預設為 <b>100%（假設，非戰報觀測）</b>。必須確認「本案例第一個截錄回合」的 Reserve 確實滿血，才能把它當可靠的起始狀態；即使此回合不是戰鬥真正的第 1 回合也一樣。若另有精密計算才可修改血量，且需留下具體計算依據。部署中的格位可直接填戰報看得到的傷害。</div>
 <div class="bar">
 <button id="addRound" type="button">＋ 新增截錄回合</button>
+<button id="reuseEarlierLabels" type="button" title="僅參考最近較早截錄的格位兵種和 Wave；不會沿用實測數值或 Reserve">沿用前一截錄格位標籤</button>
 <button id="removeRound" class="delete" type="button">刪除目前回合</button>
 <label>時點<select id="roundPhase"><option value="round_end">回合結束</option><option value="round_prefire">下一回合開火前</option></select></label>
 </div>
 <div id="roundTabs" class="rounds"></div>
+<p class="muted">沿用格位標籤只是輸入草稿：不複製兵量、HP、死亡數、Reserve、回合時點、證據備註或任何確認；請逐格依原始截圖重新填寫。</p>
 <label class="wide">本回合證據備註（截圖檔名、遊戲版本、死亡／補兵線索、可見時間點）
 <textarea id="roundSource" class="wide" rows="2" maxlength="2500" placeholder="例如第 80 回合結束截圖；請不要將推測血量寫成畫面實測"></textarea></label>
 <div id="readiness" class="info" aria-live="polite"></div>
@@ -120,7 +122,7 @@ function sideSlot(r,side,line,pos){
   const label=slot?.unit?unitName(slot.unit):'＋ 空格';
   return '<button class="slot'+(!slot?.unit?' empty-slot':'')+(chosen?' selected':'')+'" type="button" data-side="'+side+'" data-line="'+line+'" data-pos="'+pos+'"'+(!edit?' disabled':'')+' title="'+esc(side+' '+line+' 位置 '+pos)+'">'+
    '<span class="unit-icon">'+(glyphs[line]||'◈')+'</span><span class="slot-label">'+esc(label)+'</span><span>格位 '+pos+(slot?.count!==null&&slot?.count!==undefined?' · '+slot.count:'')+'</span>'+
-   (slot?.hp!==null&&slot?.hp!==undefined?'<span class="slot-hp">HP '+slot.hp+'%</span>':'<span>HP 未填</span>')+
+   (slot?.hp!==null&&slot?.hp!==undefined?'<span class="slot-hp">HP '+slot.hp+'%</span>':'<span>HP 未填（非觀測草稿）</span>')+
    hpBar(slot?.hp??null)+(slot?.deaths!==null&&slot?.deaths!==undefined?'<span>死亡 '+slot.deaths+'</span>':'')+'</button>';
 }
 function lineGroup(r,side,line,positions){
@@ -218,7 +220,7 @@ function render(){
  $('caseField').innerHTML=fields.map(f=>'<option value="'+esc(f.id)+'">'+esc(f.display_name||f.id)+'</option>').join('');$('caseField').value=c.battlefield;
  $('roundTabs').innerHTML=c.rounds.slice().sort((a,b)=>a.number-b.number).map(x=>'<button class="'+(x.id===roundId?'active':'')+'" type="button" data-round-id="'+esc(x.id)+'">R'+x.number+'</button>').join('');
  $('roundPhase').value=r.phase;$('roundSource').value=r.source;
- ['caseName','caseField','caseNotes','roundPhase','roundSource','addRound','removeRound'].forEach(id=>$(id).disabled=!edit);
+ ['caseName','caseField','caseNotes','roundPhase','roundSource','addRound','reuseEarlierLabels','removeRound'].forEach(id=>$(id).disabled=!edit);
  $('editMode').classList.toggle('active',edit);$('readMode').classList.toggle('active',!edit);
  const state=M.readiness(c);
  $('readiness').textContent=state.ready?
@@ -257,6 +259,13 @@ function listen(){
  if(value===null)return;const n=Number(value);
  if(!Number.isInteger(n)||n<1||n>1000||c.rounds.some(x=>x.number===n)){notify('請輸入未使用的 1–1000 回合編號。',true);return;}
  const round=M.newRound(n);mutate(c=>c.rounds.push(round));roundId=round.id;selected=null;render();};
+ $('reuseEarlierLabels').onclick=()=>{
+  const c=active(),r=currentRound();if(!c||!r)return;
+  if(!confirm('只沿用最近較早截錄的兵種與 Wave 標籤，不複製兵量、HP、死亡、Reserve 或來源資料。仍要逐格依當回合截圖重新確認。要建立草稿嗎？'))return;
+  try{let draft;mutate(c=>{draft=M.reuseEarlierSlotLabels(c,r.id);});selected=null;render();
+   if(storageOkay)notify('已從 R'+draft.sourceRound+' 沿用 '+draft.copiedSlots+' 個格位標籤草稿；所有觀測值仍須重新填寫。');
+  }catch(error){notify('無法沿用標籤：'+error.message,true);}
+ };
  $('removeRound').onclick=()=>{const c=active();if(c.rounds.length===1){notify('至少要保留一個截錄回合',true);return;}
  const r=currentRound();if(!confirm('刪除截錄 R'+r.number+'？'))return;
  mutate(c=>{c.rounds=c.rounds.filter(x=>x.id!==r.id);});roundId=active().rounds[0].id;selected=null;render();};
