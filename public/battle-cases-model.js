@@ -243,33 +243,55 @@ const REVIEW_QUEUE_CSV_HEADERS=[
   'target_unit','target_wave','target_count','target_hp_percent',
   'source_check_instruction','interpretation'
 ];
-function exportCapturedReviewQueueCsv(c,fields=null){
-  const pairs=summarizeCapturedTimeline(c,fields); // validates exact v1 schema
+// Handoff may enrich pending rows with BOTH captured-round source notes.
+// The older pending-only CSV schema is kept byte-compatible.
+const JOINED_REVIEW_CSV_HEADERS=[
+  ...REVIEW_QUEUE_CSV_HEADERS.slice(0,-1),
+  'earlier_source_note_status','earlier_source_note_text',
+  'target_source_note_status','target_source_note_text',
+  'original_image_in_export','source_authentication','interpretation'
+];
+function sourceNoteStatus(round){
+  // Presence of manually typed text is NEVER evidence of an existing file.
+  return round.source.trim()?'SOURCE_NOTE_TYPED_UNVERIFIED':'SOURCE_NOTE_MISSING';
+}
+function capturedReviewQueueRows(c,fields=null,includeSources=false){
+  const pairs=summarizeCapturedTimeline(c,fields); // validates v1 + adjacency
   if(!pairs.length)err('至少需要兩個截錄回合才能匯出待查清單');
+  const byId=new Map(c.rounds.map(round=>[round.id,round]));
   const rows=[];
   for(const pair of pairs){
-    const source=c.rounds.find(r=>r.id===pair.sourceId);
-    const target=c.rounds.find(r=>r.id===pair.targetId);
-    // The adjacency has already been checked by summarizeCapturedTimeline.
-    // Reuse the existing comparison projection, not the inspect helper which
-    // would recompute the entire 100-round timeline for every pair (Codex P2).
+    const source=byId.get(pair.sourceId),target=byId.get(pair.targetId);
+    // Earlier Codex P2: NEVER use inspectCapturedCoveragePair() in this loop.
+    // It would re-summarize all pairs for each individual captured pair.
     const comparison=compareCapturedRounds(c,pair.targetId,pair.sourceId);
-    const reviewItems=reviewItemsFromComparison(comparison);
-    for(const item of reviewItems){
-      rows.push([
+    for(const item of reviewItemsFromComparison(comparison)){
+      const row=[
         'USER_TRANSCRIPTION_UNVERIFIED',c.id,c.name,c.battlefield,
         pair.sourceRound,pair.targetRound,pair.roundNumberGap,
         source.phase,target.phase,item.side,item.line,item.pos,
         item.code,item.prior?.unit??'',item.prior?.wave??'',
         item.prior?.count??null,item.prior?.hp??null,
         item.current?.unit??'',item.current?.wave??'',
-        item.current?.count??null,item.current?.hp??null,
-        item.hint,'SOURCE_IMAGE_NOT_VERIFIED_NO_COMBAT_CAUSALITY'
-      ]);
+        item.current?.count??null,item.current?.hp??null,item.hint
+      ];
+      if(includeSources){
+        row.push(sourceNoteStatus(source),source.source,
+          sourceNoteStatus(target),target.source,
+          'ORIGINAL_IMAGE_NOT_INCLUDED','NOT_AUTHENTICATED',
+          'NOTE_TEXT_ONLY_NOT_PROOF_OF_SOURCE_OR_COMBAT_CAUSALITY');
+      }else row.push('SOURCE_IMAGE_NOT_VERIFIED_NO_COMBAT_CAUSALITY');
+      rows.push(row);
     }
   }
   if(!rows.length)err('目前沒有需核對的已輸入欄位；這不代表截圖來源已驗證');
-  return serializeComparisonCsv(rows,REVIEW_QUEUE_CSV_HEADERS);
+  return rows;
+}
+function exportCapturedReviewQueueCsv(c,fields=null){
+  return serializeComparisonCsv(capturedReviewQueueRows(c,fields),REVIEW_QUEUE_CSV_HEADERS);
+}
+function exportCapturedJoinedReviewCsv(c,fields=null){
+  return serializeComparisonCsv(capturedReviewQueueRows(c,fields,true),JOINED_REVIEW_CSV_HEADERS);
 }
 // Evidence source-notes MANIFEST: existing text only, never image bytes,
 // source authentication, screenshot existence, inferred observations or HP.
@@ -289,7 +311,7 @@ function exportCapturedSourceManifestCsv(c,fields=null){
     return [
       'USER_TRANSCRIPTION_UNVERIFIED',c.id,c.name,c.battlefield,
       round.number,round.id,round.phase,
-      round.source.trim()?'SOURCE_NOTE_TYPED_UNVERIFIED':'SOURCE_NOTE_MISSING',
+      sourceNoteStatus(round),
       round.source,progress.enteredSlots,progress.pendingSlots,progress.code,
       'ORIGINAL_IMAGE_NOT_INCLUDED','NOT_AUTHENTICATED',
       'NOTE_TEXT_ONLY_NOT_PROOF_OF_SOURCE_OR_COMBAT_CAUSALITY'
@@ -376,5 +398,5 @@ function importCase(s,fields){
   if(problems.length)err(problems.slice(0,5).join('；'));
   return data;
 }
-return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds,summarizeCapturedTimeline,inspectCapturedCoveragePair,exportCapturedComparisonCsv,exportCapturedTimelineCsv,exportCapturedReviewQueueCsv,exportCapturedSourceManifestCsv};
+return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds,summarizeCapturedTimeline,inspectCapturedCoveragePair,exportCapturedComparisonCsv,exportCapturedTimelineCsv,exportCapturedReviewQueueCsv,exportCapturedSourceManifestCsv,exportCapturedJoinedReviewCsv};
 });
