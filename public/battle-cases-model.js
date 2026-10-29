@@ -104,6 +104,33 @@ function compareCapturedRounds(c,targetId,sourceId=null){
   }
   return {sourceRound:prior.number,targetRound:target.number,samePhase,rows};
 }
+// Evidence COVERAGE ledger: counts typed-slot comparison statuses for consecutive
+// CAPTURED snapshots, never claiming the missing game rounds were observed.
+// No integrity / authenticity score: a numeric count is not an authenticated source.
+function summarizeCapturedTimeline(c,fields=null){
+  const problems=validateCase(c,fields);
+  if(problems.length)err('無法彙整截錄資料：'+problems[0]);
+  const chronological=c.rounds.slice().sort((a,b)=>a.number-b.number);
+  const summaries=[];
+  const codes=['FIELDS_COMPARABLE','ONE_SIDED','INCOMPLETE','LABEL_CHANGED',
+    'PHASE_MISMATCH','NO_ENTERED_VISIBLE_SLOTS'];
+  for(let i=1;i<chronological.length;i++){
+    const source=chronological[i-1],target=chronological[i];
+    const comparison=compareCapturedRounds(c,target.id,source.id);
+    const counts=Object.fromEntries(codes.map(k=>[k,0]));
+    if(!comparison.rows.length)counts.NO_ENTERED_VISIBLE_SLOTS=1;
+    else for(const row of comparison.rows)counts[row.code]++;
+    summaries.push({
+      sourceId:source.id,targetId:target.id,
+      sourceRound:source.number,targetRound:target.number,
+      roundNumberGap:target.number-source.number,
+      samePhase:comparison.samePhase,
+      enteredPositionRows:comparison.rows.length,
+      counts
+    });
+  }
+  return summaries;
+}
 // Research export: derivative of typed *visible* field comparisons only.
 // Never encode inferred kills, healing, Reserve HP, screenshots or official truth.
 // Escape spreadsheet-formula entry points in ALL user-controlled CSV text.
@@ -251,5 +278,5 @@ function importCase(s,fields){
   if(problems.length)err(problems.slice(0,5).join('；'));
   return data;
 }
-return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds,exportCapturedComparisonCsv,exportCapturedTimelineCsv};
+return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds,summarizeCapturedTimeline,exportCapturedComparisonCsv,exportCapturedTimelineCsv};
 });
