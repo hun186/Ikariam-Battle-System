@@ -15,7 +15,7 @@ h2{font:700 22px Georgia,serif;margin:0 0 9px}h3{margin:0 0 8px;font-size:17px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.bar{display:flex;align-items:end;flex-wrap:wrap;gap:9px}.bar>*{flex:none}label{font-weight:650;font-size:12px;display:grid;gap:5px}input,select,textarea{border:1px solid #a89472;border-radius:5px;padding:8px;background:white;min-width:0}input[type=checkbox]{width:17px;height:17px}.wide{width:100%}textarea{resize:vertical}
 button,.btn{border:1px solid #7b6548;background:#f5e5c5;padding:8px 11px;border-radius:6px;font-weight:700}button.primary{background:var(--deep);color:white;border-color:var(--deep)}button.delete{color:#7c2c25}button:disabled{opacity:.5;cursor:not-allowed}
 .info{background:#f7efd9;border-left:4px solid #ac7e39;padding:10px 12px;font-size:13px;margin:10px 0}.danger{background:#fff0e8;border-left-color:#a73f3f}.ok{color:var(--ok)}.muted{color:var(--muted);font-size:12px}.hidden{display:none!important}.case-head{display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap}.case-head strong{font:700 22px Georgia,serif}
-.rounds{display:flex;flex-wrap:wrap;gap:5px;margin:12px 0}.rounds button.active,.toggle button.active{background:var(--deep);color:white}
+.rounds{display:flex;flex-wrap:wrap;gap:5px;margin:12px 0}.rounds .round-entry-label{display:block;font-size:10px;font-weight:500}.rounds button.active,.toggle button.active{background:var(--deep);color:white}
 .board-wrap{overflow:hidden}.battle-board{display:grid;gap:13px}.battle-half{display:grid;grid-template-columns:minmax(215px,260px) minmax(0,1fr);gap:12px;background:#f7ecd3;border:1px solid #c9ae83;border-radius:8px;padding:12px}.battle-half.defender{background:#eff1e7}
 .army-title{grid-column:1/-1;font:700 19px Georgia,serif;border-bottom:1px solid #bea781;padding-bottom:7px}.reserve-box{padding:10px;background:#fff9eb;border:1px dashed #aa916d;border-radius:6px}.reserve-box h3{margin:0 0 5px}
 .reserve-entry{border:1px solid #bca57e;border-radius:7px;padding:9px;margin:8px 0;background:white}.reserve-name{font-weight:700}.reserve-tag{display:inline-block;background:#fcebcf;padding:2px 5px;font-size:11px;border-radius:3px}.reserve-tag.calculated{background:#ddebea}
@@ -62,6 +62,7 @@ button,.btn{border:1px solid #7b6548;background:#f5e5c5;padding:8px 11px;border-
 <label>時點<select id="roundPhase"><option value="round_end">回合結束</option><option value="round_prefire">下一回合開火前</option></select></label>
 </div>
 <div id="roundTabs" class="rounds"></div>
+<p id="roundEntryStatus" class="muted" aria-live="polite"></p>
 <p class="muted">沿用格位標籤只是輸入草稿：不複製兵量、HP、死亡數、Reserve、回合時點、證據備註或任何確認；請逐格依原始截圖重新填寫。</p>
 <label class="wide">本回合證據備註（截圖檔名、遊戲版本、死亡／補兵線索、可見時間點）
 <textarea id="roundSource" class="wide" rows="2" maxlength="2500" placeholder="例如第 80 回合結束截圖；請不要將推測血量寫成畫面實測"></textarea></label>
@@ -84,6 +85,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'
 const sides=['attacker','defender'];
 const lineLabels={first:'前排',flank:'側翼',second:'第二排',third:'第三排',balloon:'空中攻擊', 'anti-balloon':'防空'};
 const glyphs={first:'🛡',flank:'⚔',second:'🎯',third:'💥',balloon:'✈','anti-balloon':'🛩'};
+const roundEntryLabels={EMPTY:'未填',DRAFT:'待補可見欄位',PARTIAL:'部分可見欄位已填',FIELDS_ENTERED:'可見欄位已填'};
 let fields=[],units=[],cases=[],activeId=null,roundId=null,edit=true,selected=null,storageOkay=true;
 function active(){return cases.find(c=>c.id===activeId);}
 function currentRound(){return active()?.rounds.find(x=>x.id===roundId);}
@@ -218,7 +220,12 @@ function render(){
  $('caseHeading').textContent=c.name;
  $('caseName').value=c.name;$('caseNotes').value=c.notes;
  $('caseField').innerHTML=fields.map(f=>'<option value="'+esc(f.id)+'">'+esc(f.display_name||f.id)+'</option>').join('');$('caseField').value=c.battlefield;
- $('roundTabs').innerHTML=c.rounds.slice().sort((a,b)=>a.number-b.number).map(x=>'<button class="'+(x.id===roundId?'active':'')+'" type="button" data-round-id="'+esc(x.id)+'">R'+x.number+'</button>').join('');
+ $('roundTabs').innerHTML=c.rounds.slice().sort((a,b)=>a.number-b.number).map(x=>{
+   const s=M.roundEntrySummary(x),label=roundEntryLabels[s.code];
+   return '<button class="'+(x.id===roundId?'active':'')+'" type="button" data-round-id="'+esc(x.id)+'" data-entry-status="'+s.code+'" aria-label="R'+x.number+'" title="'+esc(label+'（手動輸入，未驗證）')+'">R'+x.number+'<span class="round-entry-label" aria-hidden="true">'+esc(label)+'</span></button>';
+ }).join('');
+ const progress=M.roundEntrySummary(r);
+ $('roundEntryStatus').textContent='R'+r.number+' · '+roundEntryLabels[progress.code]+'：可見欄位已填 '+progress.enteredSlots+' 格、待補 '+progress.pendingSlots+' 格，Reserve '+progress.reserveRows+' 筆（HP 非戰報可見）。此進度僅代表手動輸入，不能證明全部格位已轉錄或來源經過驗證。';
  $('roundPhase').value=r.phase;$('roundSource').value=r.source;
  ['caseName','caseField','caseNotes','roundPhase','roundSource','addRound','reuseEarlierLabels','removeRound'].forEach(id=>$(id).disabled=!edit);
  $('editMode').classList.toggle('active',edit);$('readMode').classList.toggle('active',!edit);
