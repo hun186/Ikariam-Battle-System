@@ -274,3 +274,70 @@ def test_cli_model_proposal_and_diagnostic_exclusive_output(case_bundle, tmp_pat
     assert rejected.returncode == 2
     assert not failed_path.exists()
     assert report_file.is_file()
+
+
+
+@pytest.mark.parametrize("earlier_unit,earlier_wave", [
+    ("steam_ram", "W1"),  # known different unit; earlier HP/count absent
+    ("ram_ship", "OLD"),  # known different Wave; earlier HP/count absent
+])
+def test_known_earlier_labels_override_incomplete_reason_before_numeric_comparison(
+    case_bundle, earlier_unit, earlier_wave
+):
+    raw, case, manifest, root, _ = case_bundle
+    changed = deepcopy(case)
+    earlier = next(row for row in changed["rounds"] if row["number"] == 50)
+    earlier["attacker"]["slots"] = [{
+        "line": "first", "pos": 1, "unit": earlier_unit, "wave": earlier_wave,
+        "count": None, "hp": None, "deaths": None,
+    }]
+    changed_bytes = json.dumps(changed).encode("utf-8")
+    review = manual.review_worksheet(changed_bytes, manifest, root)
+    assert review["review_items"][0]["review_reason"] == "INCOMPLETE"
+    for row in review["review_items"]:
+        row["review_status"] = "REVIEWER_REPORTS_IMAGES_READABLE"
+    review_bytes = json.dumps(review).encode("utf-8")
+    sheet = diagnostic.create_model_worksheet(changed_bytes, manifest, root, review_bytes)
+    sheet["model_run_label"] = "test known earlier label change"
+    first = sheet["comparison_rows"][0]
+    assert first["earlier_typed_unit"] == earlier_unit
+    assert first["earlier_typed_wave"] == earlier_wave
+    first.update({
+        "predicted_target_unit": "ram_ship",
+        "predicted_target_wave": "W1",
+        "predicted_target_count": 6,
+        "predicted_target_hp_percent": 93,
+    })
+    result = diagnostic.assess_model_candidate(
+        changed_bytes, manifest, root, review_bytes, sheet
+    )
+    item = result["candidate_rows"][0]
+    assert item["diagnostic_status"] == "NOT_ASSESSABLE_KNOWN_EARLIER_TARGET_LABEL_CHANGE"
+    assert item["model_minus_user_typed_count"] is None
+    assert item["model_minus_user_typed_hp_percentage_points"] is None
+    assert result["candidate_rows_with_numeric_diagnostic"] == 0
+
+
+def test_compact_worksheet_serialization_matches_accepted_import_byte_limit(
+    case_bundle, monkeypatch
+):
+    raw, _, manifest, root, review = case_bundle
+    sheet = diagnostic.create_model_worksheet(raw, manifest, root, review)
+    compact = diagnostic.serialize_output(sheet, is_model_worksheet=True)
+    pretty = (json.dumps(sheet, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    assert len(compact) < len(pretty)
+    assert json.loads(compact) == sheet
+    assert len(compact) <= diagnostic.MAX_WORKSHEET_BYTES
+    # Repeated large rows simulate long CJK identifiers in a bounded runtime:
+    # the same serializer must either write an importable file or stop.
+    inflated = deepcopy(sheet)
+    long_cjk = "模擬" * 4500
+    for row in inflated["comparison_rows"]:
+        row["target_typed_wave"] = long_cjk
+    accepted = diagnostic.serialize_output(inflated, is_model_worksheet=True)
+    monkeypatch.setattr(diagnostic, "MAX_WORKSHEET_BYTES", len(accepted))
+    assert diagnostic.serialize_output(inflated, is_model_worksheet=True) == accepted
+    monkeypatch.setattr(diagnostic, "MAX_WORKSHEET_BYTES", len(accepted)-1)
+    with pytest.raises(ValueError, match="exceeds its own import limit"):
+        diagnostic.serialize_output(inflated, is_model_worksheet=True)
+    # No output-file creation happens before the size check succeeds.
