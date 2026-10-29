@@ -115,6 +115,15 @@ def run(base_url: str, evidence_dir: Path) -> None:
             expect(first_tile).to_contain_text("HP 83%")
             page.get_by_role("button", name="R81", exact=True).click()
             expect(first_tile).to_contain_text("HP 76%")
+            page.locator("#roundComparison summary").click()
+            expect(page.locator("#roundComparisonContent")).to_contain_text("R80 → R81")
+            expect(page.locator("#roundComparisonContent")).to_contain_text("兵數差≠死亡數")
+            expect(page.locator("#roundComparisonContent")).to_contain_text("Reserve HP 不可從戰報觀測")
+            rows = page.locator("#roundComparisonContent tbody tr")
+            expect(rows).to_have_count(1)
+            cells = rows.first.locator("td")
+            assert cells.nth(2).inner_text() == "-1"
+            assert cells.nth(3).inner_text() == "-7"
 
             # Reuse R81's labels for a later R82 DRAFT, never its observations.
             prompted_click(page, "#addRound", "82")
@@ -125,6 +134,9 @@ def run(base_url: str, evidence_dir: Path) -> None:
             expect(first_tile).to_contain_text("HP 未填")
             assert page.locator('#roundTabs [aria-label="R82"]').get_attribute("data-entry-status") == "DRAFT"
             expect(page.locator("#roundEntryStatus")).to_contain_text("可見欄位已填 0 格、待補 1 格")
+            expect(page.locator("#roundComparisonContent")).to_contain_text("R81 → R82")
+            expect(page.locator("#roundComparisonContent")).to_contain_text("兵種／Wave／數量／HP 未填齊")
+            assert page.locator("#roundComparisonContent tbody tr").first.locator("td").nth(2).inner_text() == "—"
             first_tile.click()
             assert page.locator("#editUnit").input_value() == unit
             assert page.locator("#editWave").input_value() == "browser-e2e"
@@ -140,6 +152,7 @@ def run(base_url: str, evidence_dir: Path) -> None:
             prompted_click(page, "#addRound", "50")
             expect(page.locator("#roundHeading")).to_contain_text("R50")
             expect(page.locator("#readiness")).to_contain_text("R50")
+            expect(page.locator("#roundComparisonContent")).to_contain_text("目前沒有更早的截錄回合")
             expect(page.locator("#readiness")).to_contain_text("資料待覆核")
             fill_visible_slot(page, unit, count=7, hp=94)
             assert page.locator('#roundTabs [aria-label="R50"]').get_attribute("data-entry-status") == "FIELDS_ENTERED"
