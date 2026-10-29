@@ -6,6 +6,33 @@ Starting from owner-merged PR #97 `main` `15424a51775bb5a8d03067c8731dd3fab7e304
 
 Create/choose/delete a case (up to 50 per browser), select battlefield, name and note; add/remove numbered captured rounds in arbitrary order (real round one not required); choose R-end or next prefire phase, enter source screenshot notes. Click any formation tile to edit unit, wave, visible count, visible slot HP %, observed round deaths; switch Read/Write modes without changing battlefield layout. Use the Reserve section to add/edit/delete a reserve wave and its declared HP source. Download case JSON and import it on another computer to preserve original captured transcriptions. The exported JSON uses compact serialization so even long round-by-round calculation notes do not inflate through pretty-print indentation. Import and export share a single **64 MiB UTF-8 byte** limit enforced by the same model; download is rejected with a visible message rather than producing a file that cannot be restored. The model also rejects oversized external files prior to JSON parsing. Cases exceeding the ceiling must be separated into smaller cases. A large multi-round, 100-Reserve-per-side, non-ASCII backup round-trip is covered by Node regression tests.
 
+### Safe slot-label carry-forward for adjacent captured rounds (Draft PR)
+
+After adding a new captured round (such as R82), click **沿用前一截錄格位標籤**
+to insert a *data-entry draft* from the closest earlier **captured** round (such
+as R81, not necessarily the previous game turn). The source is determined by
+chronological round number, never JSON array order. Only physical side/line/
+slot position plus unit ID and Wave label are copied; blank source labels
+are omitted. This does **not** establish that the same unit/Wave was actually
+present in the new screenshot—these are prompts for manual verification.
+
+The new draft's **counts, HP percentages and deaths are always null**;
+Reserve entries, Reserve HP, source-note text, captured phase, first-baseline
+confirmation and any evidence/measurement flags are never copied from the
+prior screenshot. The target's existing source text and Reserve remain
+unchanged. The operation refuses to overwrite *any* existing target formation
+slot or to use an empty/invalid nearest earlier label set; it never silently
+skips an empty nearest snapshot to reach an older one. Each source object
+remains distinct so later editing cannot modify the original report.
+
+The label-only template is **not a new Gameforge observation** or evidence
+for Accuracy, healing, attack priority or reserve reconstruction. Existing
+JSON v1 backup schema is unchanged. Synthetic Node model and genuine
+Playwright/Chromium acceptance tests exercise sequential R80/R81/R82 and
+out-of-order R50 transcription, repeat-apply rejection and complete backup
+round-trip. This Draft feature must pass new exact-head Hosted CI and formal
+Codex Review before any merge.
+
 ### Reserve HP evidence constraint
 
 Game report screenshots DO NOT display Reserve HP. Each new Reserve row starts with `hp=100`, `source=assumed_full`; that is **NOT** an observed screenshot measurement. All default Reserve rows are tagged `預設 100%（未觀測）`. For the **earliest captured round in a case** (which may be R80 or another mid-battle round), check the explicit per-side `baseline_confirmed` only after the user has ensured those first-snapshot Reserve ships are full HP. Without the confirmation a case remains `REVIEW_REQUIRED` for reliable initial HP analysis. If a user has independently and precisely derived other Reserve HP, switch to `calculated` and enter the integer percent plus at least 20 characters describing concrete calculation evidence. This remains *external computation*, not Gameforge screenshot evidence and requires independent review. A 100% assumption may never be modified while keeping `source=assumed_full`.
@@ -16,7 +43,7 @@ Dynamic ordering: adding a newly earlier captured round re-evaluates the case's 
 
 Browser `localStorage` only, not a server database, account sync or persistent Vercel state. Always export JSON before browser cleanup/device switch; keep original screenshots privately outside GitHub. No screenshot upload, original-image authentication, official damage/Accuracy/healing inference or production simulation data ingest. The research archive's local SHA-256 binder and stage-delta tools remain separately available; this UI does not falsely claim screenshots are authenticated by typing a source note. Future tasks: optional authenticated persistent storage and schema-mapped evidence export, after explicit scope review.
 
-Static page is duplicated at root and `public/` to support ASGI local routes and Vercel static serving, matching simulator's existing root/public index parity. `/battle-cases.html` and `/battle-cases-model.js` have explicit rewrites before SPA catchall. Regression tests verify static parity, ASGI routes and Node JS model provenance rules/syntax (when Node available). Real-browser visual interaction not yet independently verified by hosted tests.
+Static page is duplicated at root and `public/` to support ASGI local routes and Vercel static serving, matching simulator's existing root/public index parity. `/battle-cases.html` and `/battle-cases-model.js` have explicit rewrites before SPA catchall. Regression tests verify static parity, ASGI routes and Node JS model provenance rules/syntax (when Node available). PR #99's real Chromium interaction and browser backup tests passed on the merged source; the new label-draft extension requires its own exact-HEAD CI before being called verified.
 
 ### Real Chromium browser interaction acceptance
 
