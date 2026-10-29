@@ -419,6 +419,81 @@ def test_round_entry_progress_ui_has_clear_non_verified_labels_and_parity():
     assert html == (ROOT / "public/battle-cases.html").read_text(encoding="utf-8")
 
 
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node required for conservative round comparison contract")
+def test_round_compare_nearest_captured_physical_slots_and_provenance(tmp_path):
+    """Only typed visible fields; no casualty, healing, Reserve or source authenticity inference."""
+    script=r"""
+const assert=require('node:assert/strict');
+const M=require(process.argv[2]);
+const c=M.create('synthetic','naval-small');
+const r80=c.rounds[0];r80.number=80;
+const s=M.newSlot('first',1);Object.assign(s,{unit:'ram_ship',wave:'a',count:12,hp:83,deaths:4});
+r80.attacker.slots.push(s);
+const reserve=M.newReserve();reserve.unit='ram_ship';reserve.count=7;r80.attacker.reserve.push(reserve);
+const r82=M.newRound(82),r81=M.newRound(81);
+c.rounds.push(r82,r81); // out-of-order JSON array
+const t=M.newSlot('first',1);Object.assign(t,{unit:'ram_ship',wave:'a',count:10,hp:72,deaths:0});
+r81.attacker.slots.push(t);
+const extra=M.newSlot('second',2);Object.assign(extra,{unit:'balloon_carrier',wave:'x',count:2,hp:100});
+r81.defender.slots.push(extra);
+assert.equal(M.compareCapturedRounds(c,r80.id).sourceRound,null);
+let d=M.compareCapturedRounds(c,r81.id);
+assert.equal(d.sourceRound,80);
+assert.equal(d.targetRound,81);
+assert.equal(d.rows.length,2);
+assert.deepEqual(d.rows[0],{
+ side:'attacker',line:'first',pos:1,code:'FIELDS_COMPARABLE',
+ prior:{unit:'ram_ship',wave:'a',count:12,hp:83},
+ current:{unit:'ram_ship',wave:'a',count:10,hp:72},countDelta:-2,hpPointDelta:-11
+});
+assert.equal(d.rows[1].code,'ONE_SIDED');
+assert.equal(d.rows[1].countDelta,null);
+assert.equal(d.rows.some(x=>x.prior?.hp===100),false,'Reserve never used');
+M.reuseEarlierSlotLabels(c,r82.id); // label-only from R81
+d=M.compareCapturedRounds(c,r82.id);
+assert.equal(d.sourceRound,81);
+assert.equal(d.rows.every(x=>x.code==='INCOMPLETE'),true);
+assert.equal(d.rows.every(x=>x.countDelta===null&&x.hpPointDelta===null),true);
+r82.attacker.slots[0].count=0;r82.attacker.slots[0].hp=0;
+d=M.compareCapturedRounds(c,r82.id);
+assert.equal(d.rows.find(x=>x.side==='attacker').code,'FIELDS_COMPARABLE');
+assert.equal(d.rows.find(x=>x.side==='attacker').countDelta,-10);
+assert.equal(d.rows.find(x=>x.side==='attacker').hpPointDelta,-72);
+r82.phase='round_prefire';
+assert.equal(M.compareCapturedRounds(c,r82.id).rows[0].code,'PHASE_MISMATCH');
+r82.phase='round_end';
+r82.attacker.slots[0].wave='changed';
+assert.equal(M.compareCapturedRounds(c,r82.id).rows[0].code,'LABEL_CHANGED');
+r82.attacker.slots[0].wave='a';r82.attacker.slots[0].hp=null;
+assert.equal(M.compareCapturedRounds(c,r82.id).rows[0].code,'INCOMPLETE');
+const r50=M.newRound(50);c.rounds.push(r50);
+assert.equal(M.compareCapturedRounds(c,r80.id).sourceRound,50);
+const backup=M.exportCase(c);
+assert.equal(M.importCase(backup).rounds.length,4);
+assert.deepEqual(M.validateCase(c),[]);
+const prior=JSON.stringify(c);
+M.compareCapturedRounds(c,r82.id);
+assert.equal(JSON.stringify(c),prior,'read-only comparison may not mutate case');
+assert.throws(()=>M.compareCapturedRounds(c,'missing'),/不存在/);
+"""
+    js=tmp_path/"compare_rounds.cjs"
+    js.write_text(script,encoding="utf-8")
+    result=subprocess.run(["node",str(js),str(ROOT/"battle-cases-model.js")],
+                          capture_output=True,text=True,check=False)
+    assert result.returncode==0,result.stderr
+
+
+def test_round_comparison_panel_is_read_only_escaped_and_static_parity():
+    html=(ROOT/"battle-cases.html").read_text(encoding="utf-8")
+    assert 'id="roundComparison"' in html
+    assert 'id="roundComparisonContent"' in html
+    assert 'M.compareCapturedRounds(c,r.id)' in html
+    assert '兵數差≠死亡數' in html and 'Reserve HP 不可從戰報觀測' in html
+    assert 'esc((s.unit||' in html and 'esc(compareReason[x.code])' in html
+    assert html == (ROOT/"public/battle-cases.html").read_text(encoding="utf-8")
+    assert (ROOT/"battle-cases-model.js").read_bytes() == (ROOT/"public/battle-cases-model.js").read_bytes()
+
+
 def test_draft_label_ui_is_visible_and_public_page_stays_identical():
     html = (ROOT / "battle-cases.html").read_text(encoding="utf-8")
     assert 'id="reuseEarlierLabels"' in html

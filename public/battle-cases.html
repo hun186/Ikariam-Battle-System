@@ -15,7 +15,7 @@ h2{font:700 22px Georgia,serif;margin:0 0 9px}h3{margin:0 0 8px;font-size:17px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.bar{display:flex;align-items:end;flex-wrap:wrap;gap:9px}.bar>*{flex:none}label{font-weight:650;font-size:12px;display:grid;gap:5px}input,select,textarea{border:1px solid #a89472;border-radius:5px;padding:8px;background:white;min-width:0}input[type=checkbox]{width:17px;height:17px}.wide{width:100%}textarea{resize:vertical}
 button,.btn{border:1px solid #7b6548;background:#f5e5c5;padding:8px 11px;border-radius:6px;font-weight:700}button.primary{background:var(--deep);color:white;border-color:var(--deep)}button.delete{color:#7c2c25}button:disabled{opacity:.5;cursor:not-allowed}
 .info{background:#f7efd9;border-left:4px solid #ac7e39;padding:10px 12px;font-size:13px;margin:10px 0}.danger{background:#fff0e8;border-left-color:#a73f3f}.ok{color:var(--ok)}.muted{color:var(--muted);font-size:12px}.hidden{display:none!important}.case-head{display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap}.case-head strong{font:700 22px Georgia,serif}
-.rounds{display:flex;flex-wrap:wrap;gap:5px;margin:12px 0}.rounds .round-entry-label{display:block;font-size:10px;font-weight:500}.rounds button.active,.toggle button.active{background:var(--deep);color:white}
+.rounds{display:flex;flex-wrap:wrap;gap:5px;margin:12px 0}.rounds .round-entry-label{display:block;font-size:10px;font-weight:500}.rounds button.active,.toggle button.active{background:var(--deep);color:white}.round-comparison-content{overflow-x:auto}.round-comparison-content table{border-collapse:collapse;width:100%;min-width:660px}.round-comparison-content th,.round-comparison-content td{border-bottom:1px solid #cfbd99;padding:5px;text-align:left;font-size:12px}.round-comparison-content summary{cursor:pointer}
 .board-wrap{overflow:hidden}.battle-board{display:grid;gap:13px}.battle-half{display:grid;grid-template-columns:minmax(215px,260px) minmax(0,1fr);gap:12px;background:#f7ecd3;border:1px solid #c9ae83;border-radius:8px;padding:12px}.battle-half.defender{background:#eff1e7}
 .army-title{grid-column:1/-1;font:700 19px Georgia,serif;border-bottom:1px solid #bea781;padding-bottom:7px}.reserve-box{padding:10px;background:#fff9eb;border:1px dashed #aa916d;border-radius:6px}.reserve-box h3{margin:0 0 5px}
 .reserve-entry{border:1px solid #bca57e;border-radius:7px;padding:9px;margin:8px 0;background:white}.reserve-name{font-weight:700}.reserve-tag{display:inline-block;background:#fcebcf;padding:2px 5px;font-size:11px;border-radius:3px}.reserve-tag.calculated{background:#ddebea}
@@ -67,6 +67,7 @@ button,.btn{border:1px solid #7b6548;background:#f5e5c5;padding:8px 11px;border-
 <label class="wide">本回合證據備註（截圖檔名、遊戲版本、死亡／補兵線索、可見時間點）
 <textarea id="roundSource" class="wide" rows="2" maxlength="2500" placeholder="例如第 80 回合結束截圖；請不要將推測血量寫成畫面實測"></textarea></label>
 <div id="readiness" class="info" aria-live="polite"></div>
+<details id="roundComparison" class="info"><summary>與上一個截錄回合比較（僅人工轉錄數值）</summary><div id="roundComparisonContent" class="round-comparison-content" aria-live="polite"></div></details>
 </section>
 <section id="boardPanel" class="panel hidden">
 <h2 id="roundHeading">戰場格位</h2>
@@ -213,6 +214,34 @@ function renderDrawer(){
  if(!isReserve)$('clearDrawer').onclick=()=>{mutate(c=>{const a=currentRound()[side].slots;const index=a.findIndex(x=>x.line===s.line&&x.pos===s.pos);if(index>=0)a.splice(index,1);});selected=null;render();};
  o.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
+const compareReason={
+ ONE_SIDED:'僅其中一個回合有填此格',PHASE_MISMATCH:'截錄時點不同，不比較',
+ INCOMPLETE:'兵種／Wave／數量／HP 未填齊',LABEL_CHANGED:'兵種或 Wave 標籤不同',
+ FIELDS_COMPARABLE:'欄位數值可對照（非因果）'
+};
+function renderRoundComparison(c,r){
+ const data=M.compareCapturedRounds(c,r.id),root=$('roundComparisonContent');
+ if(data.sourceRound===null){
+   root.textContent='目前沒有更早的截錄回合可比較；本功能不推算缺少的回合。';
+   return;
+ }
+ const comparable=data.rows.filter(x=>x.code==='FIELDS_COMPARABLE').length;
+ const fmt=s=>!s?'—':esc((s.unit||'兵種未填')+' / Wave '+(s.wave||'未填')+
+                       ' / 數量 '+(s.count===null?'未填':s.count)+
+                       ' / HP '+(s.hp===null?'未填':s.hp+'%'));
+ const delta=n=>n===null?'—':esc((n>0?'+':'')+n);
+ const rows=data.rows.map(x=>'<tr><th scope="row">'+esc((x.side==='attacker'?'攻':'守')+' '+(lineLabels[x.line]||x.line)+' 格位 '+x.pos)+'</th>'+
+    '<td>'+fmt(x.prior)+'</td><td>'+fmt(x.current)+'</td>'+
+    '<td>'+delta(x.countDelta)+'</td><td>'+delta(x.hpPointDelta)+'</td>'+
+    '<td>'+esc(compareReason[x.code])+'</td></tr>').join('');
+ root.innerHTML='<p class="muted">R'+data.sourceRound+' → R'+data.targetRound+'；'+
+    comparable+' 格的人工輸入欄位可對照／'+data.rows.length+' 格曾有輸入。'+
+    '兵數差≠死亡數；HP 百分點差≠治療／傷害量。Reserve HP 不可從戰報觀測，未納入；相同 Wave 標籤不證明兩回合為同一群實體單位。'+
+    '來源未經獨立驗證，未填格位也不代表無兵。</p>'+
+    (rows?'<table><thead><tr><th scope="col">實體位置</th><th scope="col">前一截錄</th><th scope="col">目前截錄</th>'+
+    '<th scope="col">兵數差</th><th scope="col">HP 百分點差</th><th scope="col">欄位限制</th></tr></thead><tbody>'+rows+'</tbody></table>':
+    '<p class="muted">這兩個回合尚無可顯示的已輸入格位。</p>');
+}
 function render(){
  const c=active(),r=currentRound();syncList();
  $('caseEditor').classList.toggle('hidden',!c);$('boardPanel').classList.toggle('hidden',!r);
@@ -234,6 +263,7 @@ function render(){
    '已記錄可見格位，起始 Reserve 條件也由使用者確認；仍不是 Gameforge 官方驗證，請保留原始截圖。':
    '資料待覆核：'+state.issues.join('；');
  $('readiness').classList.toggle('danger',!state.ready);
+ renderRoundComparison(c,r);
  renderBoard();
 }
 function listen(){

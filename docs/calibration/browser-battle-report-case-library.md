@@ -38,6 +38,26 @@ Round tabs show a **derived progress hint** per captured R number. `EMPTY` means
 
 The selected round additionally displays entered visible slots, pending slots and Reserve row count. **Reserve HP is never treated as visible**, and source notes / baseline confirmation do not promote a round to verified. The display is computed from existing v1 data without modifying storage or export format. Real Chromium acceptance covers R80 filled, R82 label-only draft, and out-of-order R50. This is research transcription assistance only.
 
+### Read-only nearest-earlier captured-round field comparison (Draft PR)
+
+The editor's collapsible comparison uses the chronological **nearest earlier
+captured** round, not JSON array order or necessarily an adjacent game round.
+It renders only physical `side / line / pos` addresses with some manually
+entered data. Differences appear only if both captured phases match, both
+visible count and HP are filled, and both nonempty **unit and Wave labels**
+match. Other rows report `ONE_SIDED`, `PHASE_MISMATCH`, `INCOMPLETE` or
+`LABEL_CHANGED` with no numeric difference. Entered zero is distinct from
+missing null. Omitted tiles must not be interpreted as empty battle positions.
+
+The calculated `countDelta` and `hpPointDelta` are **differences in
+unverified typed inputs**, not observed kills, combat damage, healing, unit
+identity, replenishment or official mechanics. Same Wave text does not prove
+same real Wave across rounds. Reserve HP is never compared, case JSON v1 is
+unchanged, and the operation cannot change stored data or engine results.
+Missing original screenshots prevent empirical calibration of Issue #73.
+Node adversarial regression and synthetic Chromium R50/R80/R81/R82 browser
+acceptance are mandatory before declaring this PR reviewed.
+
 ### Reserve HP evidence constraint
 
 Game report screenshots DO NOT display Reserve HP. Each new Reserve row starts with `hp=100`, `source=assumed_full`; that is **NOT** an observed screenshot measurement. All default Reserve rows are tagged `預設 100%（未觀測）`. For the **earliest captured round in a case** (which may be R80 or another mid-battle round), check the explicit per-side `baseline_confirmed` only after the user has ensured those first-snapshot Reserve ships are full HP. Without the confirmation a case remains `REVIEW_REQUIRED` for reliable initial HP analysis. If a user has independently and precisely derived other Reserve HP, switch to `calculated` and enter the integer percent plus at least 20 characters describing concrete calculation evidence. This remains *external computation*, not Gameforge screenshot evidence and requires independent review. A 100% assumption may never be modified while keeping `source=assumed_full`.
