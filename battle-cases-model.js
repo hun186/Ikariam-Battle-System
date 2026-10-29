@@ -17,6 +17,30 @@ function invalidateReserveConfirmation(round,side){if(!SIDES.includes(side)||!ro
 function create(name='新案例',battlefield='naval-small'){const now=new Date().toISOString();return {schema:SCHEMA,id:uid(),name:validName(name),battlefield,notes:'',created:now,updated:now,rounds:[newRound()]};}
 function newSlot(line,pos){return {line,pos,unit:'',wave:'',count:null,hp:null,deaths:null};}
 function newReserve(){return {id:uid(),unit:'',wave:'',count:null,hp:100,source:'assumed_full',calculation:''};}
+// Reuse labels only. A past screenshot is NEVER evidence for a later round's
+// counts, HP, deaths, Reserve quantity/HP, confirmation, or source timestamp.
+function reuseEarlierSlotLabels(c,targetId){
+  if(!c||!Array.isArray(c.rounds))err('案例不正確');
+  const target=c.rounds.find(r=>r.id===targetId);
+  if(!target)err('指定的截錄回合不存在');
+  if(SIDES.some(side=>!target[side]||!Array.isArray(target[side].slots)||target[side].slots.length))
+    err('目前回合已有格位資料，不能覆蓋');
+  const earlier=c.rounds.filter(r=>r.number<target.number).sort((a,b)=>b.number-a.number)[0];
+  if(!earlier)err('沒有更早的截錄回合可供參考');
+  const staged={};
+  for(const side of SIDES){
+    staged[side]=earlier[side].slots.filter(s=>s.unit||s.wave).map(s=>{
+      const copy=newSlot(s.line,s.pos);
+      copy.unit=s.unit;copy.wave=s.wave;
+      return copy;
+    });
+  }
+  const count=SIDES.reduce((total,side)=>total+staged[side].length,0);
+  if(!count)err('最近較早回合沒有兵種或 Wave 標籤可沿用');
+  // Complete validation before writing either side, so refusals are atomic.
+  for(const side of SIDES)target[side].slots=staged[side];
+  return {sourceRound:earlier.number,copiedSlots:count};
+}
 function validateCase(c,fields=null){
 const problems=[];
 if(!c||typeof c!=='object'||Array.isArray(c))return ['案例不是物件'];
@@ -96,5 +120,5 @@ function importCase(s,fields){
   if(problems.length)err(problems.slice(0,5).join('；'));
   return data;
 }
-return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation};
+return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels};
 });
