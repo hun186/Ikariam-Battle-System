@@ -64,6 +64,10 @@ button,.btn{border:1px solid #7b6548;background:#f5e5c5;padding:8px 11px;border-
 </div>
 <div id="roundTabs" class="rounds"></div>
 <p id="roundEntryStatus" class="muted" aria-live="polite"></p>
+<details id="captureCoverage" class="info"><summary>多回合截錄資料完整度總覽（非實戰驗證）</summary>
+<p class="muted">只統計相鄰「截錄回合」實體格位的人工輸入情況；跨回合不代表中間有觀測。可對照數不代表證據真實或已確認死亡、補血與機制。</p>
+<div id="captureCoverageContent" aria-live="polite"></div>
+</details>
 <p class="muted">沿用格位標籤只是輸入草稿：不複製兵量、HP、死亡數、Reserve、回合時點、證據備註或任何確認；請逐格依原始截圖重新填寫。</p>
 <label class="wide">本回合證據備註（截圖檔名、遊戲版本、死亡／補兵線索、可見時間點）
 <textarea id="roundSource" class="wide" rows="2" maxlength="2500" placeholder="例如第 80 回合結束截圖；請不要將推測血量寫成畫面實測"></textarea></label>
@@ -243,6 +247,33 @@ const compareReason={
  INCOMPLETE:'兵種／Wave／數量／HP 未填齊',LABEL_CHANGED:'兵種或 Wave 標籤不同',
  FIELDS_COMPARABLE:'欄位數值可對照（非因果）'
 };
+function renderCaptureCoverage(c){
+ const data=M.summarizeCapturedTimeline(c,fields),root=$('captureCoverageContent');
+ if(!data.length){
+   root.textContent='至少記錄兩個截錄回合，才能比較已輸入資料的涵蓋情形。';
+   return;
+ }
+ const cols=[
+   ['FIELDS_COMPARABLE','可對照'],
+   ['ONE_SIDED','單邊有填'],
+   ['INCOMPLETE','欄位待補'],
+   ['LABEL_CHANGED','標籤變更'],
+   ['PHASE_MISMATCH','時點不同'],
+   ['NO_ENTERED_VISIBLE_SLOTS','雙方均無輸入']
+ ];
+ const rows=data.map(item=>'<tr>'+
+   '<th scope="row">R'+item.sourceRound+' → R'+item.targetRound+'</th>'+
+   '<td>'+item.roundNumberGap+'</td>'+
+   cols.map(([status])=>'<td>'+item.counts[status]+'</td>').join('')+
+   '<td><button type="button" data-coverage-target="'+esc(item.targetId)+
+     '" aria-label="檢查截錄 R'+item.targetRound+'">檢查 R'+item.targetRound+'</button></td>'+
+   '</tr>').join('');
+ root.innerHTML='<table><thead><tr><th scope="col">截錄組合</th>'+
+   '<th scope="col">編號間隔</th>'+
+   cols.map(([,label])=>'<th scope="col">'+label+'</th>').join('')+
+   '<th scope="col">前往</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+   '<p class="muted">計數只針對曾輸入的相同實體位置；缺失格位不能當成空軍、零死亡或零補兵。雙方均無輸入的組合保留一筆提醒，非格位數量。</p>';
+}
 function renderRoundComparison(c,r){
  const earlier=c.rounds.filter(x=>x.number<r.number).sort((a,b)=>b.number-a.number);
  // Reset on case/target switch (import copies round IDs), or when source was deleted.
@@ -303,10 +334,16 @@ function render(){
    '已記錄可見格位，起始 Reserve 條件也由使用者確認；仍不是 Gameforge 官方驗證，請保留原始截圖。':
    '資料待覆核：'+state.issues.join('；');
  $('readiness').classList.toggle('danger',!state.ready);
+ renderCaptureCoverage(c);
  renderRoundComparison(c,r);
  renderBoard();
 }
 function listen(){
+ $('captureCoverageContent').onclick=e=>{
+   const b=e.target.closest('button[data-coverage-target]'),c=active();
+   if(!b||!c||!c.rounds.some(r=>r.id===b.dataset.coverageTarget))return;
+   roundId=b.dataset.coverageTarget;selected=null;render(); // Read-only navigation.
+ };
  $('exportComparisonCsv').onclick=()=>{
    const c=active(),r=currentRound();if(!c||!r)return;
    try{downloadComparison(c,r);}catch(error){notify('CSV 匯出失敗：'+error.message,true);}
