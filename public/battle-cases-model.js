@@ -107,30 +107,30 @@ function compareCapturedRounds(c,targetId,sourceId=null){
 // Research export: derivative of typed *visible* field comparisons only.
 // Never encode inferred kills, healing, Reserve HP, screenshots or official truth.
 // Escape spreadsheet-formula entry points in ALL user-controlled CSV text.
-function exportCapturedComparisonCsv(c,targetId,sourceId=null,fields=null){
-  const issues=validateCase(c,fields);
-  if(issues.length)err('無法匯出比較：'+issues[0]);
-  const data=compareCapturedRounds(c,targetId,sourceId);
-  if(data.sourceRound===null)err('沒有較早的截錄回合，無法匯出比較');
-  if(!data.rows.length)err('兩個回合沒有已輸入的可見格位，無法匯出比較');
+const COMPARISON_CSV_HEADERS=[
+  'evidence_class','case_id','case_name','battlefield',
+  'earlier_round','target_round','round_number_gap',
+  'earlier_phase','target_phase','side','line','physical_position',
+  'comparison_status','earlier_unit','earlier_wave','earlier_count','earlier_hp_percent',
+  'target_unit','target_wave','target_count','target_hp_percent',
+  'typed_count_delta','typed_hp_percentage_point_delta','interpretation'
+];
+function comparisonCsvCell(v){
+  if(v===null||v===undefined)return '';
+  if(typeof v==='number')return String(v);
+  let value=String(v).replace(/[\x00-\x1f\x7f]/g,' ');
+  if(/^\s*[=+\-@]/u.test(value))value="'"+value;
+  return '"'+value.replace(/"/g,'""')+'"';
+}
+// Shared row serializer: table and timeline have identical provenance and safety.
+function comparisonCsvRows(c,data){
   const prior=c.rounds.find(r=>r.number===data.sourceRound);
   const target=c.rounds.find(r=>r.number===data.targetRound);
-  const headers=[
-    'evidence_class','case_id','case_name','battlefield',
-    'earlier_round','target_round','round_number_gap',
-    'earlier_phase','target_phase','side','line','physical_position',
-    'comparison_status','earlier_unit','earlier_wave','earlier_count','earlier_hp_percent',
-    'target_unit','target_wave','target_count','target_hp_percent',
-    'typed_count_delta','typed_hp_percentage_point_delta','interpretation'
-  ];
-  const csvCell=v=>{
-    if(v===null||v===undefined)return '';
-    if(typeof v==='number')return String(v); // validated numeric fields (including negative deltas)
-    let s=String(v).replace(/[\x00-\x1f\x7f]/g,' '); // no embedded CR/LF/TAB row injection
-    if(/^\s*[=+\-@]/u.test(s))s="'"+s; // spreadsheet formula injection guard
-    return '"'+s.replace(/"/g,'""')+'"';
-  };
-  const body=data.rows.map(row=>[
+  const rows=data.rows.length?data.rows:[{
+    side:null,line:null,pos:null,code:'NO_ENTERED_VISIBLE_SLOTS',
+    prior:null,current:null,countDelta:null,hpPointDelta:null
+  }];
+  return rows.map(row=>[
     'USER_TRANSCRIPTION_UNVERIFIED',c.id,c.name,c.battlefield,
     data.sourceRound,data.targetRound,data.targetRound-data.sourceRound,
     prior.phase,target.phase,row.side,row.line,row.pos,
@@ -140,9 +140,37 @@ function exportCapturedComparisonCsv(c,targetId,sourceId=null,fields=null){
     row.current?.count??null,row.current?.hp??null,
     row.countDelta,row.hpPointDelta,'TYPED_FIELDS_ONLY_NOT_COMBAT_CAUSALITY'
   ]);
-  const csv='\uFEFF'+[headers,...body].map(a=>a.map(csvCell).join(',')).join('\r\n')+'\r\n';
+}
+function serializeComparisonCsv(rows){
+  const csv='\uFEFF'+[COMPARISON_CSV_HEADERS,...rows]
+    .map(a=>a.map(comparisonCsvCell).join(',')).join('\r\n')+'\r\n';
   if(new Blob([csv]).size>MAX_JSON_BYTES)err('比較 CSV 超過 64 MiB 上限');
   return csv;
+}
+// Research export: visible user-typed values ONLY, no inferred game mechanics.
+function exportCapturedComparisonCsv(c,targetId,sourceId=null,fields=null){
+  const issues=validateCase(c,fields);
+  if(issues.length)err('無法匯出比較：'+issues[0]);
+  const data=compareCapturedRounds(c,targetId,sourceId);
+  if(data.sourceRound===null)err('沒有較早的截錄回合，無法匯出比較');
+  if(!data.rows.length)err('兩個回合沒有已輸入的可見格位，無法匯出比較');
+  return serializeComparisonCsv(comparisonCsvRows(c,data));
+}
+// Chronological ADJACENT CAPTURED PAIRS, not necessarily consecutive game rounds.
+// Explicit NO_ENTERED_VISIBLE_SLOTS row prevents silently dropping empty pairs.
+// Neither computed deltas nor the timeline imply anything about skipped rounds.
+function exportCapturedTimelineCsv(c,fields=null){
+  const issues=validateCase(c,fields);
+  if(issues.length)err('無法匯出時間序列：'+issues[0]);
+  if(c.rounds.length<2)err('至少需要兩個截錄回合才能匯出時間序列');
+  const chronological=c.rounds.slice().sort((a,b)=>a.number-b.number);
+  const rows=[];
+  for(let i=1;i<chronological.length;i++){
+    const from=chronological[i-1],to=chronological[i];
+    const data=compareCapturedRounds(c,to.id,from.id);
+    rows.push(...comparisonCsvRows(c,data));
+  }
+  return serializeComparisonCsv(rows);
 }
 function validateCase(c,fields=null){
 const problems=[];
@@ -223,5 +251,5 @@ function importCase(s,fields){
   if(problems.length)err(problems.slice(0,5).join('；'));
   return data;
 }
-return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds,exportCapturedComparisonCsv};
+return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds,exportCapturedComparisonCsv,exportCapturedTimelineCsv};
 });

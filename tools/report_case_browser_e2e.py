@@ -229,6 +229,37 @@ def run(base_url: str, evidence_dir: Path) -> None:
             page.get_by_role("button", name="R50", exact=True).click()
             expect(page.locator("#comparisonSource")).to_be_disabled()
             expect(page.locator("#exportComparisonCsv")).to_be_disabled()
+            expect(page.locator("#exportTimelineCsv")).to_be_enabled()
+            before_timeline = page.evaluate(
+                "() => localStorage.getItem('ikariam-report-cases-v1')"
+            )
+            with page.expect_download() as timeline_event:
+                page.locator("#exportTimelineCsv").click()
+            timeline_file = timeline_event.value
+            assert timeline_file.suggested_filename.startswith("ikariam-typed-timeline-")
+            assert timeline_file.suggested_filename.endswith(".csv")
+            timeline_bytes = Path(timeline_file.path()).read_bytes()
+            assert timeline_bytes.startswith(b"\xef\xbb\xbf")
+            timeline_rows = list(csv.DictReader(io.StringIO(
+                timeline_bytes.decode("utf-8-sig"), newline=""
+            )))
+            assert [(row["earlier_round"], row["target_round"]) for row in timeline_rows] == [
+                ("50", "80"), ("80", "81"), ("81", "82")
+            ]
+            assert [row["comparison_status"] for row in timeline_rows] == [
+                "FIELDS_COMPARABLE", "FIELDS_COMPARABLE", "INCOMPLETE"
+            ]
+            assert [row["typed_count_delta"] for row in timeline_rows] == ["2", "-1", ""]
+            assert [row["typed_hp_percentage_point_delta"] for row in timeline_rows] == [
+                "-11", "-7", ""
+            ]
+            assert all(row["evidence_class"] == "USER_TRANSCRIPTION_UNVERIFIED"
+                       for row in timeline_rows)
+            assert all(row["interpretation"] == "TYPED_FIELDS_ONLY_NOT_COMBAT_CAUSALITY"
+                       for row in timeline_rows)
+            assert page.evaluate(
+                "() => localStorage.getItem('ikariam-report-cases-v1')"
+            ) == before_timeline, "timeline CSV export changed case storage"
             page.screenshot(path=str(evidence_dir / "battle-report-desktop-synthetic.png"), full_page=True)
 
             with page.expect_download() as d:

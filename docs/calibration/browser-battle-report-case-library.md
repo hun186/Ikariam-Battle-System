@@ -63,7 +63,7 @@ unchanged, and the operation cannot change stored data or engine results.
 Missing original screenshots prevent empirical calibration of Issue #73.
 PR #102 passed exact-source Hosted CI and clean formal Codex Review before owner Merge. PR #103 passed exact-source Hosted CI (14/14) and clean Codex Review before owner-authorized Squash Merge into `main` (`611765320122b50073d1ef2b88375505d9d81818`).
 
-### Derived typed comparison CSV export (Draft PR #104)
+### Derived typed comparison CSV export (owner-merged PR #104)
 
 The browser may download **only the currently selected earlier/target captured
 pair** as a UTF-8-with-BOM CSV for spreadsheet analysis. It uses the **same
@@ -93,9 +93,41 @@ it does not mutate the case, timestamps, localStorage or JSON-v1 schema.
 independently corroborated game evidence.** User must keep the existing
 case JSON backup and original screenshot sources separately.
 
-Adversarial Node/Python CSV parser regressions and real Chromium selected
-R50→R81, draft R50→R82, no-prior R50, and untouched case-backup
-round-trip must pass Hosted CI on PR #104's exact reviewable HEAD.
+PR #104 passed exact HEAD GitHub Actions 14/14 and clean formal Codex Review before owner-authorized Squash Merge into main `96de242b77806eda8ebe6be927f1d29fb954a9ba` (2026-10-29 17:33 Taiwan).
+
+### Whole-case adjacent **captured** timeline CSV (Draft PR #105)
+
+One additional case-level button exports all chronologically adjacent **captured
+snapshots** (not every true in-game round) into one Excel-compatible CSV.
+For a case containing R50, R80, R81, R82, rows are emitted exclusively
+from pairs R50→R80, R80→R81 and R81→R82, in numeric order even if stored
+JSON round array is out of order. Each pair uses **the same**
+`compareCapturedRounds()` and shared `comparisonCsvRows()` and CSV
+formula-escaping helpers as the single selected-pair export.
+
+Every row explicitly includes `earlier_round`, `target_round`, gap,
+phases, physical side/line/position, typed values, comparison status,
+`USER_TRANSCRIPTION_UNVERIFIED` and
+`TYPED_FIELDS_ONLY_NOT_COMBAT_CAUSALITY`.
+If both captured snapshots have no entered visible slots, a single
+`NO_ENTERED_VISIBLE_SLOTS` record is retained for that pair with blank
+numeric fields, **not skipped or portrayed as actual zero casualties**.
+A missing physical position in one capture is `ONE_SIDED`, not zero
+population. Unobserved intervening rounds are **never** interpolated.
+Draft/phase/label mismatches maintain blank numeric deltas. Reserve HP,
+original game screenshots, official mechanics, source authentication and
+causal casualty/healing calculations are out of scope.
+
+At least two captured rounds and a valid v1 case are required. The entire
+CSV is constrained to 64 MiB, UTF-8 BOM, control-character normalization
+and formula-prefix escaping; source selection in the single-pair UI does
+not modify the independent full-timeline chronology. This is a read-only
+derived report; users must preserve the original JSON case backup and
+source screenshots. No localStorage write or case schema change.
+Node/Python adversarial CSV decoding, empty-pair, out-of-order and
+import/export invariance, plus real Chromium full-timeline download
+are acceptance tests for PR #105. Neither test fixtures nor synthetic
+screenshots count as new Gameforge observation for Issue #73.
 
 ### Reserve HP evidence constraint
 
