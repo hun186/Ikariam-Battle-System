@@ -487,7 +487,7 @@ def test_round_comparison_panel_is_read_only_escaped_and_static_parity():
     html=(ROOT/"battle-cases.html").read_text(encoding="utf-8")
     assert 'id="roundComparison"' in html
     assert 'id="roundComparisonContent"' in html
-    assert 'M.compareCapturedRounds(c,r.id)' in html
+    assert 'M.compareCapturedRounds(c,r.id,comparisonSourceId)' in html
     assert '兵數差≠死亡數' in html and 'Reserve HP 不可從戰報觀測' in html
     assert 'esc((s.unit||' in html and 'esc(compareReason[x.code])' in html
     assert html == (ROOT/"public/battle-cases.html").read_text(encoding="utf-8")
