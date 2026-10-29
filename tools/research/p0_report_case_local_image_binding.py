@@ -257,8 +257,15 @@ def main() -> None:
                       "original_game_screenshots_authenticated": False,
                       "independently_verified_game_observations": 0}
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n",
-                    encoding="utf-8")
+    # Critical P2: even an accidental --output-json pointing to a screenshot,
+    # case backup, manifest, hard link or symlink must NEVER overwrite data.
+    # Exclusive creation is atomic for the final directory entry (O_EXCL);
+    # an existence-check followed by write_text() would be race-prone.
+    try:
+        with path.open("x", encoding="utf-8") as output:
+            output.write(json.dumps(result, ensure_ascii=False, indent=2) + "\\n")
+    except FileExistsError:
+        parser.exit(2, "refusing to overwrite an existing output file\n")
     print(json.dumps({"status": result.get("status", "EMPTY_TEMPLATE")}))
     if args.write_template is None and result["status"] in (
         "INVALID", "INVALID_OR_HASH_MISMATCH"
