@@ -154,9 +154,14 @@ def test_explicit_capture_to_engine_slot_mapping_only_gives_hypothesis_diagnosti
     assert one["engine_hp_metric_percent"] == slot["hit_points_percent"]
     assert one["engine_unit_id"] == "hoplite"
     assert one["engine_hp_metric_not_game_ui_bar"] is True
-    assert one["count_difference"] is None
     assert one["hp_percentage_point_difference"] is None
-    assert one["diagnostic_status"].startswith("NOT_ASSESSABLE_")
+    if any(e["round"] is None or e["round"] <= 2
+           for e in trace["engine_unsupported_events"]):
+        assert one["diagnostic_status"] == "NOT_ASSESSABLE_ENGINE_UNSUPPORTED_MECHANIC_BOUNDARY"
+        assert one["count_difference"] is None
+    else:
+        assert one["diagnostic_status"] == "ENGINE_MINUS_USER_TYPED_COUNT_UNVERIFIED"
+        assert one["count_difference"] == 0
     assert result["physical_slot_and_wave_mapping_user_asserted"] is True
     assert result["original_game_screenshots_authenticated"] is False
     assert result["independently_verified_game_observations"] == 0
