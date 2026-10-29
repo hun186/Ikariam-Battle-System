@@ -239,7 +239,7 @@ R81→R82 pending row in the synthetic browser case and verify its source
 fields and unchanged localStorage. PR #108 requires exact-HEAD Hosted
 CI and formal Codex Review; **never merge without owner permission**.
 
-### Source-note-only captured-round manifest CSV (Draft PR #109)
+### Source-note-only captured-round manifest CSV (owner-merged PR #109)
 
 The captured-round coverage panel offers a second **source handoff**
 file: a single-row-per-captured-round CSV containing the **existing**
@@ -277,6 +277,55 @@ JSON round trip; genuine Chromium validates R80 synthetic source note,
 blank R82, explicit source-authentication disclaimers and unchanged
 localStorage. Exact-HEAD Hosted CI and formal Codex Review are required
 before owner-authorized merge.
+
+### Joined pending-slot and source-note handoff CSV (Draft PR #110)
+
+A third optional download makes the two previous exports actionable
+without manually joining spreadsheets: it lists **only the same
+pending/noncomparable physical-slot rows** as the existing review-queue
+CSV, with BOTH the earlier and target capture's existing source note
+text and source-note presence flags. It preserves case ID/name,
+battlefield, earlier/target **captured** round numbers and round gap,
+phases, physical address, manually typed visible unit/Wave/count/HP,
+review reason and source-check instruction. Nonadjacent game rounds are
+**not** imputed, and entered 0 remains distinct from missing null.
+Entirely empty captured pairs stay one explicit location-less
+`NO_ENTERED_VISIBLE_SLOTS` row. A case with only comparable typed rows
+does not export a joined queue; it does **not** mean images are verified.
+
+`earlier_source_note_status` / `target_source_note_status` are
+`SOURCE_NOTE_TYPED_UNVERIFIED` or `SOURCE_NOTE_MISSING`, computed
+using the same `sourceNoteStatus()` as the original manifest.
+Likewise, `earlier_source_note_text` / `target_source_note_text`
+contain exact existing free text (after CSV control normalization),
+not a hyperlink or verified upload. Each joined row additionally
+carries `USER_TRANSCRIPTION_UNVERIFIED`,
+`ORIGINAL_IMAGE_NOT_INCLUDED`, `NOT_AUTHENTICATED`, and
+`NOTE_TEXT_ONLY_NOT_PROOF_OF_SOURCE_OR_COMBAT_CAUSALITY`.
+Do not infer that a screenshot exists, has a matching file checksum,
+was authenticated, or establishes a death/healing/targeting/Reserve HP
+mechanic. Local screenshot filenames and paths may contain private
+information and must be reviewed before sharing.
+
+The older pending-review CSV format is unchanged for downstream
+consumers; both exports share an internal single-pass
+`capturedReviewQueueRows()` projection with one chronological coverage
+summary and no `inspectCapturedCoveragePair()` call inside the loop
+(the prior Codex P2 fix). Uses existing UTF-8 BOM, safe CSV escaping,
+control normalization, formula-injection guard and 64 MiB size ceiling.
+The new UI button is disabled when there are no pending typed-field
+rows. Read-only operation leaves case JSON v1, timestamps,
+localStorage and simulator untouched.
+
+Node/Python CSV parser regression checks deliberately unsorted
+R50/R80/R81/R82/R90/R100 captures, empty/missing/two-sided notes,
+spreadsheet payloads, notes containing newline/tab, no-phantom
+rounds, untouched original CSV, no source authentication claims and
+unchanged JSON backup. The 100-round × 7-pending-slot performance
+regression now covers the joined export too; the real Chromium
+browser checks a single pending R81→R82 joined row, both source note
+flags, absent original image and byte-identical localStorage. Exact-HEAD
+Hosted CI and formal Codex Review required before explicit owner merge.
 
 ### Reserve HP evidence constraint
 
