@@ -196,8 +196,8 @@ function comparisonCsvRows(c,data){
     row.countDelta,row.hpPointDelta,'TYPED_FIELDS_ONLY_NOT_COMBAT_CAUSALITY'
   ]);
 }
-function serializeComparisonCsv(rows){
-  const csv='\uFEFF'+[COMPARISON_CSV_HEADERS,...rows]
+function serializeComparisonCsv(rows,headers=COMPARISON_CSV_HEADERS){
+  const csv='\uFEFF'+[headers,...rows]
     .map(a=>a.map(comparisonCsvCell).join(',')).join('\r\n')+'\r\n';
   if(new Blob([csv]).size>MAX_JSON_BYTES)err('比較 CSV 超過 64 MiB 上限');
   return csv;
@@ -226,6 +226,41 @@ function exportCapturedTimelineCsv(c,fields=null){
     rows.push(...comparisonCsvRows(c,data));
   }
   return serializeComparisonCsv(rows);
+}
+// Export only noncomparable manually typed adjacent-CAPTURED snapshots.
+// The review queue is a handoff aid, not verified original game evidence.
+// Refuse an empty queue: complete typed fields never prove authenticated images.
+const REVIEW_QUEUE_CSV_HEADERS=[
+  'evidence_class','case_id','case_name','battlefield',
+  'earlier_round','target_round','round_number_gap',
+  'earlier_phase','target_phase','side','line','physical_position',
+  'review_reason','earlier_unit','earlier_wave','earlier_count','earlier_hp_percent',
+  'target_unit','target_wave','target_count','target_hp_percent',
+  'source_check_instruction','interpretation'
+];
+function exportCapturedReviewQueueCsv(c,fields=null){
+  const pairs=summarizeCapturedTimeline(c,fields); // validates exact v1 schema
+  if(!pairs.length)err('至少需要兩個截錄回合才能匯出待查清單');
+  const rows=[];
+  for(const pair of pairs){
+    const source=c.rounds.find(r=>r.id===pair.sourceId);
+    const target=c.rounds.find(r=>r.id===pair.targetId);
+    const review=inspectCapturedCoveragePair(c,pair.sourceId,pair.targetId,fields);
+    for(const item of review.items){
+      rows.push([
+        'USER_TRANSCRIPTION_UNVERIFIED',c.id,c.name,c.battlefield,
+        review.sourceRound,review.targetRound,review.roundNumberGap,
+        source.phase,target.phase,item.side,item.line,item.pos,
+        item.code,item.prior?.unit??'',item.prior?.wave??'',
+        item.prior?.count??null,item.prior?.hp??null,
+        item.current?.unit??'',item.current?.wave??'',
+        item.current?.count??null,item.current?.hp??null,
+        item.hint,'SOURCE_IMAGE_NOT_VERIFIED_NO_COMBAT_CAUSALITY'
+      ]);
+    }
+  }
+  if(!rows.length)err('目前沒有需核對的已輸入欄位；這不代表截圖來源已驗證');
+  return serializeComparisonCsv(rows,REVIEW_QUEUE_CSV_HEADERS);
 }
 function validateCase(c,fields=null){
 const problems=[];
@@ -306,5 +341,5 @@ function importCase(s,fields){
   if(problems.length)err(problems.slice(0,5).join('；'));
   return data;
 }
-return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds,summarizeCapturedTimeline,inspectCapturedCoveragePair,exportCapturedComparisonCsv,exportCapturedTimelineCsv};
+return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds,summarizeCapturedTimeline,inspectCapturedCoveragePair,exportCapturedComparisonCsv,exportCapturedTimelineCsv,exportCapturedReviewQueueCsv};
 });
