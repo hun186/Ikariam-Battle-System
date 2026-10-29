@@ -954,6 +954,45 @@ process.stdout.write(csv);
     assert all("reserve" not in k.lower() for r in rows for k in r)
 
 
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node required for review CSV performance regression")
+def test_review_queue_100_rounds_uses_linear_pair_projection(tmp_path):
+    """Codex P2: 100 captured rounds must not scan the whole timeline for each row."""
+    script=r"""
+const assert=require('node:assert/strict');
+const {performance}=require('node:perf_hooks');
+const M=require(process.argv[2]);
+const c=M.create('100 round review speed','naval-small');
+for(let i=0;i<100;i++){
+  const r=i?M.newRound(i+1):c.rounds[0];r.number=i+1;
+  if(i)c.rounds.push(r);
+  for(let pos=1;pos<=7;pos++){
+    const s=M.newSlot('first',pos);
+    Object.assign(s,{unit:'ram_ship',wave:'W1',count:null,hp:null});
+    r.attacker.slots.push(s);
+  }
+}
+c.rounds.reverse(); // chronological export must not rely on input array order
+assert.deepEqual(M.validateCase(c),[]);
+const before=JSON.stringify(c);
+const start=performance.now();
+const csv=M.exportCapturedReviewQueueCsv(c);
+const elapsedMs=performance.now()-start;
+assert.equal(csv.match(/"INCOMPLETE"/g).length,693,'99 adjacent pairs x 7 gaps');
+assert(csv.startsWith('\uFEFF'));
+assert.equal(JSON.stringify(c),before,'no storage mutation');
+assert(elapsedMs<8000,
+  '100-round CSV should not do cubic repeated whole-timeline scans: '+elapsedMs+'ms');
+process.stdout.write(JSON.stringify({elapsedMs,rows:693}));
+"""
+    js=tmp_path/"review_queue_100rounds.cjs"
+    js.write_text(script,encoding="utf-8")
+    result=subprocess.run(["node",str(js),str(ROOT/"battle-cases-model.js")],
+                          capture_output=True,text=True,check=False,timeout=25)
+    assert result.returncode==0,result.stderr
+    assert json.loads(result.stdout)["rows"]==693
+
+
 def test_review_queue_export_button_is_safe_and_mirrored():
     html=(ROOT/"battle-cases.html").read_text(encoding="utf-8")
     assert 'id="exportCoverageReviewCsv"' in html
