@@ -43,6 +43,7 @@ button,.btn{border:1px solid #7b6548;background:#f5e5c5;padding:8px 11px;border-
 <button id="addCase" class="primary" type="button">＋ 新增案例</button>
 <button id="removeCase" class="delete" type="button">刪除案例</button>
 <button id="exportCase" type="button">匯出 JSON 備份</button>
+<button id="exportTimelineCsv" type="button">匯出全部相鄰截錄回合 CSV（人工轉錄）</button>
 <label class="btn">匯入 JSON<input id="importCase" type="file" accept=".json,application/json" hidden></label>
 </div>
 <div id="storageStatus" class="status" role="status" aria-live="polite"></div>
@@ -118,6 +119,14 @@ function selectCase(id){activeId=id;roundId=active()?.rounds.slice().sort((a,b)=
 function download(c){
  const blob=new Blob([M.exportCase(c,fields)],{type:'application/json;charset=utf-8'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ikariam-report-case-'+c.id+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),500);
+}
+function downloadTimeline(c){
+ const csv=M.exportCapturedTimelineCsv(c,fields);
+ const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');
+ const safeId=c.id.replace(/[^A-Za-z0-9_-]/g,'_').slice(0,64)||'case';
+ a.href=url;a.download='ikariam-typed-timeline-'+safeId+'.csv';
+ a.click();setTimeout(()=>URL.revokeObjectURL(url),500);
 }
 function downloadComparison(c,r){
  const data=M.compareCapturedRounds(c,r.id,comparisonSourceId);
@@ -274,6 +283,7 @@ function renderRoundComparison(c,r){
 }
 function render(){
  const c=active(),r=currentRound();syncList();
+ $('exportTimelineCsv').disabled=!c||c.rounds.length<2;
  $('caseEditor').classList.toggle('hidden',!c);$('boardPanel').classList.toggle('hidden',!r);
  if(!c||!r)return;
  $('caseHeading').textContent=c.name;
@@ -317,6 +327,10 @@ function listen(){
  $('caseList').onchange=e=>selectCase(e.target.value);
  $('removeCase').onclick=()=>{const c=active();if(!c||!confirm('確定刪除案例「'+c.name+'」？此瀏覽器無法復原，請先匯出備份。'))return;
    cases=cases.filter(x=>x.id!==c.id);activeId=cases[0]?.id||null;roundId=active()?.rounds[0]?.id||null;selected=null;persist();render();};
+ $('exportTimelineCsv').onclick=()=>{
+   const c=active();if(!c)return;
+   try{downloadTimeline(c);}catch(error){notify('時間序列 CSV 匯出失敗：'+error.message,true);}
+ };
  $('exportCase').onclick=()=>{const c=active();if(!c)return;
   try{download(c);}catch(error){notify('匯出失敗：'+error.message,true);}
  };
