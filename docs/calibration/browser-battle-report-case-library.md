@@ -33,6 +33,13 @@ the explicit hidden-Reserve 100% assumption and user confirmation, read-only
 versus editor rendering, R81 and an earlier R50 baseline, downloading a JSON
 backup and uploading those exact bytes, deleting the original case and
 verifying localStorage after reload, plus mobile viewport screenshots.
+After reload the test re-exports the imported case and compares the entire
+parsed JSON against the original download, allowing differences **only**
+for the import-generated case ID, name and timestamps. This comparison
+covers all captured rounds, source notes, physical slots, units/counts,
+casualties, HP, Reserve origins and confirmation flags—not just the
+visible R80 HP. Browser CI must pass on the exact revised source HEAD
+before declaring this acceptance correction verified.
 The successful Hosted workflow uploads synthetic desktop/mobile screenshots
 for seven days. The workflow result must be checked before calling browser
 acceptance passed. This does not verify official battle mechanics or game-source
