@@ -140,6 +140,15 @@ function inspectCapturedCoveragePair(c,sourceId,targetId,fields=null){
     p=>p.sourceId===sourceId&&p.targetId===targetId);
   if(!pair)err('只能檢視本案例相鄰的較早與較晚截錄回合');
   const data=compareCapturedRounds(c,targetId,sourceId);
+  return {
+    sourceRound:data.sourceRound,targetRound:data.targetRound,
+    roundNumberGap:pair.roundNumberGap,
+    items:reviewItemsFromComparison(data)
+  };
+}
+// Pure reusable projection: source status/fields are computed by compareCapturedRounds.
+// Do not recalculate an entire captured timeline for each export row.
+function reviewItemsFromComparison(data){
   const hint={
     ONE_SIDED:'核對兩次原始截圖是否能辨識此位置；未填不代表無兵',
     INCOMPLETE:'核對來源中實際可見的兵種、Wave、數量及 HP；不可推算補值',
@@ -150,14 +159,10 @@ function inspectCapturedCoveragePair(c,sourceId,targetId,fields=null){
   const review=data.rows.length?data.rows.filter(row=>row.code!=='FIELDS_COMPARABLE'):[
     {code:'NO_ENTERED_VISIBLE_SLOTS',side:null,line:null,pos:null,prior:null,current:null}
   ];
-  return {
-    sourceRound:data.sourceRound,targetRound:data.targetRound,
-    roundNumberGap:pair.roundNumberGap,
-    items:review.map(row=>({
-      code:row.code,side:row.side,line:row.line,pos:row.pos,
-      prior:row.prior,current:row.current,hint:hint[row.code]
-    }))
-  };
+  return review.map(row=>({
+    code:row.code,side:row.side,line:row.line,pos:row.pos,
+    prior:row.prior,current:row.current,hint:hint[row.code]
+  }));
 }
 // Research export: derivative of typed *visible* field comparisons only.
 // Never encode inferred kills, healing, Reserve HP, screenshots or official truth.
@@ -245,11 +250,15 @@ function exportCapturedReviewQueueCsv(c,fields=null){
   for(const pair of pairs){
     const source=c.rounds.find(r=>r.id===pair.sourceId);
     const target=c.rounds.find(r=>r.id===pair.targetId);
-    const review=inspectCapturedCoveragePair(c,pair.sourceId,pair.targetId,fields);
-    for(const item of review.items){
+    // The adjacency has already been checked by summarizeCapturedTimeline.
+    // Reuse the existing comparison projection, not the inspect helper which
+    // would recompute the entire 100-round timeline for every pair (Codex P2).
+    const comparison=compareCapturedRounds(c,pair.targetId,pair.sourceId);
+    const reviewItems=reviewItemsFromComparison(comparison);
+    for(const item of reviewItems){
       rows.push([
         'USER_TRANSCRIPTION_UNVERIFIED',c.id,c.name,c.battlefield,
-        review.sourceRound,review.targetRound,review.roundNumberGap,
+        pair.sourceRound,pair.targetRound,pair.roundNumberGap,
         source.phase,target.phase,item.side,item.line,item.pos,
         item.code,item.prior?.unit??'',item.prior?.wave??'',
         item.prior?.count??null,item.prior?.hp??null,
