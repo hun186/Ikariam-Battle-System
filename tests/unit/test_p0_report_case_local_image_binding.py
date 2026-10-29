@@ -10,6 +10,7 @@ import sys
 import pytest
 
 from tools.research import p0_report_case_local_image_binding as binder
+from tools.research import p0_report_case_pending_image_coverage as coverage
 
 NODE = shutil.which("node")
 FAKE_PNG_A = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR" + bytes(20)
@@ -430,3 +431,172 @@ def test_cli_case_worksheet_from_real_case_file_never_overwrites_evidence(
     assert run.returncode == 2
     assert not target.exists()
     assert wrong_case.read_bytes() == json.dumps(bad).encode("utf-8")
+
+
+
+def _with_pending_slots(record):
+    """Construct synthetic, validated-visible typed positions, not battle evidence."""
+    altered = deepcopy(record)
+    by_round = {r["number"]: r for r in altered["rounds"]}
+    by_round[50]["attacker"]["slots"] = [{
+        "line": "first", "pos": 1, "unit": "ram_ship", "wave": "W1",
+        "count": 7, "hp": 94, "deaths": None,
+    }]
+    by_round[80]["attacker"]["slots"] = [{
+        "line": "first", "pos": 1, "unit": "ram_ship", "wave": "W1",
+        "count": None, "hp": None, "deaths": None,
+    }]
+    return json.dumps(altered).encode("utf-8"), altered
+
+
+def test_pending_capture_image_coverage_joins_canonical_pairs_and_local_bytes(
+    capture_case, tmp_path
+):
+    _, c = capture_case
+    blob, filled = _with_pending_slots(c)
+    _images(tmp_path)
+    result = coverage.audit_coverage(blob, _manifest(filled), tmp_path)
+    assert result["status"] == "UNVERIFIED_LOCAL_FILES_PRESENT_PENDING_VISUAL_REVIEW"
+    assert result["image_binding_status"] == "LOCAL_BYTES_FINGERPRINTED_UNAUTHENTICATED"
+    assert result["case_backup_bytes_sha256"] == sha256(blob).hexdigest()
+    assert result["case_id"] == filled["id"]
+    assert result["pairs_with_unbound_image"] == 0
+    assert result["pairs_with_skipped_game_rounds"] == 1
+    assert len(result["captured_pairs"]) == 2
+    first, second = result["captured_pairs"]
+    assert (first["earlier_round"], first["target_round"]) == (50, 80)
+    assert first["round_number_gap"] == 30
+    assert first["unknown_intermediate_game_rounds"] == 29
+    assert first["pending_review_counts"]["INCOMPLETE"] == 1
+    assert first["pending_review_positions"] == 1
+    assert first["file_coverage"] == "BOTH_FILES_FINGERPRINTED_UNAUTHENTICATED"
+    assert second["earlier_round"] == 80 and second["target_round"] == 81
+    assert second["pending_review_counts"]["ONE_SIDED"] == 1
+    assert second["round_number_gap"] == 1
+    assert second["same_capture_phase"] is False
+    assert second["pending_review_positions"] == 1
+    assert result["pending_review_positions_total"] == 2
+    assert all(p["original_image_authenticated"] is False for p in result["captured_pairs"])
+    assert all(p["manual_visible_slot_transcription_verified"] is False for p in result["captured_pairs"])
+    assert all(p["combat_causality_verified"] is False for p in result["captured_pairs"])
+    assert result["independently_verified_game_observations"] == 0
+    assert result["independent_holdouts"] == 0
+    assert result["model_calibration_verified"] is False
+    assert "UNVERIFIED local-filename.png" not in json.dumps(result)
+    assert str(tmp_path) not in json.dumps(result)
+
+
+@pytest.mark.parametrize("kept,expected", [
+    ((50, 80), ("BOTH_FILES_FINGERPRINTED_UNAUTHENTICATED",
+                "ONLY_EARLIER_FILE_FINGERPRINTED_UNAUTHENTICATED")),
+    ((50,), ("ONLY_EARLIER_FILE_FINGERPRINTED_UNAUTHENTICATED",
+             "NEITHER_FILE_FINGERPRINTED")),
+    ((81,), ("NEITHER_FILE_FINGERPRINTED",
+             "ONLY_TARGET_FILE_FINGERPRINTED_UNAUTHENTICATED")),
+    ((), ("NEITHER_FILE_FINGERPRINTED",
+          "NEITHER_FILE_FINGERPRINTED")),
+])
+def test_pending_image_partial_coverage_is_actionable_not_authenticated(
+    capture_case, tmp_path, kept, expected
+):
+    blob, c = capture_case
+    _images(tmp_path)
+    manifest = _manifest(c)
+    lookup = {r["number"]: r["id"] for r in c["rounds"]}
+    selected = {lookup[n] for n in kept}
+    manifest["captures"] = [row for row in manifest["captures"]
+                            if row["capture_id"] in selected]
+    result = coverage.audit_coverage(blob, manifest, tmp_path)
+    assert result["status"] == "UNVERIFIED_MISSING_IMAGE_COVERAGE"
+    assert tuple(x["file_coverage"] for x in result["captured_pairs"]) == expected
+    assert all(x["next_action"] in (
+        "COLLECT_MISSING_CAPTURE_IMAGES_THEN_VISUALLY_REVIEW",
+        "MANUALLY_VERIFY_ORIGINAL_CAPTURE_CONTENTS_AND_TIMING",
+    ) for x in result["captured_pairs"])
+    assert result["original_game_screenshots_authenticated"] is False
+    assert result["independently_verified_game_observations"] == 0
+    assert result["image_decoded_or_visually_inspected"] is False
+
+
+def test_pending_coverage_invalid_hash_or_ambiguous_image_is_not_counted(
+    capture_case, tmp_path
+):
+    blob, c = capture_case
+    _images(tmp_path)
+    manifest = _manifest(c)
+    manifest["captures"][0]["expected_sha256"] = "0" * 64
+    mismatch = coverage.audit_coverage(blob, manifest, tmp_path)
+    assert mismatch["status"] == "INVALID"
+    assert mismatch["captured_pairs"] == []
+    assert mismatch["image_binding_status"] == "INVALID_OR_HASH_MISMATCH"
+    manifest["captures"][0]["expected_sha256"] = None
+    (tmp_path / "r80.png").write_bytes(FAKE_PNG_A)
+    duplicate = coverage.audit_coverage(blob, manifest, tmp_path)
+    assert duplicate["status"] == "INVALID"
+    assert duplicate["captured_pairs"] == []
+    assert any("identical image bytes" in x for x in duplicate["image_binding_errors"])
+    bad_case = json.loads(blob)
+    bad_case["rounds"][0]["number"] = 80
+    invalid = coverage.audit_coverage(json.dumps(bad_case).encode(), _manifest(c), tmp_path)
+    assert invalid["status"] == "INVALID"
+    assert invalid["captured_pairs"] == []
+    assert invalid["independently_verified_game_observations"] == 0
+
+
+def test_empty_typed_captures_are_review_tasks_not_validated_battles(
+    capture_case, tmp_path
+):
+    blob, c = capture_case
+    _images(tmp_path)
+    result = coverage.audit_coverage(blob, _manifest(c), tmp_path)
+    assert len(result["captured_pairs"]) == 2
+    assert all(x["pending_review_counts"]["NO_ENTERED_VISIBLE_SLOTS"] == 1
+               for x in result["captured_pairs"])
+    assert all(x["pending_review_positions"] == 1 for x in result["captured_pairs"])
+    assert result["pending_review_positions_total"] == 2
+    assert not result["official_game_mechanism_verified"]
+
+
+def test_pending_coverage_cli_never_overwrites_evidence_and_exits_on_invalid(
+    capture_case, tmp_path
+):
+    blob, c = capture_case
+    _images(tmp_path)
+    case_path = tmp_path / "case.json"
+    manifest_path = tmp_path / "manifest.json"
+    receipt_path = tmp_path / "image-coverage.json"
+    case_path.write_bytes(blob)
+    manifest_path.write_text(json.dumps(_manifest(c)), encoding="utf-8")
+    cmd = [sys.executable, "-m", "tools.research.p0_report_case_pending_image_coverage",
+           "--case", str(case_path), "--manifest", str(manifest_path),
+           "--evidence-root", str(tmp_path), "--output-json"]
+    run = subprocess.run(cmd + [str(receipt_path)], capture_output=True,
+                         text=True, timeout=20)
+    assert run.returncode == 0, run.stderr
+    assert json.loads(run.stdout)["status"] == "UNVERIFIED_LOCAL_FILES_PRESENT_PENDING_VISUAL_REVIEW"
+    result = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert result["status"] == "UNVERIFIED_LOCAL_FILES_PRESENT_PENDING_VISUAL_REVIEW"
+    assert result["model_calibration_verified"] is False
+    snapshots = {p: p.read_bytes() for p in (
+        case_path, manifest_path, tmp_path / "r50.png", receipt_path
+    )}
+    for target in snapshots:
+        run = subprocess.run(cmd + [str(target)], capture_output=True,
+                             text=True, timeout=20)
+        assert run.returncode == 2
+        assert "refusing to overwrite" in run.stderr
+        assert {p: p.read_bytes() for p in snapshots} == snapshots
+    symbolic = tmp_path / "aliased-receipt.json"
+    symbolic.symlink_to(case_path)
+    assert subprocess.run(cmd + [str(symbolic)], capture_output=True,
+                          timeout=20).returncode == 2
+    assert case_path.read_bytes() == snapshots[case_path]
+    tampered = _manifest(c)
+    tampered["captures"][0]["expected_sha256"] = "0" * 64
+    manifest_path.write_text(json.dumps(tampered), encoding="utf-8")
+    new_report = tmp_path / "rejected-audit.json"
+    run = subprocess.run(cmd + [str(new_report)], capture_output=True,
+                         text=True, timeout=20)
+    assert run.returncode == 2
+    assert json.loads(new_report.read_text())["status"] == "INVALID"
+    assert result["original_game_screenshots_authenticated"] is False
