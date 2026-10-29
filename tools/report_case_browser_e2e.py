@@ -95,6 +95,8 @@ def run(base_url: str, evidence_dir: Path) -> None:
             assert unit, "Unit selection is empty"
             page.locator("#closeDrawer").click()
             fill_visible_slot(page, unit, count=9, hp=83, deaths=2)
+            expect(page.locator("#roundEntryStatus")).to_contain_text("可見欄位已填 1 格")
+            assert page.locator('#roundTabs [aria-label="R80"]').get_attribute("data-entry-status") == "FIELDS_ENTERED"
             add_reserve(page, unit, count=6)
             expect(page.locator("#readiness")).to_contain_text("資料待覆核")
             page.locator('#battleBoard input[data-confirm-side="attacker"]').check()
@@ -121,6 +123,8 @@ def run(base_url: str, evidence_dir: Path) -> None:
             page.locator("#reuseEarlierLabels").click()
             expect(page.locator("#storageStatus")).to_contain_text("R81")
             expect(first_tile).to_contain_text("HP 未填")
+            assert page.locator('#roundTabs [aria-label="R82"]').get_attribute("data-entry-status") == "DRAFT"
+            expect(page.locator("#roundEntryStatus")).to_contain_text("可見欄位已填 0 格、待補 1 格")
             first_tile.click()
             assert page.locator("#editUnit").input_value() == unit
             assert page.locator("#editWave").input_value() == "browser-e2e"
@@ -138,6 +142,7 @@ def run(base_url: str, evidence_dir: Path) -> None:
             expect(page.locator("#readiness")).to_contain_text("R50")
             expect(page.locator("#readiness")).to_contain_text("資料待覆核")
             fill_visible_slot(page, unit, count=7, hp=94)
+            assert page.locator('#roundTabs [aria-label="R50"]').get_attribute("data-entry-status") == "FIELDS_ENTERED"
             add_reserve(page, unit, count=4)
             page.locator('#battleBoard input[data-confirm-side="attacker"]').check()
             expect(page.locator("#readiness")).to_contain_text("已記錄可見格位")
