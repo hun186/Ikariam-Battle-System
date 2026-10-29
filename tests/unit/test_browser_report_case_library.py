@@ -366,6 +366,59 @@ assert.equal(M.validateCase(c).length,0);
     assert result.returncode == 0, result.stderr
 
 
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node required for captured-round progress contract")
+def test_round_entry_progress_never_conflates_draft_with_observation(tmp_path):
+    """Visible fields entered != verified screenshot, complete capture or Reserve HP."""
+    script = r"""
+const assert=require('node:assert/strict');
+const M=require(process.argv[2]);
+const c=M.create('synthetic','naval-small'),r80=c.rounds[0];
+r80.number=80;
+assert.deepEqual(M.roundEntrySummary(r80),{code:'EMPTY',enteredSlots:0,pendingSlots:0,reserveRows:0});
+r80.source='有備註不代表有觀測值';
+assert.equal(M.roundEntrySummary(r80).code,'DRAFT');
+const reserve=M.newReserve();reserve.unit='ram_ship';reserve.count=12;
+r80.attacker.reserve.push(reserve);
+assert.deepEqual(M.roundEntrySummary(r80),{code:'DRAFT',enteredSlots:0,pendingSlots:0,reserveRows:1});
+const visible=M.newSlot('first',1);visible.unit='ram_ship';visible.wave='a';
+r80.attacker.slots.push(visible);
+assert.deepEqual(M.roundEntrySummary(r80),{code:'DRAFT',enteredSlots:0,pendingSlots:1,reserveRows:1});
+visible.count=0; // Zero is entered, not missing; HP is still missing.
+assert.equal(M.roundEntrySummary(r80).code,'DRAFT');
+visible.hp=0;
+assert.deepEqual(M.roundEntrySummary(r80),{code:'FIELDS_ENTERED',enteredSlots:1,pendingSlots:0,reserveRows:1});
+const broken=M.newSlot('flank',2);broken.hp=77; // No unit label: never count as a visible entry.
+r80.defender.slots.push(broken);
+assert.deepEqual(M.roundEntrySummary(r80),{code:'PARTIAL',enteredSlots:1,pendingSlots:1,reserveRows:1});
+broken.unit='steam_ram';broken.count=4;
+assert.equal(M.roundEntrySummary(r80).code,'FIELDS_ENTERED');
+const r81=M.newRound(81);c.rounds.push(r81);
+M.reuseEarlierSlotLabels(c,r81.id);
+assert.deepEqual(M.roundEntrySummary(r81),{code:'DRAFT',enteredSlots:0,pendingSlots:2,reserveRows:0});
+assert.equal(M.roundEntrySummary(r80).enteredSlots,2);
+const before=JSON.stringify(c);
+assert.deepEqual(M.validateCase(c),[]);
+assert.equal(M.importCase(M.exportCase(c)).rounds.length,2);
+assert.equal(JSON.stringify(c),before,'progress must not persist or mutate case data');
+assert.throws(()=>M.roundEntrySummary({}),/截錄回合資料/);
+"""
+    js=tmp_path / "round_progress.cjs"
+    js.write_text(script,encoding="utf-8")
+    result=subprocess.run(["node",str(js),str(ROOT / "battle-cases-model.js")],
+                          capture_output=True,text=True,check=False)
+    assert result.returncode==0,result.stderr
+
+
+def test_round_entry_progress_ui_has_clear_non_verified_labels_and_parity():
+    html=(ROOT / "battle-cases.html").read_text(encoding="utf-8")
+    assert 'id="roundEntryStatus"' in html
+    assert 'data-entry-status="'+ "'" in html
+    assert 'aria-label="R' in html
+    assert "M.roundEntrySummary(x)" in html and "M.roundEntrySummary(r)" in html
+    assert "此進度僅代表手動輸入" in html
+    assert html == (ROOT / "public/battle-cases.html").read_text(encoding="utf-8")
+
+
 def test_draft_label_ui_is_visible_and_public_page_stays_identical():
     html = (ROOT / "battle-cases.html").read_text(encoding="utf-8")
     assert 'id="reuseEarlierLabels"' in html
