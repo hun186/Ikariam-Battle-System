@@ -302,3 +302,131 @@ def test_cli_never_overwrites_input_images_manifest_or_existing_receipt(capture_
     run = subprocess.run(command, capture_output=True, timeout=10)
     assert run.returncode == 2
     assert template.read_bytes() == before
+
+
+def test_case_worksheet_sorted_and_fail_closed_before_image_binding(capture_case, tmp_path):
+    blob, c = capture_case
+    sheet = binder.case_worksheet(blob)
+    assert set(sheet) == {"schema", "record_kind", "case_id", "captures"}
+    assert sheet["schema"] == binder.SCHEMA
+    assert sheet["record_kind"] == "draft_capture_worksheet_not_evidence"
+    assert sheet["case_id"] == c["id"]
+    assert [(v["capture_round"], v["capture_phase"]) for v in sheet["captures"]] == [
+        (50, "round_end"), (80, "round_end"), (81, "round_prefire")
+    ]
+    ids = {r["number"]: r["id"] for r in c["rounds"]}
+    assert [v["capture_id"] for v in sheet["captures"]] == [ids[50], ids[80], ids[81]]
+    assert all(v["relative_path"] is None and v["expected_sha256"] is None
+               for v in sheet["captures"])
+    assert "UNVERIFIED local-filename.png" not in json.dumps(sheet)
+    assert "source" not in sheet["captures"][0]
+    _images(tmp_path)
+    result = binder.bind_case_images(blob, sheet, tmp_path)
+    assert result["status"] == "INVALID"
+    assert result["local_file_bytes_read"] == 0
+    assert result["image_files"] == []
+    assert result["independently_verified_game_observations"] == 0
+
+
+def test_filled_case_worksheet_binds_correct_captured_rounds_only(capture_case, tmp_path):
+    blob, c = capture_case
+    _images(tmp_path)
+    sheet = binder.case_worksheet(blob)
+    before = deepcopy(sheet)
+    sheet["record_kind"] = "user_supplied_unverified_files"
+    for entry, filename in zip(sheet["captures"], ("r50.png", "r80.png", "r81.jpeg")):
+        entry["relative_path"] = filename
+    result = binder.bind_case_images(blob, sheet, tmp_path)
+    assert result["status"] == "LOCAL_BYTES_FINGERPRINTED_UNAUTHENTICATED"
+    assert [(row["capture_round"], row["capture_phase"]) for row in result["image_files"]] == [
+        (50, "round_end"), (80, "round_end"), (81, "round_prefire")
+    ]
+    assert all(not row["image_decoded_or_visually_inspected"] for row in result["image_files"])
+    assert result["original_game_screenshots_authenticated"] is False
+    assert before["record_kind"] == "draft_capture_worksheet_not_evidence"
+    # Missing work can be represented by OMITTING a still-unfilled capture row.
+    missing_sheet = deepcopy(sheet)
+    missing_sheet["captures"] = missing_sheet["captures"][:2]
+    partial = binder.bind_case_images(blob, missing_sheet, tmp_path)
+    assert partial["status"] == "UNVERIFIED_PARTIAL_SOURCE_BUNDLE"
+    assert [x["capture_round"] for x in partial["missing_or_unbound_captures"]] == [81]
+
+
+@pytest.mark.parametrize("change", [
+    "wrong_round", "wrong_phase", "both_missing", "phase_missing",
+    "round_as_bool", "phase_as_none", "blank_image_path",
+])
+def test_case_worksheet_stage_metadata_cannot_be_forged_or_incomplete(
+    capture_case, tmp_path, change
+):
+    blob, c = capture_case
+    _images(tmp_path)
+    sheet = binder.case_worksheet(blob)
+    sheet["record_kind"] = "user_supplied_unverified_files"
+    sheet["captures"] = sheet["captures"][:1]
+    entry = sheet["captures"][0]
+    entry["relative_path"] = "r50.png"
+    if change == "wrong_round":
+        entry["capture_round"] = 51
+    elif change == "wrong_phase":
+        entry["capture_phase"] = "round_prefire"
+    elif change == "both_missing":
+        del entry["capture_round"]
+        del entry["capture_phase"]
+        # Both absent is the *legacy* accepted manifest format.
+        assert binder.bind_case_images(blob, sheet, tmp_path)["status"] == (
+            "UNVERIFIED_PARTIAL_SOURCE_BUNDLE"
+        )
+        return
+    elif change == "phase_missing":
+        del entry["capture_phase"]
+    elif change == "round_as_bool":
+        entry["capture_round"] = True
+    elif change == "phase_as_none":
+        entry["capture_phase"] = None
+    elif change == "blank_image_path":
+        entry["relative_path"] = None
+    result = binder.bind_case_images(blob, sheet, tmp_path)
+    assert result["status"] == "INVALID_OR_HASH_MISMATCH"
+    assert result["image_files"] == []
+    assert result["local_file_bytes_read"] == 0
+    assert result["original_game_screenshots_authenticated"] is False
+
+
+def test_cli_case_worksheet_from_real_case_file_never_overwrites_evidence(
+    capture_case, tmp_path
+):
+    blob, c = capture_case
+    case_path = tmp_path / "original-case.json"
+    worksheet = tmp_path / "capture-worksheet.json"
+    case_path.write_bytes(blob)
+    cmd = [sys.executable, "-m", "tools.research.p0_report_case_local_image_binding",
+           "--case", str(case_path), "--write-case-worksheet", str(worksheet)]
+    run = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
+    assert run.returncode == 0, run.stderr
+    assert json.loads(run.stdout)["status"] == "DRAFT_CAPTURE_WORKSHEET_NOT_EVIDENCE"
+    sheet = json.loads(worksheet.read_text(encoding="utf-8"))
+    assert [row["capture_round"] for row in sheet["captures"]] == [50, 80, 81]
+    assert sheet == binder.case_worksheet(blob)
+    assert case_path.read_bytes() == blob
+    assert "UNVERIFIED local-filename.png" not in worksheet.read_text()
+    original_worksheet = worksheet.read_bytes()
+    # Draft output and direct case backup must never be overwritten.
+    assert subprocess.run(cmd, capture_output=True, timeout=20).returncode == 2
+    assert worksheet.read_bytes() == original_worksheet
+    assert subprocess.run(cmd[:-1] + [str(case_path)],
+                          capture_output=True, timeout=20).returncode == 2
+    assert case_path.read_bytes() == blob
+    # A corrupted source case must be rejected BEFORE creating an output.
+    wrong_case = tmp_path / "invalid-case.json"
+    bad = deepcopy(c)
+    bad["rounds"][0]["number"] = 80  # duplicate numeric captured round
+    wrong_case.write_text(json.dumps(bad), encoding="utf-8")
+    target = tmp_path / "should-not-exist.json"
+    run = subprocess.run([sys.executable, "-m",
+                          "tools.research.p0_report_case_local_image_binding",
+                          "--case", str(wrong_case), "--write-case-worksheet",
+                          str(target)], capture_output=True, timeout=20)
+    assert run.returncode == 2
+    assert not target.exists()
+    assert wrong_case.read_bytes() == json.dumps(bad).encode("utf-8")
