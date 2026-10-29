@@ -38,10 +38,16 @@ Round tabs show a **derived progress hint** per captured R number. `EMPTY` means
 
 The selected round additionally displays entered visible slots, pending slots and Reserve row count. **Reserve HP is never treated as visible**, and source notes / baseline confirmation do not promote a round to verified. The display is computed from existing v1 data without modifying storage or export format. Real Chromium acceptance covers R80 filled, R82 label-only draft, and out-of-order R50. This is research transcription assistance only.
 
-### Read-only nearest-earlier captured-round field comparison (Draft PR)
+### Read-only earlier captured-round field comparison (PR #102 merged; selectable source Draft PR #103)
 
-The editor's collapsible comparison uses the chronological **nearest earlier
+The editor's collapsible comparison defaults to the chronological **nearest earlier
 captured** round, not JSON array order or necessarily an adjacent game round.
+The new UI can select any earlier **captured** source round. Future, same-round
+or non-existent identifiers are rejected by the model; case/target switching
+resets the choice, while read/edit changes preserve it. The choice lives only
+in browser UI memory and does not alter case JSON, timestamp or localStorage.
+The displayed round-number gap is informational: skipped battle intervals
+must NEVER be treated as sampled, continuous observations.
 It renders only physical `side / line / pos` addresses with some manually
 entered data. Differences appear only if both captured phases match, both
 visible count and HP are filled, and both nonempty **unit and Wave labels**
@@ -55,8 +61,7 @@ identity, replenishment or official mechanics. Same Wave text does not prove
 same real Wave across rounds. Reserve HP is never compared, case JSON v1 is
 unchanged, and the operation cannot change stored data or engine results.
 Missing original screenshots prevent empirical calibration of Issue #73.
-Node adversarial regression and synthetic Chromium R50/R80/R81/R82 browser
-acceptance are mandatory before declaring this PR reviewed.
+PR #102 passed exact-source Hosted CI and clean formal Codex Review before owner Merge. For selectable-source PR #103, adversarial model tests plus real Chromium R50/R81 manual source-switch, R82 draft handling and reset/read-mode checks must pass on its exact new HEAD.
 
 ### Reserve HP evidence constraint
 
