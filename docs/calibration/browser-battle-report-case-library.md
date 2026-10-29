@@ -17,3 +17,34 @@ Dynamic ordering: adding a newly earlier captured round re-evaluates the case's 
 Browser `localStorage` only, not a server database, account sync or persistent Vercel state. Always export JSON before browser cleanup/device switch; keep original screenshots privately outside GitHub. No screenshot upload, original-image authentication, official damage/Accuracy/healing inference or production simulation data ingest. The research archive's local SHA-256 binder and stage-delta tools remain separately available; this UI does not falsely claim screenshots are authenticated by typing a source note. Future tasks: optional authenticated persistent storage and schema-mapped evidence export, after explicit scope review.
 
 Static page is duplicated at root and `public/` to support ASGI local routes and Vercel static serving, matching simulator's existing root/public index parity. `/battle-cases.html` and `/battle-cases-model.js` have explicit rewrites before SPA catchall. Regression tests verify static parity, ASGI routes and Node JS model provenance rules/syntax (when Node available). Real-browser visual interaction not yet independently verified by hosted tests.
+
+### Real Chromium browser interaction acceptance
+
+The static HTML and Node fake-DOM tests are not equivalent to a true browser.
+The dedicated GitHub Actions workflow `.github/workflows/battle-report-browser-e2e.yml`
+starts the repository's local ASGI app, installs Chromium and executes
+`tools/report_case_browser_e2e.py` using Python Playwright and a fresh browser
+profile. It uses entirely **synthetic case data**; no user's original Gameforge
+screenshots or real personal identifiers are uploaded.
+
+The browser flows cover R80 as the first captured report (after deleting
+the initial empty R1), physical geometry slot indices, visible HP and deaths,
+the explicit hidden-Reserve 100% assumption and user confirmation, read-only
+versus editor rendering, R81 and an earlier R50 baseline, downloading a JSON
+backup and uploading those exact bytes, deleting the original case and
+verifying localStorage after reload, plus mobile viewport screenshots.
+After reload the test re-exports the imported case and compares the entire
+parsed JSON against the original download, allowing differences **only**
+for the import-generated case ID, name and timestamps. This comparison
+covers all captured rounds, source notes, physical slots, units/counts,
+casualties, HP, Reserve origins and confirmation flags—not just the
+visible R80 HP. Browser CI must pass on the exact revised source HEAD
+before declaring this acceptance correction verified.
+The successful Hosted workflow uploads synthetic desktop/mobile screenshots
+for seven days. The workflow result must be checked before calling browser
+acceptance passed. This does not verify official battle mechanics or game-source
+authenticity.
+
+For local execution install uvicorn and Python Playwright with Chromium,
+start `uvicorn asgi:application --host 127.0.0.1 --port 8871`, then run
+`python tools/report_case_browser_e2e.py --base-url http://127.0.0.1:8871`.
