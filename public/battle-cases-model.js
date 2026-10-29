@@ -271,6 +271,32 @@ function exportCapturedReviewQueueCsv(c,fields=null){
   if(!rows.length)err('目前沒有需核對的已輸入欄位；這不代表截圖來源已驗證');
   return serializeComparisonCsv(rows,REVIEW_QUEUE_CSV_HEADERS);
 }
+// Evidence source-notes MANIFEST: existing text only, never image bytes,
+// source authentication, screenshot existence, inferred observations or HP.
+// Complements pending review queue by join on case_id + capture_round.
+const CAPTURE_SOURCE_MANIFEST_HEADERS=[
+  'evidence_class','case_id','case_name','battlefield',
+  'capture_round','capture_id','capture_phase',
+  'source_note_status','source_note_text',
+  'entered_visible_slots','pending_visible_slots','entry_status',
+  'original_image_in_export','source_authentication','interpretation'
+];
+function exportCapturedSourceManifestCsv(c,fields=null){
+  const problems=validateCase(c,fields);
+  if(problems.length)err('無法匯出來源備註清單：'+problems[0]);
+  const rows=c.rounds.slice().sort((a,b)=>a.number-b.number).map(round=>{
+    const progress=roundEntrySummary(round);
+    return [
+      'USER_TRANSCRIPTION_UNVERIFIED',c.id,c.name,c.battlefield,
+      round.number,round.id,round.phase,
+      round.source.trim()?'SOURCE_NOTE_TYPED_UNVERIFIED':'SOURCE_NOTE_MISSING',
+      round.source,progress.enteredSlots,progress.pendingSlots,progress.code,
+      'ORIGINAL_IMAGE_NOT_INCLUDED','NOT_AUTHENTICATED',
+      'NOTE_TEXT_ONLY_NOT_PROOF_OF_SOURCE_OR_COMBAT_CAUSALITY'
+    ];
+  });
+  return serializeComparisonCsv(rows,CAPTURE_SOURCE_MANIFEST_HEADERS);
+}
 function validateCase(c,fields=null){
 const problems=[];
 if(!c||typeof c!=='object'||Array.isArray(c))return ['案例不是物件'];
@@ -350,5 +376,5 @@ function importCase(s,fields){
   if(problems.length)err(problems.slice(0,5).join('；'));
   return data;
 }
-return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds,summarizeCapturedTimeline,inspectCapturedCoveragePair,exportCapturedComparisonCsv,exportCapturedTimelineCsv,exportCapturedReviewQueueCsv};
+return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds,summarizeCapturedTimeline,inspectCapturedCoveragePair,exportCapturedComparisonCsv,exportCapturedTimelineCsv,exportCapturedReviewQueueCsv,exportCapturedSourceManifestCsv};
 });
