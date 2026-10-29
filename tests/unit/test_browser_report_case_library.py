@@ -983,7 +983,15 @@ assert(csv.startsWith('\uFEFF'));
 assert.equal(JSON.stringify(c),before,'no storage mutation');
 assert(elapsedMs<8000,
   '100-round CSV should not do cubic repeated whole-timeline scans: '+elapsedMs+'ms');
-process.stdout.write(JSON.stringify({elapsedMs,rows:693}));
+const joinedStart=performance.now();
+const joined=M.exportCapturedJoinedReviewCsv(c);
+const joinedMs=performance.now()-joinedStart;
+assert.equal(joined.match(/"INCOMPLETE"/g).length,693);
+assert(joined.includes('ORIGINAL_IMAGE_NOT_INCLUDED'));
+assert(joinedMs<8000,
+  'joined 100-round CSV must not rebuild whole case for each pair: '+joinedMs+'ms');
+assert.equal(JSON.stringify(c),before,'joined CSV must not mutate original case');
+process.stdout.write(JSON.stringify({elapsedMs,joinedMs,rows:693}));
 """
     js=tmp_path/"review_queue_100rounds.cjs"
     js.write_text(script,encoding="utf-8")
@@ -1082,6 +1090,98 @@ def test_source_note_manifest_ui_and_static_mirror():
     assert "safeId=c.id.replace(/[^A-Za-z0-9_-]/g,'_')" in html
     assert "來源備註 CSV 匯出失敗" in html
     assert "不含原始圖片" in html
+    assert html==(ROOT/"public/battle-cases.html").read_text(encoding="utf-8")
+    assert (ROOT/"battle-cases-model.js").read_bytes()==(ROOT/"public/battle-cases-model.js").read_bytes()
+
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node required for joined review CSV")
+def test_joined_review_csv_includes_both_source_notes_without_claiming_image(tmp_path):
+    script=r"""
+const assert=require('node:assert/strict');
+const M=require(process.argv[2]);
+const c=M.create('synthetic joined packet','naval-small');
+c.name='=HYPERLINK("https://example.invalid","name")';
+const r50=c.rounds[0];r50.number=50;
+const r80=M.newRound(80),r81=M.newRound(81),r82=M.newRound(82);
+const r90=M.newRound(90),r100=M.newRound(100);
+c.rounds.push(r100,r82,r90,r80,r81); // nonchronological JSON
+r50.source='=HYPERLINK("https://example.invalid","image")\nother line';
+r80.source='  '; // whitespace means missing
+r81.source=' +SUM(2,3)\tlocal-folder\\source.png';
+r82.source='manual-file-82.png';
+r90.source='';r100.source='';
+const put=(r,side,line,pos,wave,count,hp)=>{
+  const s=M.newSlot(line,pos);
+  Object.assign(s,{unit:'ram_ship',wave,count,hp});
+  r[side].slots.push(s);
+};
+put(r50,'attacker','first',1,'W1',7,94);
+put(r80,'attacker','first',1,'W1',9,83);
+put(r80,'attacker','second',1,'W2',2,75);
+put(r81,'attacker','first',1,'W3',8,76);
+put(r82,'attacker','first',1,'W3',8,76);
+assert.deepEqual(M.validateCase(c),[]);
+const before=JSON.stringify(c);
+const oldBefore=M.exportCapturedReviewQueueCsv(c);
+const joined=M.exportCapturedJoinedReviewCsv(c);
+assert(joined.startsWith('\uFEFF'));
+assert.deepEqual(M.exportCapturedReviewQueueCsv(c),oldBefore,'legacy CSV must remain stable');
+assert.equal(JSON.stringify(c),before);
+assert.deepEqual(M.importCase(M.exportCase(c)),c);
+assert(joined.includes('ORIGINAL_IMAGE_NOT_INCLUDED'));
+assert(joined.includes('NOT_AUTHENTICATED'));
+assert(!joined.includes('reserve'));
+const clean=M.create('only same fields','naval-small');
+clean.rounds.push(M.newRound(2));
+put(clean.rounds[0],'attacker','first',1,'W1',0,0);
+put(clean.rounds[1],'attacker','first',1,'W1',0,0);
+assert.throws(()=>M.exportCapturedJoinedReviewCsv(clean),/沒有需核對/);
+assert.throws(()=>M.exportCapturedJoinedReviewCsv(M.create('single','naval-small')),
+  /至少需要兩個/);
+const bad=structuredClone(c);bad.rounds[0].attacker.slots[0].hp=101;
+assert.throws(()=>M.exportCapturedJoinedReviewCsv(bad),/無法彙整截錄資料/);
+process.stdout.write(joined);
+"""
+    js=tmp_path/"joined_review.cjs"
+    js.write_text(script,encoding="utf-8")
+    result=subprocess.run(["node",str(js),str(ROOT/"battle-cases-model.js")],
+                          capture_output=True,text=True,check=False)
+    assert result.returncode==0,result.stderr
+    rows=list(csv.DictReader(io.StringIO(result.stdout.lstrip("\ufeff"),newline="")))
+    assert len(rows)==5,rows
+    assert [(x["earlier_round"],x["target_round"]) for x in rows]==[
+        ("50","80"),("80","81"),("80","81"),("82","90"),("90","100")]
+    assert [x["review_reason"] for x in rows]==[
+        "ONE_SIDED","LABEL_CHANGED","ONE_SIDED","ONE_SIDED","NO_ENTERED_VISIBLE_SLOTS"]
+    assert rows[0]["case_name"].startswith("'=HYPERLINK")
+    assert rows[0]["earlier_source_note_status"]=="SOURCE_NOTE_TYPED_UNVERIFIED"
+    assert rows[0]["target_source_note_status"]=="SOURCE_NOTE_MISSING"
+    assert rows[0]["earlier_source_note_text"].startswith("'=HYPERLINK")
+    assert "\n" not in rows[0]["earlier_source_note_text"]
+    assert rows[0]["target_source_note_text"]=="  "
+    assert rows[1]["earlier_source_note_status"]=="SOURCE_NOTE_MISSING"
+    assert rows[1]["target_source_note_status"]=="SOURCE_NOTE_TYPED_UNVERIFIED"
+    assert rows[1]["target_source_note_text"].startswith("' +SUM")
+    assert "\t" not in rows[1]["target_source_note_text"]
+    assert rows[3]["target_source_note_status"]=="SOURCE_NOTE_MISSING"
+    assert rows[4]["side"]=="" and rows[4]["physical_position"]==""
+    assert rows[4]["earlier_source_note_status"]=="SOURCE_NOTE_MISSING"
+    assert rows[4]["target_source_note_status"]=="SOURCE_NOTE_MISSING"
+    assert all(x["evidence_class"]=="USER_TRANSCRIPTION_UNVERIFIED" for x in rows)
+    assert all(x["original_image_in_export"]=="ORIGINAL_IMAGE_NOT_INCLUDED" for x in rows)
+    assert all(x["source_authentication"]=="NOT_AUTHENTICATED" for x in rows)
+    assert all(x["interpretation"]=="NOTE_TEXT_ONLY_NOT_PROOF_OF_SOURCE_OR_COMBAT_CAUSALITY"
+               for x in rows)
+
+
+def test_joined_review_csv_ui_and_model_static_parity():
+    html=(ROOT/"battle-cases.html").read_text(encoding="utf-8")
+    assert 'id="exportJoinedReviewCsv"' in html
+    assert "M.exportCapturedJoinedReviewCsv(c,fields)" in html
+    assert "$('exportJoinedReviewCsv').disabled=!hasReviewItems;" in html
+    assert "待查格位＋來源備註匯出失敗" in html
+    assert "分享前請檢查可能含個資的路徑與備註" in html
     assert html==(ROOT/"public/battle-cases.html").read_text(encoding="utf-8")
     assert (ROOT/"battle-cases-model.js").read_bytes()==(ROOT/"public/battle-cases-model.js").read_bytes()
 
