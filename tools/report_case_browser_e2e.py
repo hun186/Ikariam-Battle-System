@@ -148,6 +148,8 @@ def run(base_url: str, evidence_dir: Path) -> None:
             })
             expect(page.locator("#caseList option")).to_have_count(2)
             expect(page.locator("#caseHeading")).to_contain_text("匯入")
+            imported_id = page.locator("#caseList").input_value()
+            assert imported_id and imported_id != original_id
             page.get_by_role("button", name="R80", exact=True).click()
             expect(first_tile).to_contain_text("HP 83%")
             expect(page.locator('#battleBoard .reserve-tag')).to_contain_text(
@@ -161,9 +163,30 @@ def run(base_url: str, evidence_dir: Path) -> None:
             page.reload(wait_until="networkidle")
             expect(page.locator("#caseList option")).to_have_count(1)
             expect(page.locator("#caseHeading")).to_contain_text("匯入")
+            assert page.locator("#caseList").input_value() == imported_id
             page.get_by_role("button", name="R80", exact=True).click()
             expect(first_tile).to_contain_text("HP 83%")
-            print("PASS: JSON upload, case deletion, browser localStorage reload")
+
+            # Do not mistake a successful file-picker interaction for lossless restore.
+            # Re-export the IMPORTED case after localStorage reload, and compare all
+            # nested rounds (R50/R80/R81), slots, Reserve, counts, deaths, notes,
+            # chronology, confirmation flags and source provenance as parsed JSON.
+            with page.expect_download() as restored_download_event:
+                page.locator("#exportCase").click()
+            restored_payload = Path(restored_download_event.value.path()).read_bytes()
+            restored = json.loads(restored_payload.decode("utf-8"))
+            assert restored["id"] == imported_id
+            assert restored["name"] == saved["name"][:114] + "（匯入）"
+            assert restored["created"] == restored["updated"]
+            expected_payload = dict(saved)
+            # Import intentionally assigns new identity, name and timestamps only.
+            for key in ("id", "name", "created", "updated"):
+                expected_payload[key] = restored[key]
+            assert restored == expected_payload, (
+                "Imported case lost/changed data across upload, delete, reload and "
+                "download: full nested case JSON differs from the original backup"
+            )
+            print("PASS: complete 3-round JSON backup round-trip after localStorage reload")
 
             page.set_viewport_size({"width": 390, "height": 844})
             expect(page.locator("#caseList")).to_be_visible()
