@@ -481,3 +481,187 @@ def test_focused_actual_engine_cli_output_exclusive(engine_input, local_syntheti
     assert second.returncode == 2
     assert "refusing to overwrite" in second.stderr
     assert data == json.loads(out.read_text(encoding="utf-8"))
+
+
+# PR #122: adjacent-round descriptive changes are NOT casualty/mechanic proof.
+from tools.research import p0_report_case_multi_round_engine_diagnostic as multi
+
+
+def _synthetic_pair(a_count=9, b_count=7, *, a_wave="w1", b_wave="w1",
+                    b_engine_wave="model-w1", first_round=80, second_round=81):
+    base = {
+        "schema": focused.SCHEMA,
+        "source_class": adapter.SOURCE,
+        "case_sha256": "a" * 64,
+        "scenario_sha256": "b" * 64,
+        "engine_source_sha256": "c" * 64,
+        "engine_output_sha256": "d" * 64,
+        "review_worksheet_sha256": "e" * 64,
+        "case_id": "synthetic",
+        "side": "attacker", "line": "flank",
+        "engine_policy": "experimental",
+    }
+    def row(count, engine_count, wave, engine_wave):
+        return {
+            "physical_position": 1,
+            "typed_unit_label": "swordsman",
+            "typed_wave_label": wave,
+            "typed_count": count,
+            "typed_deaths": None,
+            "typed_hp_percent": None,
+            "engine_unit_id": "swordsman",
+            "engine_wave_id_user_asserted": engine_wave,
+            "engine_count_context_only": engine_count,
+            "engine_minus_typed_count": engine_count-count,
+            "count_comparison_status": multi.ELIGIBLE,
+        }
+    a = {**base, "capture_round": first_round, "capture_id": "early",
+         "rows": [row(a_count, 8, a_wave, "model-w1")]}
+    b = {**base, "capture_round": second_round, "capture_id": "later",
+         "rows": [row(b_count, 6, b_wave, b_engine_wave)]}
+    return a, b
+
+
+def test_multi_round_adjacent_count_changes_are_descriptive_only():
+    a,b = _synthetic_pair()
+    pair = multi._pair(a,b)
+    assert pair["round_number_gap"] == 1
+    assert pair["descriptive_change_comparisons"] == 1
+    row=pair["rows"][0]
+    assert row["comparison_status"] == "DESCRIPTIVE_COUNT_CHANGES_ONLY_NOT_CAUSAL"
+    assert row["typed_count_change"] == -2
+    assert row["engine_count_change"] == -2
+    assert row["engine_minus_typed_change"] == 0
+    assert row["hp_or_casualty_mechanism_inferred"] is False
+
+
+def test_multi_round_unknown_zero_unpaired_and_gapped_never_invent_changes():
+    a,b = _synthetic_pair(a_count=0,b_count=0)
+    p=multi._pair(a,b)["rows"][0]
+    assert p["typed_count_change"] == 0
+    assert p["engine_count_change"] == -2
+    assert p["engine_minus_typed_change"] == -2
+    assert a["rows"][0]["typed_count"] == 0
+    for candidate in (
+        {"capture_round":83},
+        {"rows":[{**b["rows"][0],"physical_position":2}]},
+        {"rows":[{**b["rows"][0],"count_comparison_status":
+                  "NOT_ASSESSABLE_NO_EXPLICIT_REVIEW_SLOT_BINDING",
+                  "engine_minus_typed_count":None}]},
+        {"rows":[{**b["rows"][0],"typed_count":None,
+                  "engine_minus_typed_count":None,
+                  "count_comparison_status":"NOT_ASSESSABLE_UNKNOWN_TYPED_COUNT"}]},
+        {"rows":[{**b["rows"][0],"typed_wave_label":""}]},
+        {"rows":[{**b["rows"][0],"typed_wave_label":"w2"}]},
+        {"rows":[{**b["rows"][0],"engine_wave_id_user_asserted":"model-w2"}]},
+        {"rows":[{**b["rows"][0],"engine_unit_id":"hoplite"}]},
+    ):
+        mod={**b,**candidate}
+        result=multi._pair(a,mod)
+        assert result["descriptive_change_comparisons"]==0,mod
+        assert all(r["typed_count_change"] is None
+                   and r["engine_count_change"] is None
+                   and r["engine_minus_typed_change"] is None
+                   for r in result["rows"])
+    with pytest.raises(ValueError,match="strictly increasing"):
+        multi._pair(b,a)
+    with pytest.raises(ValueError,match="provenance"):
+        multi._pair(a,{**b,"scenario_sha256":"0"*64})
+    with pytest.raises(ValueError,match="duplicated physical"):
+        multi._pair(a,{**b,"rows":[b["rows"][0],b["rows"][0]]})
+
+
+def _multi_real_case(local_synthetic_case):
+    raw, manifest, root, _, mapping, model = _focused_inputs(local_synthetic_case)
+    c=json.loads(raw)
+    # R1 is partially typed with an explicit zero death count; numeric first
+    # capture now qualifies for focus but has no user-entered binding row.
+    c["rounds"][0]["attacker"]["slots"][0]["deaths"]=0
+    updated=json.dumps(c,ensure_ascii=False).encode()
+    review=manual.review_worksheet(updated,manifest,root)
+    assert len(review["review_items"])==1
+    review["review_items"][0]["review_status"]="REVIEWER_REPORTS_IMAGES_READABLE"
+    mapping["case_sha256"]=sha256(updated).hexdigest()
+    return updated,manifest,root,json.dumps(review).encode(),mapping,model,c
+
+
+def test_multi_round_real_simulator_with_source_gates_and_unknown_wave(engine_input,local_synthetic_case):
+    raw,manifest,root,review,mapping,model,c=_multi_real_case(local_synthetic_case)
+    ids=[r["id"] for r in c["rounds"]]
+    result=multi.multi_round_diagnostic(
+        engine_input,raw,manifest,root,review,mapping,
+        capture_ids=ids,side="attacker",line=model["line"],
+    )
+    assert result["schema"]==multi.SCHEMA
+    assert result["source_class"]==adapter.SOURCE
+    assert result["capture_ids"]==ids
+    assert result["actual_current_engine_executed"] is True
+    assert result["number_of_engine_executions"]==2
+    assert result["strictly_adjacent_pairs"]==1
+    assert result["descriptive_change_comparisons"]==0
+    pair=result["round_pairs"][0]
+    assert pair["rows"][0]["comparison_status"]=="NOT_ASSESSABLE_SOURCE_OR_ENGINE_MAPPING_GATE"
+    assert pair["rows"][0]["typed_count_change"] is None
+    assert result["capture_projections"][0]["rows"][0]["typed_deaths"] == 0
+    assert result["capture_projections"][0]["rows"][0]["typed_count"] is None
+    assert result["global_calibration_allowed"] is False
+    assert result["hp_bar_comparison_performed"] is False
+    assert result["casualty_damage_healing_or_reserve_mechanism_inferred"] is False
+    assert result["independent_holdouts"] == 0
+    serialized=json.dumps(result)
+    assert "not-to-be-exported" not in serialized
+    assert str(root) not in serialized
+    with pytest.raises(ValueError,match="2-10"):
+        multi.multi_round_diagnostic(engine_input,raw,manifest,root,review,mapping,
+            capture_ids=ids[:1],side="attacker",line=model["line"])
+    with pytest.raises(ValueError,match="2-10"):
+        multi.multi_round_diagnostic(engine_input,raw,manifest,root,review,mapping,
+            capture_ids=ids*6,side="attacker",line=model["line"])
+    with pytest.raises(ValueError,match="unique"):
+        multi.multi_round_diagnostic(engine_input,raw,manifest,root,review,mapping,
+            capture_ids=ids[:1]*2,side="attacker",line=model["line"])
+    with pytest.raises(ValueError,match="increasing"):
+        multi.multi_round_diagnostic(engine_input,raw,manifest,root,review,mapping,
+            capture_ids=ids[::-1],side="attacker",line=model["line"])
+    with pytest.raises(ValueError,match="not found"):
+        multi.multi_round_diagnostic(engine_input,raw,manifest,root,review,mapping,
+            capture_ids=[ids[0],"nonexistent"],side="attacker",line=model["line"])
+    (root/"synthetic-0.png").write_bytes(b"tampered")
+    with pytest.raises(ValueError):
+        multi.multi_round_diagnostic(engine_input,raw,manifest,root,review,mapping,
+            capture_ids=ids,side="attacker",line=model["line"])
+
+
+def test_multi_round_cli_synthetic_actual_engine_and_exclusive_write(
+    engine_input,local_synthetic_case,tmp_path,
+):
+    raw,manifest,root,review,mapping,model,c=_multi_real_case(local_synthetic_case)
+    payloads={
+        "scenario.json":engine_input,
+        "case.json":raw,
+        "manifest.json":json.dumps(manifest).encode(),
+        "review.json":review,
+        "map.json":json.dumps(mapping).encode(),
+    }
+    for path,data in payloads.items():
+        (tmp_path/path).write_bytes(data)
+    output=tmp_path/"multi.json"
+    cmd=[sys.executable,"-m",
+         "tools.research.p0_report_case_multi_round_engine_diagnostic",
+         "--scenario",str(tmp_path/"scenario.json"),
+         "--case",str(tmp_path/"case.json"),
+         "--manifest",str(tmp_path/"manifest.json"),
+         "--evidence-root",str(root),
+         "--review-worksheet",str(tmp_path/"review.json"),
+         "--slot-map",str(tmp_path/"map.json"),
+         "--side","attacker","--line",model["line"]]
+    for capture in c["rounds"]:
+        cmd+=["--capture-id",capture["id"]]
+    cmd+=["--output-json",str(output)]
+    completed=subprocess.run(cmd,capture_output=True,text=True,timeout=60)
+    assert completed.returncode==0,completed.stderr
+    assert json.loads(output.read_text())["global_calibration_allowed"] is False
+    assert "game_mechanics_verified" in completed.stdout
+    second=subprocess.run(cmd,capture_output=True,text=True,timeout=60)
+    assert second.returncode==2
+    assert "refusing to overwrite" in second.stderr
