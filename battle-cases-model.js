@@ -30,9 +30,13 @@ function researchEvidenceGate(c){
   if(errors.length)return {kind:'invalid',globalCalibrationAllowed:false,focusedComparisonAllowed:false,code:'INVALID',reason:'案例格式無效，不能用於校準'};
   if(!c.research)return {kind:'unclassified',globalCalibrationAllowed:false,focusedComparisonAllowed:false,code:'UNCLASSIFIED_LEGACY',reason:'舊案例未分類；不可視為完整戰報或全場校準資料'};
   const kind=c.research.kind;
-  const hasTypedVisibleData=c.rounds.some(r=>SIDES.some(side=>r[side].slots.some(s=>
-    s.unit||s.count!==null||s.hp!==null||s.deaths!==null)));
-  const focusedComparisonAllowed=kind==='partial_observation'&&hasTypedVisibleData;
+  const hasNumericVisibleObservation=c.rounds.some(r=>SIDES.some(side=>r[side].slots.some(s=>
+    s.count!==null||s.hp!==null||s.deaths!==null)));
+  // A copied unit/Wave label is only a data-entry draft. A real focused
+  // comparison also needs declared scope, purpose and typed numeric evidence.
+  const hasDeclaredScope=!!(c.research.objective.trim()&&c.research.observed_scope.trim());
+  const focusedComparisonAllowed=kind==='partial_observation'&&
+    hasNumericVisibleObservation&&hasDeclaredScope;
   const reason=kind==='full_report'?
     '僅自行標記完整；尚未驗證原始戰報、缺漏和跨戰線影響，禁止自動全場校準':
     kind==='partial_observation'?

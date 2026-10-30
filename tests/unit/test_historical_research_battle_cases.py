@@ -74,6 +74,16 @@ assert.equal(M.researchEvidenceGate(bundle.cases[4]).focusedComparisonAllowed,fa
 const legacy=M.create('legacy','land-max');delete legacy.research;
 assert.deepEqual(M.validateCase(legacy,fields),[]);
 assert.equal(M.researchEvidenceGate(legacy).code,'UNCLASSIFIED_LEGACY');
+const labelOnly=M.create('label-only','land-max');
+labelOnly.research=M.newResearch();
+labelOnly.research.objective='test a flank';
+labelOnly.research.observed_scope='first lane';
+labelOnly.rounds[0].attacker.slots.push({...M.newSlot('first',1),unit:'hoplite'});
+assert.equal(M.researchEvidenceGate(labelOnly).focusedComparisonAllowed,false);
+labelOnly.rounds[0].attacker.slots[0].deaths=2;
+assert.equal(M.researchEvidenceGate(labelOnly).focusedComparisonAllowed,true);
+labelOnly.research.observed_scope='';
+assert.equal(M.researchEvidenceGate(labelOnly).focusedComparisonAllowed,false);
 const fresh=M.create('fresh','land-max');
 fresh.research=M.newResearch();assert.deepEqual(M.validateCase(fresh,fields),[]);
 assert.equal(M.researchEvidenceGate(fresh).globalCalibrationAllowed,false);
