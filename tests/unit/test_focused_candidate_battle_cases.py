@@ -34,7 +34,7 @@ assert.deepEqual(template.predictions.map(p=>p.count),[null,null,null]);
 assert.deepEqual(template.predictions.map(p=>p.deaths),[null,null,null]);
 assert.deepEqual(template.predictions.map(p=>p.pos),[1,2,3]);
 assert.equal(JSON.stringify(c),snapshot);
-const good={...template,candidate_label:'=UntrustedCandidate()',
+const good={...structuredClone(template),candidate_label:'=UntrustedCandidate()',
  assumptions:'+External artificial prediction; the engine did not produce these'};
 good.predictions[0]={...good.predictions[0],count:7,hp:80,deaths:0};
 good.predictions[1]={...good.predictions[1],count:0,deaths:0};
@@ -92,10 +92,10 @@ reject({...good,assumptions:''},/模型假設/);
 reject({...good,extra:1},/格式/);
 assert.throws(()=>M.compareFocusedCandidate(c,'{bad JSON',fields),/無法解析/);
 assert.throws(()=>M.compareFocusedCandidate(c,' '.repeat(128*1024+1),fields),/128 KiB/);
-const before=JSON.stringify(c);
 const olderRound=M.newRound(1);c.rounds.push(olderRound);
+const snapshotAfterAdding=JSON.stringify(c);
 assert.throws(()=>M.newFocusedCandidateTemplate(c,'attacker','flank',olderRound.id,fields),/沒有數值觀測/);
-assert.equal(JSON.stringify(c),JSON.stringify(c)); // sanity: pure comparisons only
+assert.equal(JSON.stringify(c),snapshotAfterAdding); // rejected projection did not mutate sources
 c.research.kind='research_summary';
 assert.throws(()=>M.newFocusedCandidateTemplate(c,'attacker','flank',r.id,fields),/不符合局部研究/);
 c.research.kind='full_report';

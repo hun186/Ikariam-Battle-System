@@ -204,7 +204,7 @@ def run(base_url: str, evidence_dir: Path) -> None:
             page.locator("#closeDrawer").click()
             fill_visible_slot(page, unit, count=9, hp=83, deaths=2)
             expect(page.locator("#roundEntryStatus")).to_contain_text("可見欄位已填 1 格")
-            page.locator("#focusedStudy summary").click()
+            page.locator("#focusedStudy > summary").click()
             page.locator("#focusedLine").select_option("first")
             expect(page.locator("#focusedLaneStatus")).to_contain_text("條件式局部對照")
             expect(page.locator("#focusedLaneContent")).to_contain_text("未知≠0")
@@ -225,7 +225,7 @@ def run(base_url: str, evidence_dir: Path) -> None:
             assert all(row["original_source_authenticated"]=="NOT_AUTHENTICATED" for row in focused_rows)
             # Candidate comparison uses user-entered proposals and must not
             # claim to run the actual engine or alter source-localStorage.
-            page.locator("#candidateStudy summary").click()
+            page.locator("#candidateStudy > summary").click()
             page.locator("#newCandidateTemplate").click()
             template = json.loads(page.locator("#candidateJson").input_value())
             assert template["source_class"] == "USER_ENTERED_MODEL_CANDIDATE_NOT_ENGINE_ATTESTED"
