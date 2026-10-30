@@ -10,6 +10,10 @@
       "destination": "/battle-cases-model.js"
     },
     {
+      "source": "/battle-cases-history.json",
+      "destination": "/battle-cases-history.json"
+    },
+    {
       "source": "/api/simulate",
       "destination": "/api/simulate.py"
     },

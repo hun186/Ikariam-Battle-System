@@ -17,6 +17,34 @@ function invalidateReserveConfirmation(round,side){if(!SIDES.includes(side)||!ro
 function create(name='新案例',battlefield='naval-small'){const now=new Date().toISOString();return {schema:SCHEMA,id:uid(),name:validName(name),battlefield,notes:'',created:now,updated:now,rounds:[newRound()]};}
 function newSlot(line,pos){return {line,pos,unit:'',wave:'',count:null,hp:null,deaths:null};}
 function newReserve(){return {id:uid(),unit:'',wave:'',count:null,hp:100,source:'assumed_full',calculation:''};}
+// Optional evidence boundary metadata; legacy v1 exports remain importable unchanged.
+// An empty string means NOT DOCUMENTED, never explicitly absent or proven empty.
+const RESEARCH_KINDS=['full_report','partial_observation','research_summary'];
+const RESEARCH_TEXT_KEYS=['objective','observed_scope','known_conditions','hypothetical_inputs','unknown_fields','confirmed_absences'];
+function newResearch(){return {kind:'partial_observation',objective:'',observed_scope:'',known_conditions:'',hypothetical_inputs:'',unknown_fields:'',confirmed_absences:''};}
+// Conservative consumer-facing policy: neither form completion nor self-reporting
+// of a 'full_report' authenticates original game captures or permits whole-battle
+// mechanics calibration. Historical case-library content is never engine input.
+function researchEvidenceGate(c){
+  const errors=validateCase(c);
+  if(errors.length)return {kind:'invalid',globalCalibrationAllowed:false,focusedComparisonAllowed:false,code:'INVALID',reason:'案例格式無效，不能用於校準'};
+  if(!c.research)return {kind:'unclassified',globalCalibrationAllowed:false,focusedComparisonAllowed:false,code:'UNCLASSIFIED_LEGACY',reason:'舊案例未分類；不可視為完整戰報或全場校準資料'};
+  const kind=c.research.kind;
+  const hasNumericVisibleObservation=c.rounds.some(r=>SIDES.some(side=>r[side].slots.some(s=>
+    s.count!==null||s.hp!==null||s.deaths!==null)));
+  // A copied unit/Wave label is only a data-entry draft. A real focused
+  // comparison also needs declared scope, purpose and typed numeric evidence.
+  const hasDeclaredScope=!!(c.research.objective.trim()&&c.research.observed_scope.trim());
+  const focusedComparisonAllowed=kind==='partial_observation'&&
+    hasNumericVisibleObservation&&hasDeclaredScope;
+  const reason=kind==='full_report'?
+    '僅自行標記完整；尚未驗證原始戰報、缺漏和跨戰線影響，禁止自動全場校準':
+    kind==='partial_observation'?
+    '僅能依明列觀測範圍做條件式局部研究；未知戰線及前提不可當成已知部署':
+    '僅有研究摘要／總量；不得填補實體格位或用於全場重建';
+  return {kind,globalCalibrationAllowed:false,focusedComparisonAllowed,
+    code:kind==='full_report'?'FULL_REPORT_UNVERIFIED':kind==='partial_observation'?'FOCUSED_ONLY':'SUMMARY_ONLY',reason};
+}
 // Reuse labels only. A past screenshot is NEVER evidence for a later round's
 // counts, HP, deaths, Reserve quantity/HP, confirmation, or source timestamp.
 function reuseEarlierSlotLabels(c,targetId){
@@ -323,7 +351,16 @@ function validateCase(c,fields=null){
 const problems=[];
 if(!c||typeof c!=='object'||Array.isArray(c))return ['案例不是物件'];
 const exact=(o,keys)=>o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).sort().join('|')===keys.slice().sort().join('|');
-if(!exact(c,['schema','id','name','battlefield','notes','created','updated','rounds'])||c.schema!==SCHEMA)problems.push('案例 schema 不符');
+const caseKeys=['schema','id','name','battlefield','notes','created','updated','rounds'];
+if((!exact(c,caseKeys)&&!exact(c,[...caseKeys,'research']))||c.schema!==SCHEMA)problems.push('案例 schema 不符');
+if(Object.prototype.hasOwnProperty.call(c,'research')){
+  const meta=c.research;
+  if(!exact(meta,['kind',...RESEARCH_TEXT_KEYS])||!RESEARCH_KINDS.includes(meta?.kind))
+    problems.push('研究分類格式無效');
+  else for(const key of RESEARCH_TEXT_KEYS){
+    if(!text(meta[key],2000))problems.push('研究來源／前提欄位無效：'+key);
+  }
+}
 if(!text(c.id)||!c.id||!text(c.name)||!c.name.trim()||!text(c.battlefield)||!c.battlefield||!text(c.notes,4000)||!text(c.created,80)||!text(c.updated,80))problems.push('案例欄位無效');
 const field=fields?.find(f=>f.id===c.battlefield);
 if(fields&&!field)problems.push('戰場類型不存在');
@@ -392,11 +429,36 @@ function exportCase(c,fields){
   checkJsonSize(serialized); // Refuse to generate a file that cannot be imported.
   return serialized;
 }
+
+const HISTORY_SCHEMA='ikariam-research-battle-history-v1';
+// A source-tagged research catalog is NOT automatically authenticated by import.
+// The helper validates ALL incoming entries before adding any and keeps local
+// edited cases untouched. Fixed IDs make repeated import idempotent.
+function mergeHistoricalCases(existing,bundle,fields=null){
+  if(!Array.isArray(existing)||existing.length>50)err('本機案例清單無效');
+  for(const c of existing){const problems=validateCase(c,fields);if(problems.length)err('本機既有案例無效：'+problems[0]);}
+  if(!bundle||bundle.schema!==HISTORY_SCHEMA||!Array.isArray(bundle.cases)||
+     bundle.cases.length>50||!bundle.cases.length)err('歷史研究資料格式無效');
+  const existingIds=new Set(existing.map(c=>c.id));
+  if(existingIds.size!==existing.length)err('本機案例 ID 重複');
+  const incomingIds=new Set(),staged=[];
+  for(const c of bundle.cases){
+    if(!c||typeof c.id!=='string'||!c.id.startsWith('research-')||
+       incomingIds.has(c.id))err('歷史研究資料 ID 無效或重複');
+    incomingIds.add(c.id);
+    const issues=validateCase(c,fields);
+    if(issues.length)err('歷史研究案例無效：'+c.id+'：'+issues[0]);
+    if(!existingIds.has(c.id))staged.push(c);
+  }
+  if(existing.length+staged.length>50)err('加入後會超過 50 個本機案例，請先整理或備份');
+  return {cases:existing.concat(staged),added:staged.length,total:bundle.cases.length};
+}
+
 function importCase(s,fields){
   checkJsonSize(s);
   const data=JSON.parse(s),problems=validateCase(data,fields);
   if(problems.length)err(problems.slice(0,5).join('；'));
   return data;
 }
-return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds,summarizeCapturedTimeline,inspectCapturedCoveragePair,exportCapturedComparisonCsv,exportCapturedTimelineCsv,exportCapturedReviewQueueCsv,exportCapturedSourceManifestCsv,exportCapturedJoinedReviewCsv};
+return {SCHEMA,STORAGE,HISTORY_SCHEMA,mergeHistoricalCases,MAX_JSON_BYTES,SIDES,LINES,RESEARCH_KINDS,RESEARCH_TEXT_KEYS,newResearch,researchEvidenceGate,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds,summarizeCapturedTimeline,inspectCapturedCoveragePair,exportCapturedComparisonCsv,exportCapturedTimelineCsv,exportCapturedReviewQueueCsv,exportCapturedSourceManifestCsv,exportCapturedJoinedReviewCsv};
 });
