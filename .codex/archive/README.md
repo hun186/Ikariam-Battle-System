@@ -9,6 +9,7 @@
 | [land-BL008-research-history-2026-10.md](land-BL008-research-history-2026-10.md) | BL-008 長期追加式研究描述，已濃縮為 active 穩定任務，原條目僅供歷史審查 | 2026-10-19 | `.codex/backlog.md` | 需要還原舊數值推論時 |
 | [land-research-handoff-2026-10.md](land-research-handoff-2026-10.md) | LAND R1/R80–89 and different 400-Slinger R76–80 research: 18 superseded Current Focus entries (archival wording only; use active facts instead) | 2026-10-19 | `.codex/memory.md` | 僅研究歷史、審查來源追溯 |
 
+| [memory-2026-10-pr116-handoff-history.md](memory-2026-10-pr116-handoff-history.md) | 舊版 2026-10 至 PR #116 各 PR 交接、重複 Current Focus 與歷史成果（非現況） | 2026-10-30 | `.codex/memory.md` | 追溯舊 PR、Finding、證據來源時 |
 
 ## 歸檔原則
 
