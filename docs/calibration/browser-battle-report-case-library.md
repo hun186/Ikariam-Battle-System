@@ -446,3 +446,66 @@ label-only and wrong-line guards, legacy/summary/full rejection, geometry
 boundary, formula-escaped CSV and no JSON mutations; real Chromium tests
 for selectable focus lane, unknown slots, CSV download and non-mutating
 wrong-side browse.
+
+## Scoped browser comparison: candidate prediction vs user-typed capture
+
+After the owner-merged focused-lane explorer (#119), a follow-up adds a
+**session-only candidate comparison worksheet**. It is an ergonomic browser
+front-end for a narrow *user-entered* candidate; it does NOT replace the
+independently image-byte-gated PR #115 candidate diagnostic or the PR #117
+actual simulator slot-mapping preparatory tool. Neither the browser worksheet
+nor a copied label is evidence that a current engine run produced the numbers.
+
+1. Open a **partial observation** case, select the actual side/line and
+   captured target round, and click *建立目前截錄回合的空白候選範本*.
+2. The worksheet contains exact case ID, case \`updated\` revision, battlefield,
+   captured round ID/number/phase, side, line, and the **entire canonical
+   physical-position list**. Only user-typed unit/Wave labels are copied;
+   predicted \`count\`, \`hp\`, \`deaths\` are ALL \`null\`. Set a nonempty
+   \`candidate_label\`, an explicit \`assumptions\` description and only those
+   predicted numbers that are genuinely available from an outside research
+   hypothesis.
+3. Paste the JSON into the editor and click Compare. UI and bounded,
+   read-only CSV export show prediction-minus-user-typed numeric deltas **per
+   field only when both exist on that exact physical address** and known
+   unit/Wave labels do not conflict. Null means missing, not zero; 0 is a
+   real explicitly entered value. If labels conflict, numeric differences
+   are withheld. If Wave or unit identity is not known, the numeric difference
+   is described as physical-position-only, NOT a common underlying wave.
+4. No score, ranking, model fitting or mechanism validation follows. The
+   candidate source class is always
+   \`USER_ENTERED_MODEL_CANDIDATE_NOT_ENGINE_ATTESTED\`. The browser never
+   calls POST /api/simulate, never authenticates source screenshots or an
+   alleged engine revision, never updates localStorage with candidate text,
+   and never changes combat formulas.
+
+**Schema:** \`ikariam-focused-model-candidate-v1\` is a separate standalone
+worksheet JSON, not a modification to report case storage schema v1. It
+requires exact field sets: \`schema\`, \`source_class\`, \`case_id\`,
+\`case_updated\`, \`battlefield\`, \`round_id\`, \`round_number\`, \`phase\`,
+\`side\`, \`line\`, \`candidate_label\`, \`assumptions\`, \`predictions\`.
+Each predictions entry is exactly
+\`{pos,unit,wave,count,hp,deaths}\`; one entry per canonical physical position
+in strict order, all null numeric defaults. Candidate JSON is bounded
+to 128 KiB UTF-8; names/labels to 120 characters and assumptions to
+2000 characters. **P2 #4423263667 regression guard:** In addition to matching case JSON, the
+comparison API and CSV export now require the **live selected** captured round
+ID, side and line as an explicit separate scope object. A copied, otherwise
+valid candidate from another numeric round, side or line is rejected *before*
+numeric comparison or CSV generation; switching UI tabs and then pasting an
+old worksheet cannot silently reinterpret it. The visible result header also
+states attacker/defender, line and captured round. Chromium regression tests
+exercise a synthetic case with all three alternate numeric scopes and invoke
+the export handler directly, not relying on a disabled button alone.
+
+Whole-case, wrong-side, wrong-line, wrong-phase,
+round-number, wrong-geometry, changed-case-revision, forged source class,
+duplicate/extra/missing physical positions and invalid numbers all fail
+closed. All CSV text is spreadsheet-formula escaped. The candidate editor
+and result are cleared when selected case, revision, round, side or line
+changes. Saved original report case JSON remains unchanged.
+
+For authoritative source/engine comparison, still use the existing local
+screenshot-bound CLI pipeline and independently verified physical-slot
+bindings. The browser is for **descriptive hypothesis triage only**; a
+small numerical difference is not empirical proof of an algorithm.

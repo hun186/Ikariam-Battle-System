@@ -158,6 +158,93 @@ def run(base_url: str, evidence_dir: Path) -> None:
             finally:
                 legacy_context.close()
             print("PASS: legacy cases remain unclassified until user edit")
+            # Codex P2 #4423263667: other numeric sides/lines/rounds can
+            # have valid candidates, but a pasted worksheet must not be
+            # compared or CSV-exported under a different current UI focus.
+            scope_context = browser.new_context(locale="zh-TW", accept_downloads=True)
+            try:
+                scope_context.add_init_script(
+                    "localStorage.setItem("
+                    "'ikariam-report-case-history-20261030-imported-v1','1')"
+                )
+                scope_page = scope_context.new_page()
+                scope_page.goto(base_url + "/battle-cases.html", wait_until="networkidle")
+                scope_page.evaluate("""() => {
+                    const M=window.ReportCases;
+                    const c=M.create('SYNTHETIC scope P2','naval-small');
+                    c.research=M.newResearch();
+                    c.research.objective='Single-line candidate comparison';
+                    c.research.observed_scope='Artificial first/flank on both sides';
+                    const slot=(line,count)=>{
+                      const s=M.newSlot(line,1);
+                      s.unit='ram_ship';s.wave='test-wave';
+                      s.count=count;s.hp=75;s.deaths=0;
+                      return s;
+                    };
+                    const r80=c.rounds[0];r80.number=80;
+                    r80.attacker.slots.push(slot('first',9),slot('flank',5));
+                    r80.defender.slots.push(slot('first',4));
+                    const r81=M.newRound(81);r81.attacker.slots.push(slot('first',7));
+                    c.rounds.push(r81);
+                    localStorage.setItem(M.STORAGE,JSON.stringify([c]));
+                }""")
+                scope_page.reload(wait_until="networkidle")
+                expect(scope_page.locator("#caseList option")).to_have_count(1)
+                scope_page.locator("#focusedStudy > summary").click()
+                scope_page.locator("#candidateStudy > summary").click()
+                assert scope_page.locator("#focusedSide").input_value() == "attacker"
+                assert scope_page.locator("#focusedLine").input_value() == "first"
+                candidates = []
+                for side, line, number in (
+                    ("defender", "first", 80),
+                    ("attacker", "flank", 80),
+                    ("attacker", "first", 81),
+                ):
+                    scope_page.get_by_role("button", name=f"R{number}", exact=True).click()
+                    scope_page.locator("#focusedSide").select_option(side)
+                    scope_page.locator("#focusedLine").select_option(line)
+                    scope_page.locator("#newCandidateTemplate").click()
+                    candidate = json.loads(
+                        scope_page.locator("#candidateJson").input_value()
+                    )
+                    assert candidate["side"] == side
+                    assert candidate["line"] == line
+                    assert candidate["round_number"] == number
+                    candidate["candidate_label"] = "Different but valid scope"
+                    candidate["assumptions"] = "SYNTHETIC manual proposal"
+                    candidate["predictions"][0]["count"] = 1
+                    candidates.append(candidate)
+                scope_page.get_by_role("button", name="R80", exact=True).click()
+                scope_page.locator("#focusedSide").select_option("attacker")
+                scope_page.locator("#focusedLine").select_option("first")
+                raw_before_scope = scope_page.evaluate(
+                    "() => localStorage.getItem('ikariam-report-cases-v1')"
+                )
+                for candidate in candidates:
+                    scope_page.locator("#candidateJson").fill(
+                        json.dumps(candidate, ensure_ascii=False)
+                    )
+                    scope_page.locator("#compareCandidate").click()
+                    expect(scope_page.locator("#candidateComparisonStatus")).to_contain_text(
+                        "候選範圍與目前選取"
+                    )
+                    expect(scope_page.locator("#candidateComparisonRows")).to_be_empty()
+                    expect(scope_page.locator("#exportCandidateCsv")).to_be_disabled()
+                    # Invoke the export handler directly to verify it also
+                    # enforces scope, not just the disabled button UX.
+                    scope_page.evaluate(
+                        "() => document.getElementById('exportCandidateCsv').onclick()"
+                    )
+                    expect(scope_page.locator("#candidateComparisonStatus")).to_contain_text(
+                        "CSV 匯出拒絕：候選範圍與目前選取"
+                    )
+                    assert scope_page.evaluate(
+                        "() => localStorage.getItem('ikariam-report-cases-v1')"
+                    ) == raw_before_scope, "P2 rejection modified source case"
+                print("PASS: P2 other valid numeric side/line/round candidates refused by comparison AND CSV")
+            finally:
+                scope_context.close()
+
 
             prompted_click(page, "#addCase", "瀏覽器驗收 R80 海戰（合成資料）")
             expect(page.locator("#caseHeading")).to_contain_text("瀏覽器驗收 R80")
@@ -204,7 +291,7 @@ def run(base_url: str, evidence_dir: Path) -> None:
             page.locator("#closeDrawer").click()
             fill_visible_slot(page, unit, count=9, hp=83, deaths=2)
             expect(page.locator("#roundEntryStatus")).to_contain_text("可見欄位已填 1 格")
-            page.locator("#focusedStudy summary").click()
+            page.locator("#focusedStudy > summary").click()
             page.locator("#focusedLine").select_option("first")
             expect(page.locator("#focusedLaneStatus")).to_contain_text("條件式局部對照")
             expect(page.locator("#focusedLaneContent")).to_contain_text("未知≠0")
@@ -223,7 +310,53 @@ def run(base_url: str, evidence_dir: Path) -> None:
             assert focused_rows[1]["typed_deaths"] == ""
             assert focused_rows[1]["slot_data_status"] == "UNKNOWN_NOT_ZERO"
             assert all(row["original_source_authenticated"]=="NOT_AUTHENTICATED" for row in focused_rows)
+            # Candidate comparison uses user-entered proposals and must not
+            # claim to run the actual engine or alter source-localStorage.
+            page.locator("#candidateStudy > summary").click()
+            page.locator("#newCandidateTemplate").click()
+            template = json.loads(page.locator("#candidateJson").input_value())
+            assert template["source_class"] == "USER_ENTERED_MODEL_CANDIDATE_NOT_ENGINE_ATTESTED"
+            assert template["round_number"] == 80
+            assert template["side"] == "attacker" and template["line"] == "first"
+            assert all(p["count"] is None and p["hp"] is None and p["deaths"] is None
+                       for p in template["predictions"])
+            template["candidate_label"] = "SYNTHETIC candidate"
+            template["assumptions"] = "User-entered artificial candidate for browser E2E only"
+            template["predictions"][0]["count"] = 7
+            template["predictions"][0]["hp"] = 80
+            template["predictions"][0]["deaths"] = 0
+            page.locator("#candidateJson").fill(json.dumps(template, ensure_ascii=False))
+            page.locator("#compareCandidate").click()
+            expect(page.locator("#candidateComparisonStatus")).to_contain_text(
+                "可比較數值欄位 3"
+            )
+            row = page.locator("#candidateComparisonRows tbody tr").first
+            expect(row).to_contain_text("9 / 7 / -2")
+            expect(row).to_contain_text("83 / 80 / -3")
+            expect(row).to_contain_text("2 / 0 / -2")
+            with page.expect_download() as candidate_download:
+                page.locator("#exportCandidateCsv").click()
+            candidate_csv = Path(candidate_download.value.path()).read_text(
+                encoding="utf-8-sig"
+            )
+            candidate_rows = list(csv.DictReader(io.StringIO(candidate_csv)))
+            assert len(candidate_rows) == count
+            assert candidate_rows[0]["candidate_minus_typed_count"] == "-2"
+            assert candidate_rows[0]["candidate_minus_typed_deaths"] == "-2"
+            assert candidate_rows[1]["candidate_minus_typed_count"] == ""
+            assert candidate_rows[1]["typed_deaths"] == ""
+            assert all(
+                r["engine_execution_attested"] == "NOT_ATTESTED"
+                for r in candidate_rows
+            )
+            assert page.evaluate(
+                "() => localStorage.getItem('ikariam-report-cases-v1')"
+            ) == focused_raw_before, "candidate comparison modified the original case"
+            # A prospective prediction is not a source fact. Switching lane
+            # must clear this editable worksheet and disable old CSV export.
             page.locator("#focusedSide").select_option("defender")
+            expect(page.locator("#candidateJson")).to_be_empty()
+            expect(page.locator("#exportCandidateCsv")).to_be_disabled()
             expect(page.locator("#focusedLaneStatus")).to_contain_text("不可做局部數值對照")
             expect(page.locator("#exportFocusedLane")).to_be_disabled()
             assert page.evaluate(
