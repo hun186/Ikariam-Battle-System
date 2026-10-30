@@ -223,7 +223,53 @@ def run(base_url: str, evidence_dir: Path) -> None:
             assert focused_rows[1]["typed_deaths"] == ""
             assert focused_rows[1]["slot_data_status"] == "UNKNOWN_NOT_ZERO"
             assert all(row["original_source_authenticated"]=="NOT_AUTHENTICATED" for row in focused_rows)
+            # Candidate comparison uses user-entered proposals and must not
+            # claim to run the actual engine or alter source-localStorage.
+            page.locator("#candidateStudy summary").click()
+            page.locator("#newCandidateTemplate").click()
+            template = json.loads(page.locator("#candidateJson").input_value())
+            assert template["source_class"] == "USER_ENTERED_MODEL_CANDIDATE_NOT_ENGINE_ATTESTED"
+            assert template["round_number"] == 80
+            assert template["side"] == "attacker" and template["line"] == "first"
+            assert all(p["count"] is None and p["hp"] is None and p["deaths"] is None
+                       for p in template["predictions"])
+            template["candidate_label"] = "SYNTHETIC candidate"
+            template["assumptions"] = "User-entered artificial candidate for browser E2E only"
+            template["predictions"][0]["count"] = 7
+            template["predictions"][0]["hp"] = 80
+            template["predictions"][0]["deaths"] = 0
+            page.locator("#candidateJson").fill(json.dumps(template, ensure_ascii=False))
+            page.locator("#compareCandidate").click()
+            expect(page.locator("#candidateComparisonStatus")).to_contain_text(
+                "可比較數值欄位 3"
+            )
+            row = page.locator("#candidateComparisonRows tbody tr").first
+            expect(row).to_contain_text("9 / 7 / -2")
+            expect(row).to_contain_text("83 / 80 / -3")
+            expect(row).to_contain_text("2 / 0 / -2")
+            with page.expect_download() as candidate_download:
+                page.locator("#exportCandidateCsv").click()
+            candidate_csv = Path(candidate_download.value.path()).read_text(
+                encoding="utf-8-sig"
+            )
+            candidate_rows = list(csv.DictReader(io.StringIO(candidate_csv)))
+            assert len(candidate_rows) == count
+            assert candidate_rows[0]["candidate_minus_typed_count"] == "-2"
+            assert candidate_rows[0]["candidate_minus_typed_deaths"] == "-2"
+            assert candidate_rows[1]["candidate_minus_typed_count"] == ""
+            assert candidate_rows[1]["typed_deaths"] == ""
+            assert all(
+                r["engine_execution_attested"] == "NOT_ATTESTED"
+                for r in candidate_rows
+            )
+            assert page.evaluate(
+                "() => localStorage.getItem('ikariam-report-cases-v1')"
+            ) == focused_raw_before, "candidate comparison modified the original case"
+            # A prospective prediction is not a source fact. Switching lane
+            # must clear this editable worksheet and disable old CSV export.
             page.locator("#focusedSide").select_option("defender")
+            expect(page.locator("#candidateJson")).to_be_empty()
+            expect(page.locator("#exportCandidateCsv")).to_be_disabled()
             expect(page.locator("#focusedLaneStatus")).to_contain_text("不可做局部數值對照")
             expect(page.locator("#exportFocusedLane")).to_be_disabled()
             assert page.evaluate(
