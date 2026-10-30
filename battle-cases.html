@@ -83,6 +83,20 @@ button,.btn{border:1px solid #7b6548;background:#f5e5c5;padding:8px 11px;border-
 </div>
 <div id="focusedLaneStatus" class="status" role="status" aria-live="polite"></div>
 <div id="focusedLaneContent" class="round-comparison-content"></div>
+<details id="candidateStudy" class="info">
+<summary>候選預測與人工觀測逐格對照（研究用，非自動模擬）</summary>
+<p class="muted">此處<strong>不會呼叫戰鬥模擬器</strong>，也不宣稱預測已由引擎產生。按「建立範本」只會填入目前案例、回合、側別、戰線及已有兵種／Wave 標籤；候選數值全部留空。請由研究員另外提供候選預測，並寫明假設。只有同一物理格位、同回合／時點、標籤不衝突且雙方皆有數值的欄位才計算「候選－人工轉錄」差異。</p>
+<div class="bar">
+<button id="newCandidateTemplate" type="button" disabled>建立目前截錄回合的空白候選範本</button>
+<button id="compareCandidate" type="button" disabled>比較候選與人工觀測</button>
+<button id="exportCandidateCsv" type="button" disabled>匯出比較 CSV（非機制驗證）</button>
+<button id="clearCandidate" type="button">清除候選暫存</button>
+</div>
+<label class="wide">候選模型 JSON（僅此頁籤暫存；不寫入戰報庫）
+<textarea id="candidateJson" class="wide" rows="8" maxlength="131072" placeholder="先建立空白範本，再填 candidate_label、assumptions 和各格預測數值"></textarea></label>
+<p id="candidateComparisonStatus" class="muted" role="status" aria-live="polite"></p>
+<div id="candidateComparisonRows" class="round-comparison-content"></div>
+</details>
 </details>
 <div class="info danger"><b>重要：遊戲戰報不會顯示 Reserve（後備）血量。</b> 新增 Reserve 預設為 <b>100%（假設，非戰報觀測）</b>。必須確認「本案例第一個截錄回合」的 Reserve 確實滿血，才能把它當可靠的起始狀態；即使此回合不是戰鬥真正的第 1 回合也一樣。若另有精密計算才可修改血量，且需留下具體計算依據。部署中的格位可直接填戰報看得到的傷害。</div>
 <div class="bar">
@@ -177,7 +191,7 @@ function saveResearchField(id,key){
   mutate(c=>{if(!c.research)c.research=M.newResearch();c.research[key]=e.target.value;});render();
  });
 }
-let focusedCaseId=null,focusedSide='attacker',focusedLine='flank';
+let focusedCaseId=null,focusedSide='attacker',focusedLine='flank',candidateScope='';
 function renderFocusedLane(c){
   if(focusedCaseId!==c.id){
     focusedCaseId=c.id;
@@ -188,7 +202,17 @@ function renderFocusedLane(c){
     focusedLine=firstNumeric?.s.line||'flank';
   }
   $('focusedSide').value=focusedSide;$('focusedLine').value=focusedLine;
+  const scope=[c.id,c.updated,roundId,focusedSide,focusedLine].join('|');
+  if(candidateScope!==scope){
+    candidateScope=scope;
+    $('candidateJson').value=''; // Do not reuse a prediction against a different case/snapshot.
+    $('candidateComparisonRows').textContent='';
+    $('candidateComparisonStatus').textContent='目前沒有候選模型比較；候選資料只在頁面暫存。';
+    $('exportCandidateCsv').disabled=true;
+  }
   const view=M.projectFocusedLane(c,focusedSide,focusedLine,fields);
+  $('newCandidateTemplate').disabled=!view.allowed;
+  $('compareCandidate').disabled=!view.allowed;
   $('exportFocusedLane').disabled=!view.allowed;
   $('focusedLaneStatus').textContent=(view.allowed?'條件式局部對照：':'不可做局部數值對照：')+view.reason;
   const root=$('focusedLaneContent');
@@ -209,6 +233,36 @@ function renderFocusedLane(c){
     '；未知：'+esc(c.research.unknown_fields||'未註記')+'</p>'+
     '<p class="muted">每筆僅為獨立截錄；缺少回合不插值。死亡合計僅對該線「填有死亡數」的格位相加，不能證明所有格位均已觀測、也不能推導補兵或因果。</p>'+
     '<table><thead><tr><th>截錄回合／時點</th><th>實體位置</th><th>兵種</th><th>Wave</th><th>兵數</th><th>HP%</th><th>死亡</th><th>資料狀態</th><th>已填死亡合計</th><th>來源備註</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+function renderCandidateComparison(result){
+  const summary=$('candidateComparisonStatus'),out=$('candidateComparisonRows');
+  summary.textContent='R'+result.round_number+' · '+result.candidate_label+
+    '；可比較數值欄位 '+result.numericOverlap+'、格位 '+result.comparablePositions+
+    '、標籤衝突 '+result.identityConflicts+'。'+
+    '差異僅為候選預測減人工轉錄；未驗證原始遊戲來源或引擎執行，不能用來證實戰鬥機制。';
+  $('exportCandidateCsv').disabled=!result.numericOverlap;
+  const display=v=>v===null?'—':String(v);
+  const diff=v=>v===null?'—':(v>0?'+':'')+String(v);
+  const rows=result.rows.map(r=>'<tr><th scope="row">'+r.pos+'</th>'+
+    '<td>'+esc(r.observed.unit||'未填')+' / '+esc(r.observed.wave||'未知 Wave')+'</td>'+
+    '<td>'+esc(r.candidate.unit||'未填')+' / '+esc(r.candidate.wave||'未知 Wave')+'</td>'+
+    '<td>'+display(r.observed.count)+' / '+display(r.candidate.count)+' / '+diff(r.difference.count)+'</td>'+
+    '<td>'+display(r.observed.hp)+' / '+display(r.candidate.hp)+' / '+diff(r.difference.hp)+'</td>'+
+    '<td>'+display(r.observed.deaths)+' / '+display(r.candidate.deaths)+' / '+diff(r.difference.deaths)+'</td>'+
+    '<td>'+esc(r.code)+'</td></tr>').join('');
+  out.innerHTML='<p class="muted">此表不做因果推論或模型排名。未知值不等於 0；僅已知格位及一致的已知標籤可計算數值差。Wave 不明時只能做位置上的描述性差異。</p>'+
+    '<table><thead><tr><th>位置</th><th>人工兵種/Wave</th><th>候選兵種/Wave</th>'+
+    '<th>兵數：人工/候選/差</th><th>HP%：人工/候選/差</th>'+
+    '<th>死亡：人工/候選/差</th><th>資料狀態</th></tr></thead><tbody>'+
+    rows+'</tbody></table>';
+}
+function downloadCandidateComparison(c){
+  const csv=M.exportFocusedCandidateComparisonCsv(c,$('candidateJson').value,fields);
+  const file=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'),url=URL.createObjectURL(file);
+  const safeId=c.id.replace(/[^A-Za-z0-9_-]/g,'_').slice(0,64)||'case';
+  a.href=url;a.download='ikariam-candidate-vs-typed-'+safeId+'.csv';
+  a.click();setTimeout(()=>URL.revokeObjectURL(url),500);
 }
 function downloadFocusedLane(c){
   const csv=M.exportFocusedLaneCsv(c,focusedSide,focusedLine,fields);
@@ -541,6 +595,41 @@ function listen(){
    const b=e.target.closest('button[data-coverage-target]');
    if(!b||!c.rounds.some(r=>r.id===b.dataset.coverageTarget))return;
    roundId=b.dataset.coverageTarget;selected=null;render(); // Read-only navigation.
+ };
+ $('candidateJson').oninput=()=>{
+   $('exportCandidateCsv').disabled=true;
+   $('candidateComparisonRows').textContent='';
+   $('candidateComparisonStatus').textContent='候選內容已修改，需重新比較。';
+ };
+ $('newCandidateTemplate').onclick=()=>{
+   const c=active(),r=currentRound();if(!c||!r)return;
+   try{
+     const template=M.newFocusedCandidateTemplate(c,focusedSide,focusedLine,r.id,fields);
+     $('candidateJson').value=JSON.stringify(template,null,2);
+     $('candidateComparisonRows').textContent='';
+     $('candidateComparisonStatus').textContent='已建立 R'+r.number+' 空白預測範本（無任何候選數值）。請填 candidate_label、assumptions 及要測試的預測；這不是引擎執行結果。';
+     $('exportCandidateCsv').disabled=true;
+   }catch(e){$('candidateComparisonStatus').textContent='無法產生候選範本：'+e.message;}
+ };
+ $('compareCandidate').onclick=()=>{
+   const c=active();if(!c)return;
+   $('exportCandidateCsv').disabled=true;
+   try{renderCandidateComparison(M.compareFocusedCandidate(c,$('candidateJson').value,fields));}
+   catch(e){$('candidateComparisonRows').textContent='';
+     $('candidateComparisonStatus').textContent='候選比較拒絕：'+e.message;}
+ };
+ $('exportCandidateCsv').onclick=()=>{
+   const c=active();if(!c)return;
+   try{downloadCandidateComparison(c);}catch(e){
+     $('candidateComparisonStatus').textContent='CSV 匯出拒絕：'+e.message;
+     $('exportCandidateCsv').disabled=true;
+   }
+ };
+ $('clearCandidate').onclick=()=>{
+   $('candidateJson').value='';
+   $('candidateComparisonRows').textContent='';
+   $('candidateComparisonStatus').textContent='候選暫存已清除；案例資料未變動。';
+   $('exportCandidateCsv').disabled=true;
  };
  $('focusedSide').onchange=e=>{focusedSide=e.target.value;const c=active();if(c)renderFocusedLane(c);};
  $('focusedLine').onchange=e=>{focusedLine=e.target.value;const c=active();if(c)renderFocusedLane(c);};
