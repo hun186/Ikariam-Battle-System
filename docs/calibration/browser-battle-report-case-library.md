@@ -488,7 +488,17 @@ Each predictions entry is exactly
 \`{pos,unit,wave,count,hp,deaths}\`; one entry per canonical physical position
 in strict order, all null numeric defaults. Candidate JSON is bounded
 to 128 KiB UTF-8; names/labels to 120 characters and assumptions to
-2000 characters. Whole-case, wrong-side, wrong-line, wrong-phase,
+2000 characters. **P2 #4423263667 regression guard:** In addition to matching case JSON, the
+comparison API and CSV export now require the **live selected** captured round
+ID, side and line as an explicit separate scope object. A copied, otherwise
+valid candidate from another numeric round, side or line is rejected *before*
+numeric comparison or CSV generation; switching UI tabs and then pasting an
+old worksheet cannot silently reinterpret it. The visible result header also
+states attacker/defender, line and captured round. Chromium regression tests
+exercise a synthetic case with all three alternate numeric scopes and invoke
+the export handler directly, not relying on a disabled button alone.
+
+Whole-case, wrong-side, wrong-line, wrong-phase,
 round-number, wrong-geometry, changed-case-revision, forged source class,
 duplicate/extra/missing physical positions and invalid numbers all fail
 closed. All CSV text is spreadsheet-formula escaped. The candidate editor
