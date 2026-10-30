@@ -440,7 +440,9 @@ function projectFocusedLane(c,side,line,fields){
   if(!SIDES.includes(side)||!LINES.includes(line))err('局部研究側別或戰線無效');
   const field=fields?.find(f=>f.id===c.battlefield);
   const positions=physicalPositions(field?.lines?.[line]?.physical_order);
-  if(!positions.length||positions.length>100)err('缺少可核對的實體格位幾何');
+  if(!positions.length||positions.length>100)return {allowed:false,code:'UNSUPPORTED_LINE_GEOMETRY',
+    reason:'此戰場沒有可用的選定戰線幾何；不能製作假想格位',
+    side,line,positionCount:0,rounds:[],research:c.research||null};
   const gate=researchEvidenceGate(c);
   if(gate.kind!=='partial_observation'||!c.research?.objective.trim()||
      !c.research?.observed_scope.trim()){
@@ -493,7 +495,7 @@ function exportFocusedLaneCsv(c,side,line,fields){
         research.objective,research.observed_scope,research.known_conditions,
         research.hypothetical_inputs,research.unknown_fields,research.confirmed_absences,
         side,line,r.number,r.phase,r.source,s.pos,s.unit,s.wave,s.count,s.hp,s.deaths,
-        s.code,r.reportedDeathSum,r.enteredDeaths,projected.positionCount,
+        s.code,r.enteredDeaths?r.reportedDeathSum:null,r.enteredDeaths,projected.positionCount,
         'NOT_AUTHENTICATED','TYPED_ONLY_NO_WHOLE_BATTLE_OR_CAUSAL_INFERENCE']);
     }
   }
