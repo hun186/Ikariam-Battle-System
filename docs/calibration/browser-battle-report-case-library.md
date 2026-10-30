@@ -409,3 +409,40 @@ Self-selecting "complete battle" cannot authenticate missing combat evidence;
 Legacy JSON case files lacking `research` remain valid and render unclassified.
 New browser cases are partial by default. Case JSON export/import retains
 metadata. Editing research notes changes local browser copies only.
+
+## Focused side-and-lane study explorer — Draft follow-up after PR #118
+
+The browser case library includes a **read-only** conditional partial-observation
+explorer: select exactly one side and one runtime formation line, then display
+**every physical slot from the canonical `GET /api/simulate` battlefield
+geometry** for every independently captured round. Every slot's entered
+unit/Wave/quantity/HP/death fields remain raw typed values. Missing fields are
+`null` (shown as UNKNOWN, not 0); a slot with label-only input is marked a
+non-numeric draft. Explicit typed zero deaths remain 0. No other line's units,
+reserve or assumptions are silently imported.
+
+This explorer is gated by validated case schema, `partial_observation` kind,
+declared research objective + observed scope, and at least one numeric typed
+field **on that exact selected side and line**. Legacy unclassified,
+`research_summary`, user-declared `full_report`, geometry-less lines and
+side/line with label-only input remain blocked. Neither the explorer nor
+export grants `globalCalibrationAllowed`. Existing browsing, export/import,
+research notes and localStorage remain unchanged.
+
+Each capture shows its actual round number and phase, source text and a
+**sum of entered per-slot deaths** with `enteredDeathPositions / physicalSlots`
+coverage; an entirely missing death column yields a null CSV sum, not a
+fabricated 0. This is not the *total battle casualties* or necessarily a
+complete line death count. No missing game rounds are interpolated. There
+is no cross-round wave identification, replenishment/depletion arithmetic,
+cross-line causal inference, inferred damage/hits or engine calibration.
+`exportFocusedLaneCsv` is CSV injection-escaped, byte-bounded and marks
+source evidence `USER_TRANSCRIPTION_UNVERIFIED` and `NOT_AUTHENTICATED`.
+The 2026-06-25 flank Swordsman study is an instructive separate fixture,
+not newly imported as an authenticated full report.
+
+Regression coverage: Node model tests for two-round gaps, null-vs-zero,
+label-only and wrong-line guards, legacy/summary/full rejection, geometry
+boundary, formula-escaped CSV and no JSON mutations; real Chromium tests
+for selectable focus lane, unknown slots, CSV download and non-mutating
+wrong-side browse.

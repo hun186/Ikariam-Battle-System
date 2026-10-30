@@ -165,6 +165,8 @@ def run(base_url: str, evidence_dir: Path) -> None:
             expect(page.locator("#researchGate")).to_contain_text("全場自動模擬／校準：禁止")
             page.locator("#researchObjective").fill("只研究側翼劍士互砍（合成測試）")
             page.locator("#researchObjective").blur()
+            page.locator("#researchObservedScope").fill("只觀測第一線第 1 格，其他格位均未提供")
+            page.locator("#researchObservedScope").blur()
             page.locator("#researchKnownConditions").fill("前線填滿；精確兵量未提供")
             page.locator("#researchKnownConditions").blur()
             page.locator("#researchHypotheticalInputs").fill("模擬假設前排 350 重裝步兵，非實戰觀測")
@@ -202,6 +204,32 @@ def run(base_url: str, evidence_dir: Path) -> None:
             page.locator("#closeDrawer").click()
             fill_visible_slot(page, unit, count=9, hp=83, deaths=2)
             expect(page.locator("#roundEntryStatus")).to_contain_text("可見欄位已填 1 格")
+            page.locator("#focusedStudy summary").click()
+            page.locator("#focusedLine").select_option("first")
+            expect(page.locator("#focusedLaneStatus")).to_contain_text("條件式局部對照")
+            expect(page.locator("#focusedLaneContent")).to_contain_text("未知≠0")
+            expect(page.locator("#focusedLaneContent")).to_contain_text("已填 1/")
+            focused_raw_before = page.evaluate(
+                "() => localStorage.getItem('ikariam-report-cases-v1')"
+            )
+            with page.expect_download() as focused_download:
+                page.locator("#exportFocusedLane").click()
+            focused_csv = Path(focused_download.value.path()).read_text(encoding="utf-8-sig")
+            focused_rows = list(csv.DictReader(io.StringIO(focused_csv)))
+            assert len(focused_rows) == count
+            assert focused_rows[0]["typed_count"] == "9"
+            assert focused_rows[0]["typed_hp_percent"] == "83"
+            assert focused_rows[0]["typed_deaths"] == "2"
+            assert focused_rows[1]["typed_deaths"] == ""
+            assert focused_rows[1]["slot_data_status"] == "UNKNOWN_NOT_ZERO"
+            assert all(row["original_source_authenticated"]=="NOT_AUTHENTICATED" for row in focused_rows)
+            page.locator("#focusedSide").select_option("defender")
+            expect(page.locator("#focusedLaneStatus")).to_contain_text("不可做局部數值對照")
+            expect(page.locator("#exportFocusedLane")).to_be_disabled()
+            assert page.evaluate(
+                "() => localStorage.getItem('ikariam-report-cases-v1')"
+            ) == focused_raw_before, "focused-lane exploration mutated stored cases"
+            page.locator("#focusedSide").select_option("attacker")
             assert page.locator('#roundTabs [aria-label="R80"]').get_attribute("data-entry-status") == "FIELDS_ENTERED"
             add_reserve(page, unit, count=6)
             expect(page.locator("#readiness")).to_contain_text("資料待覆核")

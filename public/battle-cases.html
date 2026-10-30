@@ -71,6 +71,19 @@ button,.btn{border:1px solid #7b6548;background:#f5e5c5;padding:8px 11px;border-
 </div>
 <div id="researchGate" class="info danger" role="status" aria-live="polite"></div>
 </details>
+<details id="focusedStudy" class="info">
+<summary><strong>局部研究分析｜單一側別與戰線的條件式觀測對照</strong></summary>
+<p class="muted">僅對「局部觀測」且有研究目標、觀測範圍及該線實際數值的案例開放。依戰場格位模板列出所有位置與截錄回合；未知位置保持「未知」，不以 0 補填。非完整戰鬥模擬、未驗證原始 Gameforge 來源。</p>
+<div class="bar">
+<label>研究側別<select id="focusedSide"><option value="attacker">攻方</option><option value="defender">守方</option></select></label>
+<label>研究戰線<select id="focusedLine">
+<option value="flank">側翼</option><option value="first">前排</option><option value="second">第二排</option><option value="third">第三排</option><option value="balloon">空中攻擊</option><option value="anti-balloon">防空</option>
+</select></label>
+<button id="exportFocusedLane" type="button" disabled>匯出此戰線觀測 CSV（僅人工轉錄）</button>
+</div>
+<div id="focusedLaneStatus" class="status" role="status" aria-live="polite"></div>
+<div id="focusedLaneContent" class="round-comparison-content"></div>
+</details>
 <div class="info danger"><b>重要：遊戲戰報不會顯示 Reserve（後備）血量。</b> 新增 Reserve 預設為 <b>100%（假設，非戰報觀測）</b>。必須確認「本案例第一個截錄回合」的 Reserve 確實滿血，才能把它當可靠的起始狀態；即使此回合不是戰鬥真正的第 1 回合也一樣。若另有精密計算才可修改血量，且需留下具體計算依據。部署中的格位可直接填戰報看得到的傷害。</div>
 <div class="bar">
 <button id="addRound" type="button">＋ 新增截錄回合</button>
@@ -163,6 +176,46 @@ function saveResearchField(id,key){
   if(!edit||!storageOkay)return;
   mutate(c=>{if(!c.research)c.research=M.newResearch();c.research[key]=e.target.value;});render();
  });
+}
+let focusedCaseId=null,focusedSide='attacker',focusedLine='flank';
+function renderFocusedLane(c){
+  if(focusedCaseId!==c.id){
+    focusedCaseId=c.id;
+    const firstNumeric=c.rounds.slice().sort((a,b)=>a.number-b.number).flatMap(r=>
+      sides.flatMap(side=>r[side].slots.map(s=>({side,s})))).find(x=>
+        x.s.count!==null||x.s.hp!==null||x.s.deaths!==null);
+    focusedSide=firstNumeric?.side||'attacker';
+    focusedLine=firstNumeric?.s.line||'flank';
+  }
+  $('focusedSide').value=focusedSide;$('focusedLine').value=focusedLine;
+  const view=M.projectFocusedLane(c,focusedSide,focusedLine,fields);
+  $('exportFocusedLane').disabled=!view.allowed;
+  $('focusedLaneStatus').textContent=(view.allowed?'條件式局部對照：':'不可做局部數值對照：')+view.reason;
+  const root=$('focusedLaneContent');
+  if(!view.allowed){root.textContent='可先補研究目標／實際觀測範圍及該側戰線的觀測數值。其他戰線或只有兵種標籤的草稿不可代替。';return;}
+  const labelNum=n=>n===null?'未知':String(n);
+  const rows=view.rounds.flatMap(r=>{
+    const total=r.enteredDeaths?
+      r.reportedDeathSum+'（僅已填 '+r.deathCoverage+' 格；非整線總損）':'未填（非 0）';
+    return r.cells.map(s=>'<tr>'+
+      '<th scope="row">R'+r.number+' · '+(r.phase==='round_end'?'回合結束':'下一回合開火前')+'</th>'+
+      '<td>'+s.pos+'</td><td>'+esc(s.unit||'未知')+'</td><td>'+esc(s.wave||'未知')+'</td>'+
+      '<td>'+labelNum(s.count)+'</td><td>'+labelNum(s.hp)+'</td><td>'+labelNum(s.deaths)+'</td>'+
+      '<td>'+esc(s.code==='TYPED_NUMERIC_UNVERIFIED'?'人工數值':s.code==='LABEL_ONLY_UNVERIFIED'?'僅標籤草稿':'未知≠0')+'</td>'+
+      '<td>'+esc(total)+'</td><td>'+esc(r.source||'未附來源備註')+'</td></tr>');
+  }).join('');
+  root.innerHTML='<p class="muted">研究目標：'+esc(c.research.objective)+'；實際觀測範圍：'+esc(c.research.observed_scope)+'</p>'+
+    '<p class="muted">已知條件：'+esc(c.research.known_conditions||'未註記')+'；模擬假設：'+esc(c.research.hypothetical_inputs||'未註記')+
+    '；未知：'+esc(c.research.unknown_fields||'未註記')+'</p>'+
+    '<p class="muted">每筆僅為獨立截錄；缺少回合不插值。死亡合計僅對該線「填有死亡數」的格位相加，不能證明所有格位均已觀測、也不能推導補兵或因果。</p>'+
+    '<table><thead><tr><th>截錄回合／時點</th><th>實體位置</th><th>兵種</th><th>Wave</th><th>兵數</th><th>HP%</th><th>死亡</th><th>資料狀態</th><th>已填死亡合計</th><th>來源備註</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
+function downloadFocusedLane(c){
+  const csv=M.exportFocusedLaneCsv(c,focusedSide,focusedLine,fields);
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a'),url=URL.createObjectURL(blob);
+  a.href=url;a.download='ikariam-focused-typed-'+c.id.replace(/[^A-Za-z0-9_-]/g,'_').slice(0,64)+'-'+focusedSide+'-'+focusedLine+'.csv';
+  a.click();setTimeout(()=>URL.revokeObjectURL(url),500);
 }
 function download(c){
  const blob=new Blob([M.exportCase(c,fields)],{type:'application/json;charset=utf-8'});
@@ -414,6 +467,7 @@ function render(){
  if(!c||!r)return;
  $('caseHeading').textContent=c.name;
  $('caseName').value=c.name;$('caseNotes').value=c.notes;renderResearch(c);
+ renderFocusedLane(c);
  $('caseField').innerHTML=fields.map(f=>'<option value="'+esc(f.id)+'">'+esc(f.display_name||f.id)+'</option>').join('');$('caseField').value=c.battlefield;
  $('roundTabs').innerHTML=c.rounds.slice().sort((a,b)=>a.number-b.number).map(x=>{
    const s=M.roundEntrySummary(x),label=roundEntryLabels[s.code];
@@ -487,6 +541,12 @@ function listen(){
    const b=e.target.closest('button[data-coverage-target]');
    if(!b||!c.rounds.some(r=>r.id===b.dataset.coverageTarget))return;
    roundId=b.dataset.coverageTarget;selected=null;render(); // Read-only navigation.
+ };
+ $('focusedSide').onchange=e=>{focusedSide=e.target.value;const c=active();if(c)renderFocusedLane(c);};
+ $('focusedLine').onchange=e=>{focusedLine=e.target.value;const c=active();if(c)renderFocusedLane(c);};
+ $('exportFocusedLane').onclick=()=>{
+   const c=active();if(!c)return;
+   try{downloadFocusedLane(c);}catch(error){notify('局部研究 CSV 匯出失敗：'+error.message,true);}
  };
  $('exportComparisonCsv').onclick=()=>{
    const c=active(),r=currentRound();if(!c||!r)return;

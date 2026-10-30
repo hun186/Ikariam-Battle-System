@@ -430,6 +430,78 @@ function exportCase(c,fields){
   return serialized;
 }
 
+// Read-only, source-limited, conditional study by ONE side and ONE runtime
+// lane. Never execute the battle simulator from this case library; the
+// complete battlefield geometry is only a location template.
+// All unset numeric fields remain null, never zero or inferred absences.
+function projectFocusedLane(c,side,line,fields){
+  const problems=validateCase(c,fields);
+  if(problems.length)err('局部研究案例無效：'+problems[0]);
+  if(!SIDES.includes(side)||!LINES.includes(line))err('局部研究側別或戰線無效');
+  const field=fields?.find(f=>f.id===c.battlefield);
+  const positions=physicalPositions(field?.lines?.[line]?.physical_order);
+  if(!positions.length||positions.length>100)return {allowed:false,code:'UNSUPPORTED_LINE_GEOMETRY',
+    reason:'此戰場沒有可用的選定戰線幾何；不能製作假想格位',
+    side,line,positionCount:0,rounds:[],research:c.research||null};
+  const gate=researchEvidenceGate(c);
+  if(gate.kind!=='partial_observation'||!c.research?.objective.trim()||
+     !c.research?.observed_scope.trim()){
+    return {allowed:false,code:gate.code,reason:gate.reason,
+      side,line,positionCount:positions.length,rounds:[],research:c.research||null};
+  }
+  const chronological=c.rounds.slice().sort((a,b)=>a.number-b.number);
+  let numericObserved=0;
+  const rounds=chronological.map(round=>{
+    const slots=new Map(round[side].slots.filter(s=>s.line===line).map(s=>[s.pos,s]));
+    let enteredDeaths=0,reportedDeathSum=0,numericSlots=0;
+    const cells=positions.map(pos=>{
+      const s=slots.get(pos);
+      const count=s?.count??null,hp=s?.hp??null,deaths=s?.deaths??null;
+      const hasNumeric=count!==null||hp!==null||deaths!==null;
+      if(hasNumeric)numericSlots++;
+      if(deaths!==null){enteredDeaths++;reportedDeathSum+=deaths;}
+      return {pos,unit:s?.unit||'',wave:s?.wave||'',count,hp,deaths,
+        code:hasNumeric?'TYPED_NUMERIC_UNVERIFIED':s&&(s.unit||s.wave)?'LABEL_ONLY_UNVERIFIED':'UNKNOWN_NOT_ZERO'};
+    });
+    numericObserved+=numericSlots;
+    return {number:round.number,phase:round.phase,source:round.source,
+      cells,numericSlots,enteredDeaths,reportedDeathSum,
+      deathCoverage:`${enteredDeaths}/${positions.length}`,
+      completeTypedDeathPositions:enteredDeaths===positions.length};
+  });
+  if(!numericObserved)return {allowed:false,code:'NO_FOCUSED_NUMERIC_EVIDENCE',
+    reason:'選定側別與戰線沒有任何已輸入數值；兵種標籤草稿不等於傷亡或 HP 觀測',
+    side,line,positionCount:positions.length,rounds:[],research:c.research};
+  return {allowed:true,code:'FOCUSED_TYPED_ONLY',reason:
+    '僅顯示所選側別／戰線的人工轉錄；未填格位不是 0，死亡已填合計不是整線總傷亡；不推導補兵、因果、跨回合連續性或真實遊戲認證',
+    side,line,positionCount:positions.length,rounds,research:c.research};
+}
+const FOCUSED_LANE_CSV_HEADERS=[
+  'evidence_class','case_id','case_name','battlefield',
+  'study_objective','observed_scope','known_conditions','hypothetical_inputs','unknown_fields','confirmed_absences',
+  'side','line','capture_round','capture_phase','round_source_note',
+  'physical_position','unit_label','wave_label','typed_count','typed_hp_percent','typed_deaths',
+  'slot_data_status','known_death_sum_in_lane','entered_death_positions','physical_position_count',
+  'original_source_authenticated','interpretation'
+];
+function exportFocusedLaneCsv(c,side,line,fields){
+  const projected=projectFocusedLane(c,side,line,fields);
+  if(!projected.allowed)err('無法匯出局部研究：'+projected.reason);
+  const research=c.research;
+  const rows=[];
+  for(const r of projected.rounds){
+    for(const s of r.cells){
+      rows.push(['USER_TRANSCRIPTION_UNVERIFIED',c.id,c.name,c.battlefield,
+        research.objective,research.observed_scope,research.known_conditions,
+        research.hypothetical_inputs,research.unknown_fields,research.confirmed_absences,
+        side,line,r.number,r.phase,r.source,s.pos,s.unit,s.wave,s.count,s.hp,s.deaths,
+        s.code,r.enteredDeaths?r.reportedDeathSum:null,r.enteredDeaths,projected.positionCount,
+        'NOT_AUTHENTICATED','TYPED_ONLY_NO_WHOLE_BATTLE_OR_CAUSAL_INFERENCE']);
+    }
+  }
+  return serializeComparisonCsv(rows,FOCUSED_LANE_CSV_HEADERS);
+}
+
 const HISTORY_SCHEMA='ikariam-research-battle-history-v1';
 // A source-tagged research catalog is NOT automatically authenticated by import.
 // The helper validates ALL incoming entries before adding any and keeps local
@@ -460,5 +532,5 @@ function importCase(s,fields){
   if(problems.length)err(problems.slice(0,5).join('；'));
   return data;
 }
-return {SCHEMA,STORAGE,HISTORY_SCHEMA,mergeHistoricalCases,MAX_JSON_BYTES,SIDES,LINES,RESEARCH_KINDS,RESEARCH_TEXT_KEYS,newResearch,researchEvidenceGate,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds,summarizeCapturedTimeline,inspectCapturedCoveragePair,exportCapturedComparisonCsv,exportCapturedTimelineCsv,exportCapturedReviewQueueCsv,exportCapturedSourceManifestCsv,exportCapturedJoinedReviewCsv};
+return {SCHEMA,STORAGE,HISTORY_SCHEMA,mergeHistoricalCases,MAX_JSON_BYTES,SIDES,LINES,RESEARCH_KINDS,RESEARCH_TEXT_KEYS,newResearch,researchEvidenceGate,projectFocusedLane,exportFocusedLaneCsv,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds,summarizeCapturedTimeline,inspectCapturedCoveragePair,exportCapturedComparisonCsv,exportCapturedTimelineCsv,exportCapturedReviewQueueCsv,exportCapturedSourceManifestCsv,exportCapturedJoinedReviewCsv};
 });
