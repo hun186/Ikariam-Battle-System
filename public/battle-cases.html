@@ -47,7 +47,7 @@ button,.btn{border:1px solid #7b6548;background:#f5e5c5;padding:8px 11px;border-
 <button id="exportTimelineCsv" type="button">匯出全部相鄰截錄回合 CSV（人工轉錄）</button>
 <label class="btn">匯入 JSON<input id="importCase" type="file" accept=".json,application/json" hidden></label>
 </div>
-<p class="muted">內建歷史案例依原始研究 fixture 轉錄。它們不是 Gameforge 認證的原始戰報；若缺少逐格觀測，僅保留來源與傷亡摘要。首次空庫自動載入一次，後續可手動補回缺漏，不覆蓋已編輯案例。</p>
+<p class="muted">內建歷史案例依原始研究 fixture 轉錄。它們不是 Gameforge 認證的原始戰報；4 筆為局部觀測、10 筆為研究摘要，沒有可核實的完整戰報。未知戰線不代表沒有部隊，模擬前提不能變成實測。首次空庫自動載入一次，後續可手動補回缺漏，不覆蓋已編輯案例。</p>
 <div id="storageStatus" class="status" role="status" aria-live="polite"></div>
 </section>
 <section id="caseEditor" class="panel hidden">
@@ -57,6 +57,20 @@ button,.btn{border:1px solid #7b6548;background:#f5e5c5;padding:8px 11px;border-
 <label>戰場大小（依模擬器現有幾何）<select id="caseField"></select></label>
 <label>案例摘要／來源<textarea id="caseNotes" rows="2" maxlength="4000" placeholder="戰鬥對象、版本、熔爐與升級；來源截圖另行妥善保存"></textarea></label>
 </div>
+<details id="researchDetails" class="info" open>
+<summary><strong>研究資料邊界｜觀測、控制條件、假設與未知</strong></summary>
+<p class="muted">分類只是研究員標註，非來源認證。未填格位＝未知／未提供，並非零兵或確認無兵；「已確認缺席」必須有來源、具體回合及兵種，不能推論其他格位。</p>
+<div class="grid">
+<label>資料類別<select id="researchKind"><option value="unclassified" disabled>未分類（舊版資料）</option><option value="partial_observation">局部觀測／特定研究目標</option><option value="research_summary">研究摘要／只有總量</option><option value="full_report">自述完整戰報（仍未驗證）</option></select></label>
+<label>研究目標<textarea id="researchObjective" maxlength="2000" rows="2" placeholder="例：只分析側翼六格劍士互砍"></textarea></label>
+<label>實際提供的觀測範圍<textarea id="researchObservedScope" maxlength="2000" rows="2" placeholder="例：只有側翼傷亡，其他戰線未提供"></textarea></label>
+<label>已知控制條件／明示前提<textarea id="researchKnownConditions" maxlength="2000" rows="2" placeholder="例：前線填滿，但未給前線各兵種精確數量"></textarea></label>
+<label>模擬假設／計算情境（非觀測）<textarea id="researchHypotheticalInputs" maxlength="2000" rows="2" placeholder="例：僅在模擬時假設前排 350 重裝步兵"></textarea></label>
+<label>未知／未提供／未核對資料<textarea id="researchUnknownFields" maxlength="2000" rows="2" placeholder="例：前排精確兵量、Reserve、其他戰線"></textarea></label>
+<label>明確確認沒有（限定回合及範圍）<textarea id="researchConfirmedAbsences" maxlength="2000" rows="2" placeholder="僅填有原始來源的確定缺席，如 R76 投石兵未出場"></textarea></label>
+</div>
+<div id="researchGate" class="info danger" role="status" aria-live="polite"></div>
+</details>
 <div class="info danger"><b>重要：遊戲戰報不會顯示 Reserve（後備）血量。</b> 新增 Reserve 預設為 <b>100%（假設，非戰報觀測）</b>。必須確認「本案例第一個截錄回合」的 Reserve 確實滿血，才能把它當可靠的起始狀態；即使此回合不是戰鬥真正的第 1 回合也一樣。若另有精密計算才可修改血量，且需留下具體計算依據。部署中的格位可直接填戰報看得到的傷害。</div>
 <div class="bar">
 <button id="addRound" type="button">＋ 新增截錄回合</button>
@@ -88,7 +102,7 @@ button,.btn{border:1px solid #7b6548;background:#f5e5c5;padding:8px 11px;border-
 </section>
 <section id="boardPanel" class="panel hidden">
 <h2 id="roundHeading">戰場格位</h2>
-<p class="muted">攻防雙方與 Reserve、前排／側翼、遠程、後排排列與模擬器幾何相對應；點選格位填寫船種／數量／可見 HP／死亡數，檢視模式呈現相同位置。</p>
+<p class="muted">攻防雙方與 Reserve、前排／側翼、遠程、後排排列與模擬器幾何相對應；點選格位填寫船種／數量／可見 HP／死亡數，檢視模式呈現相同位置。<strong>沒有填的格位代表未知，不能當成 0 人或部隊已確認缺席；研究前提不能填進觀測欄位。</strong></p>
 <div id="battleBoard" class="battle-board"></div>
 <div id="slotEditor" class="capture-editor hidden" aria-live="polite"></div>
 </section>
@@ -130,6 +144,26 @@ function syncList(){
   if(activeId)$('caseList').value=activeId;
 }
 function selectCase(id){activeId=id;roundId=active()?.rounds.slice().sort((a,b)=>a.number-b.number)[0]?.id||null;selected=null;render();}
+const researchFields=[
+ ['researchObjective','objective'],['researchObservedScope','observed_scope'],
+ ['researchKnownConditions','known_conditions'],['researchHypotheticalInputs','hypothetical_inputs'],
+ ['researchUnknownFields','unknown_fields'],['researchConfirmedAbsences','confirmed_absences']
+];
+function renderResearch(c){
+ const m=c.research,gate=M.researchEvidenceGate(c);
+ $('researchKind').value=m?.kind||'unclassified';
+ $('researchKind').disabled=!edit;
+ for(const [id,key] of researchFields){$(id).value=m?.[key]||'';$(id).disabled=!edit;}
+ const labels={full_report:'自述完整戰報',partial_observation:'局部觀測',research_summary:'研究摘要',unclassified:'未分類舊案例'};
+ $('researchGate').textContent='研究類型：'+(labels[gate.kind]||gate.kind)+'。全場自動模擬／校準：禁止。'+gate.reason+
+ '。未提供資訊不等於零兵／已確認沒有；使用者選擇完整類別也不能解除此限制。';
+}
+function saveResearchField(id,key){
+ $(id).addEventListener('change',e=>{
+  if(!edit||!storageOkay)return;
+  mutate(c=>{if(!c.research)c.research=M.newResearch();c.research[key]=e.target.value;});render();
+ });
+}
 function download(c){
  const blob=new Blob([M.exportCase(c,fields)],{type:'application/json;charset=utf-8'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ikariam-report-case-'+c.id+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),500);
@@ -379,7 +413,7 @@ function render(){
  $('caseEditor').classList.toggle('hidden',!c);$('boardPanel').classList.toggle('hidden',!r);
  if(!c||!r)return;
  $('caseHeading').textContent=c.name;
- $('caseName').value=c.name;$('caseNotes').value=c.notes;
+ $('caseName').value=c.name;$('caseNotes').value=c.notes;renderResearch(c);
  $('caseField').innerHTML=fields.map(f=>'<option value="'+esc(f.id)+'">'+esc(f.display_name||f.id)+'</option>').join('');$('caseField').value=c.battlefield;
  $('roundTabs').innerHTML=c.rounds.slice().sort((a,b)=>a.number-b.number).map(x=>{
    const s=M.roundEntrySummary(x),label=roundEntryLabels[s.code];
@@ -469,6 +503,7 @@ function listen(){
   const name=prompt('案例名稱','新戰報案例');if(name===null)return;
   if(!name.trim()||name.length>120){notify('請輸入 1–120 字案例名稱。',true);return;}
   const c=M.create(name.trim(),fields.find(f=>f.domain==='naval')?.id||fields[0]?.id||'naval-small');
+  c.research=M.newResearch(); // Browser-created case defaults to partial, never authenticated full.
   cases.push(c);activeId=c.id;roundId=c.rounds[0].id;edit=true;persist();render();
  };
  $('caseList').onchange=e=>selectCase(e.target.value);
@@ -490,6 +525,11 @@ function listen(){
  }catch(err){notify('匯入失敗：'+err.message,true);}};
  $('editMode').onclick=()=>{edit=true;render();};$('readMode').onclick=()=>{edit=false;selected=null;render();};
  saveCaseName();saveInput('caseNotes','notes');
+ $('researchKind').onchange=e=>{
+  if(!edit||!storageOkay||!M.RESEARCH_KINDS.includes(e.target.value))return;
+  mutate(c=>{if(!c.research)c.research=M.newResearch();c.research.kind=e.target.value;});render();
+ };
+ researchFields.forEach(([id,key])=>saveResearchField(id,key));
  $('caseField').onchange=e=>{const next=e.target.value;if(active().rounds.some(r=>sides.some(s=>r[s].slots.length))&&!confirm('更換戰場將清除所有已填入的格位位置（Reserve 保留）。確定？')){render();return;}
    mutate(c=>{c.battlefield=next;c.rounds.forEach(r=>sides.forEach(s=>{r[s].slots=[];}));});selected=null;render();};
  $('addRound').onclick=()=>{const c=active();if(c.rounds.length>=100){notify('已達 100 回合限制',true);return;}
