@@ -28,6 +28,7 @@ b.deaths=0; // Explicitly observed zero differs from missing
 const x=M.newSlot('flank',3);x.unit='swordsman';x.wave='w1';
 r.attacker.slots.push(a,b,x);
 const snapshot=JSON.stringify(c),template=M.newFocusedCandidateTemplate(c,'attacker','flank',r.id,fields);
+const selectedScope={round_id:r.id,side:'attacker',line:'flank'};
 assert.equal(template.schema,'ikariam-focused-model-candidate-v1');
 assert.equal(template.source_class,'USER_ENTERED_MODEL_CANDIDATE_NOT_ENGINE_ATTESTED');
 assert.deepEqual(template.predictions.map(p=>p.count),[null,null,null]);
@@ -39,7 +40,7 @@ const good={...structuredClone(template),candidate_label:'=UntrustedCandidate()'
 good.predictions[0]={...good.predictions[0],count:7,hp:80,deaths:0};
 good.predictions[1]={...good.predictions[1],count:0,deaths:0};
 good.predictions[2]={...good.predictions[2],count:10,deaths:8};
-const result=M.compareFocusedCandidate(c,JSON.stringify(good),fields);
+const result=M.compareFocusedCandidate(c,JSON.stringify(good),fields,selectedScope);
 assert.equal(result.numericOverlap,4); // pos1 3 metrics, pos2 deaths 1
 assert.equal(result.comparablePositions,2);
 assert.equal(result.rows[0].difference.count,-2);
@@ -52,17 +53,29 @@ assert.equal(result.rows[2].code,'NO_SHARED_NUMERIC_FIELD');
 assert.equal(result.attestedEngineExecution,false);
 assert.equal(result.authenticatedGameSource,false);
 assert.equal(result.globalCalibrationAllowed,false);
-const csv=M.exportFocusedCandidateComparisonCsv(c,JSON.stringify(good),fields);
+const csv=M.exportFocusedCandidateComparisonCsv(c,JSON.stringify(good),fields,selectedScope);
 assert.match(csv,/NOT_ATTESTED/);
 assert.match(csv,/NOT_AUTHENTICATED/);
 assert.match(csv,/"'=UntrustedCandidate\(\)"/);
 assert.match(csv,/"'\+External artificial/);
 assert.match(csv,/,-2,/);
 assert.equal(JSON.stringify(c),snapshot);
+// Codex P2 #4423263667: required selected scope on BOTH model and CSV.
+assert.throws(()=>M.compareFocusedCandidate(c,JSON.stringify(good),fields),/禁止無範圍比較/);
+for(const scope of [
+ {round_id:r.id,side:'defender',line:'flank'},
+ {round_id:r.id,side:'attacker',line:'first'},
+ {round_id:'stale-round',side:'attacker',line:'flank'}
+]){
+ assert.throws(()=>M.compareFocusedCandidate(c,JSON.stringify(good),fields,scope),/候選範圍/);
+ assert.throws(()=>M.exportFocusedCandidateComparisonCsv(c,JSON.stringify(good),fields,scope),/候選範圍/);
+}
+assert.throws(()=>M.compareFocusedCandidate(c,JSON.stringify(good),fields,
+ {side:'attacker',line:'flank'}),/無範圍比較/);
 // Known label mismatches must suppress numeric differences, not show false fit.
 const changed=JSON.parse(JSON.stringify(good));
 changed.predictions[0].unit='hoplite';
-const mismatch=M.compareFocusedCandidate(c,JSON.stringify(changed),fields);
+const mismatch=M.compareFocusedCandidate(c,JSON.stringify(changed),fields,selectedScope);
 assert.equal(mismatch.identityConflicts,1);
 assert.equal(mismatch.rows[0].code,'KNOWN_LABEL_MISMATCH');
 assert.equal(mismatch.rows[0].difference.deaths,null);
@@ -71,11 +84,11 @@ assert.equal(M.compareFocusedCandidate(c,JSON.stringify(changed),fields).identit
 changed.predictions[0].wave='w1';
 // All no overlap => export refuses, without manufacturing a score.
 const blank={...template,candidate_label:'blank',assumptions:'No prediction provided yet'};
-const noOverlap=M.compareFocusedCandidate(c,JSON.stringify(blank),fields);
+const noOverlap=M.compareFocusedCandidate(c,JSON.stringify(blank),fields,selectedScope);
 assert.equal(noOverlap.status,'NO_COMPARABLE_FIELDS');
-assert.throws(()=>M.exportFocusedCandidateComparisonCsv(c,JSON.stringify(blank),fields),/沒有任何可比較/);
+assert.throws(()=>M.exportFocusedCandidateComparisonCsv(c,JSON.stringify(blank),fields,selectedScope),/沒有任何可比較/);
 function reject(obj,pattern){
- assert.throws(()=>M.compareFocusedCandidate(c,JSON.stringify(obj),fields),pattern);
+ assert.throws(()=>M.compareFocusedCandidate(c,JSON.stringify(obj),fields,selectedScope),pattern);
 }
 reject({...good,source_class:'SIMULATOR_ATTESTED'},/來源類別/);
 reject({...good,case_id:'different'},/識別/);
@@ -90,8 +103,31 @@ reject({...good,predictions:[{...good.predictions[0],deaths:1.5},...good.predict
 reject({...good,predictions:[{...good.predictions[0],hp:101},...good.predictions.slice(1)]},/位置或數值無效/);
 reject({...good,assumptions:''},/模型假設/);
 reject({...good,extra:1},/格式/);
-assert.throws(()=>M.compareFocusedCandidate(c,'{bad JSON',fields),/無法解析/);
-assert.throws(()=>M.compareFocusedCandidate(c,' '.repeat(128*1024+1),fields),/128 KiB/);
+assert.throws(()=>M.compareFocusedCandidate(c,'{bad JSON',fields,selectedScope),/無法解析/);
+assert.throws(()=>M.compareFocusedCandidate(c,' '.repeat(128*1024+1),fields,selectedScope),/128 KiB/);
+// Even another valid candidate from a genuinely numeric side/line/round
+// cannot be pasted to substitute the selected scope.
+const d=M.newSlot('first',1);d.unit='swordsman';d.wave='w1';d.count=5;
+r.defender.slots.push(d);
+const f=M.newSlot('first',1);f.unit='swordsman';f.wave='w1';f.count=6;
+r.attacker.slots.push(f);
+const r81=M.newRound(81);const later=M.newSlot('flank',1);
+later.unit='swordsman';later.wave='w1';later.count=8;r81.attacker.slots.push(later);
+c.rounds.push(r81);
+for(const [side,line,round] of [
+ ['defender','first',r],
+ ['attacker','first',r],
+ ['attacker','flank',r81]
+]){
+ const other=M.newFocusedCandidateTemplate(c,side,line,round.id,fields);
+ other.candidate_label='other-scope';
+ other.assumptions='Real source observations, manual candidate predictions';
+ other.predictions[0].count=7;
+ const otherScope={round_id:round.id,side,line};
+ assert(M.compareFocusedCandidate(c,JSON.stringify(other),fields,otherScope).numericOverlap>0);
+ assert.throws(()=>M.compareFocusedCandidate(c,JSON.stringify(other),fields,selectedScope),/候選範圍/);
+ assert.throws(()=>M.exportFocusedCandidateComparisonCsv(c,JSON.stringify(other),fields,selectedScope),/候選範圍/);
+}
 const olderRound=M.newRound(1);c.rounds.push(olderRound);
 const snapshotAfterAdding=JSON.stringify(c);
 assert.throws(()=>M.newFocusedCandidateTemplate(c,'attacker','flank',olderRound.id,fields),/沒有數值觀測/);
@@ -119,5 +155,13 @@ def test_candidate_static_browser_and_mirror_parity():
     assert 'id="candidateJson"' in main
     assert 'id="candidateComparisonRows"' in main
     assert "M.newFocusedCandidateTemplate(c,focusedSide,focusedLine,r.id,fields)" in main
-    assert "M.compareFocusedCandidate(c,$('candidateJson').value,fields)" in main
-    assert "M.exportFocusedCandidateComparisonCsv(c,$('candidateJson').value,fields)" in main
+    assert "M.compareFocusedCandidate(c,$('candidateJson').value,fields,currentCandidateScope())" in main
+    assert "M.exportFocusedCandidateComparisonCsv(c,$('candidateJson').value,fields,currentCandidateScope())" in main
+
+
+def test_candidate_selection_is_explicit_in_browser_markup():
+    html=(ROOT/"battle-cases.html").read_text(encoding="utf-8")
+    assert "function currentCandidateScope()" in html
+    assert "round_id:currentRound()?.id||null" in html
+    assert "side:focusedSide,line:focusedLine" in html
+    assert "(result.side==='attacker'?'攻方':'守方')" in html
