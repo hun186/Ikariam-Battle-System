@@ -942,7 +942,16 @@
             "reserve": []
           }
         }
-      ]
+      ],
+      "research": {
+        "kind": "partial_observation",
+        "objective": "核對野蠻人陸戰 R1 與 R80–R89 的指定實體格死亡數及補兵線索",
+        "observed_scope": "R1 所提供的斧兵等格位；R80–R89 七格傷亡分布；其餘格位不代表已盤點",
+        "known_conditions": "同一場陸戰；玩家守方 Forge Lv5，火槍 Attack Lv11；R2–R79 未提供",
+        "hypothetical_inputs": "城牆命中次數與傷害規律等屬研究假說，不是原始戰報觀測",
+        "unknown_fields": "R2–R79、其他戰線的實際完整部署、全部 Reserve、未給出格位與 HP 均未知",
+        "confirmed_absences": ""
+      }
     },
     {
       "schema": "ikariam-report-cases-v1",
@@ -1589,7 +1598,16 @@
             "reserve": []
           }
         }
-      ]
+      ],
+      "research": {
+        "kind": "partial_observation",
+        "objective": "研究 R77 400 投石兵增援與指定野蠻人格位傷亡的關係",
+        "observed_scope": "R76–R80 來源逐格轉錄；未提供的戰線沒有完整盤點",
+        "known_conditions": "不同於火槍 R1/R80–R89 的另一場戰鬥；玩家 Forge Lv5；投石兵 Attack Lv24；R77 首度增援 400",
+        "hypothetical_inputs": "",
+        "unknown_fields": "未給出的雙方其他部隊、Reserve、波次、格位及 HP 不可推算",
+        "confirmed_absences": "僅確認 R76 投石兵未出場；不代表 R76 其他戰線無兵"
+      }
     },
     {
       "schema": "ikariam-report-cases-v1",
@@ -1800,7 +1818,16 @@
             "reserve": []
           }
         }
-      ]
+      ],
+      "research": {
+        "kind": "partial_observation",
+        "objective": "研究 Crispi 第一回合城牆與指定格位傷亡",
+        "observed_scope": "僅第一回合來源明列的實體格死亡數",
+        "known_conditions": "",
+        "hypothetical_inputs": "",
+        "unknown_fields": "未提供的部署、其他戰線、Reserve、格位存活數及 HP 均未知；不可借用模擬 debug 當觀測",
+        "confirmed_absences": ""
+      }
     },
     {
       "schema": "ikariam-report-cases-v1",
@@ -2101,7 +2128,16 @@
             "reserve": []
           }
         }
-      ]
+      ],
+      "research": {
+        "kind": "partial_observation",
+        "objective": "研究 Reikjavikas 第一回合指定格位傷亡",
+        "observed_scope": "僅第一回合來源明列的實體格死亡數",
+        "known_conditions": "",
+        "hypothetical_inputs": "",
+        "unknown_fields": "未提供的部署、其他戰線、Reserve、格位存活數及 HP 均未知；不可借用模擬 debug 當觀測",
+        "confirmed_absences": ""
+      }
     },
     {
       "schema": "ikariam-report-cases-v1",
@@ -2130,7 +2166,16 @@
             "reserve": []
           }
         }
-      ]
+      ],
+      "research": {
+        "kind": "research_summary",
+        "objective": "研究玩家衝撞船防禦 Lv3 對野蠻人破甲船之傷亡門檻",
+        "observed_scope": "僅 Excel／口述之整體傷亡與條件；實際遊戲回合編號未知，R1 只是索引占位",
+        "known_conditions": "玩家 Forge Lv5；野蠻人 Forge0；玩家防禦 Lv3",
+        "hypothetical_inputs": "",
+        "unknown_fields": "真實回合號、完整艦隊、各格存活兵數／血量、其他戰線及 Reserve 均未知",
+        "confirmed_absences": ""
+      }
     },
     {
       "schema": "ikariam-report-cases-v1",
@@ -2159,7 +2204,16 @@
             "reserve": []
           }
         }
-      ]
+      ],
+      "research": {
+        "kind": "research_summary",
+        "objective": "研究玩家衝撞船防禦 Lv15 對野蠻人破甲船之傷亡門檻",
+        "observed_scope": "僅 Excel／口述之整體傷亡與條件；實際遊戲回合編號未知，R1 只是索引占位",
+        "known_conditions": "玩家 Forge Lv5；野蠻人 Forge0；玩家防禦 Lv15",
+        "hypothetical_inputs": "",
+        "unknown_fields": "真實回合號、完整艦隊、各格存活兵數／血量、其他戰線及 Reserve 均未知",
+        "confirmed_absences": ""
+      }
     },
     {
       "schema": "ikariam-report-cases-v1",
@@ -2188,7 +2242,16 @@
             "reserve": []
           }
         }
-      ]
+      ],
+      "research": {
+        "kind": "research_summary",
+        "objective": "研究玩家衝撞船防禦 Lv19 對野蠻人破甲船之傷亡門檻",
+        "observed_scope": "僅 Excel／口述之整體傷亡與條件；實際遊戲回合編號未知，R1 只是索引占位",
+        "known_conditions": "玩家 Forge Lv5；野蠻人 Forge0；玩家防禦 Lv19",
+        "hypothetical_inputs": "",
+        "unknown_fields": "真實回合號、完整艦隊、各格存活兵數／血量、其他戰線及 Reserve 均未知",
+        "confirmed_absences": ""
+      }
     },
     {
       "schema": "ikariam-report-cases-v1",
@@ -2217,7 +2280,16 @@
             "reserve": []
           }
         }
-      ]
+      ],
+      "research": {
+        "kind": "research_summary",
+        "objective": "研究快艇攻擊升級與航母防禦升級對 R1 航母傷亡總量的影響",
+        "observed_scope": "僅首回合航母總死亡量；未有實體格位死亡分配",
+        "known_conditions": "玩家快艇 30、玩家航母 6，雙方 Forge Lv5；其他具體升級見案例摘要",
+        "hypothetical_inputs": "",
+        "unknown_fields": "全艦隊其他戰線、每格格位與 HP、補兵、Reserve 均未知",
+        "confirmed_absences": ""
+      }
     },
     {
       "schema": "ikariam-report-cases-v1",
@@ -2246,7 +2318,16 @@
             "reserve": []
           }
         }
-      ]
+      ],
+      "research": {
+        "kind": "research_summary",
+        "objective": "研究快艇攻擊升級與航母防禦升級對 R1 航母傷亡總量的影響",
+        "observed_scope": "僅首回合航母總死亡量；未有實體格位死亡分配",
+        "known_conditions": "玩家快艇 30、玩家航母 6，雙方 Forge Lv5；其他具體升級見案例摘要",
+        "hypothetical_inputs": "",
+        "unknown_fields": "全艦隊其他戰線、每格格位與 HP、補兵、Reserve 均未知",
+        "confirmed_absences": ""
+      }
     },
     {
       "schema": "ikariam-report-cases-v1",
@@ -2275,7 +2356,16 @@
             "reserve": []
           }
         }
-      ]
+      ],
+      "research": {
+        "kind": "research_summary",
+        "objective": "研究快艇攻擊升級與航母防禦升級對 R1 航母傷亡總量的影響",
+        "observed_scope": "僅首回合航母總死亡量；未有實體格位死亡分配",
+        "known_conditions": "玩家快艇 30、玩家航母 6，雙方 Forge Lv5；其他具體升級見案例摘要",
+        "hypothetical_inputs": "",
+        "unknown_fields": "全艦隊其他戰線、每格格位與 HP、補兵、Reserve 均未知",
+        "confirmed_absences": ""
+      }
     },
     {
       "schema": "ikariam-report-cases-v1",
@@ -2304,7 +2394,16 @@
             "reserve": []
           }
         }
-      ]
+      ],
+      "research": {
+        "kind": "research_summary",
+        "objective": "研究空中對應兵種的總傷亡或 HP 門檻",
+        "observed_scope": "僅來源中的整場傷亡或未定位 HP 條；不得映射成具體物理格",
+        "known_conditions": "比較情境及已提供兵種／數量詳見來源備註",
+        "hypothetical_inputs": "對應兵種的 mapping 尚屬研究暫定，並非已核實的遊戲格位",
+        "unknown_fields": "完整艦隊、實際可定位實體格位、其他戰線、Reserve 及部分回合時點均未知",
+        "confirmed_absences": ""
+      }
     },
     {
       "schema": "ikariam-report-cases-v1",
@@ -2333,7 +2432,16 @@
             "reserve": []
           }
         }
-      ]
+      ],
+      "research": {
+        "kind": "research_summary",
+        "objective": "研究空中對應兵種的總傷亡或 HP 門檻",
+        "observed_scope": "僅來源中的整場傷亡或未定位 HP 條；不得映射成具體物理格",
+        "known_conditions": "比較情境及已提供兵種／數量詳見來源備註",
+        "hypothetical_inputs": "對應兵種的 mapping 尚屬研究暫定，並非已核實的遊戲格位",
+        "unknown_fields": "完整艦隊、實際可定位實體格位、其他戰線、Reserve 及部分回合時點均未知",
+        "confirmed_absences": ""
+      }
     },
     {
       "schema": "ikariam-report-cases-v1",
@@ -2362,7 +2470,16 @@
             "reserve": []
           }
         }
-      ]
+      ],
+      "research": {
+        "kind": "research_summary",
+        "objective": "研究空中對應兵種的總傷亡或 HP 門檻",
+        "observed_scope": "僅來源中的整場傷亡或未定位 HP 條；不得映射成具體物理格",
+        "known_conditions": "比較情境及已提供兵種／數量詳見來源備註",
+        "hypothetical_inputs": "對應兵種的 mapping 尚屬研究暫定，並非已核實的遊戲格位",
+        "unknown_fields": "完整艦隊、實際可定位實體格位、其他戰線、Reserve 及部分回合時點均未知",
+        "confirmed_absences": ""
+      }
     },
     {
       "schema": "ikariam-report-cases-v1",
@@ -2391,7 +2508,16 @@
             "reserve": []
           }
         }
-      ]
+      ],
+      "research": {
+        "kind": "research_summary",
+        "objective": "研究空中對應兵種的總傷亡或 HP 門檻",
+        "observed_scope": "僅來源中的整場傷亡或未定位 HP 條；不得映射成具體物理格",
+        "known_conditions": "比較情境及已提供兵種／數量詳見來源備註",
+        "hypothetical_inputs": "對應兵種的 mapping 尚屬研究暫定，並非已核實的遊戲格位",
+        "unknown_fields": "完整艦隊、實際可定位實體格位、其他戰線、Reserve 及部分回合時點均未知",
+        "confirmed_absences": ""
+      }
     }
   ]
 }

@@ -21,6 +21,12 @@ def test_bundled_historical_catalog_has_provenance_and_round_gap():
     assert all(c["id"].startswith("research-") and "非 Gameforge" in c["notes"] for c in cases)
     for c in cases:
         assert c["schema"]=="ikariam-report-cases-v1"
+        research=c["research"]
+        assert research["kind"] in ("partial_observation","research_summary")
+        assert research["objective"].strip() and research["observed_scope"].strip()
+        assert research["unknown_fields"].strip()
+        assert research["confirmed_absences"]=="" or c["id"]=="research-land-slinger-400-r76-r80"
+        assert research["kind"]!="full_report"
         assert "tests/fixtures/reverse_engineering/" in c["notes"]
         assert len(c["rounds"])>=1
         for r in c["rounds"]:
@@ -57,7 +63,29 @@ const fields=[
  {id:"land-max",lines:Object.fromEntries(["first","second","third","flank","balloon","anti-balloon"].map(n=>[n,{physical_order:Array.from({length:7},(_,i)=>i+1)}]))},
  {id:"naval-max",lines:Object.fromEntries(["first","second","third","flank","balloon","anti-balloon"].map(n=>[n,{physical_order:Array.from({length:7},(_,i)=>i+1)}]))}
 ];
-for(const c of bundle.cases) assert.deepEqual(M.validateCase(c,fields),[],c.id);
+for(const c of bundle.cases){
+  assert.deepEqual(M.validateCase(c,fields),[],c.id);
+  const gate=M.researchEvidenceGate(c);
+  assert.equal(gate.globalCalibrationAllowed,false);
+  assert.ok(['FOCUSED_ONLY','SUMMARY_ONLY'].includes(gate.code));
+}
+assert.equal(M.researchEvidenceGate(bundle.cases[0]).focusedComparisonAllowed,true);
+assert.equal(M.researchEvidenceGate(bundle.cases[4]).focusedComparisonAllowed,false);
+const legacy=M.create('legacy','land-max');delete legacy.research;
+assert.deepEqual(M.validateCase(legacy,fields),[]);
+assert.equal(M.researchEvidenceGate(legacy).code,'UNCLASSIFIED_LEGACY');
+const fresh=M.create('fresh','land-max');
+fresh.research=M.newResearch();assert.deepEqual(M.validateCase(fresh,fields),[]);
+assert.equal(M.researchEvidenceGate(fresh).globalCalibrationAllowed,false);
+fresh.research.kind='full_report';assert.equal(M.researchEvidenceGate(fresh).code,'FULL_REPORT_UNVERIFIED');
+assert.equal(M.researchEvidenceGate(fresh).globalCalibrationAllowed,false);
+fresh.research.kind='unverified';assert.match(M.validateCase(fresh,fields)[0],/研究分類/);
+fresh.research.kind='partial_observation';
+fresh.research.confirmed_absences='x'.repeat(2001);
+assert.match(M.validateCase(fresh,fields)[0],/研究來源/);
+fresh.research.confirmed_absences='';
+assert.equal(JSON.parse(M.exportCase(fresh,fields)).research.kind,'partial_observation');
+assert.equal(M.importCase(M.exportCase(fresh,fields),fields).research.kind,'partial_observation');
 let merged=M.mergeHistoricalCases([],bundle,fields);
 assert.equal(merged.added,14);
 assert.equal(merged.total,14);
