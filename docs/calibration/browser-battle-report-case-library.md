@@ -393,3 +393,19 @@ the GitHub repository; these cases do not authenticate Gameforge mechanics.
 Validation must cover v1 schema/geometry, browser auto-seed and reload,
 idempotent manual restore, preserving modified cases, empty-deleted history
 marker, and ASGI/Vercel static parity.
+
+## Explicit partial vs full source boundary
+
+The full battlefield UI is a **template**; unentered positions are UNKNOWN
+and must never be read as zero units. Case-level optional `research`
+metadata distinguishes observation, control-condition, simulation hypothesis,
+unknown information, and explicitly source-bounded absence. A statement like
+"front line full" is a condition but does not prove exact original unit IDs,
+numbers, HP, losses, waves or reserve size. Do not copy the 350-Hoplite
+scenario from the flank Swordsman experiment into original source slots.
+Self-selecting "complete battle" cannot authenticate missing combat evidence;
+`researchEvidenceGate` always blocks whole-battle auto-calibration.
+
+Legacy JSON case files lacking `research` remain valid and render unclassified.
+New browser cases are partial by default. Case JSON export/import retains
+metadata. Editing research notes changes local browser copies only.

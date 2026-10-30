@@ -81,6 +81,13 @@ def run(base_url: str, evidence_dir: Path) -> None:
                     "() => JSON.parse(localStorage.getItem('ikariam-report-cases-v1'))"
                 )
                 assert len(history_json) == 14
+                assert sum(x["research"]["kind"]=="partial_observation" for x in history_json) == 4
+                assert sum(x["research"]["kind"]=="research_summary" for x in history_json) == 10
+                expect(history_page.locator("#researchGate")).to_contain_text("全場自動模擬／校準：禁止")
+                expect(history_page.locator("#researchKind")).to_have_value("partial_observation")
+                assert history_page.locator("#researchUnknownFields").input_value()
+                assert all(not c["research"]["confirmed_absences"] for c in history_json
+                           if c["id"]!="research-land-slinger-400-r76-r80")
                 assert history_json[0]["rounds"][0]["number"] == 1
                 assert len(history_json[0]["rounds"]) == 11
                 assert history_json[0]["rounds"][1]["number"] == 80
@@ -124,9 +131,47 @@ def run(base_url: str, evidence_dir: Path) -> None:
                 finally:
                     invalid_context.close()
             print("PASS: rejected localStorage protected against auto/manual seed")
+            # Old v1 JSON remains untouched until an explicit owner edit; the
+            # old browser record is not automatically declared a full report.
+            legacy = json.loads(json.dumps(history_json[0]))
+            del legacy["research"]
+            legacy_raw = json.dumps([legacy], ensure_ascii=False)
+            legacy_context = browser.new_context(locale="zh-TW")
+            try:
+                legacy_context.add_init_script(
+                    "localStorage.setItem('ikariam-report-cases-v1',"
+                    + json.dumps(legacy_raw, ensure_ascii=False) + ");"
+                )
+                legacy_page = legacy_context.new_page()
+                legacy_page.goto(base_url + "/battle-cases.html", wait_until="networkidle")
+                expect(legacy_page.locator("#researchKind")).to_have_value("unclassified")
+                expect(legacy_page.locator("#researchGate")).to_contain_text("未分類")
+                assert legacy_page.evaluate(
+                    "() => localStorage.getItem('ikariam-report-cases-v1')"
+                ) == legacy_raw
+                legacy_page.locator("#researchKind").select_option("partial_observation")
+                classified = legacy_page.evaluate(
+                    "() => JSON.parse(localStorage.getItem('ikariam-report-cases-v1'))[0]"
+                )
+                assert classified["research"]["kind"] == "partial_observation"
+                assert classified["rounds"] == legacy["rounds"]
+            finally:
+                legacy_context.close()
+            print("PASS: legacy cases remain unclassified until user edit")
 
             prompted_click(page, "#addCase", "瀏覽器驗收 R80 海戰（合成資料）")
             expect(page.locator("#caseHeading")).to_contain_text("瀏覽器驗收 R80")
+            expect(page.locator("#researchKind")).to_have_value("partial_observation")
+            expect(page.locator("#researchGate")).to_contain_text("全場自動模擬／校準：禁止")
+            page.locator("#researchObjective").fill("只研究側翼劍士互砍（合成測試）")
+            page.locator("#researchObjective").blur()
+            page.locator("#researchKnownConditions").fill("前線填滿；精確兵量未提供")
+            page.locator("#researchKnownConditions").blur()
+            page.locator("#researchHypotheticalInputs").fill("模擬假設前排 350 重裝步兵，非實戰觀測")
+            page.locator("#researchHypotheticalInputs").blur()
+            page.locator("#researchUnknownFields").fill("前排精確兵量、Reserve 與其他戰線均未知")
+            page.locator("#researchUnknownFields").blur()
+            assert "全場自動模擬／校準：禁止" in page.locator("#researchGate").inner_text()
             original_id = page.locator("#caseList").input_value()
             page.locator("#caseField").select_option("naval-small")
 
@@ -461,6 +506,11 @@ def run(base_url: str, evidence_dir: Path) -> None:
             payload = Path(download.path()).read_bytes()
             saved = json.loads(payload.decode("utf-8"))
             assert saved["id"] == original_id
+            assert saved["research"]["kind"] == "partial_observation"
+            assert "側翼劍士互砍" in saved["research"]["objective"]
+            assert "前線填滿" in saved["research"]["known_conditions"]
+            assert "非實戰觀測" in saved["research"]["hypothetical_inputs"]
+            assert saved["research"]["confirmed_absences"] == ""
             assert sorted(r["number"] for r in saved["rounds"]) == [50, 80, 81, 82]
             rounds = {r["number"]: r for r in saved["rounds"]}
             assert rounds[80]["attacker"]["slots"][0]["pos"] == 1
