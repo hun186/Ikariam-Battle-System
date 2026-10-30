@@ -96,7 +96,10 @@ reject({...good,case_updated:'outdated'},/版本/);
 reject({...good,battlefield:'naval-max'},/戰場不符/);
 reject({...good,round_number:81},/回合編號/);
 reject({...good,phase:'round_prefire'},/時點不符/);
-reject({...good,round_id:'missing'},/不存在/);
+// The wrong UI round is now caught BEFORE the old missing-round lookup.
+reject({...good,round_id:'missing'},/候選範圍/);
+assert.throws(()=>M.compareFocusedCandidate(c,JSON.stringify({...good,round_id:'missing'}),fields,
+ {...selectedScope,round_id:'missing'}),/不存在/);
 reject({...good,predictions:good.predictions.slice(0,2)},/幾何不同/);
 reject({...good,predictions:[good.predictions[0],good.predictions[0],good.predictions[2]]},/位置或數值無效/);
 reject({...good,predictions:[{...good.predictions[0],deaths:1.5},...good.predictions.slice(1)]},/位置或數值無效/);
