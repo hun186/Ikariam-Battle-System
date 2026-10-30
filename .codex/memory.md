@@ -1,6 +1,7 @@
 # Project Memory
 
 ## Current Focus
+- **2026-10-31 PR #122 P2 #4426839047:** First formal Codex review of d9e435283eb5 completed with 1 P2: whitespace-only typed/model Wave labels slipped through truthiness and permitted invalid numeric count changes. Fix checks stripped nonblank labels on BOTH source and mapped engine unit/Wave while retaining exact original equality; regression checks ASCII, mixed and Unicode whitespace plus verbatim identity, requires new exact-head CI and formal re-review before merge.
 - **2026-10-31 new Draft PR after owner-merged #121:** Multi-round actual-engine source capture CLI reuses strict PR #121 source validation for 2-10 ordered selected captures. Count change comparisons only where source rounds adjacent, source typed position and Wave/unit stable and BOTH prior real-engine alignment statuses eligible. Missing source rounds, unknowns, HP/game semantics and combat causal attribution never inferred. Exact HEAD hosted CI and formal Codex Clean required before Merge.
 - **2026-10-31 PR #121 MERGED:** squash e48ff998bde50958c3bec1ccf9e725850fa75738, 13/13 hosted checks, 1,193 passed/3 xfailed, formal Codex Clean. Source Image/Wave mapping still owner-asserted, not independently authenticated Gameforge original.
 - **2026-10-31 PR #120 MERGED:** squash commit 0cda6375ef4a66e45bbd5a69b70d4b2ea01006e5, full 14/14 Hosted CI and formal exact-head Codex Clean after P2 fix. Browser candidate values USER_ENTERED, NOT genuine engine predictions.

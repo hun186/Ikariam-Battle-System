@@ -60,12 +60,24 @@ def _pair(prior: dict, later: dict) -> dict:
             state = "NOT_ASSESSABLE_SOURCE_OR_ENGINE_MAPPING_GATE"
         elif not all(
             isinstance(row.get("typed_unit_label"), str)
-            and row["typed_unit_label"]
+            and row["typed_unit_label"].strip()
             and isinstance(row.get("typed_wave_label"), str)
-            and row["typed_wave_label"]
+            and row["typed_wave_label"].strip()
             for row in (a, b)
         ):
+            # Source labels containing only whitespace are UNKNOWN, even
+            # when the user typed the same whitespace in both captures.
             state = "NOT_ASSESSABLE_INCOMPLETE_TYPED_WAVE_IDENTITY"
+        elif not all(
+            isinstance(row.get("engine_unit_id"), str)
+            and row["engine_unit_id"].strip()
+            and isinstance(row.get("engine_wave_id_user_asserted"), str)
+            and row["engine_wave_id_user_asserted"].strip()
+            for row in (a, b)
+        ):
+            # An explicitly asserted model Wave that is merely whitespace
+            # is not proof of stable identity across snapshots either.
+            state = "NOT_ASSESSABLE_INCOMPLETE_ENGINE_WAVE_IDENTITY"
         elif (
             a["typed_unit_label"] != b["typed_unit_label"]
             or a["typed_wave_label"] != b["typed_wave_label"]

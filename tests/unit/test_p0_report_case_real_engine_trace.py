@@ -535,6 +535,52 @@ def test_multi_round_adjacent_count_changes_are_descriptive_only():
     assert row["hp_or_casualty_mechanism_inferred"] is False
 
 
+def test_multi_round_whitespace_only_wave_and_unit_labels_are_unknown_not_deltas():
+    # Codex P2 #4426839047: the old boolean check accepted " " as a Wave
+    # label, even if the engine and manual source both supplied that value.
+    # Preserve the original strings; never strip-and-compare as an identity.
+    for blank in (" ", " \t ", "\n", "\u3000"):
+        for field in ("typed_wave_label", "typed_unit_label"):
+            a,b=_synthetic_pair()
+            a["rows"][0][field]=blank
+            b["rows"][0][field]=blank
+            p=multi._pair(a,b)
+            assert p["descriptive_change_comparisons"]==0
+            assert p["rows"][0]["comparison_status"]=="NOT_ASSESSABLE_INCOMPLETE_TYPED_WAVE_IDENTITY"
+            assert p["rows"][0]["typed_count_change"] is None
+            assert p["rows"][0]["engine_count_change"] is None
+            assert p["rows"][0]["engine_minus_typed_change"] is None
+        for field in ("engine_wave_id_user_asserted", "engine_unit_id"):
+            a,b=_synthetic_pair()
+            a["rows"][0][field]=blank
+            b["rows"][0][field]=blank
+            p=multi._pair(a,b)
+            assert p["descriptive_change_comparisons"]==0
+            assert p["rows"][0]["comparison_status"]=="NOT_ASSESSABLE_INCOMPLETE_ENGINE_WAVE_IDENTITY"
+            assert p["rows"][0]["typed_count_change"] is None
+            assert p["rows"][0]["engine_count_change"] is None
+            assert p["rows"][0]["engine_minus_typed_change"] is None
+
+
+def test_multi_round_wave_identity_requires_exact_raw_equality_after_nonblank_gate():
+    a,b=_synthetic_pair()
+    # Nonblank surrounding whitespace is not automatically normalized:
+    # the distinct raw source Wave labels cannot be equated.
+    a["rows"][0]["typed_wave_label"]="w1"
+    b["rows"][0]["typed_wave_label"]=" w1 "
+    p=multi._pair(a,b)
+    assert p["rows"][0]["comparison_status"]=="NOT_ASSESSABLE_DIFFERENT_WAVE_OR_UNIT_IDENTITY"
+    assert p["rows"][0]["typed_count_change"] is None
+    # Two identical nonempty labels are allowed, despite surrounding spaces.
+    a["rows"][0]["typed_wave_label"]=" w1 "
+    p=multi._pair(a,b)
+    assert p["descriptive_change_comparisons"]==1
+    # The engine mapping identity is also compared verbatim, never trimmed.
+    b["rows"][0]["engine_wave_id_user_asserted"]=" model-w1 "
+    p=multi._pair(a,b)
+    assert p["rows"][0]["comparison_status"]=="NOT_ASSESSABLE_DIFFERENT_WAVE_OR_UNIT_IDENTITY"
+
+
 def test_multi_round_unknown_zero_unpaired_and_gapped_never_invent_changes():
     a,b = _synthetic_pair(a_count=0,b_count=0)
     p=multi._pair(a,b)["rows"][0]
