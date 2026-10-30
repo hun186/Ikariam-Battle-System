@@ -432,7 +432,8 @@ def test_focused_actual_engine_rejects_unscoped_and_stale_source(engine_input, l
         attempt(json.dumps(prefire).encode())
     stale = deepcopy(c)
     stale["notes"] = "changed-case-bytes-invalidates-map"
-    with pytest.raises(ValueError, match="source hashes do not match"):
+    # Strict manual review case-byte anchor rejects this BEFORE map checking.
+    with pytest.raises(ValueError, match="review worksheet.*stale"):
         attempt(json.dumps(stale).encode())
     bad_map = deepcopy(slot_map)
     bad_map["case_sha256"] = "0"*64
