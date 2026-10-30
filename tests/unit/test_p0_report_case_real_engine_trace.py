@@ -321,3 +321,163 @@ def test_no_open_field_override_preserves_requested_and_effective_geometry(engin
     result = adapter.engine_trace(engine_input)
     assert result["scenario_battlefield"] == "land-mini"
     assert result["engine_effective_battlefield"] == "land-mini"
+
+
+# Follow-up to PR #120: a *real* simulator trace projected over a declared
+# partial observation with the existing image/review/slot-map safety gates.
+from tools.research import p0_report_case_focused_engine_diagnostic as focused
+
+
+def _focused_inputs(local_synthetic_case):
+    trace, case_bytes, manifest, root, review_bytes, mapping, model = local_synthetic_case
+    case = json.loads(case_bytes)
+    # Only declared partial observations are eligible. This is a synthetic
+    # case created from the real engine, NOT an original Gameforge report.
+    case["research"] = {
+        "kind": "partial_observation",
+        "objective": "Only first-line physical position casualty research",
+        "observed_scope": "Single side and line; other positions unknown",
+        "known_conditions": "Synthetic fixture for test only",
+        "hypothetical_inputs": "Simulated hoplite forces",
+        "unknown_fields": "Unobserved game mechanics and source identity",
+        "confirmed_absences": "",
+    }
+    new_bytes = json.dumps(case, ensure_ascii=False).encode()
+    new_review = manual.review_worksheet(new_bytes, manifest, root)
+    assert len(new_review["review_items"]) == 1
+    new_review["review_items"][0]["review_status"] = "REVIEWER_REPORTS_IMAGES_READABLE"
+    new_review_bytes = json.dumps(new_review).encode()
+    new_map = deepcopy(mapping)
+    new_map["case_sha256"] = sha256(new_bytes).hexdigest()
+    return new_bytes, manifest, root, new_review_bytes, new_map, model
+
+
+def test_focused_actual_engine_reuses_source_review_wave_and_round_gates(engine_input, local_synthetic_case):
+    case_bytes, manifest, root, review_bytes, slot_map, slot = _focused_inputs(local_synthetic_case)
+    target_capture = json.loads(case_bytes)["rounds"][1]["id"]
+    report = focused.focused_diagnostic(
+        engine_input, case_bytes, manifest, root, review_bytes, slot_map,
+        capture_id=target_capture, side="attacker", line=slot["line"],
+    )
+    assert report["schema"] == focused.SCHEMA
+    assert report["source_class"] == adapter.SOURCE
+    assert report["scenario_sha256"] == sha256(engine_input).hexdigest()
+    assert report["engine_output_sha256"] == adapter.engine_trace(engine_input)["engine_output_sha256"]
+    assert report["typed_positions"] == 1
+    assert report["explicit_bindings_in_focus"] == 1
+    assert report["descriptive_count_comparisons"] == 1
+    item = report["rows"][0]
+    assert item["count_comparison_status"] == "ENGINE_MINUS_USER_TYPED_COUNT_UNVERIFIED"
+    assert item["typed_count"] == slot["units"]
+    assert item["engine_count_context_only"] == slot["units"]
+    assert item["engine_minus_typed_count"] == 0  # Real known zero, not missing.
+    assert item["engine_internal_hp_context_only"] == slot["hit_points_percent"]
+    assert item["engine_minus_game_hp_points"] is None
+    assert report["hp_bar_comparison_performed"] is False
+    assert report["global_calibration_allowed"] is False
+    assert report["game_source_authenticated"] is False
+    assert report["scenario_reconstructed_from_game"] is False
+    assert report["independent_holdouts"] == 0
+    assert report["source_notes_or_image_paths_exported"] is False
+    serialized = json.dumps(report)
+    assert "not-to-be-exported" not in serialized
+    assert "fake-images" not in serialized
+    assert str(root) not in serialized
+
+
+def test_focused_actual_engine_never_auto_maps_unbound_wave(engine_input, local_synthetic_case):
+    case_bytes, manifest, root, review_bytes, slot_map, slot = _focused_inputs(local_synthetic_case)
+    target_capture = json.loads(case_bytes)["rounds"][1]["id"]
+    slot_map["bindings"] = []
+    result = focused.focused_diagnostic(
+        engine_input, case_bytes, manifest, root, review_bytes, slot_map,
+        capture_id=target_capture, side="attacker", line=slot["line"],
+    )
+    assert result["typed_positions"] == 1
+    assert result["explicit_bindings_in_focus"] == 0
+    assert result["descriptive_count_comparisons"] == 0
+    row = result["rows"][0]
+    assert row["count_comparison_status"] == "NOT_ASSESSABLE_NO_EXPLICIT_REVIEW_SLOT_BINDING"
+    assert row["engine_minus_typed_count"] is None
+    assert row["engine_count_context_only"] is None
+
+
+def test_focused_actual_engine_rejects_unscoped_and_stale_source(engine_input, local_synthetic_case):
+    case_bytes, manifest, root, review_bytes, slot_map, slot = _focused_inputs(local_synthetic_case)
+    c = json.loads(case_bytes)
+    target = c["rounds"][1]["id"]
+    def attempt(data, *, capture_id=target, side="attacker", line=slot["line"], map_data=slot_map):
+        return focused.focused_diagnostic(
+            engine_input, data, manifest, root, review_bytes, map_data,
+            capture_id=capture_id, side=side, line=line,
+        )
+    for kind in ("full_report", "research_summary"):
+        wrong = deepcopy(c)
+        wrong["research"]["kind"] = kind
+        with pytest.raises(ValueError, match="partial_observation"):
+            attempt(json.dumps(wrong).encode())
+    legacy = deepcopy(c)
+    del legacy["research"]
+    with pytest.raises(ValueError, match="partial_observation"):
+        attempt(json.dumps(legacy).encode())
+    with pytest.raises(ValueError, match="ID not unique or not found"):
+        attempt(case_bytes, capture_id="missing-round")
+    with pytest.raises(ValueError, match="canonical formation address"):
+        attempt(case_bytes, side="third-side")
+    with pytest.raises(ValueError, match="no typed numeric"):
+        attempt(case_bytes, side="defender", line="flank")
+    prefire = deepcopy(c)
+    prefire["rounds"][1]["phase"] = "round_prefire"
+    with pytest.raises(ValueError, match="prefire"):
+        attempt(json.dumps(prefire).encode())
+    stale = deepcopy(c)
+    stale["notes"] = "changed-case-bytes-invalidates-map"
+    # Strict manual review case-byte anchor rejects this BEFORE map checking.
+    with pytest.raises(ValueError, match="review worksheet.*stale"):
+        attempt(json.dumps(stale).encode())
+    bad_map = deepcopy(slot_map)
+    bad_map["case_sha256"] = "0"*64
+    with pytest.raises(ValueError, match="source hashes do not match"):
+        attempt(case_bytes, map_data=bad_map)
+    # In-place change to the private screenshot files is rejected by the
+    # existing fresh image-byte validation, not ignored by focused projection.
+    (root / "synthetic-0.png").write_bytes(b"tampered")
+    with pytest.raises(ValueError):
+        attempt(case_bytes)
+
+
+def test_focused_actual_engine_cli_output_exclusive(engine_input, local_synthetic_case, tmp_path):
+    case_bytes, manifest, root, review_bytes, slot_map, slot = _focused_inputs(local_synthetic_case)
+    target = json.loads(case_bytes)["rounds"][1]["id"]
+    for filename, payload in (
+        ("scenario.json", engine_input),
+        ("case.json", case_bytes),
+        ("manifest.json", json.dumps(manifest).encode()),
+        ("review.json", review_bytes),
+        ("slot-map.json", json.dumps(slot_map).encode()),
+    ):
+        (tmp_path / filename).write_bytes(payload)
+    out = tmp_path / "focused-only.json"
+    cmd = [
+        sys.executable, "-m",
+        "tools.research.p0_report_case_focused_engine_diagnostic",
+        "--scenario", str(tmp_path / "scenario.json"),
+        "--case", str(tmp_path / "case.json"),
+        "--manifest", str(tmp_path / "manifest.json"),
+        "--evidence-root", str(root),
+        "--review-worksheet", str(tmp_path / "review.json"),
+        "--slot-map", str(tmp_path / "slot-map.json"),
+        "--capture-id", target,
+        "--side", "attacker",
+        "--line", slot["line"],
+        "--output-json", str(out),
+    ]
+    first = subprocess.run(cmd, capture_output=True, text=True, timeout=40)
+    assert first.returncode == 0, first.stderr
+    data = json.loads(out.read_text(encoding="utf-8"))
+    assert data["descriptive_count_comparisons"] == 1
+    assert "verified_game_mechanics" in first.stdout
+    second = subprocess.run(cmd, capture_output=True, text=True, timeout=40)
+    assert second.returncode == 2
+    assert "refusing to overwrite" in second.stderr
+    assert data == json.loads(out.read_text(encoding="utf-8"))
