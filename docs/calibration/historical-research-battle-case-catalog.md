@@ -20,7 +20,7 @@ historical cases, without changing local edits, by clicking
 - Crispi R1 and Reikjavikas R1: source per-slot casualty counts, not guessed
   unit survivor HP/count.
 - Three separate Barbarian Deckwrecker vs player Ram armor-grade fights:
-  grade3/15 user-stated per-slot deaths; grade19 only aggregate deaths/bars.
+  grade3/15 user-stated per-slot deaths and grade19 aggregate deaths/bars. Their source fixture does **not establish exact game-round timing**; the v1 schema requires one round, so its R1 tab is expressly documented as a catalog indexing placeholder rather than the actual observed R1. No Ram physical slots are populated, even for verbally reported per-slot losses, to avoid assigning them an invented Round1.
 - Three separate player Fast Boat versus player Carrier R1 fights:
   aggregate Carrier deaths only.
 - Four separate Barbarian/Player air-counterpart engagements:

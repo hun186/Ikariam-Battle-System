@@ -39,6 +39,10 @@ def test_bundled_historical_catalog_has_provenance_and_round_gap():
     slinger=next(c for c in cases if c["id"]=="research-land-slinger-400-r76-r80")
     assert [r["number"] for r in slinger["rounds"]]==[76,77,78,79,80]
     assert slinger["rounds"][0]["defender"]["slots"]==[]
+    ram=[c for c in cases if c["id"].startswith("research-naval-ram-")]
+    assert len(ram)==3
+    assert all(not c["rounds"][0]["defender"]["slots"] for c in ram)
+    assert all("索引占位" in c["notes"] for c in ram)
     naval=[c for c in cases if c["id"].startswith("research-naval-pvp-")]
     assert len(naval)==3 and all(c["rounds"][0]["defender"]["slots"]==[] for c in naval)
 

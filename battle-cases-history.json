@@ -2108,7 +2108,7 @@
       "id": "research-naval-ram-defense-3",
       "name": "【研究紀錄】野蠻人破甲船 vs 玩家衝撞船：防禦 Lv3",
       "battlefield": "naval-max",
-      "notes": "【來自先前 PR 的歷史研究資料；非 Gameforge 認證戰報】\n來源：tests/fixtures/reverse_engineering/naval_ram_deckwrecker_20261013.json\n這是防禦等級掃描的其中一筆獨立對戰，不是同一戰鬥的不同回合。玩家 Forge Lv5、野蠻人 Forge0；記錄的玩家總損失 6。Lv3–14 每格死亡 1、Lv15 每格 0 為使用者口述格位資訊；Excel 只有總數。原始完整艦隊與個別 HP 未知。\n已知完整原始圖片不在 GitHub。本庫僅移入來源明確的逐格觀察與摘要；不補填未知格位、Reserve、Wave、HP 或未觀測回合，亦不以模型結果冒充遊戲實測。",
+      "notes": "【來自先前 PR 的歷史研究資料；非 Gameforge 認證戰報】\n來源：tests/fixtures/reverse_engineering/naval_ram_deckwrecker_20261013.json\n這是防禦等級掃描的其中一筆獨立對戰，不是同一戰鬥的不同回合。玩家 Forge Lv5、野蠻人 Forge0；記錄的玩家總損失 6。Lv3–14 每格死亡 1、Lv15 每格 0 為使用者口述格位資訊；Excel 只有總數。原始完整艦隊與個別 HP 未知。\n已知完整原始圖片不在 GitHub。本庫僅移入來源明確的逐格觀察與摘要；不補填未知格位、Reserve、Wave、HP 或未觀測回合，亦不以模型結果冒充遊戲實測。\n時間來源限制：原始 Ram Excel/對話 fixture 未確認這筆結果的實際回合編號。介面所需「R1」僅為研究摘要索引占位，不代表遊戲第 1 回合；已刻意不將口述每格損失映射成 R1 格位。\n來源另有使用者口述 6 格各損失 1；缺少明確回合時間與原始格位圖。",
       "created": "2026-10-30T00:00:00.000Z",
       "updated": "2026-10-30T00:00:00.000Z",
       "rounds": [
@@ -2116,7 +2116,7 @@
           "id": "research-naval-ram-defense-3-R1",
           "number": 1,
           "phase": "round_end",
-          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/naval_ram_deckwrecker_20261013.json | Excel F4:F19 + separate user chat per-slot claim | 全場與逐格來源分開；未知數值留白",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/naval_ram_deckwrecker_20261013.json | Excel F4:F19 + separate user chat per-slot claim | 全場與逐格來源分開；未知數值留白 | IMPORTANT: R1 IS INDEX PLACEHOLDER ONLY; observed round number UNKNOWN; slot deaths NOT projected to an invented round.",
           "baseline_confirmed": {
             "attacker": false,
             "defender": false
@@ -2126,62 +2126,7 @@
             "reserve": []
           },
           "defender": {
-            "slots": [
-              {
-                "line": "flank",
-                "pos": 1,
-                "unit": "steam_ram",
-                "wave": "",
-                "count": null,
-                "hp": null,
-                "deaths": 1
-              },
-              {
-                "line": "flank",
-                "pos": 2,
-                "unit": "steam_ram",
-                "wave": "",
-                "count": null,
-                "hp": null,
-                "deaths": 1
-              },
-              {
-                "line": "flank",
-                "pos": 3,
-                "unit": "steam_ram",
-                "wave": "",
-                "count": null,
-                "hp": null,
-                "deaths": 1
-              },
-              {
-                "line": "flank",
-                "pos": 4,
-                "unit": "steam_ram",
-                "wave": "",
-                "count": null,
-                "hp": null,
-                "deaths": 1
-              },
-              {
-                "line": "flank",
-                "pos": 5,
-                "unit": "steam_ram",
-                "wave": "",
-                "count": null,
-                "hp": null,
-                "deaths": 1
-              },
-              {
-                "line": "flank",
-                "pos": 6,
-                "unit": "steam_ram",
-                "wave": "",
-                "count": null,
-                "hp": null,
-                "deaths": 1
-              }
-            ],
+            "slots": [],
             "reserve": []
           }
         }
@@ -2192,7 +2137,7 @@
       "id": "research-naval-ram-defense-15",
       "name": "【研究紀錄】野蠻人破甲船 vs 玩家衝撞船：防禦 Lv15",
       "battlefield": "naval-max",
-      "notes": "【來自先前 PR 的歷史研究資料；非 Gameforge 認證戰報】\n來源：tests/fixtures/reverse_engineering/naval_ram_deckwrecker_20261013.json\n這是防禦等級掃描的其中一筆獨立對戰，不是同一戰鬥的不同回合。玩家 Forge Lv5、野蠻人 Forge0；記錄的玩家總損失 0。Lv3–14 每格死亡 1、Lv15 每格 0 為使用者口述格位資訊；Excel 只有總數。原始完整艦隊與個別 HP 未知。\n已知完整原始圖片不在 GitHub。本庫僅移入來源明確的逐格觀察與摘要；不補填未知格位、Reserve、Wave、HP 或未觀測回合，亦不以模型結果冒充遊戲實測。",
+      "notes": "【來自先前 PR 的歷史研究資料；非 Gameforge 認證戰報】\n來源：tests/fixtures/reverse_engineering/naval_ram_deckwrecker_20261013.json\n這是防禦等級掃描的其中一筆獨立對戰，不是同一戰鬥的不同回合。玩家 Forge Lv5、野蠻人 Forge0；記錄的玩家總損失 0。Lv3–14 每格死亡 1、Lv15 每格 0 為使用者口述格位資訊；Excel 只有總數。原始完整艦隊與個別 HP 未知。\n已知完整原始圖片不在 GitHub。本庫僅移入來源明確的逐格觀察與摘要；不補填未知格位、Reserve、Wave、HP 或未觀測回合，亦不以模型結果冒充遊戲實測。\n時間來源限制：原始 Ram Excel/對話 fixture 未確認這筆結果的實際回合編號。介面所需「R1」僅為研究摘要索引占位，不代表遊戲第 1 回合；已刻意不將口述每格損失映射成 R1 格位。\n來源另有使用者口述 6 格各損失 0；缺少明確回合時間與原始格位圖。",
       "created": "2026-10-30T00:00:00.000Z",
       "updated": "2026-10-30T00:00:00.000Z",
       "rounds": [
@@ -2200,7 +2145,7 @@
           "id": "research-naval-ram-defense-15-R1",
           "number": 1,
           "phase": "round_end",
-          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/naval_ram_deckwrecker_20261013.json | Excel F4:F19 + separate user chat per-slot claim | 全場與逐格來源分開；未知數值留白",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/naval_ram_deckwrecker_20261013.json | Excel F4:F19 + separate user chat per-slot claim | 全場與逐格來源分開；未知數值留白 | IMPORTANT: R1 IS INDEX PLACEHOLDER ONLY; observed round number UNKNOWN; slot deaths NOT projected to an invented round.",
           "baseline_confirmed": {
             "attacker": false,
             "defender": false
@@ -2210,62 +2155,7 @@
             "reserve": []
           },
           "defender": {
-            "slots": [
-              {
-                "line": "flank",
-                "pos": 1,
-                "unit": "steam_ram",
-                "wave": "",
-                "count": null,
-                "hp": null,
-                "deaths": 0
-              },
-              {
-                "line": "flank",
-                "pos": 2,
-                "unit": "steam_ram",
-                "wave": "",
-                "count": null,
-                "hp": null,
-                "deaths": 0
-              },
-              {
-                "line": "flank",
-                "pos": 3,
-                "unit": "steam_ram",
-                "wave": "",
-                "count": null,
-                "hp": null,
-                "deaths": 0
-              },
-              {
-                "line": "flank",
-                "pos": 4,
-                "unit": "steam_ram",
-                "wave": "",
-                "count": null,
-                "hp": null,
-                "deaths": 0
-              },
-              {
-                "line": "flank",
-                "pos": 5,
-                "unit": "steam_ram",
-                "wave": "",
-                "count": null,
-                "hp": null,
-                "deaths": 0
-              },
-              {
-                "line": "flank",
-                "pos": 6,
-                "unit": "steam_ram",
-                "wave": "",
-                "count": null,
-                "hp": null,
-                "deaths": 0
-              }
-            ],
+            "slots": [],
             "reserve": []
           }
         }
@@ -2276,7 +2166,7 @@
       "id": "research-naval-ram-defense-19",
       "name": "【研究紀錄】野蠻人破甲船 vs 玩家衝撞船：防禦 Lv19",
       "battlefield": "naval-max",
-      "notes": "【來自先前 PR 的歷史研究資料；非 Gameforge 認證戰報】\n來源：tests/fixtures/reverse_engineering/naval_ram_deckwrecker_20261013.json\n這是防禦等級掃描的其中一筆獨立對戰，不是同一戰鬥的不同回合。玩家 Forge Lv5、野蠻人 Forge0；記錄的玩家總損失 0。Lv19 來自聊天追加案例、非 Excel F4:F19，玩家存活 HP 63%、野蠻人 88% 為回合摘要而非逐格。原始完整艦隊與個別 HP 未知。\n已知完整原始圖片不在 GitHub。本庫僅移入來源明確的逐格觀察與摘要；不補填未知格位、Reserve、Wave、HP 或未觀測回合，亦不以模型結果冒充遊戲實測。",
+      "notes": "【來自先前 PR 的歷史研究資料；非 Gameforge 認證戰報】\n來源：tests/fixtures/reverse_engineering/naval_ram_deckwrecker_20261013.json\n這是防禦等級掃描的其中一筆獨立對戰，不是同一戰鬥的不同回合。玩家 Forge Lv5、野蠻人 Forge0；記錄的玩家總損失 0。Lv19 來自聊天追加案例、非 Excel F4:F19，玩家存活 HP 63%、野蠻人 88% 為回合摘要而非逐格。原始完整艦隊與個別 HP 未知。\n已知完整原始圖片不在 GitHub。本庫僅移入來源明確的逐格觀察與摘要；不補填未知格位、Reserve、Wave、HP 或未觀測回合，亦不以模型結果冒充遊戲實測。\n時間來源限制：原始 Ram Excel/對話 fixture 未確認這筆結果的實際回合編號。介面所需「R1」僅為研究摘要索引占位，不代表遊戲第 1 回合；已刻意不將口述每格損失映射成 R1 格位。",
       "created": "2026-10-30T00:00:00.000Z",
       "updated": "2026-10-30T00:00:00.000Z",
       "rounds": [
@@ -2284,7 +2174,7 @@
           "id": "research-naval-ram-defense-19-R1",
           "number": 1,
           "phase": "round_end",
-          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/naval_ram_deckwrecker_20261013.json | USER_CHAT_CASE Lv19 | 全場與逐格來源分開；未知數值留白",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/naval_ram_deckwrecker_20261013.json | USER_CHAT_CASE Lv19 | 全場與逐格來源分開；未知數值留白 | IMPORTANT: R1 IS INDEX PLACEHOLDER ONLY; observed round number UNKNOWN; slot deaths NOT projected to an invented round.",
           "baseline_confirmed": {
             "attacker": false,
             "defender": false
