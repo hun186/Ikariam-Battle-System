@@ -80,7 +80,7 @@ assert.equal(mismatch.identityConflicts,1);
 assert.equal(mismatch.rows[0].code,'KNOWN_LABEL_MISMATCH');
 assert.equal(mismatch.rows[0].difference.deaths,null);
 changed.predictions[0].unit='swordsman';changed.predictions[0].wave='unknown-wave';
-assert.equal(M.compareFocusedCandidate(c,JSON.stringify(changed),fields).identityConflicts,1);
+assert.equal(M.compareFocusedCandidate(c,JSON.stringify(changed),fields,selectedScope).identityConflicts,1);
 changed.predictions[0].wave='w1';
 // All no overlap => export refuses, without manufacturing a score.
 const blank={...template,candidate_label:'blank',assumptions:'No prediction provided yet'};
