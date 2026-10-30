@@ -1,6 +1,6 @@
 # P0 — Prepare physical-slot candidates without auto-mapping
 
-**Issue #73; stacked on Draft PR #116. Research only.** The standalone
+**Issue #73; depends on owner-merged PR #116. Research only.** The standalone
 `p0_report_case_engine_slot_map_draft.py` runs the *actual* current production
 simulator, revalidates the exact local case, fresh private screenshot file byte
 hashes and previous human-reported review worksheet, and lists only the engine
