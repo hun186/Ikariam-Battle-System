@@ -502,6 +502,119 @@ function exportFocusedLaneCsv(c,side,line,fields){
   return serializeComparisonCsv(rows,FOCUSED_LANE_CSV_HEADERS);
 }
 
+// Local, user-entered hypothesis worksheet. NOT actual simulate() output.
+// PR #115 source-fingerprinted diagnostic is a separate, stricter external tool.
+const FOCUSED_CANDIDATE_SCHEMA='ikariam-focused-model-candidate-v1';
+const FOCUSED_CANDIDATE_SOURCE='USER_ENTERED_MODEL_CANDIDATE_NOT_ENGINE_ATTESTED';
+const MAX_CANDIDATE_BYTES=128*1024;
+function candidateContext(c,side,line,roundId,fields){
+  const focus=projectFocusedLane(c,side,line,fields);
+  if(!focus.allowed)err('不符合局部研究比較條件：'+focus.reason);
+  const target=c.rounds.find(r=>r.id===roundId);
+  if(!target)err('候選模型指定的截錄回合不存在');
+  const snapshot=focus.rounds.find(r=>r.number===target.number);
+  if(!snapshot||!snapshot.numericSlots)err('目標回合的此側戰線沒有數值觀測');
+  return {focus,target,snapshot};
+}
+function newFocusedCandidateTemplate(c,side,line,roundId,fields){
+  const {snapshot,target}=candidateContext(c,side,line,roundId,fields);
+  return {schema:FOCUSED_CANDIDATE_SCHEMA,source_class:FOCUSED_CANDIDATE_SOURCE,
+    case_id:c.id,case_updated:c.updated,battlefield:c.battlefield,
+    round_id:roundId,round_number:target.number,phase:target.phase,side,line,
+    candidate_label:'',assumptions:'',
+    predictions:snapshot.cells.map(cell=>({
+      pos:cell.pos,unit:cell.unit,wave:cell.wave,
+      count:null,hp:null,deaths:null
+    }))};
+}
+const CANDIDATE_KEYS=['schema','source_class','case_id','case_updated','battlefield',
+  'round_id','round_number','phase','side','line','candidate_label','assumptions','predictions'];
+function compareFocusedCandidate(c,raw,fields){
+  if(typeof raw!=='string'||raw.length>MAX_CANDIDATE_BYTES||
+     byteSize(raw)>MAX_CANDIDATE_BYTES)err('候選 JSON 超過 128 KiB 或格式無效');
+  let candidate;
+  try{candidate=JSON.parse(raw);}catch(_){err('候選 JSON 無法解析');}
+  const exact=(o,keys)=>o&&typeof o==='object'&&!Array.isArray(o)&&
+    Object.keys(o).sort().join('|')===keys.slice().sort().join('|');
+  if(!exact(candidate,CANDIDATE_KEYS)||candidate.schema!==FOCUSED_CANDIDATE_SCHEMA||
+     candidate.source_class!==FOCUSED_CANDIDATE_SOURCE)
+    err('候選格式或來源類別錯誤；不得冒稱引擎執行／Gameforge 實測');
+  if(!text(candidate.candidate_label,120)||!candidate.candidate_label.trim()||
+     !text(candidate.assumptions,2000)||!candidate.assumptions.trim())
+    err('請填候選名稱及明確的模型假設／外部來源說明');
+  if(candidate.case_id!==c.id||candidate.case_updated!==c.updated||
+     candidate.battlefield!==c.battlefield)err('候選案例識別、版本或戰場不符；請重新產生範本');
+  const {target,snapshot}=candidateContext(c,candidate.side,candidate.line,
+    candidate.round_id,fields);
+  if(candidate.round_number!==target.number||candidate.phase!==target.phase)
+    err('候選回合編號或時點不符；不可跨回合比較');
+  if(!Array.isArray(candidate.predictions)||
+     candidate.predictions.length!==snapshot.cells.length)
+    err('候選實體格位數與本戰線幾何不同；不得省略或增加位置');
+  const rows=[],metrics=['count','hp','deaths'];
+  let numericOverlap=0,comparablePositions=0,identityConflicts=0;
+  for(let i=0;i<snapshot.cells.length;i++){
+    const observed=snapshot.cells[i],prediction=candidate.predictions[i];
+    if(!exact(prediction,['pos','unit','wave','count','hp','deaths'])||
+       prediction.pos!==observed.pos||!text(prediction.unit,120)||
+       !text(prediction.wave,120)||!num(prediction.count,1000000)||
+       !num(prediction.hp,100)||!num(prediction.deaths,1000000))
+      err('候選物理格位 '+observed.pos+' 欄位、位置或數值無效');
+    const mismatch=(observed.unit&&prediction.unit!==observed.unit)||
+      (observed.wave&&prediction.wave!==observed.wave);
+    if(mismatch)identityConflicts++;
+    const difference={count:null,hp:null,deaths:null};
+    for(const key of metrics){
+      if(!mismatch&&observed[key]!==null&&prediction[key]!==null){
+        difference[key]=prediction[key]-observed[key];
+        numericOverlap++;
+      }
+    }
+    const comparable=metrics.some(key=>difference[key]!==null);
+    if(comparable)comparablePositions++;
+    rows.push({pos:observed.pos,observed:{unit:observed.unit,wave:observed.wave,
+      count:observed.count,hp:observed.hp,deaths:observed.deaths},
+      candidate:{unit:prediction.unit,wave:prediction.wave,
+        count:prediction.count,hp:prediction.hp,deaths:prediction.deaths},
+      difference,code:mismatch?'KNOWN_LABEL_MISMATCH':
+        comparable?(!observed.unit||!observed.wave?
+          'POSITION_ONLY_IDENTITY_UNVERIFIED':'DESCRIPTIVE_FIELDS_ONLY'):
+        'NO_SHARED_NUMERIC_FIELD'});
+  }
+  return {status:numericOverlap?'DESCRIPTIVE_DIFFERENCES_ONLY':'NO_COMPARABLE_FIELDS',
+    case_id:c.id,candidate_label:candidate.candidate_label,assumptions:candidate.assumptions,
+    source_class:FOCUSED_CANDIDATE_SOURCE,round_number:target.number,
+    phase:target.phase,side:candidate.side,line:candidate.line,
+    comparablePositions,numericOverlap,identityConflicts,
+    authenticatedGameSource:false,attestedEngineExecution:false,
+    globalCalibrationAllowed:false,rows};
+}
+const FOCUSED_CANDIDATE_CSV_HEADERS=[
+  'source_class','game_source_authenticated','engine_execution_attested',
+  'case_id','candidate_label','candidate_assumptions','side','line',
+  'round_number','phase','physical_position','row_status',
+  'observed_unit','observed_wave','candidate_unit','candidate_wave',
+  'typed_count','candidate_count','candidate_minus_typed_count',
+  'typed_hp_percent','candidate_hp_percent','candidate_minus_typed_hp_points',
+  'typed_deaths','candidate_deaths','candidate_minus_typed_deaths',
+  'interpretation'
+];
+function exportFocusedCandidateComparisonCsv(c,raw,fields){
+  const result=compareFocusedCandidate(c,raw,fields);
+  if(!result.numericOverlap)err('沒有任何可比較的已知數值，不匯出空白差異報告');
+  const rows=result.rows.map(item=>[
+    FOCUSED_CANDIDATE_SOURCE,'NOT_AUTHENTICATED','NOT_ATTESTED',
+    c.id,result.candidate_label,result.assumptions,result.side,result.line,
+    result.round_number,result.phase,item.pos,item.code,
+    item.observed.unit,item.observed.wave,item.candidate.unit,item.candidate.wave,
+    item.observed.count,item.candidate.count,item.difference.count,
+    item.observed.hp,item.candidate.hp,item.difference.hp,
+    item.observed.deaths,item.candidate.deaths,item.difference.deaths,
+    'NUMERIC_DIFFERENCE_ONLY_NO_MECHANICS_OR_FULL_BATTLE_CLAIM'
+  ]);
+  return serializeComparisonCsv(rows,FOCUSED_CANDIDATE_CSV_HEADERS);
+}
+
 const HISTORY_SCHEMA='ikariam-research-battle-history-v1';
 // A source-tagged research catalog is NOT automatically authenticated by import.
 // The helper validates ALL incoming entries before adding any and keeps local
@@ -532,5 +645,5 @@ function importCase(s,fields){
   if(problems.length)err(problems.slice(0,5).join('；'));
   return data;
 }
-return {SCHEMA,STORAGE,HISTORY_SCHEMA,mergeHistoricalCases,MAX_JSON_BYTES,SIDES,LINES,RESEARCH_KINDS,RESEARCH_TEXT_KEYS,newResearch,researchEvidenceGate,projectFocusedLane,exportFocusedLaneCsv,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds,summarizeCapturedTimeline,inspectCapturedCoveragePair,exportCapturedComparisonCsv,exportCapturedTimelineCsv,exportCapturedReviewQueueCsv,exportCapturedSourceManifestCsv,exportCapturedJoinedReviewCsv};
+return {SCHEMA,STORAGE,HISTORY_SCHEMA,mergeHistoricalCases,MAX_JSON_BYTES,SIDES,LINES,RESEARCH_KINDS,RESEARCH_TEXT_KEYS,newResearch,researchEvidenceGate,projectFocusedLane,exportFocusedLaneCsv,FOCUSED_CANDIDATE_SCHEMA,FOCUSED_CANDIDATE_SOURCE,MAX_CANDIDATE_BYTES,newFocusedCandidateTemplate,compareFocusedCandidate,exportFocusedCandidateComparisonCsv,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds,summarizeCapturedTimeline,inspectCapturedCoveragePair,exportCapturedComparisonCsv,exportCapturedTimelineCsv,exportCapturedReviewQueueCsv,exportCapturedSourceManifestCsv,exportCapturedJoinedReviewCsv};
 });
