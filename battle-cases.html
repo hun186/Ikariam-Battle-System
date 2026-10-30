@@ -234,9 +234,14 @@ function renderFocusedLane(c){
     '<p class="muted">每筆僅為獨立截錄；缺少回合不插值。死亡合計僅對該線「填有死亡數」的格位相加，不能證明所有格位均已觀測、也不能推導補兵或因果。</p>'+
     '<table><thead><tr><th>截錄回合／時點</th><th>實體位置</th><th>兵種</th><th>Wave</th><th>兵數</th><th>HP%</th><th>死亡</th><th>資料狀態</th><th>已填死亡合計</th><th>來源備註</th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
+function currentCandidateScope(){
+  return {round_id:currentRound()?.id||null,side:focusedSide,line:focusedLine};
+}
 function renderCandidateComparison(result){
   const summary=$('candidateComparisonStatus'),out=$('candidateComparisonRows');
-  summary.textContent='R'+result.round_number+' · '+result.candidate_label+
+  summary.textContent=(result.side==='attacker'?'攻方':'守方')+' · '+
+    (lineLabels[result.line]||result.line)+' · R'+result.round_number+
+    ' · '+result.candidate_label+
     '；可比較數值欄位 '+result.numericOverlap+'、格位 '+result.comparablePositions+
     '、標籤衝突 '+result.identityConflicts+'。'+
     '差異僅為候選預測減人工轉錄；未驗證原始遊戲來源或引擎執行，不能用來證實戰鬥機制。';
@@ -257,7 +262,7 @@ function renderCandidateComparison(result){
     rows+'</tbody></table>';
 }
 function downloadCandidateComparison(c){
-  const csv=M.exportFocusedCandidateComparisonCsv(c,$('candidateJson').value,fields);
+  const csv=M.exportFocusedCandidateComparisonCsv(c,$('candidateJson').value,fields,currentCandidateScope());
   const file=new Blob([csv],{type:'text/csv;charset=utf-8'});
   const a=document.createElement('a'),url=URL.createObjectURL(file);
   const safeId=c.id.replace(/[^A-Za-z0-9_-]/g,'_').slice(0,64)||'case';
@@ -614,7 +619,7 @@ function listen(){
  $('compareCandidate').onclick=()=>{
    const c=active();if(!c)return;
    $('exportCandidateCsv').disabled=true;
-   try{renderCandidateComparison(M.compareFocusedCandidate(c,$('candidateJson').value,fields));}
+   try{renderCandidateComparison(M.compareFocusedCandidate(c,$('candidateJson').value,fields,currentCandidateScope()));}
    catch(e){$('candidateComparisonRows').textContent='';
      $('candidateComparisonStatus').textContent='候選比較拒絕：'+e.message;}
  };

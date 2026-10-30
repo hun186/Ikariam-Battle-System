@@ -529,7 +529,15 @@ function newFocusedCandidateTemplate(c,side,line,roundId,fields){
 }
 const CANDIDATE_KEYS=['schema','source_class','case_id','case_updated','battlefield',
   'round_id','round_number','phase','side','line','candidate_label','assumptions','predictions'];
-function compareFocusedCandidate(c,raw,fields){
+// A pasted worksheet may be valid for another side/line/round in this case.
+// The currently selected UI scope is REQUIRED to stop misleading comparisons.
+function compareFocusedCandidate(c,raw,fields,selectedScope){
+  const exactScope=selectedScope&&typeof selectedScope==='object'&&
+    !Array.isArray(selectedScope)&&
+    Object.keys(selectedScope).sort().join('|')==='line|round_id|side';
+  if(!exactScope||!text(selectedScope.round_id)||!selectedScope.round_id||
+     !SIDES.includes(selectedScope.side)||!LINES.includes(selectedScope.line))
+    err('目前選取的回合／側別／戰線無效；禁止無範圍比較');
   if(typeof raw!=='string'||raw.length>MAX_CANDIDATE_BYTES||
      byteSize(raw)>MAX_CANDIDATE_BYTES)err('候選 JSON 超過 128 KiB 或格式無效');
   let candidate;
@@ -539,6 +547,9 @@ function compareFocusedCandidate(c,raw,fields){
   if(!exact(candidate,CANDIDATE_KEYS)||candidate.schema!==FOCUSED_CANDIDATE_SCHEMA||
      candidate.source_class!==FOCUSED_CANDIDATE_SOURCE)
     err('候選格式或來源類別錯誤；不得冒稱引擎執行／Gameforge 實測');
+  if(candidate.round_id!==selectedScope.round_id||
+     candidate.side!==selectedScope.side||candidate.line!==selectedScope.line)
+    err('候選範圍與目前選取的回合／側別／戰線不符；請重新產生當前範本');
   if(!text(candidate.candidate_label,120)||!candidate.candidate_label.trim()||
      !text(candidate.assumptions,2000)||!candidate.assumptions.trim())
     err('請填候選名稱及明確的模型假設／外部來源說明');
@@ -599,8 +610,8 @@ const FOCUSED_CANDIDATE_CSV_HEADERS=[
   'typed_deaths','candidate_deaths','candidate_minus_typed_deaths',
   'interpretation'
 ];
-function exportFocusedCandidateComparisonCsv(c,raw,fields){
-  const result=compareFocusedCandidate(c,raw,fields);
+function exportFocusedCandidateComparisonCsv(c,raw,fields,selectedScope){
+  const result=compareFocusedCandidate(c,raw,fields,selectedScope);
   if(!result.numericOverlap)err('沒有任何可比較的已知數值，不匯出空白差異報告');
   const rows=result.rows.map(item=>[
     FOCUSED_CANDIDATE_SOURCE,'NOT_AUTHENTICATED','NOT_ATTESTED',
