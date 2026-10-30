@@ -41,11 +41,13 @@ button,.btn{border:1px solid #7b6548;background:#f5e5c5;padding:8px 11px;border-
 <div class="bar">
 <label>已保存案例<select id="caseList" style="min-width:220px"></select></label>
 <button id="addCase" class="primary" type="button">＋ 新增案例</button>
+<button id="loadHistoricalCases" type="button">載入之前 PR 的研究戰報</button>
 <button id="removeCase" class="delete" type="button">刪除案例</button>
 <button id="exportCase" type="button">匯出 JSON 備份</button>
 <button id="exportTimelineCsv" type="button">匯出全部相鄰截錄回合 CSV（人工轉錄）</button>
 <label class="btn">匯入 JSON<input id="importCase" type="file" accept=".json,application/json" hidden></label>
 </div>
+<p class="muted">內建歷史案例依原始研究 fixture 轉錄。它們不是 Gameforge 認證的原始戰報；若缺少逐格觀測，僅保留來源與傷亡摘要。首次空庫自動載入一次，後續可手動補回缺漏，不覆蓋已編輯案例。</p>
 <div id="storageStatus" class="status" role="status" aria-live="polite"></div>
 </section>
 <section id="caseEditor" class="panel hidden">
@@ -96,6 +98,7 @@ button,.btn{border:1px solid #7b6548;background:#f5e5c5;padding:8px 11px;border-
 (function(){
 'use strict';
 const M=window.ReportCases;
+const HISTORY_MARKER='ikariam-report-case-history-20261030-imported-v1';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const sides=['attacker','defender'];
@@ -395,7 +398,35 @@ function render(){
  renderRoundComparison(c,r);
  renderBoard();
 }
+
+async function loadHistoricalCases(automatic=false){
+ if(!fields.length||!storageOkay)return;
+ try{
+   const response=await fetch('/battle-cases-history.json');
+   if(!response.ok)throw Error('載入歷史資料 HTTP '+response.status);
+   const source=await response.text();
+   if(new Blob([source]).size>M.MAX_JSON_BYTES)throw Error('歷史資料超過 64 MiB');
+   const merged=M.mergeHistoricalCases(cases,JSON.parse(source),fields);
+   if(merged.added){
+     // Save BEFORE swapping in-memory state. Never overwrite edits or silently
+     // show unsaved source data when browser quota rejects the write.
+     localStorage.setItem(M.STORAGE,JSON.stringify(merged.cases));
+     cases=merged.cases;
+     if(!activeId){activeId=cases[0].id;roundId=cases[0].rounds[0].id;}
+   }
+   // Marker stops deleted built-ins from respawning after reload; explicit
+   // manual action remains available to re-import missing stable IDs.
+   try{localStorage.setItem(HISTORY_MARKER,'1');}catch(_){}
+   render();
+   if(!automatic||merged.added)notify('已加入 '+merged.added+' 筆歷史研究戰報；原本案例沒有被覆蓋。所有資料仍需對照原始來源。');
+ }catch(error){
+   if(!automatic)notify('歷史研究案例載入失敗：'+error.message,true);
+   else notify('無法自動載入歷史研究資料：'+error.message+'；可按按鈕重試。',true);
+ }
+}
+
 function listen(){
+ $('loadHistoricalCases').onclick=()=>loadHistoricalCases(false);
  $('exportJoinedReviewCsv').onclick=()=>{
    const c=active();if(!c)return;
    try{downloadJoinedReview(c);}catch(error){notify('待查格位＋來源備註匯出失敗：'+error.message,true);}
@@ -511,7 +542,12 @@ try{
  cases=raw.filter(x=>M.validateCase(x,fields).length===0).slice(0,50);
  if(cases.length!==raw.length)notify('部分舊資料格式不符，未載入；請檢查原本的 JSON 備份。',true);
 }catch(e){storageOkay=false;cases=[];notify('本機儲存不可讀，請匯入先前 JSON 備份。',true);}
-activeId=cases[0]?.id||null;roundId=cases[0]?.rounds[0]?.id||null;render();
+activeId=cases[0]?.id||null;roundId=cases[0]?.rounds[0]?.id||null;
+ if(storageOkay&&!cases.length){
+   try{if(localStorage.getItem(HISTORY_MARKER)!=='1')await loadHistoricalCases(true);}
+   catch(error){notify('無法檢查歷史案例載入標記：'+error.message,true);}
+ }
+ render();
 }
 start();
 })();

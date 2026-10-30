@@ -54,6 +54,9 @@ def run(base_url: str, evidence_dir: Path) -> None:
             accept_downloads=True,
             locale="zh-TW",
         )
+        # This flow tests a fresh user-created case. Opt out of built-in seed
+        # here; the catalog has a separate cold-start browser acceptance below.
+        context.add_init_script("localStorage.setItem('ikariam-report-case-history-20261030-imported-v1', '1')")
         page = context.new_page()
         errors: list[str] = []
         page.on("pageerror", lambda e: errors.append(str(e)))
@@ -66,6 +69,28 @@ def run(base_url: str, evidence_dir: Path) -> None:
 
             response = page.goto(base_url + "/battle-cases.html", wait_until="networkidle")
             assert response is not None and response.ok
+
+            # The independent cold-start profile proves the catalog really
+            # appears in an empty browser, not just via a button or mock UI.
+            history_context = browser.new_context(locale="zh-TW")
+            try:
+                history_page = history_context.new_page()
+                history_page.goto(base_url + "/battle-cases.html", wait_until="networkidle")
+                expect(history_page.locator("#caseList option")).to_have_count(14)
+                history_json = history_page.evaluate(
+                    "() => JSON.parse(localStorage.getItem('ikariam-report-cases-v1'))"
+                )
+                assert len(history_json) == 14
+                assert history_json[0]["rounds"][0]["number"] == 1
+                assert len(history_json[0]["rounds"]) == 11
+                assert history_json[0]["rounds"][1]["number"] == 80
+                assert "not" not in history_json[0]["notes"].lower() or "非" in history_json[0]["notes"]
+                history_page.reload(wait_until="networkidle")
+                expect(history_page.locator("#caseList option")).to_have_count(14)
+                print("PASS: 14 actual source-annotated historical cases auto-seeded once")
+            finally:
+                history_context.close()
+
             prompted_click(page, "#addCase", "瀏覽器驗收 R80 海戰（合成資料）")
             expect(page.locator("#caseHeading")).to_contain_text("瀏覽器驗收 R80")
             original_id = page.locator("#caseList").input_value()

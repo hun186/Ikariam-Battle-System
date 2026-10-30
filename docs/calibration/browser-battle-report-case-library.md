@@ -369,3 +369,27 @@ authenticity.
 For local execution install uvicorn and Python Playwright with Chromium,
 start `uvicorn asgi:application --host 127.0.0.1 --port 8871`, then run
 `python tools/report_case_browser_e2e.py --base-url http://127.0.0.1:8871`.
+
+### Historical research case seed catalog (pending PR, 2026-10-30)
+The browser can first-time seed up to 14 **historical research transcriptions**
+from the existing repository's reverse-engineering fixtures via
+`/battle-cases-history.json`. An explicit **載入之前 PR 的研究戰報** button
+can restore missing catalog entries; stable `research-` IDs and a browser-local
+migration marker make seeding idempotent and prevent deleted built-ins from
+reappearing unexpectedly. Existing edited or imported cases are never
+overwritten. No server database is created: users still own localStorage
+data and JSON backups. The 50-case limit and v1 strict validation remain.
+
+This includes the same owner Land R1/R80–89 battle (R2–79 explicitly missing),
+a **different** 400-Slinger R76–80 battle, Crispi and Reikjavikas R1 source
+casualties, and independently identified naval Ram, player speedboat/carrier
+and barbarian/player air counterpart results. Source notes cite exact fixture
+files; only observations attributable to a **physical slot** fill a tile.
+Aggregate-only reports retain **no auto-assigned tile kills/HP**, while R1
+source attrition with no observed survivor counts stores `count=null`.
+A source image mentioned in a fixture is **not** a source image stored in
+the GitHub repository; these cases do not authenticate Gameforge mechanics.
+
+Validation must cover v1 schema/geometry, browser auto-seed and reload,
+idempotent manual restore, preserving modified cases, empty-deleted history
+marker, and ASGI/Vercel static parity.

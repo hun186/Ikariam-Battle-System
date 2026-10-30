@@ -1,0 +1,2507 @@
+{
+  "schema": "ikariam-research-battle-history-v1",
+  "version": "2026-10-30",
+  "disclaimer": "HISTORICAL_RESEARCH_FIXTURE_TRANSCRIPTIONS_NOT_AUTHENTICATED_GAMEFORGE_REPORTS",
+  "cases": [
+    {
+      "schema": "ikariam-report-cases-v1",
+      "id": "research-land-forge5-r1-r80-r89",
+      "name": "【研究紀錄】同一場野蠻人陸戰：R1、R80–R89",
+      "battlefield": "land-max",
+      "notes": "【來自先前 PR 的歷史研究資料；非 Gameforge 認證戰報】\n來源：tests/fixtures/reverse_engineering/land_barbarian_round1_full_axes_20261014.json；tests/fixtures/reverse_engineering/land_barbarian_rounds80_89_20261014.json\n玩家守方 Forge Lv5、火槍 Attack Lv11。R1 與 R80–R89 為同一場戰鬥；R2–R79 沒有戰報。R80–R89 七格死亡數由使用者核對，其他可見數值依來源標示轉錄；推測城牆七次命中等只屬假說。\n已知完整原始圖片不在 GitHub。本庫僅移入來源明確的逐格觀察與摘要；不補填未知格位、Reserve、Wave、HP 或未觀測回合，亦不以模型結果冒充遊戲實測。",
+      "created": "2026-10-30T00:00:00.000Z",
+      "updated": "2026-10-30T00:00:00.000Z",
+      "rounds": [
+        {
+          "id": "research-land-forge5-r1-r80-r89-R1",
+          "number": 1,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/land_barbarian_round1_full_axes_20261014.json | 聊天圖片 image(20261014-151332).png（圖片不在 GitHub）；所有百分比依來源確認；非全場射擊紀錄",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [
+              {
+                "line": "first",
+                "pos": 1,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 40,
+                "hp": 98,
+                "deaths": 10
+              },
+              {
+                "line": "first",
+                "pos": 2,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 37,
+                "hp": 100,
+                "deaths": 13
+              },
+              {
+                "line": "first",
+                "pos": 3,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 37,
+                "hp": 100,
+                "deaths": 13
+              },
+              {
+                "line": "first",
+                "pos": 4,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 37,
+                "hp": 100,
+                "deaths": 13
+              },
+              {
+                "line": "first",
+                "pos": 5,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 37,
+                "hp": 100,
+                "deaths": 13
+              },
+              {
+                "line": "first",
+                "pos": 6,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 37,
+                "hp": 100,
+                "deaths": 13
+              },
+              {
+                "line": "first",
+                "pos": 7,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 45,
+                "hp": 99,
+                "deaths": 5
+              }
+            ],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [
+              {
+                "line": "second",
+                "pos": 1,
+                "unit": "sulphur_carabineer",
+                "wave": "",
+                "count": 12,
+                "hp": null,
+                "deaths": null
+              },
+              {
+                "line": "second",
+                "pos": 2,
+                "unit": "sulphur_carabineer",
+                "wave": "",
+                "count": 12,
+                "hp": null,
+                "deaths": null
+              },
+              {
+                "line": "second",
+                "pos": 3,
+                "unit": "sulphur_carabineer",
+                "wave": "",
+                "count": 12,
+                "hp": null,
+                "deaths": null
+              },
+              {
+                "line": "second",
+                "pos": 4,
+                "unit": "sulphur_carabineer",
+                "wave": "",
+                "count": 12,
+                "hp": null,
+                "deaths": null
+              },
+              {
+                "line": "second",
+                "pos": 5,
+                "unit": "sulphur_carabineer",
+                "wave": "",
+                "count": 12,
+                "hp": null,
+                "deaths": null
+              },
+              {
+                "line": "second",
+                "pos": 6,
+                "unit": "sulphur_carabineer",
+                "wave": "",
+                "count": 12,
+                "hp": null,
+                "deaths": null
+              },
+              {
+                "line": "second",
+                "pos": 7,
+                "unit": "sulphur_carabineer",
+                "wave": "",
+                "count": 12,
+                "hp": null,
+                "deaths": null
+              }
+            ],
+            "reserve": []
+          }
+        },
+        {
+          "id": "research-land-forge5-r1-r80-r89-R80",
+          "number": 80,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/land_barbarian_rounds80_89_20261014.json | image(20261014-032022).png | n(-k) 當回合死亡；R80–R89 格位死亡數已由使用者確認，Reserve/其他值仍為截圖轉錄",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [
+              {
+                "line": "first",
+                "pos": 1,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 3
+              },
+              {
+                "line": "first",
+                "pos": 2,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 3
+              },
+              {
+                "line": "first",
+                "pos": 3,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 3
+              },
+              {
+                "line": "first",
+                "pos": 4,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 45,
+                "hp": 99,
+                "deaths": 4
+              },
+              {
+                "line": "first",
+                "pos": 5,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 3
+              },
+              {
+                "line": "first",
+                "pos": 6,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 3
+              },
+              {
+                "line": "first",
+                "pos": 7,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 0
+              }
+            ],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        },
+        {
+          "id": "research-land-forge5-r1-r80-r89-R81",
+          "number": 81,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/land_barbarian_rounds80_89_20261014.json | image(20261014-032407).png | n(-k) 當回合死亡；R80–R89 格位死亡數已由使用者確認，Reserve/其他值仍為截圖轉錄",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [
+              {
+                "line": "first",
+                "pos": 1,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 8
+              },
+              {
+                "line": "first",
+                "pos": 2,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 3,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 4,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 37,
+                "hp": 99,
+                "deaths": 8
+              },
+              {
+                "line": "first",
+                "pos": 5,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 6,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 7,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 8
+              }
+            ],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        },
+        {
+          "id": "research-land-forge5-r1-r80-r89-R82",
+          "number": 82,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/land_barbarian_rounds80_89_20261014.json | image(20261014-032455).png | n(-k) 當回合死亡；R80–R89 格位死亡數已由使用者確認，Reserve/其他值仍為截圖轉錄",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [
+              {
+                "line": "first",
+                "pos": 1,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 8
+              },
+              {
+                "line": "first",
+                "pos": 2,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 3,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 4,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 29,
+                "hp": 99,
+                "deaths": 8
+              },
+              {
+                "line": "first",
+                "pos": 5,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 6,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 7,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 8
+              }
+            ],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        },
+        {
+          "id": "research-land-forge5-r1-r80-r89-R83",
+          "number": 83,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/land_barbarian_rounds80_89_20261014.json | image(20261014-032521).png | n(-k) 當回合死亡；R80–R89 格位死亡數已由使用者確認，Reserve/其他值仍為截圖轉錄",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [
+              {
+                "line": "first",
+                "pos": 1,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 8
+              },
+              {
+                "line": "first",
+                "pos": 2,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 3,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 4,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 21,
+                "hp": 99,
+                "deaths": 8
+              },
+              {
+                "line": "first",
+                "pos": 5,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 6,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 7,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 8
+              }
+            ],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        },
+        {
+          "id": "research-land-forge5-r1-r80-r89-R84",
+          "number": 84,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/land_barbarian_rounds80_89_20261014.json | image(20261014-032957).png | n(-k) 當回合死亡；R80–R89 格位死亡數已由使用者確認，Reserve/其他值仍為截圖轉錄",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [
+              {
+                "line": "first",
+                "pos": 1,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 2,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 3,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 4,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 16,
+                "hp": 97,
+                "deaths": 5
+              },
+              {
+                "line": "first",
+                "pos": 5,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 6,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 7,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 8
+              }
+            ],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        },
+        {
+          "id": "research-land-forge5-r1-r80-r89-R85",
+          "number": 85,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/land_barbarian_rounds80_89_20261014.json | image(20261014-033042).png | n(-k) 當回合死亡；R80–R89 格位死亡數已由使用者確認，Reserve/其他值仍為截圖轉錄",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [
+              {
+                "line": "first",
+                "pos": 1,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 2,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 3,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 4,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 11,
+                "hp": 92,
+                "deaths": 5
+              },
+              {
+                "line": "first",
+                "pos": 5,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 6,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 7,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 8
+              }
+            ],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        },
+        {
+          "id": "research-land-forge5-r1-r80-r89-R86",
+          "number": 86,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/land_barbarian_rounds80_89_20261014.json | image(20261014-033109).png | n(-k) 當回合死亡；R80–R89 格位死亡數已由使用者確認，Reserve/其他值仍為截圖轉錄",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [
+              {
+                "line": "first",
+                "pos": 1,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 2,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 3,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 4,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 5,
+                "hp": 96,
+                "deaths": 6
+              },
+              {
+                "line": "first",
+                "pos": 5,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 6,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 7,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": null,
+                "hp": 100,
+                "deaths": 8
+              }
+            ],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        },
+        {
+          "id": "research-land-forge5-r1-r80-r89-R87",
+          "number": 87,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/land_barbarian_rounds80_89_20261014.json | image(20261014-033139).png | n(-k) 當回合死亡；R80–R89 格位死亡數已由使用者確認，Reserve/其他值仍為截圖轉錄",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [
+              {
+                "line": "first",
+                "pos": 1,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 35,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 2,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 35,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 3,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 35,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 4,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 0,
+                "hp": 0,
+                "deaths": 5
+              },
+              {
+                "line": "first",
+                "pos": 5,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 35,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 6,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 35,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 7,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 42,
+                "hp": 100,
+                "deaths": 8
+              }
+            ],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        },
+        {
+          "id": "research-land-forge5-r1-r80-r89-R88",
+          "number": 88,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/land_barbarian_rounds80_89_20261014.json | image(20261014-033208).png | n(-k) 當回合死亡；R80–R89 格位死亡數已由使用者確認，Reserve/其他值仍為截圖轉錄",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [
+              {
+                "line": "first",
+                "pos": 1,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 9,
+                "hp": 100,
+                "deaths": 16
+              },
+              {
+                "line": "first",
+                "pos": 2,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 35,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 3,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 35,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 4,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 35,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 5,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 35,
+                "hp": 100,
+                "deaths": 15
+              },
+              {
+                "line": "first",
+                "pos": 6,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 35,
+                "hp": 100,
+                "deaths": 15
+              }
+            ],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        },
+        {
+          "id": "research-land-forge5-r1-r80-r89-R89",
+          "number": 89,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/land_barbarian_rounds80_89_20261014.json | image(20261014-033241).png | n(-k) 當回合死亡；R80–R89 格位死亡數已由使用者確認，Reserve/其他值仍為截圖轉錄",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [
+              {
+                "line": "first",
+                "pos": 2,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 9,
+                "hp": 100,
+                "deaths": 25
+              },
+              {
+                "line": "first",
+                "pos": 3,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 28,
+                "hp": 100,
+                "deaths": 22
+              },
+              {
+                "line": "first",
+                "pos": 4,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 28,
+                "hp": 100,
+                "deaths": 22
+              },
+              {
+                "line": "first",
+                "pos": 5,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 28,
+                "hp": 100,
+                "deaths": 22
+              }
+            ],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        }
+      ]
+    },
+    {
+      "schema": "ikariam-report-cases-v1",
+      "id": "research-land-slinger-400-r76-r80",
+      "name": "【研究紀錄】400 投石兵增援：R76–R80",
+      "battlefield": "land-max",
+      "notes": "【來自先前 PR 的歷史研究資料；非 Gameforge 認證戰報】\n來源：tests/fixtures/reverse_engineering/land_barbarian_slinger400_rounds77_80_20261015.json\n與前項火槍戰報是不同戰鬥。玩家 Forge Lv5，400 投石兵 Attack Lv24 於 R77 首度增援；R76 沒有投石兵出場。格位保留截圖轉錄數字及可見 HP；不可推導實際每發命中。\n已知完整原始圖片不在 GitHub。本庫僅移入來源明確的逐格觀察與摘要；不補填未知格位、Reserve、Wave、HP 或未觀測回合，亦不以模型結果冒充遊戲實測。",
+      "created": "2026-10-30T00:00:00.000Z",
+      "updated": "2026-10-30T00:00:00.000Z",
+      "rounds": [
+        {
+          "id": "research-land-slinger-400-r76-r80-R76",
+          "number": 76,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/land_barbarian_slinger400_rounds77_80_20261015.json | UPLOADED_IMAGE_image(20261015-062727).png | 僅逐格轉錄",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [
+              {
+                "line": "first",
+                "pos": 1,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 49,
+                "hp": 100,
+                "deaths": 1
+              },
+              {
+                "line": "first",
+                "pos": 2,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 21,
+                "hp": 100,
+                "deaths": 2
+              },
+              {
+                "line": "first",
+                "pos": 3,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 49,
+                "hp": 100,
+                "deaths": 1
+              },
+              {
+                "line": "first",
+                "pos": 4,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 49,
+                "hp": 100,
+                "deaths": 1
+              },
+              {
+                "line": "first",
+                "pos": 5,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 50,
+                "hp": 100,
+                "deaths": 0
+              },
+              {
+                "line": "first",
+                "pos": 6,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 49,
+                "hp": 100,
+                "deaths": 1
+              },
+              {
+                "line": "first",
+                "pos": 7,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 49,
+                "hp": 100,
+                "deaths": 1
+              },
+              {
+                "line": "second",
+                "pos": 1,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "second",
+                "pos": 2,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "second",
+                "pos": 3,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "second",
+                "pos": 4,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "second",
+                "pos": 5,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 17,
+                "hp": null,
+                "deaths": 0
+              }
+            ],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        },
+        {
+          "id": "research-land-slinger-400-r76-r80-R77",
+          "number": 77,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/land_barbarian_slinger400_rounds77_80_20261015.json | 原始聊天圖片（GitHub 無二進位） | 僅逐格轉錄",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [
+              {
+                "line": "first",
+                "pos": 1,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 31,
+                "hp": 56,
+                "deaths": 19
+              },
+              {
+                "line": "first",
+                "pos": 2,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 17,
+                "hp": 81,
+                "deaths": 2
+              },
+              {
+                "line": "first",
+                "pos": 3,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 49,
+                "hp": 81,
+                "deaths": 1
+              },
+              {
+                "line": "first",
+                "pos": 4,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 49,
+                "hp": 81,
+                "deaths": 1
+              },
+              {
+                "line": "first",
+                "pos": 5,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 50,
+                "hp": 83,
+                "deaths": 0
+              },
+              {
+                "line": "first",
+                "pos": 6,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 31,
+                "hp": 56,
+                "deaths": 19
+              },
+              {
+                "line": "first",
+                "pos": 7,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 31,
+                "hp": 56,
+                "deaths": 19
+              },
+              {
+                "line": "second",
+                "pos": 1,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "second",
+                "pos": 2,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "second",
+                "pos": 3,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "second",
+                "pos": 4,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "second",
+                "pos": 5,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 17,
+                "hp": null,
+                "deaths": 0
+              }
+            ],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [
+              {
+                "line": "second",
+                "pos": 1,
+                "unit": "slinger",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": null
+              },
+              {
+                "line": "second",
+                "pos": 2,
+                "unit": "slinger",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": null
+              },
+              {
+                "line": "second",
+                "pos": 3,
+                "unit": "slinger",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": null
+              },
+              {
+                "line": "second",
+                "pos": 4,
+                "unit": "slinger",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": null
+              },
+              {
+                "line": "second",
+                "pos": 5,
+                "unit": "slinger",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": null
+              },
+              {
+                "line": "second",
+                "pos": 6,
+                "unit": "slinger",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": null
+              },
+              {
+                "line": "second",
+                "pos": 7,
+                "unit": "slinger",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": null
+              }
+            ],
+            "reserve": []
+          }
+        },
+        {
+          "id": "research-land-slinger-400-r76-r80-R78",
+          "number": 78,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/land_barbarian_slinger400_rounds77_80_20261015.json | 原始聊天圖片（GitHub 無二進位） | 僅逐格轉錄",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [
+              {
+                "line": "first",
+                "pos": 1,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 0,
+                "hp": 0,
+                "deaths": 50
+              },
+              {
+                "line": "first",
+                "pos": 2,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 11,
+                "hp": 63,
+                "deaths": 4
+              },
+              {
+                "line": "first",
+                "pos": 3,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 48,
+                "hp": 62,
+                "deaths": 2
+              },
+              {
+                "line": "first",
+                "pos": 4,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 47,
+                "hp": 57,
+                "deaths": 3
+              },
+              {
+                "line": "first",
+                "pos": 5,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 48,
+                "hp": 62,
+                "deaths": 2
+              },
+              {
+                "line": "first",
+                "pos": 6,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 0,
+                "hp": 0,
+                "deaths": 50
+              },
+              {
+                "line": "first",
+                "pos": 7,
+                "unit": "barbarian_knifeman",
+                "wave": "",
+                "count": 0,
+                "hp": 0,
+                "deaths": 12
+              },
+              {
+                "line": "second",
+                "pos": 1,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "second",
+                "pos": 2,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "second",
+                "pos": 3,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "second",
+                "pos": 4,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "second",
+                "pos": 5,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 17,
+                "hp": null,
+                "deaths": 0
+              }
+            ],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        },
+        {
+          "id": "research-land-slinger-400-r76-r80-R79",
+          "number": 79,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/land_barbarian_slinger400_rounds77_80_20261015.json | 原始聊天圖片（GitHub 無二進位） | 僅逐格轉錄",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [
+              {
+                "line": "first",
+                "pos": 2,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 0,
+                "hp": 0,
+                "deaths": 4
+              },
+              {
+                "line": "first",
+                "pos": 3,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 39,
+                "hp": 29,
+                "deaths": 11
+              },
+              {
+                "line": "first",
+                "pos": 4,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 36,
+                "hp": 29,
+                "deaths": 14
+              },
+              {
+                "line": "first",
+                "pos": 5,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 39,
+                "hp": 29,
+                "deaths": 11
+              },
+              {
+                "line": "second",
+                "pos": 1,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "second",
+                "pos": 2,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "second",
+                "pos": 3,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "second",
+                "pos": 4,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 50,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "second",
+                "pos": 5,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 17,
+                "hp": null,
+                "deaths": 0
+              }
+            ],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        },
+        {
+          "id": "research-land-slinger-400-r76-r80-R80",
+          "number": 80,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/land_barbarian_slinger400_rounds77_80_20261015.json | 原始聊天圖片（GitHub 無二進位） | 僅逐格轉錄",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [
+              {
+                "line": "first",
+                "pos": 3,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 0,
+                "hp": 0,
+                "deaths": 50
+              },
+              {
+                "line": "first",
+                "pos": 4,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 0,
+                "hp": 0,
+                "deaths": 50
+              },
+              {
+                "line": "first",
+                "pos": 5,
+                "unit": "barbarian_axe_swinger",
+                "wave": "",
+                "count": 0,
+                "hp": 0,
+                "deaths": 14
+              },
+              {
+                "line": "second",
+                "pos": 1,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 44,
+                "hp": 65,
+                "deaths": 6
+              },
+              {
+                "line": "second",
+                "pos": 2,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 44,
+                "hp": 61,
+                "deaths": 6
+              },
+              {
+                "line": "second",
+                "pos": 3,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 44,
+                "hp": 61,
+                "deaths": 6
+              },
+              {
+                "line": "second",
+                "pos": 4,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 44,
+                "hp": 65,
+                "deaths": 6
+              },
+              {
+                "line": "second",
+                "pos": 5,
+                "unit": "barbarian_axe_thrower",
+                "wave": "",
+                "count": 12,
+                "hp": 61,
+                "deaths": 5
+              }
+            ],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        }
+      ]
+    },
+    {
+      "schema": "ikariam-report-cases-v1",
+      "id": "research-land-crispi-round1",
+      "name": "【研究紀錄】Crispi 首回合（城牆）",
+      "battlefield": "land-max",
+      "notes": "【來自先前 PR 的歷史研究資料；非 Gameforge 認證戰報】\n來源：tests/fixtures/reverse_engineering/crispi_round1.json\n來源截圖與模擬 debug 名稱詳見 fixture。此處只轉錄 first-round source 中的逐格死亡，缺少逐格存活數與 HP 時留空，不能把模擬預測值寫作觀測。Crispi 五處破牆位置 2–6 另記於原 fixture，非戰報庫 unit tile。\n已知完整原始圖片不在 GitHub。本庫僅移入來源明確的逐格觀察與摘要；不補填未知格位、Reserve、Wave、HP 或未觀測回合，亦不以模型結果冒充遊戲實測。",
+      "created": "2026-10-30T00:00:00.000Z",
+      "updated": "2026-10-30T00:00:00.000Z",
+      "rounds": [
+        {
+          "id": "research-land-crispi-round1-R1",
+          "number": 1,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/crispi_round1.json | Kauja par crispi1 Rounds 1/8 2026-04-12 10:33:32 user-supplied | 逐格死亡為來源觀測；非模型輸出",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [
+              {
+                "line": "first",
+                "pos": 1,
+                "unit": "hoplite",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 1
+              },
+              {
+                "line": "first",
+                "pos": 2,
+                "unit": "hoplite",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 11
+              },
+              {
+                "line": "first",
+                "pos": 3,
+                "unit": "hoplite",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 11
+              },
+              {
+                "line": "first",
+                "pos": 4,
+                "unit": "hoplite",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 11
+              },
+              {
+                "line": "first",
+                "pos": 5,
+                "unit": "hoplite",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 11
+              },
+              {
+                "line": "first",
+                "pos": 6,
+                "unit": "hoplite",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 6
+              },
+              {
+                "line": "first",
+                "pos": 7,
+                "unit": "hoplite",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 1
+              },
+              {
+                "line": "balloon",
+                "pos": 1,
+                "unit": "bombardier",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 10
+              },
+              {
+                "line": "balloon",
+                "pos": 2,
+                "unit": "bombardier",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 10
+              },
+              {
+                "line": "anti-balloon",
+                "pos": 1,
+                "unit": "gyrocopter",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "anti-balloon",
+                "pos": 2,
+                "unit": "gyrocopter",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 0
+              }
+            ],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [
+              {
+                "line": "balloon",
+                "pos": 1,
+                "unit": "bombardier",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 15
+              },
+              {
+                "line": "balloon",
+                "pos": 2,
+                "unit": "bombardier",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 15
+              },
+              {
+                "line": "third",
+                "pos": 1,
+                "unit": "mortar",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 2
+              },
+              {
+                "line": "third",
+                "pos": 2,
+                "unit": "mortar",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 2
+              },
+              {
+                "line": "third",
+                "pos": 3,
+                "unit": "mortar",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 2
+              },
+              {
+                "line": "third",
+                "pos": 4,
+                "unit": "mortar",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 2
+              },
+              {
+                "line": "third",
+                "pos": 5,
+                "unit": "mortar",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 2
+              },
+              {
+                "line": "anti-balloon",
+                "pos": 1,
+                "unit": "gyrocopter",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "anti-balloon",
+                "pos": 2,
+                "unit": "gyrocopter",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 0
+              }
+            ],
+            "reserve": []
+          }
+        }
+      ]
+    },
+    {
+      "schema": "ikariam-report-cases-v1",
+      "id": "research-land-reik-round1",
+      "name": "【研究紀錄】Reikjavikas 首回合（野戰）",
+      "battlefield": "land-max",
+      "notes": "【來自先前 PR 的歷史研究資料；非 Gameforge 認證戰報】\n來源：tests/fixtures/reverse_engineering/reikjavikas_round1.json\n來源截圖與模擬 debug 名稱詳見 fixture。此處只轉錄 first-round source 中的逐格死亡，缺少逐格存活數與 HP 時留空，不能把模擬預測值寫作觀測。\n已知完整原始圖片不在 GitHub。本庫僅移入來源明確的逐格觀察與摘要；不補填未知格位、Reserve、Wave、HP 或未觀測回合，亦不以模型結果冒充遊戲實測。",
+      "created": "2026-10-30T00:00:00.000Z",
+      "updated": "2026-10-30T00:00:00.000Z",
+      "rounds": [
+        {
+          "id": "research-land-reik-round1-R1",
+          "number": 1,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/reikjavikas_round1.json | REIKJAVIKAS Round 1/9 2026-06-25 14:48:54 user-supplied | 逐格死亡為來源觀測；非模型輸出",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [
+              {
+                "line": "first",
+                "pos": 1,
+                "unit": "hoplite",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 21
+              },
+              {
+                "line": "first",
+                "pos": 2,
+                "unit": "hoplite",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 23
+              },
+              {
+                "line": "first",
+                "pos": 3,
+                "unit": "hoplite",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 25
+              },
+              {
+                "line": "first",
+                "pos": 4,
+                "unit": "hoplite",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 25
+              },
+              {
+                "line": "first",
+                "pos": 5,
+                "unit": "hoplite",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 24
+              },
+              {
+                "line": "first",
+                "pos": 6,
+                "unit": "hoplite",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 23
+              },
+              {
+                "line": "first",
+                "pos": 7,
+                "unit": "hoplite",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 18
+              },
+              {
+                "line": "flank",
+                "pos": 1,
+                "unit": "swordsman",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 18
+              },
+              {
+                "line": "flank",
+                "pos": 2,
+                "unit": "swordsman",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 21
+              },
+              {
+                "line": "flank",
+                "pos": 3,
+                "unit": "swordsman",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 21
+              },
+              {
+                "line": "flank",
+                "pos": 4,
+                "unit": "swordsman",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 21
+              },
+              {
+                "line": "flank",
+                "pos": 5,
+                "unit": "swordsman",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 21
+              },
+              {
+                "line": "flank",
+                "pos": 6,
+                "unit": "swordsman",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 18
+              },
+              {
+                "line": "anti-balloon",
+                "pos": 1,
+                "unit": "gyrocopter",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 13
+              },
+              {
+                "line": "anti-balloon",
+                "pos": 2,
+                "unit": "gyrocopter",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 13
+              }
+            ],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [
+              {
+                "line": "first",
+                "pos": 1,
+                "unit": "hoplite",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 22
+              },
+              {
+                "line": "first",
+                "pos": 2,
+                "unit": "hoplite",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 25
+              },
+              {
+                "line": "first",
+                "pos": 3,
+                "unit": "hoplite",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 26
+              },
+              {
+                "line": "first",
+                "pos": 4,
+                "unit": "hoplite",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 26
+              },
+              {
+                "line": "first",
+                "pos": 5,
+                "unit": "hoplite",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 25
+              },
+              {
+                "line": "first",
+                "pos": 6,
+                "unit": "hoplite",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 25
+              },
+              {
+                "line": "first",
+                "pos": 7,
+                "unit": "hoplite",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 19
+              },
+              {
+                "line": "flank",
+                "pos": 1,
+                "unit": "swordsman",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 18
+              },
+              {
+                "line": "flank",
+                "pos": 2,
+                "unit": "swordsman",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 24
+              },
+              {
+                "line": "flank",
+                "pos": 3,
+                "unit": "swordsman",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 24
+              },
+              {
+                "line": "flank",
+                "pos": 4,
+                "unit": "swordsman",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 24
+              },
+              {
+                "line": "flank",
+                "pos": 5,
+                "unit": "swordsman",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 24
+              },
+              {
+                "line": "flank",
+                "pos": 6,
+                "unit": "swordsman",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 18
+              },
+              {
+                "line": "balloon",
+                "pos": 1,
+                "unit": "bombardier",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 15
+              },
+              {
+                "line": "balloon",
+                "pos": 2,
+                "unit": "bombardier",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 15
+              }
+            ],
+            "reserve": []
+          }
+        }
+      ]
+    },
+    {
+      "schema": "ikariam-report-cases-v1",
+      "id": "research-naval-ram-defense-3",
+      "name": "【研究紀錄】野蠻人破甲船 vs 玩家衝撞船：防禦 Lv3",
+      "battlefield": "naval-max",
+      "notes": "【來自先前 PR 的歷史研究資料；非 Gameforge 認證戰報】\n來源：tests/fixtures/reverse_engineering/naval_ram_deckwrecker_20261013.json\n這是防禦等級掃描的其中一筆獨立對戰，不是同一戰鬥的不同回合。玩家 Forge Lv5、野蠻人 Forge0；記錄的玩家總損失 6。Lv3–14 每格死亡 1、Lv15 每格 0 為使用者口述格位資訊；Excel 只有總數。原始完整艦隊與個別 HP 未知。\n已知完整原始圖片不在 GitHub。本庫僅移入來源明確的逐格觀察與摘要；不補填未知格位、Reserve、Wave、HP 或未觀測回合，亦不以模型結果冒充遊戲實測。",
+      "created": "2026-10-30T00:00:00.000Z",
+      "updated": "2026-10-30T00:00:00.000Z",
+      "rounds": [
+        {
+          "id": "research-naval-ram-defense-3-R1",
+          "number": 1,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/naval_ram_deckwrecker_20261013.json | Excel F4:F19 + separate user chat per-slot claim | 全場與逐格來源分開；未知數值留白",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [
+              {
+                "line": "flank",
+                "pos": 1,
+                "unit": "steam_ram",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 1
+              },
+              {
+                "line": "flank",
+                "pos": 2,
+                "unit": "steam_ram",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 1
+              },
+              {
+                "line": "flank",
+                "pos": 3,
+                "unit": "steam_ram",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 1
+              },
+              {
+                "line": "flank",
+                "pos": 4,
+                "unit": "steam_ram",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 1
+              },
+              {
+                "line": "flank",
+                "pos": 5,
+                "unit": "steam_ram",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 1
+              },
+              {
+                "line": "flank",
+                "pos": 6,
+                "unit": "steam_ram",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 1
+              }
+            ],
+            "reserve": []
+          }
+        }
+      ]
+    },
+    {
+      "schema": "ikariam-report-cases-v1",
+      "id": "research-naval-ram-defense-15",
+      "name": "【研究紀錄】野蠻人破甲船 vs 玩家衝撞船：防禦 Lv15",
+      "battlefield": "naval-max",
+      "notes": "【來自先前 PR 的歷史研究資料；非 Gameforge 認證戰報】\n來源：tests/fixtures/reverse_engineering/naval_ram_deckwrecker_20261013.json\n這是防禦等級掃描的其中一筆獨立對戰，不是同一戰鬥的不同回合。玩家 Forge Lv5、野蠻人 Forge0；記錄的玩家總損失 0。Lv3–14 每格死亡 1、Lv15 每格 0 為使用者口述格位資訊；Excel 只有總數。原始完整艦隊與個別 HP 未知。\n已知完整原始圖片不在 GitHub。本庫僅移入來源明確的逐格觀察與摘要；不補填未知格位、Reserve、Wave、HP 或未觀測回合，亦不以模型結果冒充遊戲實測。",
+      "created": "2026-10-30T00:00:00.000Z",
+      "updated": "2026-10-30T00:00:00.000Z",
+      "rounds": [
+        {
+          "id": "research-naval-ram-defense-15-R1",
+          "number": 1,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/naval_ram_deckwrecker_20261013.json | Excel F4:F19 + separate user chat per-slot claim | 全場與逐格來源分開；未知數值留白",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [
+              {
+                "line": "flank",
+                "pos": 1,
+                "unit": "steam_ram",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "flank",
+                "pos": 2,
+                "unit": "steam_ram",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "flank",
+                "pos": 3,
+                "unit": "steam_ram",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "flank",
+                "pos": 4,
+                "unit": "steam_ram",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "flank",
+                "pos": 5,
+                "unit": "steam_ram",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 0
+              },
+              {
+                "line": "flank",
+                "pos": 6,
+                "unit": "steam_ram",
+                "wave": "",
+                "count": null,
+                "hp": null,
+                "deaths": 0
+              }
+            ],
+            "reserve": []
+          }
+        }
+      ]
+    },
+    {
+      "schema": "ikariam-report-cases-v1",
+      "id": "research-naval-ram-defense-19",
+      "name": "【研究紀錄】野蠻人破甲船 vs 玩家衝撞船：防禦 Lv19",
+      "battlefield": "naval-max",
+      "notes": "【來自先前 PR 的歷史研究資料；非 Gameforge 認證戰報】\n來源：tests/fixtures/reverse_engineering/naval_ram_deckwrecker_20261013.json\n這是防禦等級掃描的其中一筆獨立對戰，不是同一戰鬥的不同回合。玩家 Forge Lv5、野蠻人 Forge0；記錄的玩家總損失 0。Lv19 來自聊天追加案例、非 Excel F4:F19，玩家存活 HP 63%、野蠻人 88% 為回合摘要而非逐格。原始完整艦隊與個別 HP 未知。\n已知完整原始圖片不在 GitHub。本庫僅移入來源明確的逐格觀察與摘要；不補填未知格位、Reserve、Wave、HP 或未觀測回合，亦不以模型結果冒充遊戲實測。",
+      "created": "2026-10-30T00:00:00.000Z",
+      "updated": "2026-10-30T00:00:00.000Z",
+      "rounds": [
+        {
+          "id": "research-naval-ram-defense-19-R1",
+          "number": 1,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/naval_ram_deckwrecker_20261013.json | USER_CHAT_CASE Lv19 | 全場與逐格來源分開；未知數值留白",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        }
+      ]
+    },
+    {
+      "schema": "ikariam-report-cases-v1",
+      "id": "research-naval-pvp-pvp_fast_att12_carrier_def8",
+      "name": "【研究紀錄】玩家快艇 vs 玩家航母：攻 12／防 8",
+      "battlefield": "naval-max",
+      "notes": "【來自先前 PR 的歷史研究資料；非 Gameforge 認證戰報】\n來源：tests/fixtures/reverse_engineering/naval_pvp_fast_boat_carrier_20261013.json\n玩家攻方快艇 30、守方航母 6；雙方 Forge Lv5 已由使用者確認；R1 航母總死亡 2。原始艦隊完整編制、實際物理格位死亡分配和血條均未知；不使用模型推定兩格佈署或假想 First-line 填充。\n已知完整原始圖片不在 GitHub。本庫僅移入來源明確的逐格觀察與摘要；不補填未知格位、Reserve、Wave、HP 或未觀測回合，亦不以模型結果冒充遊戲實測。",
+      "created": "2026-10-30T00:00:00.000Z",
+      "updated": "2026-10-30T00:00:00.000Z",
+      "rounds": [
+        {
+          "id": "research-naval-pvp-pvp_fast_att12_carrier_def8-R1",
+          "number": 1,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/naval_pvp_fast_boat_carrier_20261013.json | pvp_fast_att12_carrier_def8 | USER_CHAT round1 total 2, NOT per-slot results",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        }
+      ]
+    },
+    {
+      "schema": "ikariam-report-cases-v1",
+      "id": "research-naval-pvp-pvp_fast_att20_carrier_def16",
+      "name": "【研究紀錄】玩家快艇 vs 玩家航母：攻 20／防 16",
+      "battlefield": "naval-max",
+      "notes": "【來自先前 PR 的歷史研究資料；非 Gameforge 認證戰報】\n來源：tests/fixtures/reverse_engineering/naval_pvp_fast_boat_carrier_20261013.json\n玩家攻方快艇 30、守方航母 6；雙方 Forge Lv5 已由使用者確認；R1 航母總死亡 2。原始艦隊完整編制、實際物理格位死亡分配和血條均未知；不使用模型推定兩格佈署或假想 First-line 填充。\n已知完整原始圖片不在 GitHub。本庫僅移入來源明確的逐格觀察與摘要；不補填未知格位、Reserve、Wave、HP 或未觀測回合，亦不以模型結果冒充遊戲實測。",
+      "created": "2026-10-30T00:00:00.000Z",
+      "updated": "2026-10-30T00:00:00.000Z",
+      "rounds": [
+        {
+          "id": "research-naval-pvp-pvp_fast_att20_carrier_def16-R1",
+          "number": 1,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/naval_pvp_fast_boat_carrier_20261013.json | pvp_fast_att20_carrier_def16 | USER_CHAT round1 total 2, NOT per-slot results",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        }
+      ]
+    },
+    {
+      "schema": "ikariam-report-cases-v1",
+      "id": "research-naval-pvp-pvp_fast_att17_carrier_def18",
+      "name": "【研究紀錄】玩家快艇 vs 玩家航母：攻 17／防 18",
+      "battlefield": "naval-max",
+      "notes": "【來自先前 PR 的歷史研究資料；非 Gameforge 認證戰報】\n來源：tests/fixtures/reverse_engineering/naval_pvp_fast_boat_carrier_20261013.json\n玩家攻方快艇 30、守方航母 6；雙方 Forge Lv5 已由使用者確認；R1 航母總死亡 1。原始艦隊完整編制、實際物理格位死亡分配和血條均未知；不使用模型推定兩格佈署或假想 First-line 填充。\n已知完整原始圖片不在 GitHub。本庫僅移入來源明確的逐格觀察與摘要；不補填未知格位、Reserve、Wave、HP 或未觀測回合，亦不以模型結果冒充遊戲實測。",
+      "created": "2026-10-30T00:00:00.000Z",
+      "updated": "2026-10-30T00:00:00.000Z",
+      "rounds": [
+        {
+          "id": "research-naval-pvp-pvp_fast_att17_carrier_def18-R1",
+          "number": 1,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/naval_pvp_fast_boat_carrier_20261013.json | pvp_fast_att17_carrier_def18 | USER_CHAT round1 total 1, NOT per-slot results",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        }
+      ]
+    },
+    {
+      "schema": "ikariam-report-cases-v1",
+      "id": "research-naval-air-barbarian_fast_vs_player_carrier_def7",
+      "name": "【研究紀錄】海戰空中單位：barbarian_fast_vs_player_carrier_def7",
+      "battlefield": "naval-max",
+      "notes": "【來自先前 PR 的歷史研究資料；非 Gameforge 認證戰報】\n來源：tests/fixtures/reverse_engineering/naval_air_counterparts_20261013.json\n使用者描述攻方 barbarian_dirigible_igniter 30、守方 balloon_carrier 6；玩家總死亡 1；未給可核對的實體格 HP。原始完整艦隊及每格死亡分配未知；對應兵種名稱屬暫定 mapping。\n已知完整原始圖片不在 GitHub。本庫僅移入來源明確的逐格觀察與摘要；不補填未知格位、Reserve、Wave、HP 或未觀測回合，亦不以模型結果冒充遊戲實測。",
+      "created": "2026-10-30T00:00:00.000Z",
+      "updated": "2026-10-30T00:00:00.000Z",
+      "rounds": [
+        {
+          "id": "research-naval-air-barbarian_fast_vs_player_carrier_def7-R1",
+          "number": 1,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/naval_air_counterparts_20261013.json | barbarian_fast_vs_player_carrier_def7 | USER_CHAT aggregate, NO physical slot attribution",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        }
+      ]
+    },
+    {
+      "schema": "ikariam-report-cases-v1",
+      "id": "research-naval-air-barbarian_fast_vs_player_carrier_def8",
+      "name": "【研究紀錄】海戰空中單位：barbarian_fast_vs_player_carrier_def8",
+      "battlefield": "naval-max",
+      "notes": "【來自先前 PR 的歷史研究資料；非 Gameforge 認證戰報】\n來源：tests/fixtures/reverse_engineering/naval_air_counterparts_20261013.json\n使用者描述攻方 barbarian_dirigible_igniter 30、守方 balloon_carrier 6；玩家總死亡 0；未給可核對的實體格 HP。原始完整艦隊及每格死亡分配未知；對應兵種名稱屬暫定 mapping。\n已知完整原始圖片不在 GitHub。本庫僅移入來源明確的逐格觀察與摘要；不補填未知格位、Reserve、Wave、HP 或未觀測回合，亦不以模型結果冒充遊戲實測。",
+      "created": "2026-10-30T00:00:00.000Z",
+      "updated": "2026-10-30T00:00:00.000Z",
+      "rounds": [
+        {
+          "id": "research-naval-air-barbarian_fast_vs_player_carrier_def8-R1",
+          "number": 1,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/naval_air_counterparts_20261013.json | barbarian_fast_vs_player_carrier_def8 | USER_CHAT aggregate, NO physical slot attribution",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        }
+      ]
+    },
+    {
+      "schema": "ikariam-report-cases-v1",
+      "id": "research-naval-air-barbarian_fast_vs_player_carrier_def14",
+      "name": "【研究紀錄】海戰空中單位：barbarian_fast_vs_player_carrier_def14",
+      "battlefield": "naval-max",
+      "notes": "【來自先前 PR 的歷史研究資料；非 Gameforge 認證戰報】\n來源：tests/fixtures/reverse_engineering/naval_air_counterparts_20261013.json\n使用者描述攻方 barbarian_dirigible_igniter 30、守方 balloon_carrier 6；玩家總死亡 0；報告兩格 HP% 65/70（未核定可映射之實體位置）。原始完整艦隊及每格死亡分配未知；對應兵種名稱屬暫定 mapping。\n已知完整原始圖片不在 GitHub。本庫僅移入來源明確的逐格觀察與摘要；不補填未知格位、Reserve、Wave、HP 或未觀測回合，亦不以模型結果冒充遊戲實測。",
+      "created": "2026-10-30T00:00:00.000Z",
+      "updated": "2026-10-30T00:00:00.000Z",
+      "rounds": [
+        {
+          "id": "research-naval-air-barbarian_fast_vs_player_carrier_def14-R1",
+          "number": 1,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/naval_air_counterparts_20261013.json | barbarian_fast_vs_player_carrier_def14 | USER_CHAT aggregate, NO physical slot attribution",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        }
+      ]
+    },
+    {
+      "schema": "ikariam-report-cases-v1",
+      "id": "research-naval-air-player_fast_att14_vs_barbarian_carrier",
+      "name": "【研究紀錄】海戰空中單位：player_fast_att14_vs_barbarian_carrier",
+      "battlefield": "naval-max",
+      "notes": "【來自先前 PR 的歷史研究資料；非 Gameforge 認證戰報】\n來源：tests/fixtures/reverse_engineering/naval_air_counterparts_20261013.json\n使用者描述攻方 paddle_speedboat 30、守方 barbarian_nest 6；玩家死亡總數未在此筆 fixture 給出；報告兩格 HP% 53/65（未核定可映射之實體位置）。原始完整艦隊及每格死亡分配未知；對應兵種名稱屬暫定 mapping。\n已知完整原始圖片不在 GitHub。本庫僅移入來源明確的逐格觀察與摘要；不補填未知格位、Reserve、Wave、HP 或未觀測回合，亦不以模型結果冒充遊戲實測。",
+      "created": "2026-10-30T00:00:00.000Z",
+      "updated": "2026-10-30T00:00:00.000Z",
+      "rounds": [
+        {
+          "id": "research-naval-air-player_fast_att14_vs_barbarian_carrier-R1",
+          "number": 1,
+          "phase": "round_end",
+          "source": "原始來源註記（未獨立驗證）：tests/fixtures/reverse_engineering/naval_air_counterparts_20261013.json | player_fast_att14_vs_barbarian_carrier | USER_CHAT aggregate, NO physical slot attribution",
+          "baseline_confirmed": {
+            "attacker": false,
+            "defender": false
+          },
+          "attacker": {
+            "slots": [],
+            "reserve": []
+          },
+          "defender": {
+            "slots": [],
+            "reserve": []
+          }
+        }
+      ]
+    }
+  ]
+}

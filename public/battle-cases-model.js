@@ -392,11 +392,36 @@ function exportCase(c,fields){
   checkJsonSize(serialized); // Refuse to generate a file that cannot be imported.
   return serialized;
 }
+
+const HISTORY_SCHEMA='ikariam-research-battle-history-v1';
+// A source-tagged research catalog is NOT automatically authenticated by import.
+// The helper validates ALL incoming entries before adding any and keeps local
+// edited cases untouched. Fixed IDs make repeated import idempotent.
+function mergeHistoricalCases(existing,bundle,fields=null){
+  if(!Array.isArray(existing)||existing.length>50)err('本機案例清單無效');
+  for(const c of existing){const problems=validateCase(c,fields);if(problems.length)err('本機既有案例無效：'+problems[0]);}
+  if(!bundle||bundle.schema!==HISTORY_SCHEMA||!Array.isArray(bundle.cases)||
+     bundle.cases.length>50||!bundle.cases.length)err('歷史研究資料格式無效');
+  const existingIds=new Set(existing.map(c=>c.id));
+  if(existingIds.size!==existing.length)err('本機案例 ID 重複');
+  const incomingIds=new Set(),staged=[];
+  for(const c of bundle.cases){
+    if(!c||typeof c.id!=='string'||!c.id.startsWith('research-')||
+       incomingIds.has(c.id))err('歷史研究資料 ID 無效或重複');
+    incomingIds.add(c.id);
+    const issues=validateCase(c,fields);
+    if(issues.length)err('歷史研究案例無效：'+c.id+'：'+issues[0]);
+    if(!existingIds.has(c.id))staged.push(c);
+  }
+  if(existing.length+staged.length>50)err('加入後會超過 50 個本機案例，請先整理或備份');
+  return {cases:existing.concat(staged),added:staged.length,total:bundle.cases.length};
+}
+
 function importCase(s,fields){
   checkJsonSize(s);
   const data=JSON.parse(s),problems=validateCase(data,fields);
   if(problems.length)err(problems.slice(0,5).join('；'));
   return data;
 }
-return {SCHEMA,STORAGE,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds,summarizeCapturedTimeline,inspectCapturedCoveragePair,exportCapturedComparisonCsv,exportCapturedTimelineCsv,exportCapturedReviewQueueCsv,exportCapturedSourceManifestCsv,exportCapturedJoinedReviewCsv};
+return {SCHEMA,STORAGE,HISTORY_SCHEMA,mergeHistoricalCases,MAX_JSON_BYTES,SIDES,LINES,create,newRound,newSlot,newReserve,validateCase,readiness,exportCase,importCase,uid,validName,physicalPositions,invalidateReserveConfirmation,reuseEarlierSlotLabels,roundEntrySummary,compareCapturedRounds,summarizeCapturedTimeline,inspectCapturedCoveragePair,exportCapturedComparisonCsv,exportCapturedTimelineCsv,exportCapturedReviewQueueCsv,exportCapturedSourceManifestCsv,exportCapturedJoinedReviewCsv};
 });
