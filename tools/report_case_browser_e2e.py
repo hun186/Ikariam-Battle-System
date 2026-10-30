@@ -91,6 +91,40 @@ def run(base_url: str, evidence_dir: Path) -> None:
             finally:
                 history_context.close()
 
+
+            # Codex P2 #4421688617: rejected historical raw storage must
+            # survive automatic and explicit catalog import byte-for-byte.
+            corrupted = json.loads(json.dumps(history_json[0]))
+            corrupted["rounds"][0]["attacker"]["slots"][0]["hp"] = 101
+            for payload, visible in (([corrupted], 0), ([history_json[1], corrupted], 1)):
+                raw_cases = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+                invalid_context = browser.new_context(locale="zh-TW")
+                try:
+                    invalid_context.add_init_script(
+                        "localStorage.setItem('ikariam-report-cases-v1', "
+                        + json.dumps(raw_cases, ensure_ascii=False) + ");"
+                    )
+                    invalid_page = invalid_context.new_page()
+                    invalid_page.goto(base_url + "/battle-cases.html", wait_until="networkidle")
+                    expect(invalid_page.locator("#caseList option")).to_have_count(visible)
+                    expect(invalid_page.locator("#storageStatus")).to_contain_text("鎖定寫入")
+                    assert invalid_page.evaluate(
+                        "() => localStorage.getItem('ikariam-report-cases-v1')"
+                    ) == raw_cases
+                    invalid_page.locator("#loadHistoricalCases").click()
+                    expect(invalid_page.locator("#storageStatus")).to_contain_text("鎖定寫入")
+                    assert invalid_page.evaluate(
+                        "() => localStorage.getItem('ikariam-report-cases-v1')"
+                    ) == raw_cases
+                    invalid_page.reload(wait_until="networkidle")
+                    assert invalid_page.evaluate(
+                        "() => localStorage.getItem('ikariam-report-cases-v1')"
+                    ) == raw_cases
+                    expect(invalid_page.locator("#caseList option")).to_have_count(visible)
+                finally:
+                    invalid_context.close()
+            print("PASS: rejected localStorage protected against auto/manual seed")
+
             prompted_click(page, "#addCase", "瀏覽器驗收 R80 海戰（合成資料）")
             expect(page.locator("#caseHeading")).to_contain_text("瀏覽器驗收 R80")
             original_id = page.locator("#caseList").input_value()

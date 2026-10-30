@@ -106,6 +106,7 @@ const lineLabels={first:'前排',flank:'側翼',second:'第二排',third:'第三
 const glyphs={first:'🛡',flank:'⚔',second:'🎯',third:'💥',balloon:'✈','anti-balloon':'🛩'};
 const roundEntryLabels={EMPTY:'未填',DRAFT:'待補可見欄位',PARTIAL:'部分可見欄位已填',FIELDS_ENTERED:'可見欄位已填'};
 let fields=[],units=[],cases=[],activeId=null,roundId=null,edit=true,selected=null,storageOkay=true;
+let hadStoredEntries=false; // Derived only from raw saved array, NEVER from filtered cases.
 // Comparison source selection is ephemeral UI state; never add it to case JSON.
 let comparisonCaseId=null,comparisonTargetId=null,comparisonSourceId=null;
 function active(){return cases.find(c=>c.id===activeId);}
@@ -400,7 +401,8 @@ function render(){
 }
 
 async function loadHistoricalCases(automatic=false){
- if(!fields.length||!storageOkay)return;
+ if(!fields.length)return;
+ if(!storageOkay){notify('舊戰報資料未能通過驗證；已鎖定寫入以保留原始資料，請先備份並修復 JSON。',true);return;}
  try{
    const response=await fetch('/battle-cases-history.json');
    if(!response.ok)throw Error('載入歷史資料 HTTP '+response.status);
@@ -539,11 +541,18 @@ try{const response=await fetch('/api/simulate');if(!response.ok)throw Error('GET
 try{
  const raw=JSON.parse(localStorage.getItem(M.STORAGE)||'[]');
  if(!Array.isArray(raw))throw Error('儲存格式無效');
- cases=raw.filter(x=>M.validateCase(x,fields).length===0).slice(0,50);
- if(cases.length!==raw.length)notify('部分舊資料格式不符，未載入；請檢查原本的 JSON 備份。',true);
+ hadStoredEntries=raw.length>0;
+ const valid=raw.filter(x=>M.validateCase(x,fields).length===0);
+ cases=valid.slice(0,50);
+ if(valid.length!==raw.length||valid.length>50){
+  // Rejected records may be recoverable. No subsequent UI or seed write
+  // may delete them simply because validation filtered them out.
+  storageOkay=false;
+  notify('原始戰報有格式錯誤或超過 50 筆；原始儲存仍保留，已鎖定寫入以避免覆蓋。請先備份並修復 JSON。',true);
+ }
 }catch(e){storageOkay=false;cases=[];notify('本機儲存不可讀，請匯入先前 JSON 備份。',true);}
 activeId=cases[0]?.id||null;roundId=cases[0]?.rounds[0]?.id||null;
- if(storageOkay&&!cases.length){
+ if(storageOkay&&!hadStoredEntries&&!cases.length){
    try{if(localStorage.getItem(HISTORY_MARKER)!=='1')await loadHistoricalCases(true);}
    catch(error){notify('無法檢查歷史案例載入標記：'+error.message,true);}
  }

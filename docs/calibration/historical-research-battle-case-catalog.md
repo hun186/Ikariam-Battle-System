@@ -42,3 +42,12 @@ case with the same ID, even if edited, always wins. Entire bundle is
 validated first; 50-case limit, case schema and battlefield metadata are
 enforced before mutating storage. Failed quota writes do not swap the live
 in-memory case array. No server-side user case database is introduced.
+
+### Invalid saved-data protection (Codex P2 #4421688617)
+Only a genuinely empty **original raw localStorage array** may cause automatic
+historical seeding. If any raw record fails validation or exceeds the 50-entry
+view limit, all storage writes are locked to preserve the recoverable original
+bytes: no automatic seeding, manual restore, or editor save may overwrite them.
+A browser notice instructs the user to back up and repair the source JSON.
+An all-invalid raw array, a mixed valid/invalid array, manual import attempts
+and reload byte-for-byte preservation are covered by real Chromium acceptance.

@@ -91,6 +91,9 @@ def test_historical_asset_routes_and_browser_import_are_real():
     assert page==(ROOT/"public/battle-cases.html").read_text(encoding="utf-8")
     assert "id=\"loadHistoricalCases\"" in page
     assert "await loadHistoricalCases(true)" in page
+    assert "hadStoredEntries=raw.length>0" in page
+    assert "storageOkay&&!hadStoredEntries&&!cases.length" in page
+    assert "const valid=raw.filter(x=>M.validateCase(x,fields).length===0)" in page
     assert "localStorage.getItem(HISTORY_MARKER)" in page
     assert "M.mergeHistoricalCases(cases,JSON.parse(source),fields)" in page
     assert "localStorage.setItem(M.STORAGE,JSON.stringify(merged.cases))" in page
