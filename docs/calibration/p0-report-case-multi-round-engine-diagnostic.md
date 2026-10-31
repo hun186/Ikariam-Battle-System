@@ -33,3 +33,41 @@ A numeric count change is only descriptive and requires BOTH per-capture upstrea
 Gameforge UI HP bar semantics do not equal verified engine internal HP semantics. No HP numerical comparison, inferred game mechanic or global fit score is reported. No absent round or physical slot is invented; null stays unknown and explicitly transcribed zero remains a zero. Original images, local paths and source notes are excluded. Source authenticity, independent holdouts and calibration flags stay false/zero. JSON output is bounded 64 MiB and created exclusively; it refuses overwrite of any existing evidence or prior report.
 
 Verification: pytest -q tests/unit/test_p0_report_case_real_engine_trace.py and hosted full Python CI. Test screenshots and private capture fixtures are synthetic only.
+
+## Difference categories and audit summary (PR #123)
+
+The result now includes an additive `comparison_evidence_summary` object
+(`p0_multi_round_difference_evidence_summary_v1`) and an
+`evidence_category` field on each existing round-pair slot row.
+
+**Numeric descriptions, not model accuracy:** For an already eligible,
+source-reviewed, exactly user-mapped, adjacent source round and stable Wave
+row, the engine-minus-typed **change** is classified as
+`NUMERIC_CHANGE_EQUAL_UNVERIFIED` (zero residual),
+`NUMERIC_ENGINE_CHANGE_ABOVE_TYPED_UNVERIFIED` (positive residual), or
+`NUMERIC_ENGINE_CHANGE_BELOW_TYPED_UNVERIFIED` (negative residual).
+These labels are comparisons between two input numbers, not claims that
+the engine is correct or that the actual game lost or received troops.
+An engine-change minus typed-change of zero does not prove damage
+or healing mechanics.
+
+Every preexisting `NOT_ASSESSABLE_*` code remains a distinct category:
+missing intervening captured rounds, a physical position entered on only
+one side of a pair, a failed source/engine mapping gate, whitespace-only
+typed identity, whitespace-only model identity, and changed unit/Wave
+identity. Such rows have **all three numeric change fields null**, not zero.
+Unknown or internally inconsistent status/change combinations are rejected,
+not silently assigned to a bucket.
+
+The summary gives a `category_counts` map and separate per-pair counts,
+plus `typed_position_pair_rows`, `descriptive_numeric_change_rows` and
+`unassessable_rows`. Those counts must reconcile exactly.
+The denominator is the number of **already transcribed physical-position
+rows across selected consecutive captured-round pairs**, not all physical
+slots, waves, rounds, or battles. A source position can recur in multiple
+pairs, making those rows correlated—not independent holdout evidence.
+No score, inferred observations, model calibration, evidence origin
+authentication, casualty mechanism, numerical HP comparison, or private
+image/path/note is added. The source and exact engine execution gates
+of the original PR #122 tool still run normally, and this feature does
+not accept untrusted precomputed comparisons as fresh engine execution.

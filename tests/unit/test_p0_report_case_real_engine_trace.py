@@ -617,6 +617,89 @@ def test_multi_round_unknown_zero_unpaired_and_gapped_never_invent_changes():
         multi._pair(a,{**b,"rows":[b["rows"][0],b["rows"][0]]})
 
 
+
+def test_evidence_summary_preserves_numeric_equal_and_both_signed_differences():
+    # These are three different synthetic descriptions of existing model and
+    # transcribed changes; not observed Gameforge source or model validation.
+    cases = [
+        (_synthetic_pair(a_count=9,b_count=7), multi.NUMERIC_SAME),
+        (_synthetic_pair(a_count=9,b_count=6), multi.NUMERIC_ABOVE),
+        (_synthetic_pair(a_count=9,b_count=8), multi.NUMERIC_BELOW),
+    ]
+    pairs = [multi._pair(a,b) for (a,b),_ in cases]
+    summary = multi.summarize_evidence(pairs)
+    assert summary["schema"] == multi.SUMMARY_SCHEMA
+    assert summary["capture_pairs_count"] == 3
+    assert summary["typed_position_pair_rows"] == 3
+    assert summary["descriptive_numeric_change_rows"] == 3
+    assert summary["unassessable_rows"] == 0
+    assert summary["numeric_change_equal_rows"] == 1
+    assert summary["numeric_engine_change_above_typed_rows"] == 1
+    assert summary["numeric_engine_change_below_typed_rows"] == 1
+    assert [p["rows"][0]["evidence_category"] for p in pairs] == [
+        expected for _, expected in cases
+    ]
+    assert all(x["descriptive_numeric_change_rows"]==1 for x in summary["pair_summaries"])
+    assert summary["denominator_is_typed_slot_pair_rows_not_complete_battle"] is True
+    assert summary["cross_pair_rows_are_not_independent_holdouts"] is True
+    assert summary["descriptive_zero_residual_is_not_model_verification"] is True
+    assert summary["battle_causality_or_calibration_verified"] is False
+
+
+def test_evidence_summary_accounts_for_missing_round_identity_and_position():
+    a,b = _synthetic_pair(a_count=0,b_count=0)
+    scenarios = [
+        ({**b, "capture_round":83}, "NOT_ASSESSABLE_MISSING_INTERVENING_CAPTURE_ROUNDS"),
+        ({**b, "rows":[{**b["rows"][0],"physical_position":2}]},
+         "NOT_ASSESSABLE_TYPED_POSITION_MISSING_IN_ONE_CAPTURE"),
+        ({**b, "rows":[{**b["rows"][0],
+                       "count_comparison_status":"NOT_ASSESSABLE_NO_EXPLICIT_REVIEW_SLOT_BINDING",
+                       "engine_minus_typed_count":None}]},
+         "NOT_ASSESSABLE_SOURCE_OR_ENGINE_MAPPING_GATE"),
+        ({**b, "rows":[{**b["rows"][0],"typed_wave_label":" \t "}]},
+         "NOT_ASSESSABLE_INCOMPLETE_TYPED_WAVE_IDENTITY"),
+        ({**b, "rows":[{**b["rows"][0],"engine_wave_id_user_asserted":"\u3000"}]},
+         "NOT_ASSESSABLE_INCOMPLETE_ENGINE_WAVE_IDENTITY"),
+        ({**b, "rows":[{**b["rows"][0],"typed_wave_label":"another-wave"}]},
+         "NOT_ASSESSABLE_DIFFERENT_WAVE_OR_UNIT_IDENTITY"),
+    ]
+    pairs=[multi._pair(a,s) for s,_ in scenarios]
+    result=multi.summarize_evidence(pairs)
+    assert result["capture_pairs_count"]==len(pairs)
+    # The missing-position case contributes two typed original positions,
+    # both unassessable; we must never collapse them into one phantom slot.
+    assert result["typed_position_pair_rows"]==len(pairs)+1
+    assert result["descriptive_numeric_change_rows"]==0
+    assert result["unassessable_rows"]==len(pairs)+1
+    for pair,(_,reason) in zip(pairs,scenarios):
+        assert all(r["evidence_category"]==reason for r in pair["rows"])
+        assert all(r["typed_count_change"] is None for r in pair["rows"])
+        assert all(r["engine_count_change"] is None for r in pair["rows"])
+    assert result["category_counts"]["NOT_ASSESSABLE_TYPED_POSITION_MISSING_IN_ONE_CAPTURE"]==2
+    assert all(p["unassessable_rows"]==p["typed_position_pairs"] for p in result["pair_summaries"])
+    assert result["battle_causality_or_calibration_verified"] is False
+
+
+def test_evidence_summary_rejects_malformed_eligibility_and_failed_reconciliation():
+    a,b=_synthetic_pair()
+    good=multi._pair(a,b)
+    def corrupt(**changes):
+        row={**good["rows"][0],**changes}
+        return [{**good, "rows":[row]}]
+    for row_changes,pattern in [
+        ({"engine_minus_typed_change":None}, "three exact integer"),
+        ({"engine_minus_typed_change":True}, "three exact integer"),
+        ({"engine_minus_typed_change":10}, "does not reconcile"),
+        ({"comparison_status":"UNRECOGNIZED"}, "unknown comparison status"),
+        ({"comparison_status":"NOT_ASSESSABLE_SOURCE_OR_ENGINE_MAPPING_GATE"},
+         "null numeric changes"),
+    ]:
+        with pytest.raises(ValueError,match=pattern):
+            multi.summarize_evidence(corrupt(**row_changes))
+    with pytest.raises(ValueError,match="count does not reconcile"):
+        multi.summarize_evidence([{**good,"descriptive_change_comparisons":2}])
+
+
 def _multi_real_case(local_synthetic_case):
     raw, manifest, root, _, mapping, model = _focused_inputs(local_synthetic_case)
     c=json.loads(raw)
@@ -645,6 +728,12 @@ def test_multi_round_real_simulator_with_source_gates_and_unknown_wave(engine_in
     assert result["number_of_engine_executions"]==2
     assert result["strictly_adjacent_pairs"]==1
     assert result["descriptive_change_comparisons"]==0
+    summary=result["comparison_evidence_summary"]
+    assert summary["schema"]==multi.SUMMARY_SCHEMA
+    assert summary["descriptive_numeric_change_rows"]==0
+    assert summary["unassessable_rows"]==1
+    assert summary["category_counts"]=={"NOT_ASSESSABLE_SOURCE_OR_ENGINE_MAPPING_GATE":1}
+    assert summary["battle_causality_or_calibration_verified"] is False
     pair=result["round_pairs"][0]
     assert pair["rows"][0]["comparison_status"]=="NOT_ASSESSABLE_SOURCE_OR_ENGINE_MAPPING_GATE"
     assert pair["rows"][0]["typed_count_change"] is None
@@ -706,7 +795,10 @@ def test_multi_round_cli_synthetic_actual_engine_and_exclusive_write(
     cmd+=["--output-json",str(output)]
     completed=subprocess.run(cmd,capture_output=True,text=True,timeout=60)
     assert completed.returncode==0,completed.stderr
-    assert json.loads(output.read_text())["global_calibration_allowed"] is False
+    saved=json.loads(output.read_text())
+    assert saved["global_calibration_allowed"] is False
+    assert saved["comparison_evidence_summary"]["unassessable_rows"]==1
+    assert saved["comparison_evidence_summary"]["descriptive_numeric_change_rows"]==0
     assert "game_mechanics_verified" in completed.stdout
     second=subprocess.run(cmd,capture_output=True,text=True,timeout=60)
     assert second.returncode==2

@@ -131,6 +131,114 @@ def _pair(prior: dict, later: dict) -> dict:
     }
 
 
+
+# These categories describe agreement or disagreement between two sets of
+# typed NUMBERS only. They are not a battle-model accuracy or damage verdict.
+SUMMARY_SCHEMA = "p0_multi_round_difference_evidence_summary_v1"
+COMPARABLE_STATUS = "DESCRIPTIVE_COUNT_CHANGES_ONLY_NOT_CAUSAL"
+NUMERIC_SAME = "NUMERIC_CHANGE_EQUAL_UNVERIFIED"
+NUMERIC_ABOVE = "NUMERIC_ENGINE_CHANGE_ABOVE_TYPED_UNVERIFIED"
+NUMERIC_BELOW = "NUMERIC_ENGINE_CHANGE_BELOW_TYPED_UNVERIFIED"
+UNKNOWN_REASONS = frozenset({
+    "NOT_ASSESSABLE_MISSING_INTERVENING_CAPTURE_ROUNDS",
+    "NOT_ASSESSABLE_TYPED_POSITION_MISSING_IN_ONE_CAPTURE",
+    "NOT_ASSESSABLE_SOURCE_OR_ENGINE_MAPPING_GATE",
+    "NOT_ASSESSABLE_INCOMPLETE_TYPED_WAVE_IDENTITY",
+    "NOT_ASSESSABLE_INCOMPLETE_ENGINE_WAVE_IDENTITY",
+    "NOT_ASSESSABLE_DIFFERENT_WAVE_OR_UNIT_IDENTITY",
+})
+COUNT_FIELDS = (
+    "typed_count_change", "engine_count_change", "engine_minus_typed_change",
+)
+
+
+def _evidence_category(row: dict) -> str:
+    """Classify an existing source-gated row; never create its numbers."""
+    status = row.get("comparison_status")
+    if status in UNKNOWN_REASONS:
+        if any(row.get(key) is not None for key in COUNT_FIELDS):
+            raise ValueError("unassessable row must have null numeric changes")
+        return status
+    if status != COMPARABLE_STATUS:
+        raise ValueError("unknown comparison status is not evidence")
+    if any(type(row.get(key)) is not int for key in COUNT_FIELDS):
+        raise ValueError("eligible row must have three exact integer changes")
+    observed, simulated, residual = (row[key] for key in COUNT_FIELDS)
+    if simulated - observed != residual:
+        raise ValueError("numeric change difference does not reconcile")
+    if residual == 0:
+        return NUMERIC_SAME
+    return NUMERIC_ABOVE if residual > 0 else NUMERIC_BELOW
+
+
+def summarize_evidence(pairs: list[dict]) -> dict:
+    """Produce audited counts per captured pair, not a global accuracy score.
+
+    Each physical slot at each source-capture pair is one *descriptive row*.
+    Repeated positions between pairs are not independent held-out evidence.
+    """
+    all_counts: dict[str, int] = {}
+    pair_summaries = []
+    total_rows = 0
+    eligible_rows = 0
+    for pair in pairs:
+        counts: dict[str, int] = {}
+        rows = pair["rows"]
+        if not isinstance(rows, list):
+            raise ValueError("pair has invalid comparison rows")
+        if pair["descriptive_change_comparisons"] < 0:
+            raise ValueError("invalid pair eligible count")
+        for row in rows:
+            category = _evidence_category(row)
+            # The status is preserved for audit; the added category permits
+            # grouping while leaving both original count changes intact.
+            row["evidence_category"] = category
+            counts[category] = counts.get(category, 0) + 1
+            all_counts[category] = all_counts.get(category, 0) + 1
+            total_rows += 1
+            if category in (NUMERIC_SAME, NUMERIC_ABOVE, NUMERIC_BELOW):
+                eligible_rows += 1
+        comparable = sum(counts.get(c, 0) for c in (NUMERIC_SAME, NUMERIC_ABOVE, NUMERIC_BELOW))
+        if comparable != pair["descriptive_change_comparisons"]:
+            raise ValueError("pair's numeric comparison count does not reconcile")
+        pair_summaries.append({
+            "earlier_capture_id": pair["earlier_capture_id"],
+            "later_capture_id": pair["later_capture_id"],
+            "earlier_round": pair["earlier_round"],
+            "later_round": pair["later_round"],
+            "round_number_gap": pair["round_number_gap"],
+            "typed_position_pairs": len(rows),
+            "descriptive_numeric_change_rows": comparable,
+            "unassessable_rows": len(rows) - comparable,
+            "category_counts": dict(sorted(counts.items())),
+        })
+    if total_rows != sum(all_counts.values()):
+        raise ValueError("summary category counts do not reconcile")
+    return {
+        "schema": SUMMARY_SCHEMA,
+        "status": "DESCRIPTIVE_TYPED_POSITION_COVERAGE_NOT_MODEL_ACCURACY",
+        "capture_pairs_count": len(pairs),
+        "typed_position_pair_rows": total_rows,
+        "descriptive_numeric_change_rows": eligible_rows,
+        "unassessable_rows": total_rows - eligible_rows,
+        "numeric_change_equal_rows": all_counts.get(NUMERIC_SAME, 0),
+        "numeric_engine_change_above_typed_rows": all_counts.get(NUMERIC_ABOVE, 0),
+        "numeric_engine_change_below_typed_rows": all_counts.get(NUMERIC_BELOW, 0),
+        "category_counts": dict(sorted(all_counts.items())),
+        "pair_summaries": pair_summaries,
+        "denominator_is_typed_slot_pair_rows_not_complete_battle": True,
+        "cross_pair_rows_are_not_independent_holdouts": True,
+        "descriptive_zero_residual_is_not_model_verification": True,
+        "battle_causality_or_calibration_verified": False,
+        "notes": [
+            "Only already source-gated and explicitly Wave-mapped count-change rows are numerically classified.",
+            "All unassessable source gaps or identities stay in separate categories; never silently drop them from coverage.",
+            "Equal numerical count changes do not prove Gameforge mechanics, casualties, or independent source authenticity.",
+            "Repeated typed positions across pairs are correlated; no precision, recall, accuracy percentage, HP or healing score is calculated.",
+        ],
+    }
+
+
 def multi_round_diagnostic(
     scenario_bytes: bytes,
     case_bytes: bytes,
@@ -191,6 +299,11 @@ def multi_round_diagnostic(
     ):
         raise ValueError("selected projections disagree on engine/evidence digests")
     pairs = [_pair(a, b) for a, b in zip(projections, projections[1:])]
+    evidence_summary = summarize_evidence(pairs)
+    if evidence_summary["descriptive_numeric_change_rows"] != sum(
+        p["descriptive_change_comparisons"] for p in pairs
+    ):
+        raise ValueError("evidence summary does not match gated comparisons")
     return {
         "schema": SCHEMA,
         "status": STATUS,
@@ -211,6 +324,7 @@ def multi_round_diagnostic(
         ),
         "capture_projections": projections,
         "round_pairs": pairs,
+        "comparison_evidence_summary": evidence_summary,
         "actual_current_engine_executed": True,
         "number_of_engine_executions": len(projections),
         "unentered_positions_or_rounds_invented": False,
