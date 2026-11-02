@@ -63,7 +63,7 @@ def rank_report_bytes(reports: list[bytes]) -> dict:
         if case_hash in seen:
             raise ValueError("duplicate source case SHA cannot be ranked twice")
         seen.add(case_hash)
-        if report.get("descriptive_count_comparisons") != rebuilt[
+        if report.get("descriptive_change_comparisons") != rebuilt[
             "descriptive_numeric_change_rows"
         ]:
             raise ValueError("source diagnostic and summary comparable counts differ")

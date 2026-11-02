@@ -1,6 +1,7 @@
 # Project Memory
 
 ## Current Focus
+- **2026-11-02 PR #124 formal Codex P2 #4438068082:** offline index wrongly read descriptive_count_comparisons while actual source diagnostic emits descriptive_change_comparisons. Fix the consumer and matching synthetic fixtures, add genuine real-engine report→offline index and CLI JSON→index integration regressions. Re-run CI and formal new exact-head review; no merge before Clean and owner approval.
 - **2026-11-02 new Draft PR #124 after #123 owner Merge:** strict report-derived source evidence acquisition queue and separate bounded offline multi-case index; order by missing source round, image/reviewer/map, unentered physical position, Wave identity and descriptive numeric comparison. Never infer Gameforge authenticity, combat mechanisms or calibration. Exact-head Hosted CI and formal Codex review before owner-authorized Merge.
 - **2026-10-31 PR #123 MERGED:** squash f474c4006bbd4257f9b78a3cc66b7f7627a2c4b9, 14/14 Hosted CI, 1,202 passed/3 xfailed and formal Codex Clean; descriptive count-change/category summary merged.
 - **2026-10-31 PR #122 MERGED:** squash 65c007d80c2d309f734e06e48768bfd671faf7ca, exact-head Hosted CI 13/13 with 1,199 passed/3 xfailed and formal Codex Clean after P2 whitespace-only Wave fix, no unresolved review threads.

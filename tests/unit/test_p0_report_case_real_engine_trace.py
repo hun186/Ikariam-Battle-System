@@ -726,6 +726,15 @@ def test_multi_round_real_simulator_with_source_gates_and_unknown_wave(engine_in
     assert result["capture_ids"]==ids
     assert result["actual_current_engine_executed"] is True
     assert result["number_of_engine_executions"]==2
+    # Formal Codex P2 #4438068082: index an ACTUAL production-engine
+    # multi-round report rather than trusting synthetic key assumptions.
+    from tools.research import p0_report_case_triage_index as live_index
+    actual_index=live_index.rank_report_bytes([json.dumps(result).encode()])
+    assert actual_index["schema"]==live_index.SCHEMA
+    assert len(actual_index["ranked_case_tasks"])==1
+    assert actual_index["ranked_case_tasks"][0]["case_id"]==result["case_id"]
+    assert actual_index["ranked_case_tasks"][0]["descriptive_numeric_change_rows"]==0
+    assert actual_index["production_engine_or_image_bytes_revalidated_during_index"] is False
     assert result["strictly_adjacent_pairs"]==1
     assert result["descriptive_change_comparisons"]==0
     summary=result["comparison_evidence_summary"]
@@ -805,6 +814,11 @@ def test_multi_round_cli_synthetic_actual_engine_and_exclusive_write(
     assert saved["comparison_evidence_summary"]["unassessable_rows"]==1
     assert saved["comparison_evidence_summary"]["descriptive_numeric_change_rows"]==0
     assert saved["research_evidence_triage"]["source_capture_pair_count"]==1
+    from tools.research import p0_report_case_triage_index as live_index
+    offline_index=live_index.rank_report_bytes([output.read_bytes()])
+    assert offline_index["number_of_local_report_inputs"]==1
+    assert offline_index["ranked_case_tasks"][0]["case_sha256_user_reported_binding"]==saved["case_sha256"]
+    assert offline_index["model_accuracy_or_mechanism_verified"] is False
     assert saved["research_evidence_triage"]["original_game_sources_independently_authenticated"] is False
     assert "game_mechanics_verified" in completed.stdout
     second=subprocess.run(cmd,capture_output=True,text=True,timeout=60)
@@ -902,7 +916,7 @@ def _synthetic_index_report(pair, case_id, digest):
         "global_calibration_allowed":False,
         "independent_holdouts":0,
         "hp_bar_comparison_performed":False,
-        "descriptive_count_comparisons":summary["descriptive_numeric_change_rows"],
+        "descriptive_change_comparisons":summary["descriptive_numeric_change_rows"],
         "round_pairs":[pair],
         "comparison_evidence_summary":summary,
         "research_evidence_triage":triage,
