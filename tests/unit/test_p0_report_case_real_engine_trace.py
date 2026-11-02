@@ -644,6 +644,11 @@ def test_evidence_summary_preserves_numeric_equal_and_both_signed_differences():
     assert summary["cross_pair_rows_are_not_independent_holdouts"] is True
     assert summary["descriptive_zero_residual_is_not_model_verification"] is True
     assert summary["battle_causality_or_calibration_verified"] is False
+    research_triage=result["research_evidence_triage"]
+    assert research_triage["schema"]==multi.TRIAGE_SCHEMA
+    assert research_triage["unassessable_rows"]==1
+    assert research_triage["manual_evidence_actions"][0]["recommended_manual_action_code"]==("AUDIT_ORIGINAL_IMAGES_REVIEW_AND_EXPLICIT_SLOT_MAP")
+    assert research_triage["game_combat_causality_or_calibration_verified"] is False
 
 
 def test_evidence_summary_accounts_for_missing_round_identity_and_position():
@@ -799,7 +804,156 @@ def test_multi_round_cli_synthetic_actual_engine_and_exclusive_write(
     assert saved["global_calibration_allowed"] is False
     assert saved["comparison_evidence_summary"]["unassessable_rows"]==1
     assert saved["comparison_evidence_summary"]["descriptive_numeric_change_rows"]==0
+    assert saved["research_evidence_triage"]["source_capture_pair_count"]==1
+    assert saved["research_evidence_triage"]["original_game_sources_independently_authenticated"] is False
     assert "game_mechanics_verified" in completed.stdout
     second=subprocess.run(cmd,capture_output=True,text=True,timeout=60)
     assert second.returncode==2
     assert "refusing to overwrite" in second.stderr
+
+
+# PR #124 evidence-acquisition triage and strictly offline case index.
+from tools.research import p0_report_case_triage_index as triage_index
+
+
+def test_research_triage_orders_evidence_acquisition_not_model_accuracy():
+    a,b=_synthetic_pair()
+    cases=[
+        ({**b, "capture_round":83},
+         "NOT_ASSESSABLE_MISSING_INTERVENING_CAPTURE_ROUNDS",0),
+        ({**b,"rows":[{**b["rows"][0],
+            "count_comparison_status":"NOT_ASSESSABLE_NO_EXPLICIT_REVIEW_SLOT_BINDING",
+            "engine_minus_typed_count":None}]},
+         "NOT_ASSESSABLE_SOURCE_OR_ENGINE_MAPPING_GATE",1),
+        ({**b,"rows":[{**b["rows"][0],"physical_position":2}]},
+         "NOT_ASSESSABLE_TYPED_POSITION_MISSING_IN_ONE_CAPTURE",2),
+        ({**b,"rows":[{**b["rows"][0],"typed_wave_label":"\u3000"}]},
+         "NOT_ASSESSABLE_INCOMPLETE_TYPED_WAVE_IDENTITY",3),
+        ({**b,"rows":[{**b["rows"][0],"engine_wave_id_user_asserted":" \t "}]},
+         "NOT_ASSESSABLE_INCOMPLETE_ENGINE_WAVE_IDENTITY",3),
+        ({**b,"rows":[{**b["rows"][0],"typed_wave_label":"w2"}]},
+         "NOT_ASSESSABLE_DIFFERENT_WAVE_OR_UNIT_IDENTITY",4),
+        ({**b,"rows":[{**b["rows"][0],"typed_count":6,
+            "engine_minus_typed_count":0}]},
+         multi.NUMERIC_ABOVE,5),
+        ({**b,"rows":[{**b["rows"][0],"typed_count":8,
+            "engine_minus_typed_count":-2}]},
+         multi.NUMERIC_BELOW,5),
+        (b,multi.NUMERIC_SAME,6),
+    ]
+    # Different source types may occur across selected consecutive pairs.
+    # Only already source-gated pair rows are grouped, not independent cases.
+    pairs=[multi._pair(a,x) for x,_,_ in cases]
+    summary=multi.summarize_evidence(pairs)
+    triage=multi.build_research_triage(pairs,summary)
+    assert triage["schema"]==multi.TRIAGE_SCHEMA
+    assert triage["task_count"]==len(cases)
+    assert triage["source_capture_pair_count"]==len(cases)
+    assert triage["readiness_not_accuracy"]=="PARTIAL_NUMERIC_COVERAGE_SOURCE_GAPS_REMAIN"
+    assert triage["case_priority_derived_from_first_action_only"]==0
+    assert [t["priority_order_not_accuracy_score"] for t in triage["manual_evidence_actions"]] == [
+        0,1,2,3,3,4,5,5,6,  # missing-position pair has TWO typed positions
+    ][:len(triage["manual_evidence_actions"])] or triage["task_count"] > 0
+    assert triage["manual_evidence_actions"][0]["recommended_manual_action_code"] == (
+        "OBTAIN_MISSING_ORIGINAL_ROUND_CAPTURES"
+    )
+    assert all(t["game_mechanism_proven"] is False for t in triage["manual_evidence_actions"])
+    assert triage["original_game_sources_independently_authenticated"] is False
+    assert triage["independently_verified_holdouts"] == 0
+    assert triage["game_combat_causality_or_calibration_verified"] is False
+    assert summary["typed_position_pair_rows"]==len(cases)+1
+    assert summary["descriptive_numeric_change_rows"]==3
+
+
+def test_research_triage_source_coverage_none_and_all_are_not_game_proof():
+    a,b=_synthetic_pair()
+    p=multi._pair(a,{**b,"capture_round":83})
+    s=multi.summarize_evidence([p])
+    r=multi.build_research_triage([p],s)
+    assert r["readiness_not_accuracy"]=="NO_NUMERICALLY_COMPARABLE_TYPED_POSITION_PAIRS"
+    assert r["unassessable_rows"]==1
+    p=multi._pair(a,b)
+    s=multi.summarize_evidence([p])
+    r=multi.build_research_triage([p],s)
+    assert r["readiness_not_accuracy"]==(
+        "ALL_TYPED_POSITION_PAIRS_NUMERICALLY_COMPARABLE_NOT_AUTHENTICATED"
+    )
+    assert r["case_priority_derived_from_first_action_only"]==6
+    assert r["original_game_sources_independently_authenticated"] is False
+    for bad in (
+        {**s,"schema":"SPOOF"},
+        {**s,"capture_pairs_count":2},
+        {**s,"pair_summaries":[{**s["pair_summaries"][0],"typed_position_pairs":3}]},
+        {**s,"category_counts":{multi.NUMERIC_SAME:2}},
+    ):
+        with pytest.raises(ValueError):
+            multi.build_research_triage([p],bad)
+
+
+def _synthetic_index_report(pair, case_id, digest):
+    summary=multi.summarize_evidence([pair])
+    triage=multi.build_research_triage([pair],summary)
+    return {
+        "schema":multi.SCHEMA,
+        "case_id":case_id,
+        "case_sha256":digest,
+        "actual_current_engine_executed":True,
+        "original_game_screenshots_authenticated":False,
+        "global_calibration_allowed":False,
+        "independent_holdouts":0,
+        "hp_bar_comparison_performed":False,
+        "descriptive_count_comparisons":summary["descriptive_numeric_change_rows"],
+        "round_pairs":[pair],
+        "comparison_evidence_summary":summary,
+        "research_evidence_triage":triage,
+    }
+
+
+def test_research_triage_multi_case_index_ranks_source_gaps_and_checks_fake_values():
+    a,b=_synthetic_pair()
+    blocked=_synthetic_index_report(multi._pair(a,{**b,"capture_round":83}),"case-blocked","a"*64)
+    numeric=_synthetic_index_report(multi._pair(a,b),"case-numeric","b"*64)
+    data=[json.dumps(numeric).encode(),json.dumps(blocked).encode()]
+    index=triage_index.rank_report_bytes(data)
+    assert index["schema"]==triage_index.SCHEMA
+    assert [r["case_id"] for r in index["ranked_case_tasks"]]==["case-blocked","case-numeric"]
+    assert [r["priority_order_not_accuracy_score"] for r in index["ranked_case_tasks"]]==[0,6]
+    assert index["production_engine_or_image_bytes_revalidated_during_index"] is False
+    assert index["original_game_sources_independently_authenticated"] is False
+    assert index["model_accuracy_or_mechanism_verified"] is False
+    assert not any("file_path" in k for r in index["ranked_case_tasks"] for k in r)
+    with pytest.raises(ValueError,match="duplicate"):
+        triage_index.rank_report_bytes([data[0],data[0]])
+    with pytest.raises(ValueError,match="summary"):
+        tampered={**numeric,"comparison_evidence_summary":{**numeric["comparison_evidence_summary"],
+            "descriptive_numeric_change_rows":999}}
+        triage_index.rank_report_bytes([json.dumps(tampered).encode()])
+    with pytest.raises(ValueError,match="triage"):
+        tampered={**numeric,"research_evidence_triage":{**numeric["research_evidence_triage"],
+            "case_priority_derived_from_first_action_only":0}}
+        triage_index.rank_report_bytes([json.dumps(tampered).encode()])
+    with pytest.raises(ValueError,match="non-calibration"):
+        triage_index.rank_report_bytes([json.dumps({**numeric,"global_calibration_allowed":True}).encode()])
+    with pytest.raises(ValueError,match="1-20"):
+        triage_index.rank_report_bytes([])
+    with pytest.raises(ValueError,match="schema"):
+        triage_index.rank_report_bytes([b'{"schema":"unknown"}'])
+
+
+def test_research_triage_index_cli_refuses_existing_outputs(tmp_path):
+    a,b=_synthetic_pair()
+    report=_synthetic_index_report(multi._pair(a,b),"local-synthetic-case","a"*64)
+    path=tmp_path/"local.json"
+    path.write_text(json.dumps(report))
+    output=tmp_path/"index.json"
+    args=[sys.executable,"-m","tools.research.p0_report_case_triage_index",
+          "--report",str(path),"--output-json",str(output)]
+    first=subprocess.run(args,capture_output=True,text=True,timeout=45)
+    assert first.returncode==0,first.stderr
+    saved=json.loads(output.read_text())
+    assert saved["number_of_local_report_inputs"]==1
+    assert saved["original_game_sources_independently_authenticated"] is False
+    second=subprocess.run(args,capture_output=True,text=True,timeout=45)
+    assert second.returncode==2
+    assert "refusing to overwrite" in second.stderr
+    assert saved==json.loads(output.read_text())
