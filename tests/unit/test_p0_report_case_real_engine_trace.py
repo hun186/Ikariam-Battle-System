@@ -644,11 +644,6 @@ def test_evidence_summary_preserves_numeric_equal_and_both_signed_differences():
     assert summary["cross_pair_rows_are_not_independent_holdouts"] is True
     assert summary["descriptive_zero_residual_is_not_model_verification"] is True
     assert summary["battle_causality_or_calibration_verified"] is False
-    research_triage=result["research_evidence_triage"]
-    assert research_triage["schema"]==multi.TRIAGE_SCHEMA
-    assert research_triage["unassessable_rows"]==1
-    assert research_triage["manual_evidence_actions"][0]["recommended_manual_action_code"]==("AUDIT_ORIGINAL_IMAGES_REVIEW_AND_EXPLICIT_SLOT_MAP")
-    assert research_triage["game_combat_causality_or_calibration_verified"] is False
 
 
 def test_evidence_summary_accounts_for_missing_round_identity_and_position():
@@ -739,6 +734,11 @@ def test_multi_round_real_simulator_with_source_gates_and_unknown_wave(engine_in
     assert summary["unassessable_rows"]==1
     assert summary["category_counts"]=={"NOT_ASSESSABLE_SOURCE_OR_ENGINE_MAPPING_GATE":1}
     assert summary["battle_causality_or_calibration_verified"] is False
+    research_triage=result["research_evidence_triage"]
+    assert research_triage["schema"]==multi.TRIAGE_SCHEMA
+    assert research_triage["unassessable_rows"]==1
+    assert research_triage["manual_evidence_actions"][0]["recommended_manual_action_code"]==("AUDIT_ORIGINAL_IMAGES_REVIEW_AND_EXPLICIT_SLOT_MAP")
+    assert research_triage["game_combat_causality_or_calibration_verified"] is False
     pair=result["round_pairs"][0]
     assert pair["rows"][0]["comparison_status"]=="NOT_ASSESSABLE_SOURCE_OR_ENGINE_MAPPING_GATE"
     assert pair["rows"][0]["typed_count_change"] is None
