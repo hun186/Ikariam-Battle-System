@@ -71,3 +71,46 @@ authentication, casualty mechanism, numerical HP comparison, or private
 image/path/note is added. The source and exact engine execution gates
 of the original PR #122 tool still run normally, and this feature does
 not accept untrusted precomputed comparisons as fresh engine execution.
+
+## Manual evidence triage and cross-case queue (PR #124)
+
+The actual-engine multi-round report includes additive research_evidence_triage
+(schema p0_multi_round_research_evidence_triage_v1). Each captured
+round-pair/category combination becomes one manual evidence-acquisition task,
+based ONLY on existing strict source-gated categories.
+
+The deterministic low-to-high priority order is: 0 obtain missing original
+source rounds; 1 audit image/review/exact slot map; 2 check missing typed
+physical positions without inventing zero; 3 request nonblank typed/mapped
+Wave and unit identity; 4 inspect changed Wave identity without assuming
+continuity; 5 recheck the typed values and hypothetical scenario for
+descriptive numeric differences; 6 seek independent original source
+holdouts where changes numerically match. These numbers rank manual
+evidence acquisition effort, NEVER research quality, model accuracy,
+confidence or validity of Gameforge mechanics. A case in which all
+typed positions are numerically comparable is still NOT AUTHENTICATED.
+
+For multiple locally generated multi-round JSON reports, the separate
+**offline** index ranks 1–20 cases:
+
+~~~bash
+python -m tools.research.p0_report_case_triage_index \
+  --report case-A-multi-round.json \
+  --report case-B-multi-round.json \
+  --output-json NEW-case-triage-index.json
+~~~
+
+Output schema: p0_multi_case_research_evidence_triage_index_v1.
+The index recomputes internally consistent typed-delta/category/triage
+arithmetic and rejects duplicate source case SHA. Cases are sorted by
+their most urgent evidence-acquisition task with deterministic hash tie
+break. Index output exposes only case ID, hashes, typed row counts and
+next evidence action; no local source paths, image bytes or notes. Total
+input is bounded to 64 MiB; existing output files cannot be overwritten.
+
+**Important:** offline JSON reports and even their SHA-256 hashes could be
+fabricated. This index does NOT re-run the engine, re-read screenshots or
+independently authenticate original Gameforge battle captures. To reconfirm
+a source, run the strict actual-engine multi-round CLI with real local
+evidence, then obtain independently verified original holdouts. Issue #73
+remains OPEN; there is no implied combat-mechanism or model-accuracy proof.

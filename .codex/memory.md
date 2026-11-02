@@ -1,7 +1,9 @@
 # Project Memory
 
 ## Current Focus
-- **2026-10-31 PR #123 (Draft after #122 owner-merged):** additive source-gated multi-round evidence category and audited typed-position coverage summary, using only existing strict PR #122 actual-engine result rows; classify zero/positive/negative numeric *change residuals* vs explicit NOT_ASSESSABLE reasons, preserve nulls, count all source-transcribed rows with per-pair totals, no accuracy/causal/independent-game claims. Exact-HEAD Hosted CI and formal Codex Review before owner Merge.
+- **2026-11-02 PR #124 formal Codex P2 #4438068082:** offline index wrongly read descriptive_count_comparisons while actual source diagnostic emits descriptive_change_comparisons. Fix the consumer and matching synthetic fixtures, add genuine real-engine report→offline index and CLI JSON→index integration regressions. Re-run CI and formal new exact-head review; no merge before Clean and owner approval.
+- **2026-11-02 new Draft PR #124 after #123 owner Merge:** strict report-derived source evidence acquisition queue and separate bounded offline multi-case index; order by missing source round, image/reviewer/map, unentered physical position, Wave identity and descriptive numeric comparison. Never infer Gameforge authenticity, combat mechanisms or calibration. Exact-head Hosted CI and formal Codex review before owner-authorized Merge.
+- **2026-10-31 PR #123 MERGED:** squash f474c4006bbd4257f9b78a3cc66b7f7627a2c4b9, 14/14 Hosted CI, 1,202 passed/3 xfailed and formal Codex Clean; descriptive count-change/category summary merged.
 - **2026-10-31 PR #122 MERGED:** squash 65c007d80c2d309f734e06e48768bfd671faf7ca, exact-head Hosted CI 13/13 with 1,199 passed/3 xfailed and formal Codex Clean after P2 whitespace-only Wave fix, no unresolved review threads.
 - **2026-10-31 PR #121 MERGED:** squash e48ff998bde50958c3bec1ccf9e725850fa75738, 13/13 hosted checks, 1,193 passed/3 xfailed, formal Codex Clean. Source Image/Wave mapping still owner-asserted, not independently authenticated Gameforge original.
 - **2026-10-31 PR #120 MERGED:** squash commit 0cda6375ef4a66e45bbd5a69b70d4b2ea01006e5, full 14/14 Hosted CI and formal exact-head Codex Clean after P2 fix. Browser candidate values USER_ENTERED, NOT genuine engine predictions.
@@ -15,7 +17,7 @@
 - **Independent NAVAL source route:** `docs/calibration/naval-inverse-engineering-handoff.md` (Issue #68/#73) owns source-tagged Ram/Carrier/Tender reverse-engineering observations and unresolved focus hypotheses. All five explicit Gameforge Help `naval-mini/small/medium/large/max` geometries execute, but **AM damage-position** order, automatically inferred Naval Level selector, Accuracy, damage distribution, healing and HP-bar semantics are NOT calibrated; research assumptions must not become production truth.
 
 ## Open Handoffs
-- **Next Draft PR after #122:** derived evidence categories and per-pair source-typed coverage from the existing real-engine strict pipeline, never a game-model accuracy score; exact HEAD CI, formal Codex review, owner-authorized merge.
+- **Next Draft PR after #123:** prioritize manual source evidence acquisitions and local multi-case triage, preserving strict original actual-engine gates and explicitly untrusted offline aggregation. Latest-HEAD CI, formal Codex and owner Merge gate required.
 - Keep independent Gameforge source/holdout limits and open Issue #73; never treat synthesized candidate traces as verified original battle data.
 - Independently collect original Gameforge per-round Slot/Reserve/HP/wave observations, Forge/Workshop/support context, for Issue #73; never generalize in-sample synthetic research into official mechanics.
 - Further supported naval geometries, wall damage and garrison cross-geometry, native ammo, Accuracy concentration, RR, Doctor/Tender partial healing and casualty selectors still need source-grounded calibration as tracked in `.codex/backlog.md`.

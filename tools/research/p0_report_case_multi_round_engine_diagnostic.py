@@ -239,6 +239,128 @@ def summarize_evidence(pairs: list[dict]) -> dict:
     }
 
 
+
+# This is an acquisition/inspection queue, NOT model quality or accuracy.
+# A lower order value means "check this missing evidence first", not that
+# this synthetic report has any verified Gameforge provenance.
+TRIAGE_SCHEMA = "p0_multi_round_research_evidence_triage_v1"
+TRIAGE_TASKS = {
+    "NOT_ASSESSABLE_MISSING_INTERVENING_CAPTURE_ROUNDS":
+        (0, "OBTAIN_MISSING_ORIGINAL_ROUND_CAPTURES"),
+    "NOT_ASSESSABLE_SOURCE_OR_ENGINE_MAPPING_GATE":
+        (1, "AUDIT_ORIGINAL_IMAGES_REVIEW_AND_EXPLICIT_SLOT_MAP"),
+    "NOT_ASSESSABLE_TYPED_POSITION_MISSING_IN_ONE_CAPTURE":
+        (2, "CHECK_ORIGINAL_VISIBLE_POSITION_WITHOUT_FILLING_ZERO"),
+    "NOT_ASSESSABLE_INCOMPLETE_TYPED_WAVE_IDENTITY":
+        (3, "REQUEST_NONBLANK_TYPED_UNIT_AND_WAVE_FROM_ORIGINAL"),
+    "NOT_ASSESSABLE_INCOMPLETE_ENGINE_WAVE_IDENTITY":
+        (3, "VERIFY_EXPLICIT_ENGINE_UNIT_AND_WAVE_IDENTITY"),
+    "NOT_ASSESSABLE_DIFFERENT_WAVE_OR_UNIT_IDENTITY":
+        (4, "REVIEW_IDENTITY_CHANGE_NO_AUTO_CONTINUITY"),
+    NUMERIC_ABOVE:
+        (5, "RECHECK_TYPED_COUNTS_AND_HYPOTHETICAL_SCENARIO"),
+    NUMERIC_BELOW:
+        (5, "RECHECK_TYPED_COUNTS_AND_HYPOTHETICAL_SCENARIO"),
+    NUMERIC_SAME:
+        (6, "SEEK_INDEPENDENT_ORIGINAL_HOLDOUT_NOT_CALIBRATION"),
+}
+
+
+def build_research_triage(pairs: list[dict], summary: dict) -> dict:
+    """Rank *source acquisition questions* from the already audited rows.
+
+    Intentional boundaries: called only after real production engine execution
+    and strict source gating by multi_round_diagnostic. Numbers and statuses
+    are never inferred from missing source positions; no model fit score.
+    """
+    if (
+        summary.get("schema") != SUMMARY_SCHEMA
+        or summary.get("capture_pairs_count") != len(pairs)
+        or len(summary.get("pair_summaries", [])) != len(pairs)
+    ):
+        raise ValueError("triage source summary is inconsistent")
+    queues = []
+    combined = {k: 0 for k in TRIAGE_TASKS}
+    for index, (pair, report) in enumerate(zip(pairs, summary["pair_summaries"])):
+        if (
+            report["earlier_capture_id"] != pair["earlier_capture_id"]
+            or report["later_capture_id"] != pair["later_capture_id"]
+            or report["earlier_round"] != pair["earlier_round"]
+            or report["later_round"] != pair["later_round"]
+            or report["typed_position_pairs"] != len(pair["rows"])
+            or sum(report["category_counts"].values()) != len(pair["rows"])
+        ):
+            raise ValueError("triage pair provenance or counts disagree")
+        categories = report["category_counts"]
+        if any(k not in TRIAGE_TASKS or type(v) is not int or v < 0
+               for k, v in categories.items()):
+            raise ValueError("triage has invalid source evidence category")
+        numeric = sum(categories.get(k, 0) for k in (NUMERIC_SAME, NUMERIC_ABOVE, NUMERIC_BELOW))
+        if (
+            numeric != report["descriptive_numeric_change_rows"]
+            or report["unassessable_rows"] != len(pair["rows"]) - numeric
+        ):
+            raise ValueError("triage numeric coverage does not reconcile")
+        for category, number in sorted(categories.items()):
+            if not number:
+                continue
+            combined[category] += number
+            priority, action = TRIAGE_TASKS[category]
+            queues.append({
+                "priority_order_not_accuracy_score": priority,
+                "source_pair_index": index,
+                "earlier_capture_id": pair["earlier_capture_id"],
+                "later_capture_id": pair["later_capture_id"],
+                "earlier_round": pair["earlier_round"],
+                "later_round": pair["later_round"],
+                "evidence_category": category,
+                "typed_position_pair_rows_affected": number,
+                "recommended_manual_action_code": action,
+                "game_mechanism_proven": False,
+            })
+    present = {k: v for k, v in combined.items() if v}
+    if present != summary["category_counts"]:
+        raise ValueError("triage aggregated category counts do not reconcile")
+    queues.sort(key=lambda x: (
+        x["priority_order_not_accuracy_score"],
+        x["source_pair_index"],
+        x["evidence_category"],
+    ))
+    eligible = summary["descriptive_numeric_change_rows"]
+    total = summary["typed_position_pair_rows"]
+    if total != sum(combined.values()) or type(total) is not int:
+        raise ValueError("triage denominator does not reconcile")
+    if eligible == 0:
+        readiness = "NO_NUMERICALLY_COMPARABLE_TYPED_POSITION_PAIRS"
+    elif eligible < total:
+        readiness = "PARTIAL_NUMERIC_COVERAGE_SOURCE_GAPS_REMAIN"
+    else:
+        readiness = "ALL_TYPED_POSITION_PAIRS_NUMERICALLY_COMPARABLE_NOT_AUTHENTICATED"
+    return {
+        "schema": TRIAGE_SCHEMA,
+        "readiness_not_accuracy": readiness,
+        "case_priority_derived_from_first_action_only": (
+            queues[0]["priority_order_not_accuracy_score"] if queues else None
+        ),
+        "source_capture_pair_count": len(pairs),
+        "typed_position_pair_rows": total,
+        "descriptive_numeric_change_rows": eligible,
+        "unassessable_rows": summary["unassessable_rows"],
+        "manual_evidence_actions": queues,
+        "task_count": len(queues),
+        "priority_is_manual_evidence_acquisition_not_model_fit": True,
+        "repeated_physical_slots_are_not_independent_cases": True,
+        "source_image_hash_only_establishes_byte_identity": True,
+        "original_game_sources_independently_authenticated": False,
+        "independently_verified_holdouts": 0,
+        "game_combat_causality_or_calibration_verified": False,
+        "warning": (
+            "Priority lists what to verify or obtain first; it never authenticates "
+            "a Gameforge capture, identifies damage/healing causes or ranks engine accuracy."
+        ),
+    }
+
+
 def multi_round_diagnostic(
     scenario_bytes: bytes,
     case_bytes: bytes,
@@ -300,6 +422,7 @@ def multi_round_diagnostic(
         raise ValueError("selected projections disagree on engine/evidence digests")
     pairs = [_pair(a, b) for a, b in zip(projections, projections[1:])]
     evidence_summary = summarize_evidence(pairs)
+    research_triage = build_research_triage(pairs, evidence_summary)
     if evidence_summary["descriptive_numeric_change_rows"] != sum(
         p["descriptive_change_comparisons"] for p in pairs
     ):
@@ -325,6 +448,7 @@ def multi_round_diagnostic(
         "capture_projections": projections,
         "round_pairs": pairs,
         "comparison_evidence_summary": evidence_summary,
+        "research_evidence_triage": research_triage,
         "actual_current_engine_executed": True,
         "number_of_engine_executions": len(projections),
         "unentered_positions_or_rounds_invented": False,
