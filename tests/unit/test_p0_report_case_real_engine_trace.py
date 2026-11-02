@@ -852,8 +852,8 @@ def test_research_triage_orders_evidence_acquisition_not_model_accuracy():
     assert triage["readiness_not_accuracy"]=="PARTIAL_NUMERIC_COVERAGE_SOURCE_GAPS_REMAIN"
     assert triage["case_priority_derived_from_first_action_only"]==0
     assert [t["priority_order_not_accuracy_score"] for t in triage["manual_evidence_actions"]] == [
-        0,1,2,3,3,4,5,5,6,  # missing-position pair has TWO typed positions
-    ][:len(triage["manual_evidence_actions"])] or triage["task_count"] > 0
+        0,1,2,3,3,4,5,5,6,  # two missing positions are ONE grouped action
+    ]
     assert triage["manual_evidence_actions"][0]["recommended_manual_action_code"] == (
         "OBTAIN_MISSING_ORIGINAL_ROUND_CAPTURES"
     )

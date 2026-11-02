@@ -12,6 +12,7 @@ from hashlib import sha256
 import json
 from pathlib import Path
 
+from tools.research import p0_report_case_local_image_binding as binder
 from tools.research import p0_report_case_multi_round_engine_diagnostic as multi
 from tools.research import p0_report_case_real_engine_trace as engine
 
@@ -122,10 +123,11 @@ def main() -> None:
         total = 0
         blobs = []
         for path in args.report:
-            raw = path.read_bytes()
-            total += len(raw)
-            if total > MAX_INPUT_BYTES:
+            remaining = MAX_INPUT_BYTES - total
+            if remaining <= 0:
                 raise ValueError("aggregate report data exceeds 64 MiB")
+            raw = binder._read_limited(path, remaining)
+            total += len(raw)
             blobs.append(raw)
         result = rank_report_bytes(blobs)
         output = engine._bytes_json(result) + b"\n"
