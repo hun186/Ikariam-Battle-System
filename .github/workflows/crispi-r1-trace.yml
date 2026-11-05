@@ -3,6 +3,8 @@ name: Crispi R1 model trace
 on:
   push:
     branches:
+      - main
+      - research/crispi-r1-position-gap-matrix
       - research/crispi-r1-event-source-trace
   workflow_dispatch:
 
